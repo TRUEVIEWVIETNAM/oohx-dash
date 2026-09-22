@@ -42,7 +42,8 @@ return [
             'key'     => 'privacy',
             'title'   => 'Chính sách bảo mật',
             'view'    => 'frontpage.policies.privacy',
-            'version' => '0.1-draft',
+            // 0.2: thêm việc chia sẻ liên hệ người mua cho media owner (mục 4).
+            'version' => '0.2-draft',
             'effective_from' => null,
         ],
         'giai-quyet-tranh-chap' => [
@@ -52,5 +53,26 @@ return [
             'version' => '0.1-draft',
             'effective_from' => null,
         ],
+        'bang-phi' => [
+            'key'     => 'fees',
+            'title'   => 'Bảng phí dịch vụ',
+            'view'    => 'frontpage.policies.fees',
+            'version' => '1.0',
+            'effective_from' => '22/09/2026',
+        ],
+    ],
+
+    /**
+     * Biểu phí sàn thu của media owner (hồ sơ TMĐT mục 16). Người mua không trả
+     * phí. Sàn không thu theo giao dịch và không chia doanh thu — đổi mô hình thì
+     * phải sửa cả hồ sơ đã nộp, không chỉ con số ở đây.
+     */
+    'fees' => [
+        // Giai đoạn 2, tính theo doanh nghiệp media owner, chưa gồm VAT.
+        'owner_annual_fee'     => 6_668_000,
+        // Giai đoạn 1 (0 đồng) kéo dài tới khi có ngần này owner được duyệt hoạt động.
+        'free_until_active_owners' => 30,
+        // Báo trước tối thiểu bao nhiêu ngày trước khi bắt đầu thu.
+        'notice_days'          => 30,
     ],
 ];

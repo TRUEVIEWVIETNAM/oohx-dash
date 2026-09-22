@@ -129,10 +129,10 @@ class OwnerResource extends Resource
                     ->helperText('Hiển thị badge "Verified" trên frontpage'),
             ]),
 
-            Forms\Components\Section::make('Revenue & Billing')->columns(2)->collapsible()->schema([
-                Forms\Components\TextInput::make('revenue_share_pct')
-                    ->label('Revenue Share %')->numeric()->default(70)
-                    ->minValue(0)->maxValue(100)->suffix('%'),
+            // Không đưa revenue_share_pct lên giao diện: sàn thu phí thuê bao của
+            // media owner, không chia doanh thu giao dịch (hồ sơ TMĐT mục 16).
+            // Cột vẫn còn trong DB nhưng không có cơ chế nào dùng tới nó.
+            Forms\Components\Section::make('Billing')->columns(2)->collapsible()->schema([
                 Forms\Components\KeyValue::make('billing_info')
                     ->label('Billing Info')->columnSpan(2),
                 Forms\Components\Textarea::make('notes')->columnSpan(2),
@@ -152,7 +152,6 @@ class OwnerResource extends Resource
                     ->colors(['warning'=>'pending','success'=>'active','danger'=>'suspended']),
                 Tables\Columns\TextColumn::make('screens_count')
                     ->label('Screens')->counts('screens')->sortable(),
-                Tables\Columns\TextColumn::make('revenue_share_pct')->label('Rev Share')->suffix('%'),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(),
             ])
             ->filters([
@@ -178,7 +177,6 @@ class OwnerResource extends Resource
                 Infolists\Components\TextEntry::make('status')->badge(),
                 Infolists\Components\TextEntry::make('type')->badge(),
                 Infolists\Components\TextEntry::make('onboard_method'),
-                Infolists\Components\TextEntry::make('revenue_share_pct')->suffix('%'),
                 Infolists\Components\TextEntry::make('created_at')->dateTime(),
             ]),
         ]);

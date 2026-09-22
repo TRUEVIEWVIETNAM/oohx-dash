@@ -52,6 +52,7 @@
                     <li><a href="{{ route('fp.policy', 'quy-che-hoat-dong') }}">Quy chế hoạt động</a></li>
                     <li><a href="{{ route('fp.policy', 'chinh-sach-bao-mat') }}">Chính sách bảo mật</a></li>
                     <li><a href="{{ route('fp.policy', 'giai-quyet-tranh-chap') }}">Cơ chế giải quyết tranh chấp, khiếu nại, phản ánh</a></li>
+                    <li><a href="{{ route('fp.policy', 'bang-phi') }}">Bảng phí dịch vụ</a></li>
                     <li><a href="{{ route('fp.reflections.create') }}">Tiếp nhận phản ánh của TCXH</a></li>
                     <li><a href="{{ route('fp.reflections.index') }}">Danh sách phản ánh của TCXH</a></li>
                 </ul>

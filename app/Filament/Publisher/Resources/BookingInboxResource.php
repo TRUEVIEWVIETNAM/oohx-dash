@@ -134,7 +134,7 @@ class BookingInboxResource extends Resource
         $ownerId = auth()->user()?->current_owner_id;
 
         return parent::getEloquentQuery()
-            ->with(['organization'])
+            ->with(['organization', 'createdBy'])
             ->whereHas('bookingLines', fn ($q) => $q->where('owner_id', $ownerId))
             ->whereIn('status', [
                 'pending_approval', 'approved', 'rejected',

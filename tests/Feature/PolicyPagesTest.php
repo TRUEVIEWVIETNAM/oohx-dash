@@ -43,7 +43,50 @@ class PolicyPagesTest extends TestCase
             'quy chế'      => ['quy-che-hoat-dong', 'Quy chế hoạt động'],
             'bảo mật'      => ['chinh-sach-bao-mat', 'Chính sách bảo mật'],
             'tranh chấp'   => ['giai-quyet-tranh-chap', 'Cơ chế giải quyết tranh chấp'],
+            'bảng phí'     => ['bang-phi', 'Bảng phí dịch vụ'],
         ];
+    }
+
+    // ── Review vòng 2, mục 16: bảng phí công khai ────────────────────────────
+
+    public function test_bang_phi_neu_ro_muc_phi_va_doi_tuong_thu(): void
+    {
+        $this->get_('/bang-phi')
+            ->assertOk()
+            ->assertSee('Người mua sử dụng sàn miễn phí.')
+            ->assertSee('0 đồng')
+            ->assertSee('6.668.000 đồng/năm')
+            ->assertSee('chưa bao gồm VAT')
+            ->assertSee('30 media owner được duyệt hoạt động')
+            ->assertSeeText('truy thu phí cho thời gian media owner đã sử dụng miễn phí');
+    }
+
+    public function test_bang_phi_da_ban_hanh_khong_hien_canh_bao_ban_nhap(): void
+    {
+        // Sở yêu cầu "bảng phí cụ thể" — một trang ghi "bản nháp, chưa có hiệu
+        // lực" thì không trả lời được yêu cầu đó.
+        $this->get_('/bang-phi')->assertDontSee('Văn bản đang hoàn thiện');
+    }
+
+    public function test_bang_phi_khong_noi_toi_chia_doanh_thu(): void
+    {
+        // Hồ sơ khai sàn không chia lợi nhuận giao dịch; tỷ lệ 70/30 còn sót trong
+        // DB không được lọt ra trang công khai.
+        $this->get_('/bang-phi')->assertDontSee('70%')->assertDontSee('Revenue');
+    }
+
+    public function test_chan_trang_co_link_bang_phi(): void
+    {
+        $this->get_('/')->assertSee('Bảng phí dịch vụ');
+    }
+
+    // ── Chia sẻ liên hệ người mua cho media owner ────────────────────────────
+
+    public function test_chinh_sach_bao_mat_neu_viec_chia_se_lien_he_cho_media_owner(): void
+    {
+        $this->get_('/chinh-sach-bao-mat')
+            ->assertSee('Chia sẻ thông tin người mua cho media owner khi gửi booking')
+            ->assertSee('Mỗi media owner chỉ xem được thông tin người mua trong các booking có màn hình của mình.');
     }
 
     public function test_slug_chinh_sach_khong_ton_tai_thi_khong_render_trang_chinh_sach(): void

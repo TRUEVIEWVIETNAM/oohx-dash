@@ -36,6 +36,32 @@ class ViewBookingInbox extends ViewRecord
                     Infolists\Components\TextEntry::make('notes')->label('Ghi chú')->default('—'),
                 ]),
 
+            // Media owner liên hệ trực tiếp người mua để trao đổi trước khi duyệt
+            // (phản hồi review TMĐT, comment 7). Chỉ owner có màn hình trong booking
+            // mới mở được trang này — getEloquentQuery() của resource đã chặn.
+            // Việc chia sẻ được nêu trong Chính sách bảo mật mục 4.
+            Infolists\Components\Section::make('Liên hệ người mua')
+                ->description('Thông tin được chia sẻ theo Chính sách bảo mật để trao đổi về booking này. Không dùng cho mục đích khác.')
+                ->icon('heroicon-o-user-circle')
+                ->schema([
+                    Infolists\Components\Grid::make(2)->schema([
+                        Infolists\Components\TextEntry::make('organization.name')->label('Đơn vị'),
+                        Infolists\Components\TextEntry::make('createdBy.name')->label('Người liên hệ')->default('—'),
+                        Infolists\Components\TextEntry::make('createdBy.email')
+                            ->label('Email người liên hệ')
+                            ->default('—')
+                            ->copyable(),
+                        Infolists\Components\TextEntry::make('organization.billing_phone')
+                            ->label('Điện thoại')
+                            ->default('—')
+                            ->copyable(),
+                        Infolists\Components\TextEntry::make('organization.billing_email')
+                            ->label('Email đơn vị')
+                            ->default('—')
+                            ->copyable(),
+                    ]),
+                ]),
+
             Infolists\Components\Section::make('Màn hình booking')
                 ->description(fn (Campaign $record) => $record->bookingLines()->where('owner_id', $ownerId)->count() . ' màn hình thuộc inventory của bạn')
                 ->schema([

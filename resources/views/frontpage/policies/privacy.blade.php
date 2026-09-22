@@ -27,6 +27,19 @@
 
         <h2>4. Những người hoặc tổ chức có thể được tiếp cận thông tin</h2>
         <p>Nội dung đang hoàn thiện.</p>
+        <h3>Chia sẻ thông tin người mua cho media owner khi gửi booking</h3>
+        <p>
+            Khi người mua gửi booking, media owner có màn hình trong booking đó được xem
+            thông tin liên hệ của người mua gồm: tên đơn vị, họ tên và email của người
+            tạo booking, số điện thoại và email thanh toán của đơn vị (nếu có). Mục đích
+            duy nhất là để media owner trao đổi, làm rõ yêu cầu và thỏa thuận về booking
+            đó.
+        </p>
+        <ul>
+            <li>Mỗi media owner chỉ xem được thông tin người mua trong các booking có màn hình của mình.</li>
+            <li>Media owner không được sử dụng thông tin này cho mục đích khác hoặc chuyển cho bên thứ ba.</li>
+            <li>Media owner không có màn hình trong booking không được tiếp cận thông tin này.</li>
+        </ul>
 
         <h2>5. Đơn vị thu thập và quản lý thông tin cá nhân</h2>
         @include('frontpage.partials.company-legal')
