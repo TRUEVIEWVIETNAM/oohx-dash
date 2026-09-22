@@ -65,7 +65,16 @@ return [
 
     'temporary_file_upload' => [
         'disk' => null,        // Example: 'local', 's3'              | Default: 'default'
-        'rules' => ['required', 'file', 'max:51200'],  // 50MB max upload
+        // Upload tạm chạy TRƯỚC validation của từng form, nên luật ở đây là cổng
+        // duy nhất cho mọi file vào livewire-tmp. Trước đây chỉ 'file|max' — đã có
+        // webshell .php được đẩy lên (08–09/2026). Danh sách = hợp của mọi
+        // FileUpload trong app (ảnh, PDF giấy phép, Excel/CSV import).
+        // Không nhận svg: file ảnh đi vào disk public, svg chạy được script.
+        'rules' => [
+            'required', 'file', 'max:51200', // 50MB
+            'extensions:jpg,jpeg,png,gif,webp,bmp,pdf,xlsx,xls,csv,txt',
+            'mimes:jpg,jpeg,png,gif,webp,bmp,pdf,xlsx,xls,csv,txt,zip,bin',
+        ],
         'directory' => null,   // Example: 'tmp'                      | Default: 'livewire-tmp'
         'middleware' => null,  // Example: 'throttle:5,1'             | Default: 'throttle:60,1'
         'preview_mimes' => [   // Supported file types for temporary pre-signed file URLs...

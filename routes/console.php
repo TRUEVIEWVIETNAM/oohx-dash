@@ -28,3 +28,6 @@ Schedule::command('oohx:fetch-health')
 
 // ── Prune expired user invitations daily ──
 Schedule::command('invitations:prune')->dailyAt('03:00');
+
+// ── Dọn upload tạm Livewire bị bỏ dở (Livewire chỉ tự dọn khi upload hoàn tất) ──
+Schedule::command('uploads:prune-livewire-tmp')->hourly()->withoutOverlapping();
