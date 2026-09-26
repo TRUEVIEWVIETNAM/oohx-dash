@@ -58,7 +58,9 @@ class BookingLine extends Model
 
     public function screen(): BelongsTo
     {
-        return $this->belongsTo(Screen::class);
+        // Bỏ owner_scope: dòng booking đã xác định ngữ cảnh rồi. Người mua không có
+        // tenant nên nếu để scope, quan hệ này trả null và hỏng cả trang chiến dịch.
+        return $this->belongsTo(Screen::class)->withoutGlobalScope('owner_scope');
     }
 
     public function owner(): BelongsTo

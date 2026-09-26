@@ -52,6 +52,13 @@ class Screen extends Model
 {
     use HasFactory, HasUlids, HasOwnerScope, HasSlug, SoftDeletes;
 
+    /**
+     * device_token là bí mật của thiết bị phát — dùng để xác thực player.
+     * Nó từng đi theo mọi response serialize Screen, kể cả quan hệ lồng nhau
+     * (Codex review T1, F3). Ẩn ở tầng model để bịt mọi đường ra cùng lúc.
+     */
+    protected $hidden = ['device_token'];
+
     protected $fillable = [
         // Marketplace
         'site_id', 'owner_id', 'external_id', 'uuid',

@@ -43,8 +43,11 @@ Route::prefix('v1/player')->group(function () {
     Route::post('impression', [PlayerController::class, 'impression']);
 });
 
-// ── Authenticated API (Sanctum token) ───────────────────────
-Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
+// ── Management API — ghi dữ liệu ────────────────────────────
+// Yêu cầu ability 'manage' NGOÀI việc đăng nhập: token đối tác chỉ có 'inventory'
+// nên không vào được nhóm này. Mỗi action vẫn phải tự gọi policy — ability chỉ là
+// lớp chặn đầu tiên, không thay cho phân quyền theo bản ghi (audit F01).
+Route::prefix('v1')->middleware(['auth:sanctum', 'ability:manage'])->group(function () {
 
     // Owner management (super_admin only)
     Route::apiResource('owners', OwnerController::class);

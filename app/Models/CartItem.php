@@ -40,7 +40,8 @@ class CartItem extends Model
 
     public function screen(): BelongsTo
     {
-        return $this->belongsTo(Screen::class);
+        // Bỏ owner_scope, lý do như BookingLine::screen().
+        return $this->belongsTo(Screen::class)->withoutGlobalScope('owner_scope');
     }
 
     public function product(): BelongsTo

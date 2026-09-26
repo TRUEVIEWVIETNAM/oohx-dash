@@ -4,22 +4,33 @@ namespace App\Policies;
 
 use App\Models\Screen;
 use App\Models\User;
+use App\Services\TenantPermission;
 
+/**
+ * Quyền trên màn hình.
+ *
+ * Sửa sau review T1 của Codex:
+ *  - Đọc dùng `view_inventory` (loại reporting_only), không chỉ so current_owner_id.
+ *  - Sửa giá dùng `manage_pricing` (chỉ owner/manager), tách khỏi `manage_inventory`
+ *    vốn cho cả scheduler.
+ *  - Mọi quyền đi qua TenantPermission nên membership bị gỡ hoặc owner bị tạm ngưng
+ *    đều mất quyền ngay.
+ */
 class ScreenPolicy
 {
     public function viewAny(User $user): bool
-    {
-        return $user->hasRole('super_admin')
-            || $user->current_owner_id !== null;
-    }
-
-    public function view(User $user, Screen $screen): bool
     {
         if ($user->hasRole('super_admin')) {
             return true;
         }
 
-        return $screen->owner_id === $user->current_owner_id;
+        return $user->current_owner_id !== null
+            && TenantPermission::for($user)->can('view_inventory');
+    }
+
+    public function view(User $user, Screen $screen): bool
+    {
+        return $this->allows($user, $screen, 'view_inventory');
     }
 
     public function create(User $user): bool
@@ -29,27 +40,17 @@ class ScreenPolicy
         }
 
         return $user->current_owner_id !== null
-            && $this->hasManagePermission($user);
+            && TenantPermission::for($user)->can('manage_inventory');
     }
 
     public function update(User $user, Screen $screen): bool
     {
-        if ($user->hasRole('super_admin')) {
-            return true;
-        }
-
-        return $screen->owner_id === $user->current_owner_id
-            && $this->hasManagePermission($user);
+        return $this->allows($user, $screen, 'manage_inventory');
     }
 
     public function delete(User $user, Screen $screen): bool
     {
-        if ($user->hasRole('super_admin')) {
-            return true;
-        }
-
-        return $screen->owner_id === $user->current_owner_id
-            && $this->hasManagePermission($user);
+        return $this->allows($user, $screen, 'manage_inventory');
     }
 
     public function deleteAny(User $user): bool
@@ -58,11 +59,32 @@ class ScreenPolicy
             return true;
         }
 
-        return $this->hasManagePermission($user);
+        return TenantPermission::for($user)->can('manage_inventory');
     }
 
-    private function hasManagePermission(User $user): bool
+    /**
+     * Sửa giá sàn, CPM, multiplier, bật/tắt programmatic.
+     * Scheduler quản được inventory nhưng KHÔNG được đụng tới giá.
+     */
+    public function managePricing(User $user, Screen $screen): bool
     {
-        return \App\Services\TenantPermission::for($user)->can('manage_inventory');
+        return $this->allows($user, $screen, 'manage_pricing');
+    }
+
+    /**
+     * Màn hình phải thuộc tenant đang chọn, và user phải còn quyền tương ứng
+     * trong tenant đó (membership còn hiệu lực, owner còn hoạt động).
+     */
+    private function allows(User $user, Screen $screen, string $permission): bool
+    {
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        if ($screen->owner_id !== $user->current_owner_id) {
+            return false;
+        }
+
+        return TenantPermission::for($user, $screen->owner_id)->can($permission);
     }
 }

@@ -9,6 +9,11 @@ use App\Models\User;
 
 class CartService
 {
+    public function __construct(
+        private readonly PurchaseEligibilityService $eligibility = new PurchaseEligibilityService(),
+    ) {
+    }
+
     /**
      * Get or create active cart for user.
      */
@@ -31,7 +36,9 @@ class CartService
      */
     public function addProduct(Cart $cart, string $productId, array $data = []): CartItem
     {
-        $product = \App\Models\Product::with('screens.inventory')->findOrFail($productId);
+        // Qua cổng bán hàng, không findOrFail trần: sản phẩm bị gỡ/owner tạm ngưng
+        // vẫn có thể bị đặt nếu biết ID (audit F10).
+        $product = $this->eligibility->findPurchasableProduct($productId);
 
         $selectedScreenIds = $data['selected_screen_ids'] ?? null;
         $buyMode = $data['buy_mode'] ?? ($product->listing_mode === 'package_only' ? 'package' : 'individual');
@@ -39,27 +46,30 @@ class CartService
         $endDate = $data['end_date'] ?? now()->addDays(37)->toDateString();
         $sovPct = $data['share_of_voice_pct'] ?? 100;
 
+        // Cổng bán hàng chốt tập màn hình: kiểm thuộc sản phẩm, kiểm từng màn hình
+        // còn bán được, kiểm min/max. Không tin danh sách client gửi.
+        $screens = $this->eligibility->resolveProductScreens(
+            $product,
+            $buyMode,
+            is_array($selectedScreenIds) ? $selectedScreenIds : null
+        );
+
         if ($buyMode === 'package') {
             $quantity = 1;
             $cost = (float) $product->floor_price;
             $impressions = 0;
             $selectedScreenIds = null;
         } else {
-            $screenIds = is_array($selectedScreenIds) ? $selectedScreenIds : [];
-            $quantity = max(1, count($screenIds));
+            $quantity = $screens->count();
             $unitPrice = (float) ($product->individual_price ?: $product->floor_price);
             $cost = $unitPrice * $quantity;
-            $impressions = 0;
-
-            foreach ($product->screens as $screen) {
-                if (in_array($screen->id, $screenIds)) {
-                    $impressions += $screen->inventory?->weekly_impressions ?? 0;
-                }
-            }
+            $impressions = (int) $screens->sum(fn ($s) => $s->inventory?->weekly_impressions ?? 0);
+            // Ghi lại đúng tập đã được kiểm, không phải mảng thô từ request.
+            $selectedScreenIds = $screens->pluck('id')->all();
         }
 
         // Determine pricing model from first screen's inventory
-        $firstScreen = $product->screens->first();
+        $firstScreen = $screens->first();
         $inv = $firstScreen?->inventory;
         $pricingModel = $inv?->pricing_model ?? 'io';
         if ($pricingModel === 'both') {
@@ -99,7 +109,7 @@ class CartService
      */
     public function addItem(Cart $cart, string $screenId, array $data = []): CartItem
     {
-        $screen = Screen::with('inventory')->findOrFail($screenId);
+        $screen = $this->eligibility->findPurchasableScreen($screenId);
         $inv = $screen->inventory;
         $invModel = $inv?->pricing_model ?? 'io';
 
