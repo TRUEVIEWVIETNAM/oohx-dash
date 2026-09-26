@@ -320,8 +320,8 @@
 <div class="bp-field"><div class="bp-lbl">Brand / Campaign</div><input class="bp-inp" type="text" placeholder="VD: Honda Civic Launch Q2"></div>
 <div class="bp-sum">
 <div class="bp-row"><span class="bp-rl" id="bp-calc-label">—</span><span class="bp-rv" id="bp-calc-sub">{{ number_format($defSub, 0, ',', '.') }} ₫</span></div>
-<div class="bp-row"><span class="bp-rl">VAT (10%)</span><span class="bp-rv" id="bp-calc-vat">{{ number_format($defSub * 0.1, 0, ',', '.') }} ₫</span></div>
-<div class="bp-row bp-total"><span class="bp-rl">Tổng cộng</span><span class="bp-rv" id="bp-calc-total">{{ number_format($defSub * 1.1, 0, ',', '.') }} ₫</span></div>
+<div class="bp-row"><span class="bp-rl">VAT ({{ rtrim(rtrim(number_format(config('pricing.vat_rate') * 100, 2, '.', ''), '0'), '.') }}%)</span><span class="bp-rv" id="bp-calc-vat">{{ number_format($defSub * 0.1, 0, ',', '.') }} ₫</span></div>
+<div class="bp-row bp-total"><span class="bp-rl">Tổng cộng</span><span class="bp-rv" id="bp-calc-total">{{ number_format($defSub * (1 + config('pricing.vat_rate')), 0, ',', '.') }} ₫</span></div>
 </div>
 <div class="bp-ctas">@auth<form method="POST" action="{{ route('buyer.cart.add') }}" class="cart-add-form"><input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="screen_id" value="{{ $screen->id }}"><input type="hidden" name="start_date" id="bp-h-start" value="{{ now()->addDays(7)->format('Y-m-d') }}"><input type="hidden" name="end_date" id="bp-h-end" value="{{ now()->addDays(7)->addMonths(3)->format('Y-m-d') }}"><input type="hidden" name="pricing_model" id="bp-h-mode" value="{{ $defMode }}"><input type="hidden" name="booked_cpms" id="bp-h-cpms" value="1000"><input type="hidden" name="screen_count" id="bp-h-screens" value="1"><input type="hidden" name="duration_units" id="bp-h-dunits" value="{{ $defIoUnits }}">
 <button type="submit" class="btn btn-p btn-lg" style="width:100%;justify-content:center;border-radius:12px;height:52px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" style="width:18px;height:18px;flex-shrink:0"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> Thêm vào Plan</button></form>@else<a href="{{ route('login') }}" class="btn btn-p btn-lg" style="width:100%;justify-content:center;border-radius:12px;height:52px;text-decoration:none"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" style="width:18px;height:18px;flex-shrink:0"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> Đăng nhập để Booking</a>@endauth</div>
@@ -548,6 +548,8 @@ function sw(el,id){
   var hDunits = document.getElementById('bp-h-dunits');
   var hCpms = document.getElementById('bp-h-cpms');
 
+  // Thuế suất lấy từ config, không viết cứng trong JS.
+  var VAT_RATE = {{ (float) config('pricing.vat_rate') }};
   function fmtVND(n){ return n.toLocaleString('vi-VN'); }
   function fmtPrice(n){ return n >= 1e6 ? (n/1e6).toFixed(1).replace('.0','') + 'M' : fmtVND(n); }
   function addMonths(d,m){ var x=new Date(d);x.setMonth(x.getMonth()+m);return x.toISOString().slice(0,10); }
@@ -561,8 +563,8 @@ function sw(el,id){
       var sub = cpmRate * cpms;
       document.getElementById('bp-calc-label').textContent = fmtVND(cpmRate) + ' ₫ × ' + fmtVND(cpms) + ' CPM';
       document.getElementById('bp-calc-sub').textContent = fmtVND(sub) + ' ₫';
-      document.getElementById('bp-calc-vat').textContent = fmtVND(Math.round(sub * 0.1)) + ' ₫';
-      document.getElementById('bp-calc-total').textContent = fmtVND(Math.round(sub * 1.1)) + ' ₫';
+      document.getElementById('bp-calc-vat').textContent = fmtVND(Math.round(sub * VAT_RATE)) + ' ₫';
+      document.getElementById('bp-calc-total').textContent = fmtVND(Math.round(sub * (1 + VAT_RATE))) + ' ₫';
       if(hCpms) hCpms.value = cpms;
     } else {
       var units = parseInt(durSel?.value) || 1;
@@ -570,8 +572,8 @@ function sw(el,id){
       var sub = ioRate * screens * units;
       document.getElementById('bp-calc-label').textContent = fmtPrice(ioRate) + ' × ' + screens + ' mh × ' + units + ' ' + unitLabel;
       document.getElementById('bp-calc-sub').textContent = fmtVND(sub) + ' ₫';
-      document.getElementById('bp-calc-vat').textContent = fmtVND(Math.round(sub * 0.1)) + ' ₫';
-      document.getElementById('bp-calc-total').textContent = fmtVND(Math.round(sub * 1.1)) + ' ₫';
+      document.getElementById('bp-calc-vat').textContent = fmtVND(Math.round(sub * VAT_RATE)) + ' ₫';
+      document.getElementById('bp-calc-total').textContent = fmtVND(Math.round(sub * (1 + VAT_RATE))) + ' ₫';
       if(hScreens) hScreens.value = screens;
       if(hDunits) hDunits.value = units;
       if(hEnd && startInp) hEnd.value = rateUnit === 'week' ? addWeeks(startInp.value, units) : addMonths(startInp.value, units);

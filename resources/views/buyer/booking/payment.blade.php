@@ -19,7 +19,7 @@
                 <div class="wz-card-title">Chi tiết thanh toán</div>
                 <div class="pay-rows">
                     <div class="pay-row"><span>Tổng chi phí booking</span><span>{{ number_format($summary['total_cost'], 0, ',', '.') }} ₫</span></div>
-                    <div class="pay-row"><span>VAT (10%)</span><span>{{ number_format($summary['vat'], 0, ',', '.') }} ₫</span></div>
+                    <div class="pay-row"><span>VAT ({{ rtrim(rtrim(number_format(config('pricing.vat_rate') * 100, 2, '.', ''), '0'), '.') }}%)</span><span>{{ number_format($summary['vat'], 0, ',', '.') }} ₫</span></div>
                     <div class="pay-row pay-row-total"><span>Tổng cộng</span><span>{{ number_format($summary['total_cost_vat'], 0, ',', '.') }} ₫</span></div>
                     @if($summary['total_paid'] > 0)
                     <div class="pay-row" style="color:var(--grn)"><span>Đã thanh toán</span><span>-{{ number_format($summary['total_paid'], 0, ',', '.') }} ₫</span></div>
@@ -90,7 +90,7 @@
                                 </div>
                             @endif
                             <div class="pay-bank-row"><span>Chi phí</span><span>{{ number_format($row['cost'], 0, ',', '.') }} ₫</span></div>
-                            <div class="pay-bank-row"><span>VAT (10%)</span><span>{{ number_format($row['vat'], 0, ',', '.') }} ₫</span></div>
+                            <div class="pay-bank-row"><span>VAT ({{ rtrim(rtrim(number_format(config('pricing.vat_rate') * 100, 2, '.', ''), '0'), '.') }}%)</span><span>{{ number_format($row['vat'], 0, ',', '.') }} ₫</span></div>
                             <div class="pay-bank-row"><span>Cần chuyển</span><span style="font-weight:700">{{ number_format($row['remaining'], 0, ',', '.') }} ₫</span></div>
                         </div>
 

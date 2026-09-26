@@ -103,12 +103,12 @@
                     <span style="font-weight:700;color:var(--bl)">{{ number_format($items->sum('estimated_cost'), 0, ',', '.') }} ₫</span>
                 </div>
                 <div class="cart-summary-row">
-                    <span>VAT (10%)</span>
-                    <span>{{ number_format($items->sum('estimated_cost') * 0.1, 0, ',', '.') }} ₫</span>
+                    <span>VAT ({{ rtrim(rtrim(number_format(config('pricing.vat_rate') * 100, 2, '.', ''), '0'), '.') }}%)</span>
+                    <span>{{ number_format($items->sum('estimated_cost') * config('pricing.vat_rate'), 0, ',', '.') }} ₫</span>
                 </div>
                 <div class="cart-summary-total">
                     <span>Tổng cộng</span>
-                    <span>{{ number_format($items->sum('estimated_cost') * 1.1, 0, ',', '.') }} ₫</span>
+                    <span>{{ number_format($items->sum('estimated_cost') * (1 + config('pricing.vat_rate')), 0, ',', '.') }} ₫</span>
                 </div>
                 <a href="{{ route('buyer.booking.create') }}" class="btn btn-p" style="width:100%;justify-content:center;border-radius:10px;margin-top:14px">
                     Tạo Campaign

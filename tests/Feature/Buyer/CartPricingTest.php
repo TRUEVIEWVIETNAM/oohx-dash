@@ -102,6 +102,20 @@ class CartPricingTest extends TestCase
         ];
     }
 
+    /**
+     * Mốc ngày cố định theo tháng lịch, không phụ thuộc hôm nay chạy test ngày nào.
+     * Ngày 1 đầu tháng nên N tháng lịch = đúng N kỳ.
+     */
+    private function calendarMonths(int $months): array
+    {
+        $start = now()->addYears(1)->startOfYear();   // 01/01 năm sau
+
+        return [
+            'start_date' => $start->toDateString(),
+            'end_date'   => $start->copy()->addMonthsNoOverflow($months)->subDay()->toDateString(),
+        ];
+    }
+
     // ── Chống hồi quy cho đúng lỗ hổng ───────────────────────────────────────
 
     public function test_gui_duration_units_thap_hon_thuc_te_bi_tu_choi(): void
@@ -109,13 +123,13 @@ class CartPricingTest extends TestCase
         $screen = $this->screenWithIoRate(1_000_000);
 
         try {
-            app(CartService::class)->addItem($this->cart(), $screen->id, $this->dates(181) + [
-                "duration_units" => 1,   // 181 ngày = 7 kỳ, cố tình khai 1
+            app(CartService::class)->addItem($this->cart(), $screen->id, $this->calendarMonths(6) + [
+                "duration_units" => 1,   // 6 tháng lịch, cố tình khai 1 kỳ
             ]);
             $this->fail("Phải từ chối số kỳ thấp hơn thực tế.");
         } catch (HttpException $e) {
             $this->assertSame(422, $e->getStatusCode());
-            $this->assertStringContainsString("7 kỳ", $e->getMessage());
+            $this->assertStringContainsString("6 kỳ", $e->getMessage());
         }
     }
 
@@ -123,18 +137,18 @@ class CartPricingTest extends TestCase
     {
         $screen = $this->screenWithIoRate(1_000_000);
 
-        $item = app(CartService::class)->addItem($this->cart(), $screen->id, $this->dates(181));
+        $item = app(CartService::class)->addItem($this->cart(), $screen->id, $this->calendarMonths(6));
 
-        $this->assertSame(7, (int) $item->duration_units);
-        $this->assertEquals(7_000_000, (float) $item->estimated_cost);
+        $this->assertSame(6, (int) $item->duration_units);
+        $this->assertEquals(6_000_000, (float) $item->estimated_cost);
     }
 
     public function test_mua_them_ky_van_duoc_chap_nhan(): void
     {
         $screen = $this->screenWithIoRate(1_000_000);
 
-        $item = app(CartService::class)->addItem($this->cart(), $screen->id, $this->dates(30) + [
-            'duration_units' => 3,   // mua dư, hợp lệ
+        $item = app(CartService::class)->addItem($this->cart(), $screen->id, $this->calendarMonths(1) + [
+            "duration_units" => 3,   // mua dư, hợp lệ
         ]);
 
         $this->assertSame(3, (int) $item->duration_units);
@@ -159,11 +173,11 @@ class CartPricingTest extends TestCase
         $screen = $this->screenWithIoRate(1_000_000);
         $cartService = app(CartService::class);
 
-        $item = $cartService->addItem($this->cart(), $screen->id, $this->dates(30));
+        $item = $cartService->addItem($this->cart(), $screen->id, $this->calendarMonths(1));
         $this->assertEquals(1_000_000, (float) $item->estimated_cost);
 
-        // Kéo dài thành 90 ngày: phải thành 3 kỳ, không giữ số kỳ cũ.
-        $item = $cartService->updateItem($item, $this->dates(90));
+        // Kéo dài thành 3 tháng: phải thành 3 kỳ, không giữ số kỳ cũ.
+        $item = $cartService->updateItem($item, $this->calendarMonths(3));
 
         $this->assertSame(3, (int) $item->duration_units);
         $this->assertEquals(3_000_000, (float) $item->estimated_cost);
@@ -246,6 +260,52 @@ class CartPricingTest extends TestCase
             'start_date' => now()->addDays(7)->toDateString(),
             'end_date'   => now()->addDays(400)->toDateString(),
         ])->assertStatus(422);
+    }
+
+    // ── VAT lấy từ config, không viết cứng ───────────────────────────────────
+
+    public function test_vat_lay_tu_config_khong_viet_cung(): void
+    {
+        $screen = $this->screenWithIoRate(10_000_000);
+        $cart   = $this->cart();
+
+        app(CartService::class)->addItem($cart, $screen->id, $this->calendarMonths(1));
+
+        $campaign = app(CampaignService::class)->createFromCart(
+            Organization::find($this->buyer->current_organization_id),
+            $this->buyer,
+            $cart->fresh(),
+            ['name' => 'Chiến dịch VAT']
+        );
+        $campaign->bookingLines()->update(['status' => 'approved']);
+
+        $summary = app(\App\Services\PaymentService::class)->getSummary($campaign->fresh());
+
+        // Mức đã chốt 27/09/2026 là 8%.
+        $this->assertEquals(800_000, $summary['vat']);
+        $this->assertEquals(10_800_000, $summary['total_cost_vat']);
+    }
+
+    public function test_doi_thue_suat_trong_config_thi_moi_con_so_doi_theo(): void
+    {
+        config(['pricing.vat_rate' => 0.1]);
+
+        $screen = $this->screenWithIoRate(10_000_000);
+        $cart   = $this->cart();
+
+        app(CartService::class)->addItem($cart, $screen->id, $this->calendarMonths(1));
+
+        $campaign = app(CampaignService::class)->createFromCart(
+            Organization::find($this->buyer->current_organization_id),
+            $this->buyer,
+            $cart->fresh(),
+            ['name' => 'Chiến dịch VAT 10']
+        );
+        $campaign->bookingLines()->update(['status' => 'approved']);
+
+        $summary = app(\App\Services\PaymentService::class)->getSummary($campaign->fresh());
+
+        $this->assertEquals(1_000_000, $summary['vat'], 'Thuế suất phải đi theo config, không nằm cứng trong code.');
     }
 
     public function test_client_khong_con_dat_duoc_screen_count(): void

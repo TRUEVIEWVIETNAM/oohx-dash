@@ -12,7 +12,15 @@ use Illuminate\Support\Str;
 class PaymentService
 {
     /** VAT áp cho dịch vụ quảng cáo. */
-    private const VAT_RATE = 0.1;
+    /**
+     * Thuế suất lấy từ config/pricing.php, không viết cứng.
+     * Trước đây 0.1 nằm rải ở 5 chỗ trong service này và 8 chỗ trong blade, nên
+     * đổi mức thuế là phải đi sửa từng chỗ và chắc chắn sót.
+     */
+    private function vatRate(): float
+    {
+        return (float) config('pricing.vat_rate', 0.08);
+    }
 
     /**
      * Create a payment record for a campaign.
@@ -110,7 +118,7 @@ class PaymentService
             ->whereIn('status', ['approved', 'active'])
             ->sum('estimated_cost');
 
-        $totalCostWithVat = $totalCost * 1.1; // VAT 10%
+        $totalCostWithVat = $totalCost * (1 + $this->vatRate());
 
         $totalPaid = $campaign->payments()
             ->where('status', 'completed')
@@ -150,12 +158,12 @@ class PaymentService
 
         return [
             'total_cost'     => (float) $totalCost,
-            'total_cost_vat' => (float) ($totalCost * 1.1),
-            'vat'            => (float) ($totalCost * 0.1),
+            'total_cost_vat' => (float) ($totalCost * (1 + $this->vatRate())),
+            'vat'            => (float) ($totalCost * $this->vatRate()),
             'total_paid'     => (float) $totalPaid,
             'pending'        => (float) $pending,
-            'remaining'      => (float) max(0, $totalCost * 1.1 - $totalPaid - $pending),
-            'is_fully_paid'  => $totalPaid >= ($totalCost * 1.1),
+            'remaining'      => (float) max(0, $totalCost * (1 + $this->vatRate()) - $totalPaid - $pending),
+            'is_fully_paid'  => $totalPaid >= ($totalCost * (1 + $this->vatRate())),
         ];
     }
 
@@ -191,7 +199,7 @@ class PaymentService
 
         return $costs->map(function ($cost, $ownerId) use ($owners, $paidByOwner) {
             $cost  = (float) $cost;
-            $vat   = $cost * self::VAT_RATE;
+            $vat   = $cost * $this->vatRate();
             $total = $cost + $vat;
             $paid  = (float) ($paidByOwner[$ownerId] ?? 0);
 

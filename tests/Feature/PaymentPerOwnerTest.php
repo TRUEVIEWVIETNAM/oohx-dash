@@ -104,11 +104,15 @@ class PaymentPerOwnerTest extends TestCase
 
         $this->assertCount(2, $rows);
 
+        // Thuế suất lấy từ config, không mã hoá cứng: mức áp dụng do nghiệp vụ
+        // chốt và đã đổi 10% → 8% ngày 27/09/2026.
+        $vatRate = (float) config('pricing.vat_rate');
+
         $rowA = $rows->firstWhere(fn ($r) => $r['owner']->id === $a->id);
         $this->assertSame(100_000_000.0, $rowA['cost']);
-        $this->assertSame(10_000_000.0, $rowA['vat']);
-        $this->assertSame(110_000_000.0, $rowA['total']);
-        $this->assertSame(110_000_000.0, $rowA['remaining']);
+        $this->assertSame(100_000_000.0 * $vatRate, $rowA['vat']);
+        $this->assertSame(100_000_000.0 * (1 + $vatRate), $rowA['total']);
+        $this->assertSame(100_000_000.0 * (1 + $vatRate), $rowA['remaining']);
         $this->assertFalse($rowA['is_paid']);
     }
 
@@ -144,7 +148,7 @@ class PaymentPerOwnerTest extends TestCase
 
         $this->assertTrue($rowA['is_paid']);
         $this->assertFalse($rowB['is_paid'], 'trả cho owner A không thể làm owner B thành đã nhận tiền');
-        $this->assertSame(22_000_000.0, $rowB['remaining']);
+        $this->assertSame(20_000_000.0 * (1 + (float) config('pricing.vat_rate')), $rowB['remaining']);
     }
 
     public function test_payment_ghi_nhan_dung_owner_nhan_tien(): void

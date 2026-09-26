@@ -26,9 +26,44 @@ class BillablePeriodCalculator
     /** Số kỳ I/O, làm tròn lên. */
     public function ioUnits(CarbonInterface $start, CarbonInterface $end, string $rateUnit): int
     {
+        if ($rateUnit !== 'week' && config('pricing.month_mode', 'calendar') === 'calendar') {
+            return $this->calendarMonths($start, $end);
+        }
+
         $divisor = $this->divisorFor($rateUnit);
 
         return max(1, (int) ceil($this->days($start, $end) / $divisor));
+    }
+
+    /**
+     * Số kỳ theo tháng lịch, tính từ mốc cùng ngày của tháng sau.
+     *
+     * 01/01 – 30/06 = 6 kỳ (mỗi kỳ chạy tới hôm trước mốc tháng sau).
+     * 01/01 – 01/07 = 7 kỳ (đã bước sang ngày đầu kỳ thứ bảy).
+     * 15/01 – 14/02 = 1 kỳ. 15/01 – 15/02 = 2 kỳ.
+     *
+     * Ngày 31 được xử lý bằng addMonthsNoOverflow: 31/01 + 1 tháng = 28/02
+     * (hoặc 29/02 năm nhuận), không nhảy sang tháng 3.
+     */
+    public function calendarMonths(CarbonInterface $start, CarbonInterface $end): int
+    {
+        $from = $start->copy()->startOfDay();
+        $to   = $end->copy()->startOfDay();
+
+        if ($to->lessThanOrEqualTo($from)) {
+            return 1;
+        }
+
+        $units  = 0;
+        $cursor = $from->copy();
+
+        // Mỗi vòng là một kỳ: [cursor, cursor + 1 tháng - 1 ngày].
+        while ($cursor->lessThanOrEqualTo($to)) {
+            $units++;
+            $cursor = $cursor->copy()->addMonthNoOverflow();
+        }
+
+        return max(1, $units);
     }
 
     /** Số CPM tối thiểu phải mua, suy từ lượng hiển thị ước tính. */

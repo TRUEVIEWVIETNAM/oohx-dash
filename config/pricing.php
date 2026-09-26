@@ -14,17 +14,32 @@
  */
 return [
 
-    // Số ngày quy đổi cho một kỳ thuê theo tháng. [CẦN QUYẾT ĐỊNH: tháng lịch?]
+    /**
+     * Cách tính một kỳ thuê theo tháng. CHỐT 27/09/2026: dùng **tháng lịch**.
+     *
+     *  'calendar'   — tính theo mốc cùng ngày tháng sau. 01/01–30/06 = 6 kỳ,
+     *                 01/01–01/07 = 7 kỳ. Đây là cách người mua hiểu chữ "tháng".
+     *  'fixed_days' — chia cho `month_days`. Cách cũ; giữ lại để đối chiếu dữ liệu
+     *                 lịch sử, không dùng cho đơn mới.
+     */
+    'month_mode' => env('PRICING_MONTH_MODE', 'calendar'),
+
+    // Chỉ dùng khi month_mode = 'fixed_days'.
     'month_days' => env('PRICING_MONTH_DAYS', 30),
 
     // Số ngày quy đổi cho một kỳ thuê theo tuần.
     'week_days' => 7,
 
-    // Khoảng ngày tối đa cho một dòng đặt chỗ. [CẦN QUYẾT ĐỊNH]
+    /**
+     * Khoảng ngày tối đa cho MỘT dòng đặt chỗ.
+     *
+     * Đây là chặn đầu vào, không phải chính sách bán hàng: nó bắt các trường hợp
+     * gõ nhầm năm (2027 thành 2072) hoặc script gửi khoảng ngày vô lý. Người mua
+     * muốn thuê dài hơn thì tách thành nhiều dòng hoặc liên hệ.
+     */
     'max_range_days' => env('PRICING_MAX_RANGE_DAYS', 365),
 
-    // Thuế suất VAT. Trước đây viết cứng 0.1 ở bốn nơi.
-    // [CẦN QUYẾT ĐỊNH: mức áp dụng thực tế, kế toán xác nhận]
-    'vat_rate' => env('PRICING_VAT_RATE', 0.1),
+    // Thuế suất VAT. CHỐT 27/09/2026: 8%. Trước đây viết cứng 0.1 ở 13 chỗ.
+    'vat_rate' => env('PRICING_VAT_RATE', 0.08),
 
 ];
