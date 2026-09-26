@@ -10,7 +10,9 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\BookingResolvedNotification;
 use App\Notifications\BookingSubmittedNotification;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class CampaignService
 {
@@ -21,6 +23,11 @@ class CampaignService
     {
         return DB::transaction(function () use ($org, $user, $cart, $data) {
             $items = $cart->items()->with(['screen.inventory', 'screen.owner'])->get();
+
+            // Giá trong giỏ phải còn khớp giá hiện hành. Nếu media owner vừa đổi giá,
+            // dừng lại để người mua xem con số mới rồi tự quyết — không im lặng lấy
+            // giá mới, cũng không giữ giá cũ đã hết hiệu lực (audit F-01, Codex R03).
+            $this->assertCartRatesUnchanged($items);
 
             $campaign = Campaign::create([
                 'organization_id'             => $org->id,
@@ -102,6 +109,44 @@ class CampaignService
         }
 
         return $campaign->fresh();
+    }
+
+    /**
+     * Giá đã chụp lúc thêm vào giỏ phải còn khớp giá hiện hành của kho.
+     *
+     * Dòng giỏ cũ chưa có ảnh chụp (tạo trước đợt này) thì bỏ qua kiểm — không
+     * hợp thức hoá chúng bằng cách coi như đã khớp, mà chỉ không chặn; chúng sẽ
+     * có ảnh chụp ngay lần cập nhật kế tiếp.
+     */
+    private function assertCartRatesUnchanged(Collection $items): void
+    {
+        $cart = app(CartService::class);
+        $changed = [];
+
+        foreach ($items as $item) {
+            if (empty($item->rate_snapshot)) {
+                continue;
+            }
+
+            // So sánh không phụ thuộc thứ tự khóa: MySQL lưu cột JSON dưới dạng đã
+            // chuẩn hoá và trả về với thứ tự khóa khác lúc ghi. Dùng === trực tiếp
+            // sẽ báo "giá đã đổi" cho mọi đơn hàng.
+            $current  = $cart->rateSnapshot($item->screen?->inventory);
+            $snapshot = $item->rate_snapshot;
+            ksort($current);
+            ksort($snapshot);
+
+            if ($current !== $snapshot) {
+                $changed[] = $item->screen?->name ?? $item->screen_id;
+            }
+        }
+
+        if ($changed !== []) {
+            throw new HttpException(409, sprintf(
+                'Giá của %s vừa thay đổi. Vui lòng xem lại giỏ hàng trước khi gửi booking.',
+                implode(', ', array_map(fn ($n) => "\"{$n}\"", $changed))
+            ));
+        }
     }
 
     /**

@@ -15,6 +15,17 @@ class CartController extends Controller
     public function __construct(private CartService $cartService) {}
 
     /**
+     * Chặn khoảng ngày quá dài. Ngưỡng nằm ở config/pricing.php để nhìn thấy được,
+     * thay vì là một con số viết cứng trong validate.
+     */
+    private function maxRangeRule(): string
+    {
+        $max = (int) config('pricing.max_range_days', 365);
+
+        return 'before_or_equal:' . now()->addDays($max)->toDateString();
+    }
+
+    /**
      * GET /cart — cart page
      */
     public function index(Request $request): View
@@ -54,13 +65,16 @@ class CartController extends Controller
             $data = $request->validate([
                 'screen_id'      => ['required', 'string', 'exists:screens,id'],
                 'product_id'     => ['nullable', 'string', 'exists:products,id'],
-                'start_date'     => ['nullable', 'date', 'after_or_equal:today'],
-                'end_date'       => ['nullable', 'date', 'after:start_date'],
+                'start_date'     => ['required', 'date', 'after_or_equal:today'],
+                'end_date'       => ['required', 'date', 'after_or_equal:start_date', $this->maxRangeRule()],
                 'quantity'       => ['nullable', 'integer', 'min:1'],
                 'pricing_model'  => ['nullable', 'in:cpm,io'],
+                // Hai trường dưới chỉ là "mua thêm": máy chủ tự suy mức tối thiểu từ
+                // ngày, gửi thấp hơn sẽ bị từ chối chứ không bị âm thầm nâng lên.
                 'booked_cpms'    => ['nullable', 'integer', 'min:1'],
-                'screen_count'   => ['nullable', 'integer', 'min:1'],
                 'duration_units' => ['nullable', 'integer', 'min:1'],
+                // screen_count đã bỏ: một dòng giỏ ứng với một màn hình, số thiết bị
+                // lấy từ cấu hình kho chứ không nhận từ client.
             ]);
 
             $item = $this->cartService->addItem($cart, $data['screen_id'], $data);
@@ -89,8 +103,8 @@ class CartController extends Controller
         abort_unless($item->cart->user_id === $request->user()->id, 403);
 
         $data = $request->validate([
-            'start_date' => ['nullable', 'date'],
-            'end_date' => ['nullable', 'date'],
+            'start_date' => ['nullable', 'date', 'after_or_equal:today'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date', $this->maxRangeRule()],
             'share_of_voice_pct' => ['nullable', 'integer', 'min:1', 'max:100'],
             'spot_length' => ['nullable', 'integer', 'min:5', 'max:60'],
         ]);

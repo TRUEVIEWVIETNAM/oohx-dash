@@ -16,9 +16,13 @@ class CartItem extends Model
         // Pricing model fields
         'pricing_model', 'booked_cpms', 'screen_count',
         'duration_units', 'duration_unit', 'unit_price',
+        // Giá đã chụp lúc thêm vào giỏ, để phát hiện giá đổi trước khi chốt đơn.
+        'rate_captured_at', 'rate_snapshot',
     ];
 
     protected $casts = [
+        'rate_captured_at' => 'datetime',
+        'rate_snapshot' => 'array',
         'start_date' => 'date',
         'end_date' => 'date',
         'spot_length' => 'integer',
