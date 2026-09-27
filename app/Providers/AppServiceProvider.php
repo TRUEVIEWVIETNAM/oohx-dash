@@ -17,7 +17,10 @@ use App\Policies\ScreenPolicy;
 use App\Policies\SitePolicy;
 use Filament\Http\Responses\Auth\Contracts\LoginResponse as LoginResponseContract;
 use App\Http\Responses\LoginResponse;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -30,6 +33,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Screen::observe(ScreenObserver::class);
+
+        $this->registerRateLimiters();
 
         Gate::policy(Owner::class, OwnerPolicy::class);
         Gate::policy(OwnerUser::class, OwnerUserPolicy::class);
@@ -61,5 +66,36 @@ class AppServiceProvider extends ServiceProvider
                 \Illuminate\Support\Facades\URL::forceScheme('https');
             }
         }
+    }
+
+    /**
+     * Giới hạn tần suất.
+     *
+     * Nhóm `api` là giới hạn nền cho mọi route /api/*. Đặt quá chặt thì nó chặn
+     * player trước khi chạm giới hạn riêng của player, nên nền phải rộng hơn và
+     * route cần giới hạn riêng phải gắn tường minh (Codex R10).
+     *
+     * Đã đăng nhập thì đếm theo người dùng, chưa đăng nhập mới đếm theo IP: đếm
+     * thuần theo IP sẽ gộp mọi request render phía máy chủ của Next.js vào một
+     * địa chỉ và chặn nhầm lẫn nhau.
+     */
+    private function registerRateLimiters(): void
+    {
+        RateLimiter::for('api', fn (Request $r) => Limit::perMinute(300)
+            ->by($r->user()?->id ?: $r->ip()));
+
+        RateLimiter::for('login', fn (Request $r) => [
+            Limit::perMinute(5)->by($r->ip()),
+            Limit::perMinute(5)->by(strtolower((string) $r->input('email')) . '|' . $r->ip()),
+        ]);
+
+        RateLimiter::for('token', fn (Request $r) => Limit::perMinute(10)->by($r->ip()));
+
+        // Player gửi dày nhưng đếm theo thiết bị, không theo IP: nhiều màn hình
+        // dùng chung một đường truyền là chuyện bình thường.
+        RateLimiter::for('player', fn (Request $r) => Limit::perMinute(600)
+            ->by((string) ($r->input('screen_uuid') ?: $r->ip())));
+
+        RateLimiter::for('geocode', fn (Request $r) => Limit::perMinute(20)->by($r->ip()));
     }
 }

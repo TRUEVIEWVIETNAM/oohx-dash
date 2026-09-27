@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Route;
 
 // ── Public: OAuth2 client_credentials ───────────────────────
 Route::prefix('v1')->group(function () {
-    Route::post('auth/token', [AuthController::class, 'token']);
+    Route::post('auth/token', [AuthController::class, 'token'])->middleware('throttle:token');
 });
 
 // ── OOHX Public API — scope-protected ───────────────────────
@@ -38,7 +38,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'ability:inventory'])->group(fu
 });
 
 // ── Public player endpoints (screen UUID auth) ──────────────
-Route::prefix('v1/player')->group(function () {
+Route::prefix('v1/player')->middleware('throttle:player')->group(function () {
     Route::post('heartbeat',  [PlayerController::class, 'heartbeat']);
     Route::post('impression', [PlayerController::class, 'impression']);
 });

@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
+        // Bật throttle cho nhóm api. Trước đây không có dòng này nên Laravel không
+        // chèn middleware throttle, và toàn bộ /api/* chạy không giới hạn — kể cả
+        // /auth/token (dò client_secret) và endpoint player (audit F-10).
+        $middleware->throttleApi();
         $middleware->alias([
             'ability' => \App\Http\Middleware\CheckTokenAbility::class,
             'buyer'   => \App\Http\Middleware\EnsureBuyerAuth::class,

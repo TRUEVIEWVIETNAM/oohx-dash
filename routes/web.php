@@ -15,6 +15,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PublicReflectionController;
 use App\Http\Controllers\FrontpageController;
 use App\Http\Controllers\SitemapController;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 
@@ -65,7 +66,7 @@ Route::domain($fpDomain)->group(function () {
 
     // ── Buyer auth (no guest middleware — accessible always) ──
     Route::get('/login',              [BuyerAuthController::class, 'showLogin'])->name('login');
-    Route::post('/login',             [BuyerAuthController::class, 'login']);
+    Route::post('/login',             [BuyerAuthController::class, 'login'])->middleware('throttle:login');
     Route::get('/register',           [BuyerAuthController::class, 'showRegister'])->name('buyer.register');
     Route::post('/register',          [BuyerAuthController::class, 'register']);
     Route::post('/logout',            [BuyerAuthController::class, 'logout'])->name('buyer.logout')->middleware('auth');
@@ -120,22 +121,29 @@ Route::domain($fpDomain)->group(function () {
 
 // ── Geocode proxy (accessible from all domains — admin, publisher, frontpage) ──
 Route::get('/geocode/search', function () {
-    $q = request()->input('q', '');
-    if (! $q) {
+    $q = trim((string) request()->input('q', ''));
+    if ($q === '') {
         return response()->json([]);
     }
 
-    $response = Http::withHeaders([
-        'User-Agent' => 'OOHX/1.0',
-        'Accept-Language' => 'vi,en',
-    ])->get('https://nominatim.openstreetmap.org/search', [
-        'format' => 'json',
-        'limit'  => 5,
-        'q'      => $q,
-    ]);
+    // Cache 24 giờ: Nominatim là dịch vụ miễn phí có hạn mức, và cùng một từ khoá
+    // được tra đi tra lại khi người dùng gõ. Không cache thì proxy công khai này
+    // vừa chậm vừa dễ khiến IP máy chủ bị chặn (audit F-10).
+    return response()->json(
+        Cache::remember('geocode:' . md5(mb_strtolower($q)), now()->addDay(), function () use ($q) {
+            $response = Http::timeout(8)->withHeaders([
+                'User-Agent' => 'OOHX/1.0',
+                'Accept-Language' => 'vi,en',
+            ])->get('https://nominatim.openstreetmap.org/search', [
+                'format' => 'json',
+                'limit'  => 5,
+                'q'      => $q,
+            ]);
 
-    return response()->json($response->json());
-});
+            return $response->successful() ? $response->json() : [];
+        })
+    );
+})->middleware('throttle:geocode');
 
 // ── Fallback: nếu không match domain nào (www.oohx.net, IP, etc.)
 Route::fallback(function () {
