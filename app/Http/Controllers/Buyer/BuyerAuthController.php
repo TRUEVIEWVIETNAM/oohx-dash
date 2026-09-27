@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -86,6 +87,15 @@ class BuyerAuthController extends Controller
                 'email'    => $data['email'],
                 'password' => Hash::make($data['password']),
             ]);
+
+            // Người tự đăng ký cũng phải có vai trò hệ thống 'buyer' như người được
+            // mời. Thiếu dòng này thì họ vào được /my nhưng không vào được panel
+            // /buyer, và hai lối onboarding cho ra hai kết quả khác nhau (Codex F15).
+            //
+            // findOrCreate chứ không assignRole trần: nếu bản ghi vai trò chưa có
+            // trong môi trường đó, assignRole ném lỗi và cả giao dịch đăng ký bị
+            // hủy — người dùng không tạo được tài khoản chỉ vì thiếu một hàng seed.
+            $user->assignRole(Role::findOrCreate('buyer', 'web'));
 
             $org = Organization::create([
                 'name' => $data['organization_name'],

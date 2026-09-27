@@ -298,8 +298,13 @@ class ScreenImportService
                     ]);
 
                     // Phase 3: Cooperative cancel — worker reads status from DB.
-                    $current = $import->fresh(['status']);
-                    if ($current && $current->status === 'cancelled') {
+                    //
+                    // fresh(['status']) là SAI: tham số của fresh() là danh sách QUAN HỆ
+                    // để nạp kèm, không phải tên cột — mà ScreenImport không có quan hệ
+                    // nào tên 'status'. Import lớn đi tới mốc này sẽ hỏng sau khi đã ghi
+                    // một phần (Codex F13). Đọc thẳng cột từ DB.
+                    $currentStatus = $import->newQuery()->whereKey($import->getKey())->value('status');
+                    if ($currentStatus === 'cancelled') {
                         $import->update([
                             'processed_count' => $processed,
                             'success_count'   => $success,

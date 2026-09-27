@@ -81,9 +81,10 @@ class ImportSites extends Page implements HasForms, HasActions
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                         'application/octet-stream',
                     ])
-                    ->disk('public')
+                    // File nguồn của import không được nằm trên disk công khai:
+                    // workbook chứa toàn bộ dữ liệu kho của media owner (Codex F17).
+                    ->disk('private')
                     ->directory('imports/sites')
-                    ->visibility('private')
                     ->maxSize(20480)
                     ->required()
                     ->helperText('Dùng OOHX Import Template — 2 sheets: Sites + Screens. Tải template tại /storage/templates/oohx-import-template.xlsx'),
@@ -128,7 +129,7 @@ class ImportSites extends Page implements HasForms, HasActions
         }
 
         $this->storedPath = $storedPath;
-        $fullPath = \Storage::disk('public')->path($storedPath);
+        $fullPath = \Storage::disk($this->diskFor($storedPath))->path($storedPath);
 
         try {
             $this->preview = $svc->readPreview($fullPath, $this->resolveOwnerId());
@@ -138,7 +139,7 @@ class ImportSites extends Page implements HasForms, HasActions
                 ->body('Kiểm tra lại định dạng file. ' . $e->getMessage())
                 ->danger()
                 ->send();
-            \Storage::disk('public')->delete($storedPath);
+            \Storage::disk($this->diskFor($storedPath))->delete($storedPath);
             $this->storedPath = null;
             return;
         }
@@ -195,7 +196,7 @@ class ImportSites extends Page implements HasForms, HasActions
             return;
         }
 
-        $fullPath = \Storage::disk('public')->path($this->storedPath);
+        $fullPath = \Storage::disk($this->diskFor($this->storedPath))->path($this->storedPath);
 
         if (! file_exists($fullPath)) {
             Notification::make()->title('File không còn tồn tại')->body('Vui lòng upload lại.')->danger()->send();
@@ -211,8 +212,8 @@ class ImportSites extends Page implements HasForms, HasActions
             return;
         }
 
-        // Xoá file tạm sau khi import xong
-        \Storage::disk('local')->delete($this->storedPath);
+        // Xoá file tạm sau khi import xong — phải xoá ĐÚNG disk đã lưu.
+        \Storage::disk($this->diskFor($this->storedPath))->delete($this->storedPath);
         $this->storedPath = null;
 
         $this->step = 4;
@@ -223,7 +224,7 @@ class ImportSites extends Page implements HasForms, HasActions
     public function backToUpload(): void
     {
         if ($this->storedPath) {
-            \Storage::disk('local')->delete($this->storedPath);
+            \Storage::disk($this->diskFor($this->storedPath))->delete($this->storedPath);
         }
 
         $this->step               = 1;
@@ -351,10 +352,28 @@ class ImportSites extends Page implements HasForms, HasActions
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
+    /**
+     * Disk đang chứa file import.
+     *
+     * Trước đây lưu ở 'public' nhưng dọn ở 'local', nên workbook gốc — chứa toàn
+     * bộ dữ liệu kho của media owner — nằm lại trên web mãi (Codex F17). Nay lưu
+     * ở 'private'; hàm này vẫn nhận file cũ còn sót trên 'public'.
+     */
+    private function diskFor(?string $path): string
+    {
+        if ($path
+            && \Storage::disk('public')->exists($path)
+            && ! \Storage::disk('private')->exists($path)) {
+            return 'public';
+        }
+
+        return 'private';
+    }
+
     private function resolveUploadedPath(mixed $file): ?string
     {
         if ($file instanceof TemporaryUploadedFile) {
-            $path = $file->storeAs('imports/sites', Str::ulid() . '.xlsx', 'public');
+            $path = $file->storeAs('imports/sites', Str::ulid() . '.xlsx', 'private');
             return $path ?: null;
         }
 
@@ -364,9 +383,12 @@ class ImportSites extends Page implements HasForms, HasActions
 
         $cleanFile = ltrim($file, '/\\');
 
-        // Filament đã store vào public disk → check trực tiếp
-        if (\Storage::disk('public')->exists($cleanFile)) {
-            return $cleanFile;
+        // Disk mới là 'private'. Vẫn chấp nhận file cũ còn nằm trên 'public' để
+        // import đang dở dang lúc deploy không bị hỏng.
+        foreach (['private', 'public'] as $disk) {
+            if (\Storage::disk($disk)->exists($cleanFile)) {
+                return $cleanFile;
+            }
         }
 
         return null;
