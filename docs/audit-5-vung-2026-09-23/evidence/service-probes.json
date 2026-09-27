@@ -1,0 +1,27 @@
+{
+    "fixture": "Synthetic models; minimal SQLite booking_lines only; not the full application schema.",
+    "probes": {
+        "F04_client_duration_override": {
+            "same_dates": {
+                "start_date": "2027-01-01",
+                "end_date": "2027-06-30",
+                "screen_count": 1
+            },
+            "derived_cost": 7000000,
+            "submitted_duration_1_cost": 1000000,
+            "defect_reproduced": true
+        },
+        "F05_disjoint_intervals": {
+            "daily_peak_sov": 50,
+            "service_sum_sov": 100,
+            "defect_reproduced": true
+        },
+        "F08_player_ulid": {
+            "validation_errors": [
+                "campaign_id",
+                "creative_id"
+            ],
+            "defect_reproduced": true
+        }
+    }
+}

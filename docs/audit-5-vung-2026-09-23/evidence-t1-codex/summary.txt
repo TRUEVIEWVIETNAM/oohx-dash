@@ -1,0 +1,2 @@
+junit_totals=tests="18" assertions="31" errors="0" failures="6"
+not_passed_names:

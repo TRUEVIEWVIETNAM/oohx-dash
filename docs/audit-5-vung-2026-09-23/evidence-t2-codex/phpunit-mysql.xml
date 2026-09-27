@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="Tests\Feature\Buyer\T2ReviewTest" file="/app/docs/audit-5-vung-2026-09-23/T2ReviewTest.php" tests="16" assertions="26" errors="0" failures="4" skipped="0" time="251.131534">
+    <testcase name="test_gui_duration_units_thap_hon_thuc_te_bi_tu_choi" file="/app/tests/Feature/Buyer/CartPricingTest.php" line="107" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="2" time="150.277199"/>
+    <testcase name="test_khong_gui_duration_units_thi_may_chu_tu_tinh" file="/app/tests/Feature/Buyer/CartPricingTest.php" line="122" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="2" time="6.889394"/>
+    <testcase name="test_mua_them_ky_van_duoc_chap_nhan" file="/app/tests/Feature/Buyer/CartPricingTest.php" line="132" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="2" time="2.657166"/>
+    <testcase name="test_gui_booked_cpms_thap_hon_muc_toi_thieu_bi_tu_choi" file="/app/tests/Feature/Buyer/CartPricingTest.php" line="144" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="1" time="5.413341"/>
+    <testcase name="test_doi_ngay_dai_them_thi_gia_tang_theo" file="/app/tests/Feature/Buyer/CartPricingTest.php" line="157" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="3" time="6.212874"/>
+    <testcase name="test_gia_doi_sau_khi_bo_vao_gio_thi_chan_chot_don" file="/app/tests/Feature/Buyer/CartPricingTest.php" line="174" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="2" time="7.756629"/>
+    <testcase name="test_gia_khong_doi_thi_chot_don_binh_thuong" file="/app/tests/Feature/Buyer/CartPricingTest.php" line="198" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="2" time="3.080992"/>
+    <testcase name="test_anh_chup_gia_duoc_ghi_lai_khi_them_vao_gio" file="/app/tests/Feature/Buyer/CartPricingTest.php" line="216" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="3" time="3.535058"/>
+    <testcase name="test_ngay_ket_thuc_truoc_ngay_bat_dau_bi_tu_choi" file="/app/tests/Feature/Buyer/CartPricingTest.php" line="229" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="1" time="24.672317"/>
+    <testcase name="test_khoang_ngay_vuot_gioi_han_bi_tu_choi" file="/app/tests/Feature/Buyer/CartPricingTest.php" line="240" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="1" time="8.959877"/>
+    <testcase name="test_client_khong_con_dat_duoc_screen_count" file="/app/tests/Feature/Buyer/CartPricingTest.php" line="251" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="2" time="2.192668"/>
+    <testcase name="test_review_notes_only_preserves_purchased_units" file="/app/docs/audit-5-vung-2026-09-23/T2ReviewTest.php" line="22" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="1" time="5.583533">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Buyer\T2ReviewTest::test_review_notes_only_preserves_purchased_units
+Failed asserting that 1 is identical to 3.
+
+/app/docs/audit-5-vung-2026-09-23/T2ReviewTest.php:26</failure>
+    </testcase>
+    <testcase name="test_review_start_only_cannot_reverse_dates" file="/app/docs/audit-5-vung-2026-09-23/T2ReviewTest.php" line="30" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="1" time="11.634407">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Buyer\T2ReviewTest::test_review_start_only_cannot_reverse_dates
+Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/app/docs/audit-5-vung-2026-09-23/T2ReviewTest.php:33</failure>
+    </testcase>
+    <testcase name="test_review_end_only_valid_update_is_accepted" file="/app/docs/audit-5-vung-2026-09-23/T2ReviewTest.php" line="36" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="1" time="8.028511"/>
+    <testcase name="test_review_legacy_cart_requires_requote" file="/app/docs/audit-5-vung-2026-09-23/T2ReviewTest.php" line="42" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="1" time="1.958997">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Buyer\T2ReviewTest::test_review_legacy_cart_requires_requote
+Failed asserting that exception of type "Symfony\Component\HttpKernel\Exception\HttpException" is thrown.</failure>
+    </testcase>
+    <testcase name="test_review_device_count_is_part_of_rate_snapshot" file="/app/docs/audit-5-vung-2026-09-23/T2ReviewTest.php" line="51" class="Tests\Feature\Buyer\T2ReviewTest" classname="Tests.Feature.Buyer.T2ReviewTest" assertions="1" time="2.278571">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Buyer\T2ReviewTest::test_review_device_count_is_part_of_rate_snapshot
+Billable quantity changed, snapshot must invalidate the old quote.
+Failed asserting that two arrays are not identical.
+
+/app/docs/audit-5-vung-2026-09-23/T2ReviewTest.php:57</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,7600 @@
+[
+  {
+    "path": "app/Console/Commands/BackfillPoiSnapshots.php",
+    "sha256": "af014ff90c8d9de29e288373b841e49ecc64e96f2a36b7beb43ad5dea3bd4e5d",
+    "lines": 118,
+    "classes": [
+      "BackfillPoiSnapshots"
+    ],
+    "symbols": [
+      "handle"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Console/Commands/BackfillSlugs.php",
+    "sha256": "a4e3069154b4aad3b6ab6beeec7435a590b49b6a20db506e4abf205e9403fafb",
+    "lines": 49,
+    "classes": [
+      "BackfillSlugs"
+    ],
+    "symbols": [
+      "handle",
+      "backfillTable"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Console/Commands/EnrichContextPoc.php",
+    "sha256": "3b40cc716f2c1cc043c420aa81c970b6e40fbff92e372b3d693aa9cec49f3549",
+    "lines": 136,
+    "classes": [
+      "EnrichContextPoc"
+    ],
+    "symbols": [
+      "handle"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Console/Commands/EnrichScreens.php",
+    "sha256": "342773a8aea7b6911eace592af9200a0fbc623b33a55f2e6f829a3cf0a2277b8",
+    "lines": 177,
+    "classes": [
+      "EnrichScreens"
+    ],
+    "symbols": [
+      "handle"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Console/Commands/FetchVietnamAdminDivisions.php",
+    "sha256": "5e14496aea498193b089b69d1af7465687f4b53d0ca91c691794b8e3aa53ee33",
+    "lines": 210,
+    "classes": [
+      "FetchVietnamAdminDivisions"
+    ],
+    "symbols": [
+      "handle",
+      "syncProvinces",
+      "fetchCommunes",
+      "apiGet",
+      "resolveType"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Console/Commands/FixIoPricing.php",
+    "sha256": "c62ab6bfe04cf07b164de89a967e8ddc09418fd8bf16dca6c43b5fdcacd6fb7c",
+    "lines": 45,
+    "classes": [
+      "FixIoPricing"
+    ],
+    "symbols": [
+      "handle"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Console/Commands/GenerateImportTemplate.php",
+    "sha256": "3c6fecf70d597e0a011cfb86781705bdfb2913414e7af8285c6cc03fce623586",
+    "lines": 298,
+    "classes": [
+      "GenerateImportTemplate"
+    ],
+    "symbols": [
+      "handle",
+      "buildSitesSheet",
+      "buildScreensSheet",
+      "buildGuideSheet",
+      "styleTitle",
+      "styleHeaderRow",
+      "getVenueOptions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Console/Commands/GeocodeSitesCommand.php",
+    "sha256": "a90e577bd1575db1bc80a4726df55f8203451d54dcb7eeec565d2d688675226f",
+    "lines": 90,
+    "classes": [
+      "GeocodeSitesCommand"
+    ],
+    "symbols": [
+      "handle"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Console/Commands/ImportVietnamAdminDivisions.php",
+    "sha256": "061b8333d73a5647c347bd51afa8d3c4b83f73948c9e2c99288955d21d5a6bbc",
+    "lines": 188,
+    "classes": [
+      "ImportVietnamAdminDivisions"
+    ],
+    "symbols": [
+      "handle",
+      "importProvinces",
+      "importCommunes"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Console/Commands/OohxExportScreens.php",
+    "sha256": "6885a5dbc23d736c453325db69714c20748fb8bf44f0a7c8eb2d5f7bf1e51891",
+    "lines": 189,
+    "classes": [
+      "OohxExportScreens"
+    ],
+    "symbols": [
+      "handle",
+      "projectScreen",
+      "deriveIndoorOutdoor",
+      "deriveScreenSize",
+      "normalizeCity"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Console/Commands/OohxFetchHealthDigest.php",
+    "sha256": "8f7855ae5340434ea5852298e4316b4f7fbfd8ecf6b1d473968e433a61893536",
+    "lines": 162,
+    "classes": [
+      "OohxFetchHealthDigest"
+    ],
+    "symbols": [
+      "handle",
+      "buildTargets",
+      "recordFetch"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Console/Commands/OohxSyncToEngine.php",
+    "sha256": "38173605c9a2562c59b346ea790fd8cb1fd2921d579ee4c0d24aa8f59dd31430",
+    "lines": 154,
+    "classes": [
+      "OohxSyncToEngine"
+    ],
+    "symbols": [
+      "handle",
+      "parseIngestOutput",
+      "runCmd"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Console/Commands/PruneExpiredInvitations.php",
+    "sha256": "786225c1f9b9df9e2400fa98f50cbbd0980ef5f07ce81fa8dc027bf545ab967c",
+    "lines": 26,
+    "classes": [
+      "PruneExpiredInvitations"
+    ],
+    "symbols": [
+      "handle"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Console/Commands/PruneLivewireTmpUploads.php",
+    "sha256": "caa678d77f3a32cff59eaf685b261dc5fba7b51a066c938f9e16310846948f91",
+    "lines": 46,
+    "classes": [
+      "PruneLivewireTmpUploads"
+    ],
+    "symbols": [
+      "handle"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Console/Commands/SeedInsightsDefaults.php",
+    "sha256": "054db8fa297b44fa6bc6dbabe9ed1ac66cd9d3772ef511efd2d344a68fc763da",
+    "lines": 311,
+    "classes": [
+      "SeedInsightsDefaults"
+    ],
+    "symbols": [
+      "templates",
+      "handle",
+      "hasAnyData"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Buyer/Resources/OrgUserResource/Pages/EditOrgUser.php",
+    "sha256": "28b8f8f863f95a28194d51e40f46f88d87fa91b50aa2db15f7c6fe2039ba2068",
+    "lines": 17,
+    "classes": [
+      "EditOrgUser"
+    ],
+    "symbols": [
+      "getRedirectUrl"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Buyer/Resources/OrgUserResource/Pages/ListOrgUsers.php",
+    "sha256": "95eed4887eaa5877865506466be54d9b5620108115a096dae722588a7457aace",
+    "lines": 70,
+    "classes": [
+      "ListOrgUsers"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Buyer/Resources/OrgUserResource.php",
+    "sha256": "8618025548d1c0e2b2c2ad8c0584b855af8479e59f865e0d3686d0b490819439",
+    "lines": 139,
+    "classes": [
+      "OrgUserResource"
+    ],
+    "symbols": [
+      "canViewAny",
+      "canCreate",
+      "getEloquentQuery",
+      "form",
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Concerns/ResolvesSlug.php",
+    "sha256": "5cfc43f114e85efc11baa832a51d6326de9af8679a204ce70fccf407a135fcdc",
+    "lines": 25,
+    "classes": [
+      "ResolvesSlug"
+    ],
+    "symbols": [
+      "resolveSlug"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Concerns/SavesScreenRelationships.php",
+    "sha256": "7f7ee8ec229be8074f41bd01a9c7f5c451435827f65e5e89fa4d1415ec9a2995",
+    "lines": 219,
+    "classes": [
+      "SavesScreenRelationships"
+    ],
+    "symbols": [
+      "mutateFormDataBeforeCreate",
+      "mutateFormDataBeforeSave",
+      "resolveOwnerId",
+      "resolveExternalId",
+      "afterCreate",
+      "afterSave",
+      "extractNestedData",
+      "saveSpec",
+      "saveInventory"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Pages/OohxAnalytics.php",
+    "sha256": "492a7bbb48dd65db3dd6011f2efba4b2b8f3505de9360236536053dcf9e99421",
+    "lines": 84,
+    "classes": [
+      "OohxAnalytics"
+    ],
+    "symbols": [
+      "mount",
+      "loadAll",
+      "canAccess"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Pages/OohxCollectors.php",
+    "sha256": "f15c760790baf3b4617c9a92e782976d1bbdf31105902136502138b27d08256e",
+    "lines": 276,
+    "classes": [
+      "OohxCollectors"
+    ],
+    "symbols": [
+      "getHeaderActions",
+      "viewHistoryAction",
+      "triggerAction",
+      "triggerForm",
+      "handleTrigger",
+      "getViewData",
+      "getNavigationBadge",
+      "getNavigationBadgeColor",
+      "getNavigationBadgeTooltip"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Pages/OohxDataEngine.php",
+    "sha256": "ce21b09db1d5c1f23925d493a6de3f0b325aeceb871248f728fd0b5a0457766b",
+    "lines": 476,
+    "classes": [
+      "OohxDataEngine"
+    ],
+    "symbols": [
+      "getHeaderActions",
+      "syncNowAction",
+      "exportOnlyAction",
+      "testConnectionAction",
+      "recomputeQueueAction",
+      "recomputeCityAction",
+      "lookupAction",
+      "getViewData",
+      "cityOptions",
+      "runRemoteCommand",
+      "parseJsonOutput",
+      "formatJsonSummary",
+      "runCommand",
+      "testAllConnections",
+      "computeStats",
+      "configCheck"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Pages/OohxHealth.php",
+    "sha256": "eadac183af923b7cb17aa323d9b7f35ec37808119e12f3994e82403d59449143",
+    "lines": 177,
+    "classes": [
+      "OohxHealth"
+    ],
+    "symbols": [
+      "mount",
+      "loadDigest",
+      "getHeaderActions",
+      "getStalenessBadgeProperty",
+      "getSummaryCountsProperty",
+      "canAccess",
+      "getNavigationBadge",
+      "getNavigationBadgeColor"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Pages/PermissionMatrix.php",
+    "sha256": "b7a1e95d4da8c677420c8baa08f1f130b823410d826d9546930c27fb83e02358",
+    "lines": 90,
+    "classes": [
+      "PermissionMatrix"
+    ],
+    "symbols": [
+      "getHeaderWidgets",
+      "getViewData"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Pages/CompanyProfile.php",
+    "sha256": "381e1882192ed83f36a60d7cf35d94b55166d21a5c68805f1b28d9d43d818ec2",
+    "lines": 235,
+    "classes": [
+      "CompanyProfile"
+    ],
+    "symbols": [
+      "mount",
+      "form",
+      "save",
+      "getOwner"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Pages/ImportSites.php",
+    "sha256": "b09ff340c3517eda489eb22caff4cf99ca5d2ed34b810b3d5010ae6be921479f",
+    "lines": 375,
+    "classes": [
+      "ImportSites"
+    ],
+    "symbols": [
+      "mount",
+      "resolveOwnerId",
+      "form",
+      "uploadAndPreview",
+      "confirmImportAction",
+      "doConfirmImport",
+      "runImport",
+      "backToUpload",
+      "importAnother",
+      "goToSitesList",
+      "setFilter",
+      "setScreenFilter",
+      "getSummary",
+      "getFilteredSites",
+      "getSiteTotal",
+      "hasNextPage",
+      "applyFilter",
+      "getFilteredScreens",
+      "getScreenTotal",
+      "hasScreenNextPage",
+      "applyScreenFilter",
+      "getFormActions",
+      "resolveUploadedPath"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/BookingInboxResource/Pages/ListBookingInbox.php",
+    "sha256": "4c8f08005f741b0059cb48132ec1af0b0d18affee23724e3346ad5acbc78cb73",
+    "lines": 17,
+    "classes": [
+      "ListBookingInbox"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/BookingInboxResource/Pages/ViewBookingInbox.php",
+    "sha256": "6633aaceeefa5175e200ed663edf6d35e7743c550ff1daa9bb222605c7d351ce",
+    "lines": 173,
+    "classes": [
+      "ViewBookingInbox"
+    ],
+    "symbols": [
+      "infolist",
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/BookingInboxResource.php",
+    "sha256": "f9390590c49e92bd54226ead2293b8f486f22956a6007cc812aa2ba13f28a303",
+    "lines": 153,
+    "classes": [
+      "BookingInboxResource"
+    ],
+    "symbols": [
+      "getNavigationBadge",
+      "getNavigationBadgeColor",
+      "table",
+      "getEloquentQuery",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/NetworkResource/Pages/CreateNetwork.php",
+    "sha256": "e4a675a66e92adf5ca9a5f58cf129390c98551218c24a68f3e6acf913434f6b3",
+    "lines": 24,
+    "classes": [
+      "CreateNetwork"
+    ],
+    "symbols": [
+      "mutateFormDataBeforeCreate"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/NetworkResource/Pages/EditNetwork.php",
+    "sha256": "5128ab94470f726211460f1a4428baa2703b5d3d2cf4682d0495584bb0930f35",
+    "lines": 41,
+    "classes": [
+      "EditNetwork"
+    ],
+    "symbols": [
+      "mount",
+      "getHeaderActions",
+      "mutateFormDataBeforeSave"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/NetworkResource/Pages/ListNetwork.php",
+    "sha256": "2b69c4c614002c7a3c0c9071a1663a58a4a2afb09afe6688027ed33c78e0a20e",
+    "lines": 20,
+    "classes": [
+      "ListNetwork"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/NetworkResource/Pages/ViewNetwork.php",
+    "sha256": "0f885e0d4b5ef1b1bb4fe9ad9120741ee966ed9867235a1a9eaca3d9f353118a",
+    "lines": 18,
+    "classes": [
+      "ViewNetwork"
+    ],
+    "symbols": [
+      "screenViewUrl"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/NetworkResource/RelationManagers/ScreensRelationManager.php",
+    "sha256": "6895fa2ae711c90257c4adcf4e80cd50c31a38c5540c56854cf36479b3bf3f50",
+    "lines": 115,
+    "classes": [
+      "ScreensRelationManager"
+    ],
+    "symbols": [
+      "table"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/NetworkResource.php",
+    "sha256": "4c453ee81df566160b9ed684578865d5bbaf048caf8e468eef21ecbb6d1818b6",
+    "lines": 58,
+    "classes": [
+      "NetworkResource"
+    ],
+    "symbols": [
+      "canViewAny",
+      "canCreate",
+      "canEdit",
+      "canDelete",
+      "getEloquentQuery",
+      "hasViewPage",
+      "getRelations",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/OwnerUserResource/Pages/EditOwnerUser.php",
+    "sha256": "a0c52594bbbc1fa3dffd01c7644dfbeb293cb5540eb52876405300a15e0e72ac",
+    "lines": 23,
+    "classes": [
+      "EditOwnerUser"
+    ],
+    "symbols": [
+      "getHeaderActions",
+      "getRedirectUrl"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/OwnerUserResource/Pages/ListOwnerUsers.php",
+    "sha256": "c8a0b16e395645f4ddb369e960ee92216645eab7d7e1e092dac6af4239c00e14",
+    "lines": 81,
+    "classes": [
+      "ListOwnerUsers"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/OwnerUserResource.php",
+    "sha256": "3aef408c928f0d9c65c9b914f69827aa1cc1442ebc3fcebba18de8245f1e0c5d",
+    "lines": 173,
+    "classes": [
+      "OwnerUserResource"
+    ],
+    "symbols": [
+      "canViewAny",
+      "canCreate",
+      "getEloquentQuery",
+      "form",
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/ProductResource/Pages/CreateProduct.php",
+    "sha256": "4919bfcb1f51ad668487bd413178b5610203fcb0cc08de3a3a30b6165fade39e",
+    "lines": 36,
+    "classes": [
+      "CreateProduct"
+    ],
+    "symbols": [
+      "mutateFormDataBeforeCreate",
+      "afterCreate"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/ProductResource/Pages/EditProduct.php",
+    "sha256": "82d2d3bbe4fe78c7f4fb92e09a7e36c883587c2a09a968f8b0bbd563fb7c7fb6",
+    "lines": 33,
+    "classes": [
+      "EditProduct"
+    ],
+    "symbols": [
+      "mutateFormDataBeforeSave",
+      "afterSave"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/ProductResource/Pages/ListProducts.php",
+    "sha256": "1a54776f34dd445132b2322608918a95d96ff1fcec56c9d17f1ad8eb4b525466",
+    "lines": 18,
+    "classes": [
+      "ListProducts"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/ProductResource.php",
+    "sha256": "68d888152503841671a8c823912fc24fcf6fa78847400d1622b532c0ee738cfc",
+    "lines": 204,
+    "classes": [
+      "ProductResource"
+    ],
+    "symbols": [
+      "form",
+      "table",
+      "getEloquentQuery",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/ScreenResource/Pages/CreateScreen.php",
+    "sha256": "fdcde189263127d27648b10d9b2629878a54b374e25118073c3934e86055341a",
+    "lines": 20,
+    "classes": [
+      "CreateScreen"
+    ],
+    "symbols": [
+      "getRedirectUrl"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/ScreenResource/Pages/EditScreen.php",
+    "sha256": "4942b31c91dffb44074bf5537a85949c977c524514bdb38a0a8881176ba06689",
+    "lines": 55,
+    "classes": [
+      "EditScreen"
+    ],
+    "symbols": [
+      "getHeaderActions",
+      "getRedirectUrl",
+      "mutateFormDataBeforeFill"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/ScreenResource/Pages/ListScreen.php",
+    "sha256": "3405c48bc92939f913844bdd223606458bab5bb00d3b226a31ce35895c0a126a",
+    "lines": 18,
+    "classes": [
+      "ListScreen"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/ScreenResource/Pages/ViewScreen.php",
+    "sha256": "bd4042e6e30a352e228be1e408793d4416ddb453f1a1af96d619fcafc6ff6183",
+    "lines": 18,
+    "classes": [
+      "ViewScreen"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/ScreenResource.php",
+    "sha256": "4516fbe5649bd6f36cde0140eacef729c5e25b8b1225a5b54c79c1c9f5114d0e",
+    "lines": 90,
+    "classes": [
+      "ScreenResource"
+    ],
+    "symbols": [
+      "canViewAny",
+      "canCreate",
+      "canEdit",
+      "canDelete",
+      "canPricing",
+      "getEloquentQuery",
+      "siteFormOptions",
+      "sitesByNetwork",
+      "networkFormOptions",
+      "siteFilterOptions",
+      "networkFilterOptions",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/SiteResource/Pages/CreateSite.php",
+    "sha256": "ea4b85bd01fd5c0f27bfa6fc6438c3cbc25a60f75c1b77d143c24175cbf3a0eb",
+    "lines": 28,
+    "classes": [
+      "CreateSite"
+    ],
+    "symbols": [
+      "mutateFormDataBeforeCreate"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/SiteResource/Pages/EditSite.php",
+    "sha256": "301ab4cfd17d0ae873490bd7e0cc48589eefd17264c0a001afd3dec633428b90",
+    "lines": 109,
+    "classes": [
+      "EditSite"
+    ],
+    "symbols": [
+      "mutateFormDataBeforeSave",
+      "mount",
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/SiteResource/Pages/ListSite.php",
+    "sha256": "12c32cf65189f0709f73d13cd9395905b328607a103c998e8636a3c3334944df",
+    "lines": 27,
+    "classes": [
+      "ListSite"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/SiteResource/Pages/ViewSite.php",
+    "sha256": "d3a85226f5e33ebe611a1931ff5c19c7749553262b4aad533de18804ff27bd1b",
+    "lines": 18,
+    "classes": [
+      "ViewSite"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/SiteResource/RelationManagers/ScreensRelationManager.php",
+    "sha256": "d6d4ab210aca228d26414734cf2011d327678559d56273c5f6697f36a38a3a0b",
+    "lines": 89,
+    "classes": [
+      "ScreensRelationManager"
+    ],
+    "symbols": [
+      "table"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Resources/SiteResource.php",
+    "sha256": "3f91da83dfa3392e92c48ac090a95e8cc17d8942aa07aa913741b563e206e769",
+    "lines": 52,
+    "classes": [
+      "SiteResource"
+    ],
+    "symbols": [
+      "canViewAny",
+      "canView",
+      "canCreate",
+      "canEdit",
+      "canDelete",
+      "getEloquentQuery",
+      "getRelations",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Widgets/DashboardOverviewWidget.php",
+    "sha256": "8f874ed8f29c00d561355179cc15ffccaacb26ae3e8f9782d75f36076072939a",
+    "lines": 75,
+    "classes": [
+      "DashboardOverviewWidget"
+    ],
+    "symbols": [
+      "getStats"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Widgets/NetworkStatsWidget.php",
+    "sha256": "847d237e05b42d66019429b7ac221a5f764e8322e99fe12a441ec226805e46a3",
+    "lines": 84,
+    "classes": [
+      "NetworkStatsWidget"
+    ],
+    "symbols": [
+      "getOwnerId",
+      "getStats"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Widgets/ScreenStatsWidget.php",
+    "sha256": "39c2512cdb962d736e5c5d5e79bdb38270033c42bffee339f7c148f22b78e030",
+    "lines": 94,
+    "classes": [
+      "ScreenStatsWidget"
+    ],
+    "symbols": [
+      "getOwnerId",
+      "getStats"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Publisher/Widgets/SiteStatsWidget.php",
+    "sha256": "70712618d9740d429c4d6dcbd465aa72cf31d23bda1ef5e4d8816ac6085e64c8",
+    "lines": 101,
+    "classes": [
+      "SiteStatsWidget"
+    ],
+    "symbols": [
+      "getOwnerId",
+      "getStats"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/CampaignResource/Pages/ListCampaigns.php",
+    "sha256": "ee43e30142e60125a75d9065250885f73f29e1d487c734577b587c18c8de192b",
+    "lines": 12,
+    "classes": [
+      "ListCampaigns"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/CampaignResource/Pages/ViewCampaign.php",
+    "sha256": "01f2aaf28a0c8c41c058391a93a57243614f1c4884cdcf07396002e5cb516782",
+    "lines": 140,
+    "classes": [
+      "ViewCampaign"
+    ],
+    "symbols": [
+      "infolist",
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/CampaignResource.php",
+    "sha256": "c26b9ccd786efb5e0b0dba97bd631f73be4e4ee4134d36e01f3a47a487dcc3a5",
+    "lines": 132,
+    "classes": [
+      "CampaignResource"
+    ],
+    "symbols": [
+      "getNavigationBadge",
+      "getNavigationBadgeColor",
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/CreativeResource/Pages/ListCreatives.php",
+    "sha256": "42c5119e76efa2d87869d94914425174688a2436eec31332526c691957133cd4",
+    "lines": 12,
+    "classes": [
+      "ListCreatives"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/CreativeResource.php",
+    "sha256": "dda16473886cbe574589062dc8cb88e0b1828a0e948597da730244f0db147e82",
+    "lines": 175,
+    "classes": [
+      "CreativeResource"
+    ],
+    "symbols": [
+      "getNavigationBadge",
+      "getNavigationBadgeColor",
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/NetworkResource/Pages/CreateNetwork.php",
+    "sha256": "1aeb40268c17c543da1a60d74c218d6c11ab33b14b893ef5052c86f3c6cac240",
+    "lines": 10,
+    "classes": [
+      "CreateNetwork"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/NetworkResource/Pages/EditNetwork.php",
+    "sha256": "ad5947380b48af11584d00292f08c7e7ef466c3dd3a3829e4b077acdc905be38",
+    "lines": 10,
+    "classes": [
+      "EditNetwork"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/NetworkResource/Pages/ListNetworks.php",
+    "sha256": "09cacdc9eeabf77a3192a49734a0ef9d8608aa2bfe8c68c48413b6d187dd5bcc",
+    "lines": 10,
+    "classes": [
+      "ListNetworks"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/NetworkResource/Pages/ViewNetwork.php",
+    "sha256": "1adb99a5d486a78a67603a7bd3d53ba7e7bea8509d77e6538bd8a805eda91564",
+    "lines": 12,
+    "classes": [
+      "ViewNetwork"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/NetworkResource/RelationManagers/ScreensRelationManager.php",
+    "sha256": "dc7fe57a0ba393bf2196cf1e882ffe4b418d4962647acbb17fe4fee0f98c0c4b",
+    "lines": 120,
+    "classes": [
+      "ScreensRelationManager"
+    ],
+    "symbols": [
+      "table"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/NetworkResource.php",
+    "sha256": "fb9bafc9c978e69cfe221a483016a026657f52b82173e34b1fbfa220d6b03232",
+    "lines": 87,
+    "classes": [
+      "NetworkResource"
+    ],
+    "symbols": [
+      "canViewAny",
+      "canView",
+      "canCreate",
+      "canEdit",
+      "canDelete",
+      "hasViewPage",
+      "ownerFormField",
+      "additionalTableColumns",
+      "additionalFilters",
+      "getRelations",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxCampaignEstimateResource/Pages/CreateOohxCampaignEstimate.php",
+    "sha256": "56ae53d51b0dba9302fa1b10e40ba6d8e2e2b40dd81a3722b3245e87731d4de3",
+    "lines": 197,
+    "classes": [
+      "CreateOohxCampaignEstimate"
+    ],
+    "symbols": [
+      "getTitle",
+      "getBreadcrumb",
+      "mount",
+      "form",
+      "getHeaderActions",
+      "forecast"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxCampaignEstimateResource/Pages/ListOohxCampaignEstimates.php",
+    "sha256": "428cf1582f78a2b69cc8a8ac16bb2019afb978bff37032afbc2ec7ebd1849146",
+    "lines": 22,
+    "classes": [
+      "ListOohxCampaignEstimates"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxCampaignEstimateResource/Pages/ViewOohxCampaignEstimate.php",
+    "sha256": "983cfcfedf3620b686d72c492932dc843a3c9817b3b6ede0cbaa3436d30c06f7",
+    "lines": 12,
+    "classes": [
+      "ViewOohxCampaignEstimate"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxCampaignEstimateResource.php",
+    "sha256": "5f9d4ee02807482b914bc7c48b028d4cd7f0ed8865bb40edad37a040d1f4d056",
+    "lines": 329,
+    "classes": [
+      "OohxCampaignEstimateResource"
+    ],
+    "symbols": [
+      "canEdit",
+      "canDelete",
+      "form",
+      "table",
+      "infolist",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxCollectorRunResource/Pages/ListCollectorRuns.php",
+    "sha256": "02bef8c367abdfbc071edec32d1e71e2da5564b3e1cb3028055662f5b300f6dd",
+    "lines": 17,
+    "classes": [
+      "ListCollectorRuns"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxCollectorRunResource/Pages/ViewCollectorRun.php",
+    "sha256": "ae03d366be04fc8f5ae6e873a5b1e808c80863bd2c35ebbf4f1be1a521747425",
+    "lines": 35,
+    "classes": [
+      "ViewCollectorRun"
+    ],
+    "symbols": [
+      "getPollingInterval",
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxCollectorRunResource.php",
+    "sha256": "c404757fc9fca951cb44d2c0d015d106b453dcb29956a0c86c22cc11711a8ba5",
+    "lines": 275,
+    "classes": [
+      "OohxCollectorRunResource"
+    ],
+    "symbols": [
+      "canCreate",
+      "canEdit",
+      "canDelete",
+      "form",
+      "table",
+      "infolist",
+      "getPages",
+      "getNavigationBadge",
+      "getNavigationBadgeColor",
+      "getNavigationBadgeTooltip",
+      "handleCancel"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/AuditLogResource/Pages/ListAuditLog.php",
+    "sha256": "f5f229a63b912d788ded8cc9fc3406320b40a20fd40e0e92560f0174fbca7d4b",
+    "lines": 17,
+    "classes": [
+      "ListAuditLog"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/AuditLogResource/Pages/ViewAuditEntry.php",
+    "sha256": "a0c9767272b8404b34c7437c7cd6ae52df7414480653adf4613cb96c32ae33dd",
+    "lines": 12,
+    "classes": [
+      "ViewAuditEntry"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/AuditLogResource.php",
+    "sha256": "c89f156145e3037ff2b9217e080f9ef8e244445ab6b9941fe5d4c9ce8f152e40",
+    "lines": 197,
+    "classes": [
+      "AuditLogResource"
+    ],
+    "symbols": [
+      "canCreate",
+      "canEdit",
+      "canDelete",
+      "form",
+      "table",
+      "infolist",
+      "getPages",
+      "getNavigationBadge",
+      "getNavigationBadgeTooltip"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/BaseCityTrafficResource/Pages/ListBaseCityTraffic.php",
+    "sha256": "d8c4c1eda084937486b46367092db81376509ad5be94db0ef939c6b6cee6631d",
+    "lines": 12,
+    "classes": [
+      "ListBaseCityTraffic"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/BaseCityTrafficResource.php",
+    "sha256": "b9c97b8cf9108226a6feb449623f13e0a8787b9064236393e5f4bee078e75dbe",
+    "lines": 133,
+    "classes": [
+      "BaseCityTrafficResource"
+    ],
+    "symbols": [
+      "canDelete",
+      "hasViewPage",
+      "form",
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/DeliveryDefaultResource/Pages/ListDeliveryDefaults.php",
+    "sha256": "4f6f2b69771dfddf5159fab715b1eb251d6051a474ffe98cb0a161fe1e7b0be2",
+    "lines": 12,
+    "classes": [
+      "ListDeliveryDefaults"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/DeliveryDefaultResource.php",
+    "sha256": "9c694642315abc0b590bce09e7554a773604ef84a5219d94dc637e570bcdbfe4",
+    "lines": 109,
+    "classes": [
+      "DeliveryDefaultResource"
+    ],
+    "symbols": [
+      "canDelete",
+      "hasViewPage",
+      "form",
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/FormulaVersionResource/Pages/ListFormulaVersions.php",
+    "sha256": "d30e16411aa40fbd07b6a4cea1bb25a02efc38f747c064294efc73953a8194c5",
+    "lines": 17,
+    "classes": [
+      "ListFormulaVersions"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/FormulaVersionResource/Pages/ViewFormulaVersion.php",
+    "sha256": "3867c0d6a60f6f12eb70222eac7674c7d3c0302408bad5d39f6366ffc2699814",
+    "lines": 134,
+    "classes": [
+      "ViewFormulaVersion"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/FormulaVersionResource.php",
+    "sha256": "fcb0ebac2712c0515f9ee8fda5fcbe4039b755a54a828ff0af1d88640170d640",
+    "lines": 318,
+    "classes": [
+      "FormulaVersionResource"
+    ],
+    "symbols": [
+      "canCreate",
+      "canEdit",
+      "canDelete",
+      "form",
+      "table",
+      "infolist",
+      "getPages",
+      "getNavigationBadge",
+      "getNavigationBadgeColor"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/RoadClassMultiplierResource/Pages/ListRoadClassMultipliers.php",
+    "sha256": "5249fd4b24e110caa0e46d14567d8932428fa3185c84ed139db230d1a885e3ac",
+    "lines": 12,
+    "classes": [
+      "ListRoadClassMultipliers"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/RoadClassMultiplierResource.php",
+    "sha256": "5777492af86dc6cb5514059b800d7f80c79dfba11e35b63e3138136955965656",
+    "lines": 116,
+    "classes": [
+      "RoadClassMultiplierResource"
+    ],
+    "symbols": [
+      "canDelete",
+      "hasViewPage",
+      "form",
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/SeasonalityFactorResource/Pages/ListSeasonalityFactors.php",
+    "sha256": "7ad2e605fd21402ab336cd004ce9757dd9c2763f3d57eec2601e568d106b0d53",
+    "lines": 12,
+    "classes": [
+      "ListSeasonalityFactors"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/SeasonalityFactorResource/Pages/SeasonalityHeatmap.php",
+    "sha256": "0dccee9f792cb88ea44a7b895f5f0da6981da67e9eac6f2a13d1e9265bd73b59",
+    "lines": 38,
+    "classes": [
+      "SeasonalityHeatmap"
+    ],
+    "symbols": [
+      "getHeaderActions",
+      "getViewData"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/SeasonalityFactorResource.php",
+    "sha256": "a393921c020fb8785124f9ec940165367ec750c97e83b0b8c4c0efa8af24ac69",
+    "lines": 188,
+    "classes": [
+      "SeasonalityFactorResource"
+    ],
+    "symbols": [
+      "canDelete",
+      "hasViewPage",
+      "form",
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/ZoneFactorResource/Pages/ListZoneFactors.php",
+    "sha256": "1718221522c600b4c88662c4bd5b7c14bbd42957f5408222dbd2457a2bdd1c86",
+    "lines": 12,
+    "classes": [
+      "ListZoneFactors"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxConfig/ZoneFactorResource.php",
+    "sha256": "855b8435428518dc7ddfb376967828a0d07be970c36f20f71d7018b621a2a3be",
+    "lines": 102,
+    "classes": [
+      "ZoneFactorResource"
+    ],
+    "symbols": [
+      "canDelete",
+      "hasViewPage",
+      "form",
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxEstimateResource/Pages/ListOohxEstimates.php",
+    "sha256": "fd4b1fe2a890ee094f944007fda6d81788607877f7b013a80be22d37dffe442f",
+    "lines": 17,
+    "classes": [
+      "ListOohxEstimates"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxEstimateResource/Pages/ViewOohxEstimate.php",
+    "sha256": "81d6e2c1b14abe745c86b53a41cfe9a7355a812e103e943ee1acc04f46c4caca",
+    "lines": 17,
+    "classes": [
+      "ViewOohxEstimate"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxEstimateResource.php",
+    "sha256": "e4a44b974d33044113d33f31626496dd3d03fb323b5937408210ca24b0fea4bd",
+    "lines": 593,
+    "classes": [
+      "OohxEstimateResource"
+    ],
+    "symbols": [
+      "canCreate",
+      "canEdit",
+      "canDelete",
+      "hasViewPage",
+      "form",
+      "getEloquentQuery",
+      "table",
+      "infolist",
+      "getPages",
+      "getNavigationBadge",
+      "getNavigationBadgeColor",
+      "getNavigationBadgeTooltip",
+      "tierLabel"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxRecomputeJobResource/Pages/ListRecomputeJobs.php",
+    "sha256": "ab1e5ccce0c07f2ceb3866764014933d693eaadf4c58911094454883f73a7220",
+    "lines": 17,
+    "classes": [
+      "ListRecomputeJobs"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxRecomputeJobResource/Pages/ViewRecomputeJob.php",
+    "sha256": "9f1198f970ddc7840b2f137bd8fdf64c63359f6fe9c0d9c5ab6487fbf0a6f12d",
+    "lines": 71,
+    "classes": [
+      "ViewRecomputeJob"
+    ],
+    "symbols": [
+      "getPollingInterval",
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OohxRecomputeJobResource.php",
+    "sha256": "059896e3b498237888f17d3a8b887c06b3b4fb03cddf26fe5adcb8003217181c",
+    "lines": 605,
+    "classes": [
+      "OohxRecomputeJobResource"
+    ],
+    "symbols": [
+      "canCreate",
+      "canEdit",
+      "canDelete",
+      "form",
+      "getEloquentQuery",
+      "table",
+      "infolist",
+      "getPages",
+      "getNavigationBadge",
+      "getNavigationBadgeColor",
+      "getNavigationBadgeTooltip",
+      "enqueueScreenAction",
+      "enqueueCityAction",
+      "enqueueBulkAction",
+      "handleRetry",
+      "handleCancel",
+      "cityOptions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OrganizationResource/Pages/CreateOrganization.php",
+    "sha256": "5027856c963af0c5e87447036681eb5ca3e830ecf7719beae9c3030b03aab4ed",
+    "lines": 12,
+    "classes": [
+      "CreateOrganization"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OrganizationResource/Pages/EditOrganization.php",
+    "sha256": "08120d713940fc4ed109e869600c16ac40c14015f6d23ba01e183b30b8256484",
+    "lines": 18,
+    "classes": [
+      "EditOrganization"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OrganizationResource/Pages/ListOrganizations.php",
+    "sha256": "4c6bc1e7eac7b49e1e1a431924c0d88118ff0bd303059e3e27be06e3e46f1f29",
+    "lines": 18,
+    "classes": [
+      "ListOrganizations"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OrganizationResource/Pages/ViewOrganization.php",
+    "sha256": "a420d80c92d36b77761eb5e735ace3defcf06b271eed37609bf177f01a4e406f",
+    "lines": 18,
+    "classes": [
+      "ViewOrganization"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OrganizationResource/RelationManagers/OrganizationUsersRelationManager.php",
+    "sha256": "d8caceab43dddedd65cfcada0c0f0552b5e3735b2fd346656cadbfdcc9725652",
+    "lines": 147,
+    "classes": [
+      "OrganizationUsersRelationManager"
+    ],
+    "symbols": [
+      "form",
+      "table"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OrganizationResource.php",
+    "sha256": "2418dce6836db895da0b6245ce206dfbeedfae70084d289052ab987bab4fc523",
+    "lines": 236,
+    "classes": [
+      "OrganizationResource"
+    ],
+    "symbols": [
+      "form",
+      "infolist",
+      "table",
+      "getPages",
+      "getRelations"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OwnerResource/Pages/CreateOwner.php",
+    "sha256": "f79c9d5ad4ed1466731c09efcd83cb0def8088c985a4151d6187f9c9d678f8fe",
+    "lines": 8,
+    "classes": [
+      "CreateOwner"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OwnerResource/Pages/EditOwner.php",
+    "sha256": "d00129ba32eba5aa43a6f25b66a9125701e8d9520cfa9d6ebdf8bfcd8d952557",
+    "lines": 10,
+    "classes": [
+      "EditOwner"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OwnerResource/Pages/ListOwners.php",
+    "sha256": "30c1075347dc08d7c8f69c490106ea1d8ffdd359264ea467cec6a6a0b7aefb55",
+    "lines": 10,
+    "classes": [
+      "ListOwners"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OwnerResource/RelationManagers/OwnerUsersRelationManager.php",
+    "sha256": "ed176c41c3777aaadbb1fd77eefa72056337238bd8bb9be3c66978b72eaad63a",
+    "lines": 244,
+    "classes": [
+      "OwnerUsersRelationManager"
+    ],
+    "symbols": [
+      "form",
+      "table"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OwnerResource.php",
+    "sha256": "145170995233cd2a2360c1994006f9ca284104b770db26b61c3822ae348d57fc",
+    "lines": 201,
+    "classes": [
+      "OwnerResource"
+    ],
+    "symbols": [
+      "form",
+      "table",
+      "infolist",
+      "getRelations",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OwnerReviewResource/Pages/EditOwnerReview.php",
+    "sha256": "19e9c52944bfc4ce4b120c8a71cd4f3413b09eccb8499f4b19464a71f60c640d",
+    "lines": 17,
+    "classes": [
+      "EditOwnerReview"
+    ],
+    "symbols": [
+      "getRedirectUrl"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OwnerReviewResource/Pages/ListOwnerReviews.php",
+    "sha256": "3f85a7b54cf6a1e82c3114760da7683e65d28e0e99d6f9f8b83221ee3549bcf1",
+    "lines": 12,
+    "classes": [
+      "ListOwnerReviews"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/OwnerReviewResource.php",
+    "sha256": "b5616d2f75ff56cb5cad11227d9bf8417a5fb82bde4df69ae945adf7001aa0e8",
+    "lines": 145,
+    "classes": [
+      "OwnerReviewResource"
+    ],
+    "symbols": [
+      "getNavigationBadge",
+      "getNavigationBadgeColor",
+      "form",
+      "table",
+      "canCreate",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/PoiSnapshotResource/Pages/ListPoiSnapshots.php",
+    "sha256": "65190ccc0dca80acf1d3356ce1d2ffcefbd21f3d7d5ce924314dea281e3ac60d",
+    "lines": 17,
+    "classes": [
+      "ListPoiSnapshots"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/PoiSnapshotResource/Pages/ViewPoiSnapshot.php",
+    "sha256": "98082e58518837f1a58a8862864c12cc4687169d574b88ed8b7ddb1a900ab733",
+    "lines": 52,
+    "classes": [
+      "ViewPoiSnapshot"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/PoiSnapshotResource.php",
+    "sha256": "161f74ee55fc8e3e9dc334c3c3881c78cec7298be644e248cc9503e0a490ba68",
+    "lines": 266,
+    "classes": [
+      "PoiSnapshotResource"
+    ],
+    "symbols": [
+      "canCreate",
+      "canEdit",
+      "form",
+      "table",
+      "infolist",
+      "getPages",
+      "getNavigationBadge"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/ProductResource/Pages/CreateProduct.php",
+    "sha256": "665b44fcbdf0361b417507dd101e048cfa4d4317d459041464193cdd7673b089",
+    "lines": 35,
+    "classes": [
+      "CreateProduct"
+    ],
+    "symbols": [
+      "mutateFormDataBeforeCreate",
+      "afterCreate"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/ProductResource/Pages/EditProduct.php",
+    "sha256": "5018aa2fd1589869b5c1a4baa5d7692aaf9c72db3e0fc41959a39b2fa3f0924d",
+    "lines": 39,
+    "classes": [
+      "EditProduct"
+    ],
+    "symbols": [
+      "getHeaderActions",
+      "mutateFormDataBeforeSave",
+      "afterSave"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/ProductResource/Pages/ListProducts.php",
+    "sha256": "7cc165f9113911da9d70101a236df41af4f8c582271efe32b04eaef9d2311308",
+    "lines": 18,
+    "classes": [
+      "ListProducts"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/ProductResource/Pages/ViewProduct.php",
+    "sha256": "55c5c2d1bc848cb99a70ff85e978fc2b7b6e65b12ac2de8396781657d5fb17d2",
+    "lines": 18,
+    "classes": [
+      "ViewProduct"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/ProductResource.php",
+    "sha256": "191a2ee9a50b186080750a673409cd39953c7687ac51d15b3f8183e7f56707f5",
+    "lines": 330,
+    "classes": [
+      "ProductResource"
+    ],
+    "symbols": [
+      "form",
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/PublicReflectionResource/Pages/EditPublicReflection.php",
+    "sha256": "6ce1e2fb50ff015f4a16e0900744e3c2cf64009b9de3a519c25d65a0c14dd6a9",
+    "lines": 28,
+    "classes": [
+      "EditPublicReflection"
+    ],
+    "symbols": [
+      "mutateFormDataBeforeSave",
+      "getRedirectUrl"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/PublicReflectionResource/Pages/ListPublicReflections.php",
+    "sha256": "689b306a62fe328fdd735621f98c9e54b9f906e6bdfce1473ca88b47d2af3221",
+    "lines": 12,
+    "classes": [
+      "ListPublicReflections"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/PublicReflectionResource.php",
+    "sha256": "57106799528f28c35f28cd8b0c8cc1f1ce9d90f195f5f7bfa26459b354ded211",
+    "lines": 184,
+    "classes": [
+      "PublicReflectionResource"
+    ],
+    "symbols": [
+      "getNavigationBadge",
+      "getNavigationBadgeColor",
+      "form",
+      "table",
+      "canCreate",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/RoleResource/Pages/CreateRole.php",
+    "sha256": "1c1c2607f556e9a2383f93c554988ebf236ee171371f286668dd1cf255afe760",
+    "lines": 17,
+    "classes": [
+      "CreateRole"
+    ],
+    "symbols": [
+      "getRedirectUrl"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/RoleResource/Pages/EditRole.php",
+    "sha256": "41722f82a5953720ccf1d14760ee3bd93fc1a7f369fc886ff6672e5b0980b6d1",
+    "lines": 26,
+    "classes": [
+      "EditRole"
+    ],
+    "symbols": [
+      "getRedirectUrl",
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/RoleResource/Pages/ListRoles.php",
+    "sha256": "d953ab93040511f415e85e3b22442d08e9acb8a84798b2fd4fa6d652805b6180",
+    "lines": 20,
+    "classes": [
+      "ListRoles"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/RoleResource/Pages/ViewRole.php",
+    "sha256": "96e2fe7652941fe8b2615445346acf2a581fc0b88785a0d500d73b4ed3d3ec13",
+    "lines": 20,
+    "classes": [
+      "ViewRole"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/RoleResource.php",
+    "sha256": "99a15c51b218657d2d32d1b32bdf89c4ce319da6fb7f7ded478d6361f3139e46",
+    "lines": 158,
+    "classes": [
+      "RoleResource"
+    ],
+    "symbols": [
+      "form",
+      "table",
+      "infolist",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/ScreenImportResource/Pages/ListScreenImports.php",
+    "sha256": "08c4cb81e7bf6758a69e643927979dc511b3781923a20ab17bf515cf930dd31f",
+    "lines": 133,
+    "classes": [
+      "ListScreenImports"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/ScreenImportResource/Pages/ViewScreenImport.php",
+    "sha256": "c5881c2301499306b744cb2404f24c0504f4e1277b02f0a544eeefdbb03e8804",
+    "lines": 440,
+    "classes": [
+      "ViewScreenImport"
+    ],
+    "symbols": [
+      "getPollingInterval",
+      "getHeaderActions",
+      "infolist",
+      "buildMappingFormState"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/ScreenImportResource.php",
+    "sha256": "3117376c2a9c96e43c54588c8424c7863bdb122a1a5ea72e8ed97aee054a1a7b",
+    "lines": 98,
+    "classes": [
+      "ScreenImportResource"
+    ],
+    "symbols": [
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/ScreenResource/Pages/CreateScreen.php",
+    "sha256": "af2b71ab008be3188e94cf1d0078e3747c77e0306224648e63e64e821d89d085",
+    "lines": 20,
+    "classes": [
+      "CreateScreen"
+    ],
+    "symbols": [
+      "getRedirectUrl"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/ScreenResource/Pages/EditScreen.php",
+    "sha256": "4bbafa59613bec6831e4f381f5d1652dee9d8f4320aa1ee660b64d4d5b5b3efd",
+    "lines": 55,
+    "classes": [
+      "EditScreen"
+    ],
+    "symbols": [
+      "getHeaderActions",
+      "getRedirectUrl",
+      "mutateFormDataBeforeFill"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/ScreenResource/Pages/ListScreen.php",
+    "sha256": "5dcac5461330c420d5a1b9d6fdffa0e858986fbcb3030fdf0180a5d4854a4628",
+    "lines": 10,
+    "classes": [
+      "ListScreen"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/ScreenResource/Pages/ViewScreen.php",
+    "sha256": "3831759f9c0a30c13099314b64ff328a0b11c006fb9b915337a0f0a485f30e5d",
+    "lines": 18,
+    "classes": [
+      "ViewScreen"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/ScreenResource.php",
+    "sha256": "3e1f6be9c60d05c2214884df0ee74314e490df15aba89ef2c27e4fe85db9d8bb",
+    "lines": 60,
+    "classes": [
+      "ScreenResource"
+    ],
+    "symbols": [
+      "showOwnerField",
+      "canViewAny",
+      "canCreate",
+      "canEdit",
+      "canDelete",
+      "additionalTableColumns",
+      "additionalFilters",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/SiteResource/Pages/CreateSite.php",
+    "sha256": "5e089a6f0bd04d64e94070eb2179a960c8ac440a13dcad56ebadd64b6bd4eb04",
+    "lines": 8,
+    "classes": [
+      "CreateSite"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/SiteResource/Pages/EditSite.php",
+    "sha256": "cc8ce6c247053d20ed68159f8dba64c99c93ec6dc8d0a877483f48fcc239a708",
+    "lines": 84,
+    "classes": [
+      "EditSite"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/SiteResource/Pages/ListSites.php",
+    "sha256": "e6534f5ab1474d6102799e0368ea64444321b16103318fad71b5f6a9ab863798",
+    "lines": 10,
+    "classes": [
+      "ListSites"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/SiteResource/Pages/ViewSite.php",
+    "sha256": "98595b6c8212c45b13d17b23f4db30c2162deaf51b15598b5d5939a1a5bf17e2",
+    "lines": 18,
+    "classes": [
+      "ViewSite"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/SiteResource/RelationManagers/ScreensRelationManager.php",
+    "sha256": "189c4c7bc0ac63c98ed988e2069a83090f3bd40fd62b077132a23eab91941f19",
+    "lines": 89,
+    "classes": [
+      "ScreensRelationManager"
+    ],
+    "symbols": [
+      "table"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/SiteResource.php",
+    "sha256": "9105b7e927fb6cfd28d13ddfb93673a0398ce48f132334d7b2eb36bf2f3c99e3",
+    "lines": 79,
+    "classes": [
+      "SiteResource"
+    ],
+    "symbols": [
+      "canViewAny",
+      "canView",
+      "canCreate",
+      "canEdit",
+      "canDelete",
+      "ownerFormField",
+      "additionalTableColumns",
+      "additionalFilters",
+      "getRelations",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/UserResource/Pages/CreateUser.php",
+    "sha256": "ea99ee8a9ee362b92985dcde6e1b2289fb39e58bbd7751077ce11a9a2187e49a",
+    "lines": 52,
+    "classes": [
+      "CreateUser"
+    ],
+    "symbols": [
+      "getRedirectUrl",
+      "afterCreate",
+      "syncRoleAndOwners"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/UserResource/Pages/EditUser.php",
+    "sha256": "c851bf6966db937a8a6a63f1782b9e98884b83c1b55e2a9615c132274a0d7cea",
+    "lines": 70,
+    "classes": [
+      "EditUser"
+    ],
+    "symbols": [
+      "getRedirectUrl",
+      "getHeaderActions",
+      "afterSave",
+      "syncRoleAndOwners"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/UserResource/Pages/ListUsers.php",
+    "sha256": "3ecaffca885ddb15bdb59a53ac72d9334ca0cddfe8b03a12b6ee916437dd92db",
+    "lines": 26,
+    "classes": [
+      "ListUsers"
+    ],
+    "symbols": [
+      "getHeaderActions",
+      "getTableQuery"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/UserResource/Pages/ViewUser.php",
+    "sha256": "ef31955f6dd55156477cc4cefcfab5e579ea58ae67179f57141b5ff7fc26ad9b",
+    "lines": 20,
+    "classes": [
+      "ViewUser"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/UserResource.php",
+    "sha256": "84ec2aa387a2d8e5889f7f0b5feeb998ced7b327b3dd39a0ae77f9dc4912d70d",
+    "lines": 333,
+    "classes": [
+      "UserResource"
+    ],
+    "symbols": [
+      "form",
+      "table",
+      "infolist",
+      "getRelations",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VenueCategoryResource/Pages/CreateVenueCategory.php",
+    "sha256": "b006653dda787c5165494e5f581ba4be8295b6d91ea5045225db2668eae3ee49",
+    "lines": 12,
+    "classes": [
+      "CreateVenueCategory"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VenueCategoryResource/Pages/EditVenueCategory.php",
+    "sha256": "3506bf7236e5c95ed88a4ff605963174f34c729437f5c2250ce43292c537ed2d",
+    "lines": 18,
+    "classes": [
+      "EditVenueCategory"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VenueCategoryResource/Pages/ListVenueCategories.php",
+    "sha256": "1cf4bb2971703e110a55069cbdb17873c7ed5e5a38dc1976b011a81869604f7e",
+    "lines": 18,
+    "classes": [
+      "ListVenueCategories"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VenueCategoryResource/RelationManagers/VenueTypesRelationManager.php",
+    "sha256": "227101b1160e6c3d9aeeb4bf2f6ed756cf2e0bf84f822e9071c2b969ff21e98b",
+    "lines": 149,
+    "classes": [
+      "VenueTypesRelationManager"
+    ],
+    "symbols": [
+      "form",
+      "table"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VenueCategoryResource.php",
+    "sha256": "9a5b88578517993b6a271a383891e8dffd57d18724c2682b224e1401fe34aecb",
+    "lines": 227,
+    "classes": [
+      "VenueCategoryResource"
+    ],
+    "symbols": [
+      "form",
+      "table",
+      "getRelations",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VenueTypeResource/Pages/CreateVenueType.php",
+    "sha256": "2044de0978406a1c6230d11f82030fce5fe05903fe6184010e9de7e30b6bf2e4",
+    "lines": 13,
+    "classes": [
+      "CreateVenueType"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VenueTypeResource/Pages/EditVenueType.php",
+    "sha256": "1eeec46c2eca54d7f4a95a58d03a7c313610770ea240dd96f21da5494e57d9f6",
+    "lines": 18,
+    "classes": [
+      "EditVenueType"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VenueTypeResource/Pages/ListVenueType.php",
+    "sha256": "8c04bf47a867f63c50f73eca7c963c92248e1655c33df7c14c7ee55253b96c8c",
+    "lines": 18,
+    "classes": [
+      "ListVenueType"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VenueTypeResource.php",
+    "sha256": "2434ebd8f20ff5154faa70b99d9aafe72b2183f2d31692e36ec3f04a8cef3b14",
+    "lines": 280,
+    "classes": [
+      "VenueTypeResource"
+    ],
+    "symbols": [
+      "form",
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VietnamCommuneResource/Pages/CreateVietnamCommune.php",
+    "sha256": "3e6361451743f320c1ff2eb4f79ab508e9af552db16bb96cb9df0bf296ca3e5d",
+    "lines": 12,
+    "classes": [
+      "CreateVietnamCommune"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VietnamCommuneResource/Pages/EditVietnamCommune.php",
+    "sha256": "4ea5dadb2d005b94ee3e74846f2cb69b4135afa23efa3c71ba83ad2a20db4027",
+    "lines": 20,
+    "classes": [
+      "EditVietnamCommune"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VietnamCommuneResource/Pages/ListVietnamCommunes.php",
+    "sha256": "be1e29c83e74d679a82fc8edb3436c444dcaeaa6000cca5727cb163ef4e76272",
+    "lines": 26,
+    "classes": [
+      "ListVietnamCommunes"
+    ],
+    "symbols": [
+      "getHeaderWidgets",
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VietnamCommuneResource/Widgets/CommuneStatsWidget.php",
+    "sha256": "e76885a0c71f0fac3dd7e1775b8500920e0988916ceacdfc1f819d82ca705e7c",
+    "lines": 74,
+    "classes": [
+      "CommuneStatsWidget"
+    ],
+    "symbols": [
+      "getStats"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VietnamCommuneResource.php",
+    "sha256": "86184d39cdb8f3a90b77e2c145fbf8df9a8732d51b81f6c7aad5f484a3aeb504",
+    "lines": 149,
+    "classes": [
+      "VietnamCommuneResource"
+    ],
+    "symbols": [
+      "form",
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VietnamProvinceResource/Pages/CreateVietnamProvince.php",
+    "sha256": "a576ded3469f027eb58fd29cf90da8739969caf4b0d7f699d9d0385c15d5d1bf",
+    "lines": 12,
+    "classes": [
+      "CreateVietnamProvince"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VietnamProvinceResource/Pages/EditVietnamProvince.php",
+    "sha256": "e3c3357aae2c32d8a1d3c69f63cfbc233e2c8d824e4daaf73ad64b0a7ea39c31",
+    "lines": 20,
+    "classes": [
+      "EditVietnamProvince"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VietnamProvinceResource/Pages/ListVietnamProvinces.php",
+    "sha256": "78b9e833ea734af775463c212a54dc14b1bcd4df743a56731918ff97e7c44269",
+    "lines": 152,
+    "classes": [
+      "ListVietnamProvinces"
+    ],
+    "symbols": [
+      "getHeaderWidgets",
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VietnamProvinceResource/Widgets/ProvinceStatsWidget.php",
+    "sha256": "45fe951747c1a7736fe3c234b5cdc3514fbb4241b069ecc1e83ccc099f55a6f3",
+    "lines": 70,
+    "classes": [
+      "ProvinceStatsWidget"
+    ],
+    "symbols": [
+      "getStats"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VietnamProvinceResource.php",
+    "sha256": "306fbbbed45630d12f422216edb3d5ab4e55e031eb176856e8561cf7ba16cab2",
+    "lines": 169,
+    "classes": [
+      "VietnamProvinceResource"
+    ],
+    "symbols": [
+      "form",
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VietnamRegionResource/Pages/CreateVietnamRegion.php",
+    "sha256": "1d9876fd8857a78cba5904b537cad35163ca97491bd1a2360dec83e8a3713400",
+    "lines": 12,
+    "classes": [
+      "CreateVietnamRegion"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VietnamRegionResource/Pages/EditVietnamRegion.php",
+    "sha256": "4bc0cfe8befdde534790b1553d2d692db255a6bfbf30463d5d66e8a4d0f8ba42",
+    "lines": 18,
+    "classes": [
+      "EditVietnamRegion"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VietnamRegionResource/Pages/ListVietnamRegions.php",
+    "sha256": "e39c6d687486241fa467e2cf0dd76f73ec4f619504ff530f9eea62901d0dd6e0",
+    "lines": 18,
+    "classes": [
+      "ListVietnamRegions"
+    ],
+    "symbols": [
+      "getHeaderActions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Resources/VietnamRegionResource.php",
+    "sha256": "478155e81e0a5160093b1768061e64b36a409f4897ac34bead0e9bc4f6d22dc9",
+    "lines": 87,
+    "classes": [
+      "VietnamRegionResource"
+    ],
+    "symbols": [
+      "form",
+      "table",
+      "getPages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Shared/Pages/BaseViewNetwork.php",
+    "sha256": "8e6f5615b4c548ce940c6a56d21fddf9c1d2420a6a7f4a0763705bd11800802c",
+    "lines": 91,
+    "classes": [
+      "BaseViewNetwork"
+    ],
+    "symbols": [
+      "getTitle",
+      "getView",
+      "mount",
+      "buildScreensMapData",
+      "screenViewUrl",
+      "getHeaderActions",
+      "getHeaderWidgets",
+      "getHeaderWidgetsData"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Shared/Resources/BaseNetworkResource.php",
+    "sha256": "88881818da2fea429918870c8756d9cf6752fd6aa5c8cad0aaa4cdbc13976bab",
+    "lines": 273,
+    "classes": [
+      "BaseNetworkResource"
+    ],
+    "symbols": [
+      "ownerFormField",
+      "additionalTableColumns",
+      "additionalFilters",
+      "hasViewPage",
+      "form",
+      "table"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Shared/Resources/BaseScreenResource.php",
+    "sha256": "30bbde48bcbf864fc6588025c2bdd39c50c09742a2342f9ed683a2f1f5d3200e",
+    "lines": 1148,
+    "classes": [
+      "BaseScreenResource"
+    ],
+    "symbols": [
+      "showOwnerField",
+      "canPricing",
+      "siteFormOptions",
+      "sitesByNetwork",
+      "networkFormOptions",
+      "siteFilterOptions",
+      "networkFilterOptions",
+      "additionalTableColumns",
+      "additionalFilters",
+      "flattenForKeyValue",
+      "form",
+      "table",
+      "showAdOpsSection",
+      "infolist"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Shared/Resources/BaseSiteResource.php",
+    "sha256": "e57d61e895d01a7416c06da8f4acef82e6e77349cd250914228dc6137a987388",
+    "lines": 551,
+    "classes": [
+      "BaseSiteResource"
+    ],
+    "symbols": [
+      "ownerFormField",
+      "additionalTableColumns",
+      "additionalFilters",
+      "form",
+      "table",
+      "infolist"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Shared/Widgets/NetworkDetailStats.php",
+    "sha256": "743ba0ca4eb4dc13c2d6167160221ec31d6210c0cf25a23be33e970f9c3bd354",
+    "lines": 64,
+    "classes": [
+      "NetworkDetailStats"
+    ],
+    "symbols": [
+      "getStats"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Widgets/OohxHealthSummaryWidget.php",
+    "sha256": "11ec88dfafa6e83037ffd220686e52c1d917fb8d61dd40a6d6f2e2f6f92e0f07",
+    "lines": 79,
+    "classes": [
+      "OohxHealthSummaryWidget"
+    ],
+    "symbols": [
+      "canView",
+      "getStats"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Widgets/PermissionStatsWidget.php",
+    "sha256": "d584516f5079cc7d457561c79220f527112582eff7bb96cf47cab42037f0f7f5",
+    "lines": 47,
+    "classes": [
+      "PermissionStatsWidget"
+    ],
+    "symbols": [
+      "getStats"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Filament/Widgets/RegistryStatsWidget.php",
+    "sha256": "019dbe7732cc86bd26c628fec0ea16ef157862c07047d4cbdacccf84c614a34a",
+    "lines": 69,
+    "classes": [
+      "RegistryStatsWidget"
+    ],
+    "symbols": [
+      "getStats"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Api/V1/AuthController.php",
+    "sha256": "433df411b4541f429b03643b9cce648e9d9c9d447868cb462faa70d8c7ae5498",
+    "lines": 41,
+    "classes": [
+      "AuthController"
+    ],
+    "symbols": [
+      "token"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Api/V1/InventoryController.php",
+    "sha256": "fcd2614865624736b3b637a1f377f72f4066e8cb7f11b19fa179f2022958ccef",
+    "lines": 624,
+    "classes": [
+      "InventoryController"
+    ],
+    "symbols": [
+      "index",
+      "map",
+      "show",
+      "stats",
+      "venueTypes",
+      "networks",
+      "locations",
+      "owners",
+      "ownerDetail",
+      "resolveRelations",
+      "buildScreenQuery",
+      "expandCitySlugs",
+      "resolveArrayParam",
+      "applyScreenTypeFilter",
+      "applyOrientationFilter",
+      "applySort"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Api/V1/OohxEstimateController.php",
+    "sha256": "956e4b317e263f108fff1457920a3e3ee5954dc5195645ffa2905215f9d30fc2",
+    "lines": 54,
+    "classes": [
+      "OohxEstimateController"
+    ],
+    "symbols": [
+      "__construct",
+      "topByCity",
+      "show"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Api/V1/OwnerController.php",
+    "sha256": "13fc2384f509fc9a08e963f41920bb9b3192110316c5a1ba09473d1dec699eb2",
+    "lines": 89,
+    "classes": [
+      "OwnerController"
+    ],
+    "symbols": [
+      "index",
+      "store",
+      "show",
+      "update",
+      "destroy",
+      "switchContext",
+      "stats"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Api/V1/PlayerController.php",
+    "sha256": "41e457c2dd6460fe2dfa7b7df25bc31d766132f2b806800f5c7e125e0aae34f0",
+    "lines": 79,
+    "classes": [
+      "PlayerController"
+    ],
+    "symbols": [
+      "heartbeat",
+      "impression"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Api/V1/ScreenController.php",
+    "sha256": "78c2d5d695f1a3535e39cd4a1c541050cbc988210dc71a712af71d3ee2315614",
+    "lines": 197,
+    "classes": [
+      "ScreenController"
+    ],
+    "symbols": [
+      "index",
+      "store",
+      "show",
+      "update",
+      "destroy",
+      "multipliers",
+      "updateMultipliers",
+      "toggleProgrammatic",
+      "saveSpec",
+      "saveInventory"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Api/V1/SiteController.php",
+    "sha256": "980dc099e45688ccbaab9cd61a382e3b837734e6fc7c6518aa1703c1540c3457",
+    "lines": 68,
+    "classes": [
+      "SiteController"
+    ],
+    "symbols": [
+      "index",
+      "store",
+      "show",
+      "update",
+      "destroy"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Api/V1/WebhookController.php",
+    "sha256": "2f4b817502998d31dcbd8a7a80bb6096cbf54a678b081ad4664c1281a6841a2b",
+    "lines": 45,
+    "classes": [
+      "WebhookController"
+    ],
+    "symbols": [
+      "register"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Buyer/BookingController.php",
+    "sha256": "b3b77daf33126d2684e4998806f22afb592a7a3bac1ed47611027ce32b7710aa",
+    "lines": 186,
+    "classes": [
+      "BookingController"
+    ],
+    "symbols": [
+      "__construct",
+      "create",
+      "store",
+      "creative",
+      "uploadCreative",
+      "review",
+      "submit",
+      "authorizeCampaign"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Buyer/BuyerAuthController.php",
+    "sha256": "3d892bb41eebda0992599e1c274e03eb10036974599b68290928bc762a551396",
+    "lines": 131,
+    "classes": [
+      "BuyerAuthController"
+    ],
+    "symbols": [
+      "__construct",
+      "showLogin",
+      "login",
+      "showRegister",
+      "register",
+      "logout"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Buyer/BuyerCampaignController.php",
+    "sha256": "808f95e386650627638177e477e01c504ef0c76b792ce88ea7a5dee00d770586",
+    "lines": 52,
+    "classes": [
+      "BuyerCampaignController"
+    ],
+    "symbols": [
+      "__construct",
+      "index",
+      "show"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Buyer/BuyerDashboardController.php",
+    "sha256": "65847b82dae287ee37287d6b4606e6a892024d02cfe0ec1657fc1cfad18659cc",
+    "lines": 35,
+    "classes": [
+      "BuyerDashboardController"
+    ],
+    "symbols": [
+      "index"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Buyer/BuyerReportController.php",
+    "sha256": "e4e3099b0e27b1809596173ab3d1557c906d9ef99ed283fb6fcd3407fee4638c",
+    "lines": 40,
+    "classes": [
+      "BuyerReportController"
+    ],
+    "symbols": [
+      "__construct",
+      "show"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Buyer/BuyerSettingsController.php",
+    "sha256": "c8109574d7adc546128de0d4643b12f13a50dba6b8d25af25f233f7adf76b34a",
+    "lines": 63,
+    "classes": [
+      "BuyerSettingsController"
+    ],
+    "symbols": [
+      "index",
+      "updateProfile",
+      "updatePassword",
+      "updateOrganization"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Buyer/CartController.php",
+    "sha256": "7c81daa4999e6ab4eab55927d8bdf31b89bb4b081c08ca90f5f74857fada3d18",
+    "lines": 138,
+    "classes": [
+      "CartController"
+    ],
+    "symbols": [
+      "__construct",
+      "index",
+      "add",
+      "update",
+      "remove",
+      "count"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Buyer/OwnerReviewController.php",
+    "sha256": "79fdeda2a660cc9c120d336b744ed05e3e3114c1616d809771ddf796167e5f13",
+    "lines": 51,
+    "classes": [
+      "OwnerReviewController"
+    ],
+    "symbols": [
+      "__construct",
+      "store"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Buyer/PaymentController.php",
+    "sha256": "1c0c0f4a30bf02fb1305c2b886cb81cbdef50c7a18a2e99df25c54dec6807c72",
+    "lines": 127,
+    "classes": [
+      "PaymentController"
+    ],
+    "symbols": [
+      "__construct",
+      "show",
+      "process",
+      "success",
+      "authorize"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/Controller.php",
+    "sha256": "25d1c1ef8e6cc8a376553faacfba2b07d9dfaee9bdbb84f14f77517580e9deb1",
+    "lines": 9,
+    "classes": [
+      "Controller"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/FrontpageController.php",
+    "sha256": "4594156e7987b9a5787b376ced9c14c0fe80538a91b88c2e8d84ce527ba7f388",
+    "lines": 237,
+    "classes": [
+      "FrontpageController"
+    ],
+    "symbols": [
+      "__construct",
+      "index",
+      "listing",
+      "detail",
+      "resolveNearbyPois",
+      "map",
+      "booking",
+      "agency",
+      "owners",
+      "ownerDetail"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/InvitationController.php",
+    "sha256": "52d7c3bff2dc98ad463c8b2a807fa0f2f292aaf216b87d46bc6605b6367f7e2e",
+    "lines": 90,
+    "classes": [
+      "InvitationController"
+    ],
+    "symbols": [
+      "__construct",
+      "show",
+      "store"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/PolicyController.php",
+    "sha256": "b48f3945921ffc41311c574401bc2ac82b15faafb49615761ea428cf530520d8",
+    "lines": 29,
+    "classes": [
+      "PolicyController"
+    ],
+    "symbols": [
+      "show"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/ProductController.php",
+    "sha256": "7219368c5dfcf9b5c1ce8a88f6465531184ee2d3c33f3336ba84343511ff49d5",
+    "lines": 43,
+    "classes": [
+      "ProductController"
+    ],
+    "symbols": [
+      "__construct",
+      "index",
+      "show"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/PublicReflectionController.php",
+    "sha256": "83af8140689924a1fdc4f6a3514ac5ef396c535d8bc7fbab6775e567966d920b",
+    "lines": 38,
+    "classes": [
+      "PublicReflectionController"
+    ],
+    "symbols": [
+      "__construct",
+      "create",
+      "store",
+      "index"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Controllers/SitemapController.php",
+    "sha256": "d1461e3b4d02ae21e8ed952cf6939526f4da148e44918c684f2d9e732f39a676",
+    "lines": 91,
+    "classes": [
+      "SitemapController"
+    ],
+    "symbols": [
+      "index"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Middleware/CheckTokenAbility.php",
+    "sha256": "44be83172cafd38eb228cad38913a0c128f203e70f255ddc8f9f9c238f39cf12",
+    "lines": 38,
+    "classes": [
+      "CheckTokenAbility"
+    ],
+    "symbols": [
+      "handle"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Middleware/EnsureBuyerAuth.php",
+    "sha256": "9c88695a431f2cea277bf6f59f786a09267d9f0c941a9f8658e25606e2ee9ae9",
+    "lines": 34,
+    "classes": [
+      "EnsureBuyerAuth"
+    ],
+    "symbols": [
+      "handle"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Requests/AuthTokenRequest.php",
+    "sha256": "1a17f08422d894bbf011bcd5ed6e3f1f171a8ae63d3b04057f3e9f98c67b8976",
+    "lines": 39,
+    "classes": [
+      "AuthTokenRequest"
+    ],
+    "symbols": [
+      "authorize",
+      "rules",
+      "requestedScopes"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Requests/FrontpageListingRequest.php",
+    "sha256": "a8f420643329a1f8f96bbf6b570a33f4b4509a3ec9c38c0709049b03f8123ad4",
+    "lines": 45,
+    "classes": [
+      "FrontpageListingRequest"
+    ],
+    "symbols": [
+      "authorize",
+      "rules"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Requests/StorePublicReflectionRequest.php",
+    "sha256": "0498dbc18dddc8ecefc93581382e9fa9e9afd395b265f233a17d85cf8e734ead",
+    "lines": 50,
+    "classes": [
+      "StorePublicReflectionRequest"
+    ],
+    "symbols": [
+      "authorize",
+      "rules",
+      "attributes",
+      "messages"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Resources/Api/OwnerPublicResource.php",
+    "sha256": "443951c064bfab937dd2580c3817909e609dffc640c33f8c7b8a7337f8785d19",
+    "lines": 48,
+    "classes": [
+      "OwnerPublicResource"
+    ],
+    "symbols": [
+      "withAbout",
+      "toArray"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Resources/Api/ScreenCollection.php",
+    "sha256": "645e0947d941ef0643c31be9c596fe2a5ac695d259e1fc104a410e378ab4f952",
+    "lines": 22,
+    "classes": [
+      "ScreenCollection"
+    ],
+    "symbols": [
+      "toArray"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Resources/Api/ScreenMapCollection.php",
+    "sha256": "3e340c27d747ec07ec1232c7b4d836aba794bcb6bd2f913a98b5dc9bc9e84f4e",
+    "lines": 20,
+    "classes": [
+      "ScreenMapCollection"
+    ],
+    "symbols": [
+      "toArray"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Resources/Api/ScreenMapResource.php",
+    "sha256": "c5d068ad563d2163aef38097330e33e1e1b3d2caa23406862ab0195ef310007c",
+    "lines": 58,
+    "classes": [
+      "ScreenMapResource"
+    ],
+    "symbols": [
+      "toArray",
+      "resolveScreenType",
+      "resolveSize"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Resources/Api/ScreenResource.php",
+    "sha256": "e4be6b1bad9b4f6a367d896557715eaddba7f9497bdf67d354e2c1f7a713e748",
+    "lines": 166,
+    "classes": [
+      "ScreenResource"
+    ],
+    "symbols": [
+      "toArray",
+      "shouldInclude",
+      "shouldIncludeAdops",
+      "resolveScreenType",
+      "resolveSlotsPerLoop",
+      "resolveOperatingHours"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Http/Responses/LoginResponse.php",
+    "sha256": "fbe16c6ec92e941b7ce862c43224cf3aa2198800f60fc7d40ca3001218bbd149",
+    "lines": 18,
+    "classes": [
+      "LoginResponse"
+    ],
+    "symbols": [
+      "toResponse"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Jobs/ImportScreensJob.php",
+    "sha256": "44e87b948324d8e8d8eddef61851d86baf08ba64e423cbce8577b65d0de847c8",
+    "lines": 54,
+    "classes": [
+      "ImportScreensJob"
+    ],
+    "symbols": [
+      "__construct",
+      "handle",
+      "failed"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Jobs/SendWebhookJob.php",
+    "sha256": "fe0f7aa1c50146b72326c7d9715ec1ac1ced7bd12877bce9e3e02559eefe8773",
+    "lines": 74,
+    "classes": [
+      "SendWebhookJob"
+    ],
+    "symbols": [
+      "__construct",
+      "handle",
+      "backoff"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/ApiClient.php",
+    "sha256": "47f4daafe11ddca7eebb7f95919bac6dbade2bce132d98f04d3e9593b270f012",
+    "lines": 64,
+    "classes": [
+      "ApiClient"
+    ],
+    "symbols": [
+      "validateSecret",
+      "hasScope",
+      "revokeAllTokens",
+      "allowedScopes"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/BookingLine.php",
+    "sha256": "53698af2947a5e679a11d4ba4ffebc7a58a302fb0df8c05f39b38ce9c3c36623",
+    "lines": 110,
+    "classes": [
+      "BookingLine"
+    ],
+    "symbols": [
+      "campaign",
+      "product",
+      "screen",
+      "owner",
+      "approvedBy",
+      "creatives",
+      "getEffectiveCpmAttribute",
+      "getDurationDaysAttribute",
+      "scopeForOwner",
+      "scopePending",
+      "scopeActive"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/BookingLineCreative.php",
+    "sha256": "49b4d4935a70a8406039e53f3e101488602175f63dc72300888066682c4cb15c",
+    "lines": 30,
+    "classes": [
+      "BookingLineCreative"
+    ],
+    "symbols": [
+      "bookingLine",
+      "creative"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Campaign.php",
+    "sha256": "bb77d8bbcfcdb5a6297118fe7c4f868edfddd96141b317550d97d93482aa0bce",
+    "lines": 138,
+    "classes": [
+      "Campaign"
+    ],
+    "symbols": [
+      "organization",
+      "createdBy",
+      "bookingLines",
+      "creatives",
+      "payments",
+      "activities",
+      "getTotalEstimatedCostAttribute",
+      "getTotalActualCostAttribute",
+      "getTotalActualImpressionsAttribute",
+      "getDeliveryRateAttribute",
+      "getTotalPaidAttribute",
+      "scopeByStatus",
+      "scopeForOrganization",
+      "scopeForOwner",
+      "isDraft",
+      "isPending",
+      "isActive",
+      "isCompleted"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/CampaignActivity.php",
+    "sha256": "de359958602fa694c7f787166eed8215b9f289ce32ed61a4b452e1e85b100781",
+    "lines": 45,
+    "classes": [
+      "CampaignActivity"
+    ],
+    "symbols": [
+      "campaign",
+      "user",
+      "log"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Cart.php",
+    "sha256": "f3b42da673489246cccdeb1c00908802c9aed8874ddcbd1244569f9b474b6891",
+    "lines": 52,
+    "classes": [
+      "Cart"
+    ],
+    "symbols": [
+      "user",
+      "organization",
+      "items",
+      "scopeActive",
+      "getTotalEstimatedCostAttribute",
+      "getTotalScreensAttribute"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/CartItem.php",
+    "sha256": "2eac65870117cad6a2eea98860080e7aa670087fb53a5242ffc0fa1f60104888",
+    "lines": 51,
+    "classes": [
+      "CartItem"
+    ],
+    "symbols": [
+      "cart",
+      "screen",
+      "product"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Creative.php",
+    "sha256": "1996761937acbbcc9b4342fbb1e80506ce0eafb45bb17dfc37c72f0c8f677ada",
+    "lines": 65,
+    "classes": [
+      "Creative"
+    ],
+    "symbols": [
+      "campaign",
+      "organization",
+      "reviewedBy",
+      "bookingLines",
+      "getFileUrlAttribute",
+      "getDimensionsAttribute"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/ImpressionLog.php",
+    "sha256": "4455c400fb2b0fcbaeb31aefe248d39989c38a0a3fa783919dd059bbeb1f320b",
+    "lines": 24,
+    "classes": [
+      "ImpressionLog"
+    ],
+    "symbols": [
+      "screen",
+      "owner"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Network.php",
+    "sha256": "cad7e48a5ec93a7dd627ad0e3bd2082ce355c0904282dd6d19994c472137caaf",
+    "lines": 72,
+    "classes": [
+      "Network"
+    ],
+    "symbols": [
+      "booted",
+      "owner",
+      "vnCategory",
+      "sites",
+      "screens",
+      "products",
+      "scopeActive"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/AnalyticsCampaignWeekly.php",
+    "sha256": "219f1d823bd360ed458394fe1c8f7626108756e989c2c67ab9fcbc72e3f9b6aa",
+    "lines": 48,
+    "classes": [
+      "AnalyticsCampaignWeekly"
+    ],
+    "symbols": [
+      "save",
+      "delete"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/AnalyticsCityPerformance.php",
+    "sha256": "6835322e5f931ea6aef4eb2cefea68543cd77a49f5202aa0b083eaac4e9a65cd",
+    "lines": 46,
+    "classes": [
+      "AnalyticsCityPerformance"
+    ],
+    "symbols": [
+      "save",
+      "delete"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/AnalyticsFormulaVersionImpact.php",
+    "sha256": "37af5d617af7a963dd307749a8ecbd75a5c29307a060e90d7766f7174ec635bc",
+    "lines": 44,
+    "classes": [
+      "AnalyticsFormulaVersionImpact"
+    ],
+    "symbols": [
+      "save",
+      "delete"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/AnalyticsScreenUtilization.php",
+    "sha256": "fbb4049e6d439135fa1fe3073267d20c08341bc7dda21d1096a58735612148e1",
+    "lines": 41,
+    "classes": [
+      "AnalyticsScreenUtilization"
+    ],
+    "symbols": [
+      "save",
+      "delete"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/CampaignEstimate.php",
+    "sha256": "b8375dfa26415ae14356ca15442bb3e8881beee8bc298ce4e9639f873ffabab4",
+    "lines": 148,
+    "classes": [
+      "CampaignEstimate"
+    ],
+    "symbols": [
+      "getScreenIdsAttribute",
+      "getConfidenceTierAttribute",
+      "getConfidenceColorAttribute",
+      "getFrequencyWarningAttribute",
+      "getFrequencyColorAttribute",
+      "getMissingScreensWarningAttribute",
+      "getScreenCountAttribute",
+      "getBudgetLabelAttribute"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/CollectorRun.php",
+    "sha256": "242631b56c07869c26a1d0f7ba14b2bfa799332a600b13b13d2c2b8a0a0da7d9",
+    "lines": 98,
+    "classes": [
+      "CollectorRun"
+    ],
+    "symbols": [
+      "scopePending",
+      "scopeRunning",
+      "scopeDone",
+      "scopeFailed",
+      "scopeCancelled",
+      "scopeActive",
+      "scopeForCollector",
+      "getDurationSecondsAttribute",
+      "getIsCancellableAttribute",
+      "getIsActiveAttribute",
+      "getBytesFetchedHumanAttribute"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/Config/AuditLog.php",
+    "sha256": "7d808d3ea7074a465aa994f7f0b063b5be8d827344f73041936af68947a7cd73",
+    "lines": 35,
+    "classes": [
+      "AuditLog"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/Config/BaseCityTraffic.php",
+    "sha256": "3cd5550ba8fb2203575d60f1a0b933cd15f3130865a7861c2b19a2d44d91debb",
+    "lines": 30,
+    "classes": [
+      "BaseCityTraffic"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/Config/DeliveryDefault.php",
+    "sha256": "15fd3f5fbecd16caa15c1e1f1710398099512fc679b7d5d5d197fa70bcfcc036",
+    "lines": 129,
+    "classes": [
+      "DeliveryDefault"
+    ],
+    "symbols": [
+      "rangeFor"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/Config/FormulaVersion.php",
+    "sha256": "0e2c0455e6494bd902bef930573a7b128555a747c2e9650a2089f6eedc657c48",
+    "lines": 38,
+    "classes": [
+      "FormulaVersion"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/Config/RoadClassMultiplier.php",
+    "sha256": "13809feb113d6ae8c1c507893e583ef7144b9ed96eaf4444b4468c2f609a9b6e",
+    "lines": 29,
+    "classes": [
+      "RoadClassMultiplier"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/Config/SeasonalityFactor.php",
+    "sha256": "6ce5a94426d7faa5a128c3556b29b0a900dcf390d227c1579ff281c541c17ab9",
+    "lines": 109,
+    "classes": [
+      "SeasonalityFactor"
+    ],
+    "symbols": [
+      "getKey",
+      "getRouteKey",
+      "getRouteKeyName",
+      "resolveRouteBinding",
+      "scopeByKey",
+      "scopeForCity",
+      "scopeForMonth",
+      "getMonthLabelAttribute",
+      "getFactorColorAttribute"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/Config/ZoneFactor.php",
+    "sha256": "71966a7c8b4498533580cfebe8da59c12b5672fee05eb7873128bc88734f7db3",
+    "lines": 29,
+    "classes": [
+      "ZoneFactor"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/RecomputeJob.php",
+    "sha256": "109badd3959c1e6cc4840f33082c3e0749194f5849622896bf7c0d94faa57767",
+    "lines": 243,
+    "classes": [
+      "RecomputeJob"
+    ],
+    "symbols": [
+      "screen",
+      "scopePending",
+      "scopeProcessing",
+      "scopeFailed",
+      "scopeDone",
+      "scopeCancelled",
+      "scopeBulk",
+      "scopeActive",
+      "getDurationSecondsAttribute",
+      "getActionAttribute",
+      "getProgressDataAttribute",
+      "getProgressPercentAttribute",
+      "getTargetLabelAttribute",
+      "renderVenueFootfallLabel",
+      "getIsPreviewAttribute",
+      "getPreviewResultAttribute",
+      "getIsCampaignAttribute",
+      "getCampaignResultAttribute",
+      "getCampaignIdAttribute",
+      "getIsVenueFootfallAttribute",
+      "getVenueFootfallResultAttribute",
+      "getIsCancellableAttribute",
+      "getIsActiveAttribute"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/Screen.php",
+    "sha256": "bbf8905d10ca6458cbe43462a6b4928ed0d1488f537de69a1493d1012794add5",
+    "lines": 32,
+    "classes": [
+      "Screen"
+    ],
+    "symbols": [
+      "estimate"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/ScreenContextMetrics.php",
+    "sha256": "99fb3bdc2e4bc55778ca02b2739e82bb7e61abc28af7368e59f6b1b345130ccc",
+    "lines": 192,
+    "classes": [
+      "ScreenContextMetrics"
+    ],
+    "symbols": [
+      "screen",
+      "getWeatherFactorColorAttribute",
+      "getSeasonalityFactorColorAttribute",
+      "getHasCompleteDataAttribute",
+      "getCompletenessTierAttribute",
+      "getCompletenessBadgeColorAttribute",
+      "getCompletenessBadgeLabelAttribute",
+      "getMissingDataReasonsAttribute",
+      "getVenueFootfallIsStaleAttribute",
+      "getVenueFootfallSourceColorAttribute"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Oohx/ScreenEstimate.php",
+    "sha256": "f14f07a4b4ed4ffbe3fa4a17c41aa96d79fe8ab16e7636be2ff38f132dd76b16",
+    "lines": 55,
+    "classes": [
+      "ScreenEstimate"
+    ],
+    "symbols": [
+      "screen",
+      "contextMetrics"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Organization.php",
+    "sha256": "09e080ea004105d06333a40d6d6ff6db13d68132320f3fbfe0ada42430b3d063",
+    "lines": 69,
+    "classes": [
+      "Organization"
+    ],
+    "symbols": [
+      "users",
+      "organizationUsers",
+      "campaigns",
+      "carts",
+      "creatives",
+      "payments",
+      "scopeActive"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/OrganizationUser.php",
+    "sha256": "a2d18a8f1ead3c86eed1fcfcf18a86804b41e94f3cab052e869d438385f792b8",
+    "lines": 72,
+    "classes": [
+      "OrganizationUser"
+    ],
+    "symbols": [
+      "organization",
+      "user",
+      "can",
+      "isAdmin",
+      "assignableRolesFor"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Owner.php",
+    "sha256": "cac2cc04afa76b8bd5d66221d03457eb3c63708c717698e9c5cce839c4ced2c9",
+    "lines": 155,
+    "classes": [
+      "Owner"
+    ],
+    "symbols": [
+      "province",
+      "commune",
+      "sites",
+      "networks",
+      "screens",
+      "products",
+      "users",
+      "impressionLogs",
+      "scopeActive",
+      "gateActive",
+      "hasBankDetails",
+      "hasCompleteLegalProfile"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/OwnerReview.php",
+    "sha256": "03ed61c4db3f58f2deef8d70bb860d2cc48acf4b3c69b5bfe0620ae045912221",
+    "lines": 62,
+    "classes": [
+      "OwnerReview"
+    ],
+    "symbols": [
+      "campaign",
+      "owner",
+      "organization",
+      "user",
+      "scopePublished"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/OwnerUser.php",
+    "sha256": "1b9942457396d2e0a26f3fcce9e7795601a3e5960ce7da90b0b20cfcb0e46b20",
+    "lines": 131,
+    "classes": [
+      "OwnerUser"
+    ],
+    "symbols": [
+      "owner",
+      "user",
+      "can",
+      "canAccessNetwork",
+      "getRoleLabelAttribute",
+      "roleOptions",
+      "assignableRolesFor",
+      "isOwner"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Payment.php",
+    "sha256": "10a414b2f61d9f8db9b98921b606122f053be190a76753d7a2d39a42e94efad8",
+    "lines": 54,
+    "classes": [
+      "Payment"
+    ],
+    "symbols": [
+      "campaign",
+      "organization",
+      "owner",
+      "isPending",
+      "isCompleted",
+      "isFailed"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/PoiSnapshot.php",
+    "sha256": "720f22c7deaa4fa0c6ecae8fb24532d9784d5da6bad4833f1cff83c02dfdc0f2",
+    "lines": 93,
+    "classes": [
+      "PoiSnapshot"
+    ],
+    "symbols": [
+      "locationKey",
+      "scopeFreshFor",
+      "upsertSnapshot"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/PolicyConsent.php",
+    "sha256": "aa822de593f46f644df1ab7898f7958dcb973db780d6aea7e693380ca6e2fff5",
+    "lines": 34,
+    "classes": [
+      "PolicyConsent"
+    ],
+    "symbols": [
+      "user"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Product.php",
+    "sha256": "4b7d7cfafd49d524913959d4b13d50d44721e8868f5faf2d2809b9b94907b966",
+    "lines": 245,
+    "classes": [
+      "Product"
+    ],
+    "symbols": [
+      "owner",
+      "network",
+      "site",
+      "screens",
+      "primaryScreen",
+      "bookingLines",
+      "cartItems",
+      "getCoverUrlAttribute",
+      "getPhotoUrlsAttribute",
+      "getCategoryLabelAttribute",
+      "getPriceDisplayAttribute",
+      "getScreenCountAttribute",
+      "scopeActive",
+      "scopePubliclyVisible",
+      "scopeFeatured",
+      "scopeByCategory",
+      "scopeByType",
+      "scopeByCity",
+      "isSingle",
+      "isPackage",
+      "isCustom",
+      "allowsIndividual",
+      "allowsPackage",
+      "getIndividualPriceDisplayAttribute",
+      "getListingModeLabelAttribute"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/ProductScreen.php",
+    "sha256": "995dc862c2e71c47daaf2e1999d7d9a87fe3d6ef85b6061e6ce17f89822f2da9",
+    "lines": 29,
+    "classes": [
+      "ProductScreen"
+    ],
+    "symbols": [
+      "product",
+      "screen"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/PublicReflection.php",
+    "sha256": "79ffaa3572768b99ee9b0a77f5921b4c2a8fbc049b764bdd4b697adad4916022",
+    "lines": 78,
+    "classes": [
+      "PublicReflection"
+    ],
+    "symbols": [
+      "handledBy",
+      "scopePublished",
+      "statusLabel"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/SavedItem.php",
+    "sha256": "95de6843dd8f3a35060ef2d2dee67acd94f4c6189001080bc3625a13c8540b4e",
+    "lines": 22,
+    "classes": [
+      "SavedItem"
+    ],
+    "symbols": [
+      "user",
+      "screen"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Screen.php",
+    "sha256": "5aa5220d6e7566def3764d39a8f41be143d81a04a907e3711d4a0e5fa9794c63",
+    "lines": 359,
+    "classes": [
+      "Screen"
+    ],
+    "symbols": [
+      "booted",
+      "owner",
+      "products",
+      "site",
+      "network",
+      "getNetworkViaAttribute",
+      "getDisplayPhotoAttribute",
+      "spec",
+      "inventory",
+      "multipliers",
+      "externalIds",
+      "impressionLogs",
+      "scopeActive",
+      "scopePubliclyVisible",
+      "scopeOnline",
+      "scopeProgrammatic",
+      "scopeByVenueType",
+      "getCurrentMultiplier",
+      "isOperating",
+      "getIsOnlineAttribute",
+      "getOrientationAttribute",
+      "getDailyImpressionsAttribute",
+      "getHasInsightsAttribute",
+      "getTrafficEstimateAttribute"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/ScreenExternalId.php",
+    "sha256": "7803b4fdab47d3d92c21b2fbbe50df81c5017b65430d5a62ba64a8c692ccfb28",
+    "lines": 16,
+    "classes": [
+      "ScreenExternalId"
+    ],
+    "symbols": [
+      "screen"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/ScreenImport.php",
+    "sha256": "3f6622c298542e3479a283a3e69016be841097192a334c2b4c7496bfed48e782",
+    "lines": 87,
+    "classes": [
+      "ScreenImport"
+    ],
+    "symbols": [
+      "owner",
+      "uploader",
+      "getIsTerminalAttribute",
+      "getIsActiveAttribute",
+      "getProgressPercentAttribute",
+      "getEffectiveMappingAttribute"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/ScreenImpressionMultiplier.php",
+    "sha256": "8235e95f65770be57c11f3407f980ab5026cf620ef64f814268f610ca229b240",
+    "lines": 25,
+    "classes": [
+      "ScreenImpressionMultiplier"
+    ],
+    "symbols": [
+      "screen",
+      "parseHivestackString"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/ScreenInventory.php",
+    "sha256": "ef78c56373e92a39e4750c47e605c0e4565319153c818e0ee353eaf0cd44bf45",
+    "lines": 157,
+    "classes": [
+      "ScreenInventory"
+    ],
+    "symbols": [
+      "screen",
+      "network",
+      "vnCategory",
+      "computeFloorCpmUsd",
+      "getDailyImpressionsAttribute",
+      "allowsCpm",
+      "allowsIo",
+      "isBoth",
+      "getDisplayPriceAttribute",
+      "getDisplayPriceUnitAttribute",
+      "getEffectiveScreenCountAttribute"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/ScreenSpec.php",
+    "sha256": "6ee7a00a4d76b36ef0a568d5b8812981989810531ad4a8570ada15424bc8b88e",
+    "lines": 130,
+    "classes": [
+      "ScreenSpec"
+    ],
+    "symbols": [
+      "screen",
+      "getPhotoAttribute",
+      "getPhotoUrlsAttribute",
+      "getOrientationAttribute",
+      "getAspectRatioAttribute",
+      "gcd"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/Site.php",
+    "sha256": "e23abc62192108cabdb95eaf1b335ab299ae2ba5b2759bc97cf4a118555866f8",
+    "lines": 92,
+    "classes": [
+      "Site"
+    ],
+    "symbols": [
+      "booted",
+      "owner",
+      "network",
+      "province",
+      "commune",
+      "screens",
+      "scopeActive"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/User.php",
+    "sha256": "df8265d631b2b1dfe9fb0489e6d8c0b42fafbbe50fc269271d43bba1defdffae",
+    "lines": 141,
+    "classes": [
+      "User"
+    ],
+    "symbols": [
+      "casts",
+      "ownerUsers",
+      "owners",
+      "currentOwner",
+      "organizationUsers",
+      "organizations",
+      "currentOrganization",
+      "switchOrganization",
+      "isBuyer",
+      "switchOwner",
+      "getRoleInOwner",
+      "canAccessPanel"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/UserInvitation.php",
+    "sha256": "fd4b3601280945f786196d414b3a78ac9aa63e36eb4d71583598e5446c24fd26",
+    "lines": 80,
+    "classes": [
+      "UserInvitation"
+    ],
+    "symbols": [
+      "invitedBy",
+      "tenant",
+      "scopeValid",
+      "scopePending",
+      "isExpired",
+      "isAccepted",
+      "isValid"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/VenueCategory.php",
+    "sha256": "eec529b1a0a8e63c4bce83b5c9eaf16616b2de310c9481a46e943fadb4dcafb1",
+    "lines": 40,
+    "classes": [
+      "VenueCategory"
+    ],
+    "symbols": [
+      "venueTypes",
+      "scopeActive",
+      "getStringValues"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/VenueType.php",
+    "sha256": "54cf87d4b8ad1d3f1da5469348ab4b91365f47d90ca041b8b3f78a2a92f41e19",
+    "lines": 104,
+    "classes": [
+      "VenueType"
+    ],
+    "symbols": [
+      "parent",
+      "vnCategory",
+      "children",
+      "scopeByCategory",
+      "scopeHivestackSupported",
+      "scopeActive",
+      "scopeRoots",
+      "scopeLeaves",
+      "scopeForSelect",
+      "groupedOptions",
+      "flatOptions",
+      "getIndentedNameAttribute"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/VietnamCommune.php",
+    "sha256": "5f5138ed21f0302884e6fc0fd7f8d59b0e2aff8186acf4511a284e4d190a3229",
+    "lines": 37,
+    "classes": [
+      "VietnamCommune"
+    ],
+    "symbols": [
+      "province",
+      "sites",
+      "optionsForProvince"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/VietnamProvince.php",
+    "sha256": "d618b955b38648b3ccc03049d6216f6a8860ad055cfe156094eb1d82f79dd076",
+    "lines": 49,
+    "classes": [
+      "VietnamProvince"
+    ],
+    "symbols": [
+      "getPhotoAttribute",
+      "region",
+      "communes",
+      "sites",
+      "getDisplayNameAttribute",
+      "toSelectOptions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/VietnamRegion.php",
+    "sha256": "fa36741068343d385fcf957f14dd17191fc4eb86f146d8a392e53dda3cd6f898",
+    "lines": 22,
+    "classes": [
+      "VietnamRegion"
+    ],
+    "symbols": [
+      "provinces",
+      "toSelectOptions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Models/WebhookSubscription.php",
+    "sha256": "be2bf0a0fc61d4cedfd5a00fe220752bedcb86c5c7f1c43fd6ba9aae9235ccc7",
+    "lines": 42,
+    "classes": [
+      "WebhookSubscription"
+    ],
+    "symbols": [
+      "apiClient",
+      "scopeActive",
+      "scopeForEvent"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Notifications/BookingResolvedNotification.php",
+    "sha256": "565a6b2f35094f40e17f671d7dcdcf79af3c8a718c609312960828ede8ca8d10",
+    "lines": 49,
+    "classes": [
+      "BookingResolvedNotification"
+    ],
+    "symbols": [
+      "__construct",
+      "via",
+      "toMail"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Notifications/BookingSubmittedNotification.php",
+    "sha256": "cedd41617b02f849ff2c33abb3db59df086ed7ada5ff2bc476d2426fb187e3ad",
+    "lines": 39,
+    "classes": [
+      "BookingSubmittedNotification"
+    ],
+    "symbols": [
+      "__construct",
+      "via",
+      "toMail"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Notifications/UserInvitationNotification.php",
+    "sha256": "fe368b8b663d244119eff87350e5c21eb61fa9d0483ae6b47392be40b60d5a54",
+    "lines": 56,
+    "classes": [
+      "UserInvitationNotification"
+    ],
+    "symbols": [
+      "__construct",
+      "via",
+      "toMail"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Observers/ScreenObserver.php",
+    "sha256": "fb7274e2e24161a6ad2ea5a3feb034ad85f3198beb1fdf2883561a93ef24f85c",
+    "lines": 51,
+    "classes": [
+      "ScreenObserver"
+    ],
+    "symbols": [
+      "created",
+      "updated",
+      "deleted",
+      "dispatch"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Policies/NetworkPolicy.php",
+    "sha256": "4a7d36a4a0061d233a3313985412a6ca16911eee3a5d2f11f106beb7aa526da3",
+    "lines": 73,
+    "classes": [
+      "NetworkPolicy"
+    ],
+    "symbols": [
+      "viewAny",
+      "view",
+      "create",
+      "update",
+      "delete",
+      "deleteAny",
+      "hasManagePermission"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Policies/OrganizationUserPolicy.php",
+    "sha256": "5e442b9cd6c06b59a4ae0d7be92ce5681f66ba191b4e8e63653173148152264b",
+    "lines": 73,
+    "classes": [
+      "OrganizationUserPolicy"
+    ],
+    "symbols": [
+      "viewAny",
+      "view",
+      "create",
+      "update",
+      "delete",
+      "actorRole"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Policies/OwnerPolicy.php",
+    "sha256": "e898eac350e6d023df1c921b4f2af68b77866de5fa2b9bd677ec5a4359214430",
+    "lines": 38,
+    "classes": [
+      "OwnerPolicy"
+    ],
+    "symbols": [
+      "viewAny",
+      "view",
+      "create",
+      "update",
+      "delete"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Policies/OwnerUserPolicy.php",
+    "sha256": "6a7a8576db9d307f7cbe90fa6488247301b0b40d3374fceb9efd97213e328e75",
+    "lines": 77,
+    "classes": [
+      "OwnerUserPolicy"
+    ],
+    "symbols": [
+      "viewAny",
+      "view",
+      "create",
+      "update",
+      "delete",
+      "actorRole"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Policies/ScreenPolicy.php",
+    "sha256": "9bce9bb11fe20cbe11464c34f89e48a73ae1795794cc1539767fdc68109d7ee2",
+    "lines": 69,
+    "classes": [
+      "ScreenPolicy"
+    ],
+    "symbols": [
+      "viewAny",
+      "view",
+      "create",
+      "update",
+      "delete",
+      "deleteAny",
+      "hasManagePermission"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Policies/SitePolicy.php",
+    "sha256": "fcbe0cd9a3c2b375962719a89acebb8c5f3f94a272df72d9db7a9a86844a7d9e",
+    "lines": 69,
+    "classes": [
+      "SitePolicy"
+    ],
+    "symbols": [
+      "viewAny",
+      "view",
+      "create",
+      "update",
+      "delete",
+      "deleteAny",
+      "hasManagePermission"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Providers/AppServiceProvider.php",
+    "sha256": "160cf7b85de5d103f6da18a59733f19ac6f2da018c9400c62538a2fd7d736fb6",
+    "lines": 55,
+    "classes": [
+      "AppServiceProvider"
+    ],
+    "symbols": [
+      "register",
+      "boot"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Providers/Filament/AdminPanelProvider.php",
+    "sha256": "d90af5ce82ff4e738983c6cfe41cede65d6c0f7261f01ff2ff179931ddabe9d1",
+    "lines": 154,
+    "classes": [
+      "AdminPanelProvider"
+    ],
+    "symbols": [
+      "panel",
+      "tableResizerScript"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Providers/Filament/BuyerPanelProvider.php",
+    "sha256": "b067b940b43f437c503cf43876112052b3c26bcf313d83d2a35c8649e362f2b2",
+    "lines": 62,
+    "classes": [
+      "BuyerPanelProvider"
+    ],
+    "symbols": [
+      "panel"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Providers/Filament/PublisherPanelProvider.php",
+    "sha256": "2f06c97c7a9d603cb53e67e883c15d77ccae8f5860bcac5d4a24e39c02807bb7",
+    "lines": 197,
+    "classes": [
+      "PublisherPanelProvider"
+    ],
+    "symbols": [
+      "panel",
+      "skeletonStyle",
+      "tableResizerScript"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/AvailabilityService.php",
+    "sha256": "f6deffc429884bb9af997e77cdc4d238095b0c93245f2f36282bdb5094876068",
+    "lines": 80,
+    "classes": [
+      "AvailabilityService"
+    ],
+    "symbols": [
+      "getBookedSOV",
+      "getRemainingSOV",
+      "isAvailable",
+      "validateCampaign"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/CampaignReportService.php",
+    "sha256": "cde7a5b3ce8672e1aecd35b3f05137c8bbe030b114e6ccdfcadeb36dee9a4839",
+    "lines": 122,
+    "classes": [
+      "CampaignReportService"
+    ],
+    "symbols": [
+      "getOverview",
+      "getDailyImpressions",
+      "getScreenBreakdown"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/CampaignService.php",
+    "sha256": "da3afe32a3986ecb93b7970c0ecf0a75b62f1f1765cf9c3bbc3637fe9cf39e2b",
+    "lines": 258,
+    "classes": [
+      "CampaignService"
+    ],
+    "symbols": [
+      "createFromCart",
+      "submit",
+      "approveLines",
+      "rejectLines",
+      "approveAllForOwner",
+      "rejectAllForOwner",
+      "checkAllLinesResolved",
+      "notifyBuyer",
+      "generateCode"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/CartService.php",
+    "sha256": "7a558fc83727f959c4429207fc55f2bad38c5b1ae7bc1326df926fce945ea64c",
+    "lines": 283,
+    "classes": [
+      "CartService"
+    ],
+    "symbols": [
+      "getOrCreateCart",
+      "addProduct",
+      "addItem",
+      "removeItem",
+      "updateItem",
+      "estimateCost",
+      "getItemCount"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/FrontpageService.php",
+    "sha256": "8f45ae71548af4e226d4286a5dd6fb434a3965df665c1b9904a4e8e7db264a86",
+    "lines": 1090,
+    "classes": [
+      "FrontpageService"
+    ],
+    "symbols": [
+      "getHeroStats",
+      "getVenueTypesWithCounts",
+      "getCategoriesWithNetworks",
+      "getVnCategoryLabels",
+      "getVnCategorySlugs",
+      "getVnCategoryIcons",
+      "getTopCities",
+      "getLocationsByRegion",
+      "getFeaturedScreens",
+      "getFeaturedOwners",
+      "getOwnersPaginated",
+      "getAgenciesPaginated",
+      "getOwnerBySlug",
+      "getOwnerScreens",
+      "getOwnerFilterAggregates",
+      "getNetworksPaginated",
+      "getSitesPaginated",
+      "getScreensPaginated",
+      "getFilterAggregates",
+      "getScreenDetail",
+      "getSimilarScreens",
+      "getMapPins",
+      "getHomepageMapPins",
+      "resolveCityName",
+      "applyCityFilter",
+      "getHomepageMapCount",
+      "loadOwnerExtras",
+      "buildScreenQuery",
+      "expandCitySlugs",
+      "resolveArrayParam",
+      "applyScreenTypeFilter",
+      "applyOrientationFilter",
+      "applySort",
+      "cityToSlug"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/GeocodingService.php",
+    "sha256": "a34ab1c1322ca002750769b4a80bec635474d282c261710289e8bc149b989fdf",
+    "lines": 239,
+    "classes": [
+      "GeocodingService"
+    ],
+    "symbols": [
+      "resolveLocation",
+      "buildCityHierarchy",
+      "rawGeocode",
+      "callNominatim",
+      "matchProvince",
+      "matchCommune",
+      "normalize",
+      "ascii"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/Oohx/AnalyticsService.php",
+    "sha256": "4d0f90cca8c2712344013fae9cdf2256985f040af89756462e9cc5dbe2d8dfb2",
+    "lines": 208,
+    "classes": [
+      "AnalyticsService"
+    ],
+    "symbols": [
+      "weeklyTrend",
+      "weekOverWeek",
+      "topCities",
+      "topUtilizedScreens",
+      "utilizationCounts",
+      "formulaVersionImpact",
+      "staleness",
+      "isAvailable",
+      "flushCache",
+      "safeCachedQuery"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/Oohx/CollectorManager.php",
+    "sha256": "8e567810f13d7700bc83e507cc463ffd9aa921d6fe53c58782e3423c7a36ec91",
+    "lines": 324,
+    "classes": [
+      "CollectorManager"
+    ],
+    "symbols": [
+      "trigger",
+      "cancel",
+      "latestByCollectorAndCity",
+      "computeStaleness",
+      "cityOptionsForCollector",
+      "cityHasScreens",
+      "countsByStatus",
+      "overdueCount",
+      "collectorMeta",
+      "listCollectors",
+      "citiesFromScreens",
+      "resolveActor"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/Oohx/ConfigManagerService.php",
+    "sha256": "398acde8c8f5fffe31c6176f128aaa94cc6b5504fb1c004f0d209724e9f63b3d",
+    "lines": 303,
+    "classes": [
+      "ConfigManagerService"
+    ],
+    "symbols": [
+      "updateCoefficient",
+      "publishVersion",
+      "activateVersion",
+      "updateSeasonalityFactor",
+      "seasonalityHeatmapData",
+      "diffVersions",
+      "buildSnapshot",
+      "resolveActor",
+      "activeVersion",
+      "listCoefficients"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/Oohx/HealthDigestService.php",
+    "sha256": "410030ebb1c989efe0e413dfa938bf445c68f40bc8dfd0b57e6adfad6a478cfe",
+    "lines": 256,
+    "classes": [
+      "HealthDigestService"
+    ],
+    "symbols": [
+      "latest",
+      "forget",
+      "latestPath",
+      "readFile",
+      "computeAgeMinutes",
+      "overallBadge",
+      "checkColor",
+      "checkLabel",
+      "checkIcon",
+      "formatCheckValue"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/Oohx/JobOrchestrator.php",
+    "sha256": "135069ccee8400eb14ea19774139a8834ee6ca9a07896cc8bd686b0fc2f54e9d",
+    "lines": 447,
+    "classes": [
+      "JobOrchestrator"
+    ],
+    "symbols": [
+      "enqueueScreen",
+      "enqueueCity",
+      "enqueueBulk",
+      "enqueueBulkAction",
+      "enqueuePreview",
+      "hasRecentPreview",
+      "enqueueCampaign",
+      "retry",
+      "cancel",
+      "getProgress",
+      "countsByStatus",
+      "tagActor",
+      "resolveActor",
+      "audit"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/Oohx/PreviewResultFormatter.php",
+    "sha256": "6fb087b510de2747ab9b51c7d45fb56565d0bfdb8c3e971e40e0faac211e65f9",
+    "lines": 103,
+    "classes": [
+      "PreviewResultFormatter"
+    ],
+    "symbols": [
+      "warningTier",
+      "overallWarning",
+      "pct",
+      "num",
+      "metricLabel",
+      "barWidth"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/OohxDataEngine.php",
+    "sha256": "b2d080c315bd156a3036dd6f356ee58c42534f34fab636041265b0fdc0f9f478",
+    "lines": 109,
+    "classes": [
+      "OohxDataEngine"
+    ],
+    "symbols": [
+      "connection",
+      "getEstimateByExternalId",
+      "getEstimatesByExternalIds",
+      "topScreensByImpressions"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/OwnerReviewService.php",
+    "sha256": "1644f40d764f5fde6a56c1e4c8790d4588b545e36edd5ee4edcb6a5221a765a5",
+    "lines": 104,
+    "classes": [
+      "OwnerReviewService"
+    ],
+    "symbols": [
+      "reviewableOwners",
+      "campaignIsReviewable",
+      "submit",
+      "summaryFor",
+      "publishedFor"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/PaymentService.php",
+    "sha256": "93a358aa5c510517c659be4923b23750123c2add8b7c9d334b8f39160cafbd41",
+    "lines": 227,
+    "classes": [
+      "PaymentService"
+    ],
+    "symbols": [
+      "createPayment",
+      "confirmBankTransfer",
+      "markFailed",
+      "checkAndActivate",
+      "getSummary",
+      "breakdownByOwner",
+      "generateTransactionRef",
+      "generateInvoiceNumber"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/PoiContextEnricher.php",
+    "sha256": "1a469f89ad8d14e965306a645fb61ceb23b06ccdd8e71896cccdf4a4bba21e78",
+    "lines": 486,
+    "classes": [
+      "PoiContextEnricher"
+    ],
+    "symbols": [
+      "enrichScreen",
+      "enrichByCoords",
+      "fetchPoisOnly",
+      "queryOverpass",
+      "categoryMap",
+      "aggregate",
+      "haversine",
+      "buildPrompt",
+      "callClaude",
+      "extractJson",
+      "applyToScreen"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/PolicyConsentService.php",
+    "sha256": "4805be7c99a2f976fd01abd880def1b5210633fc64933e2be60532bc5ccb0bd9",
+    "lines": 59,
+    "classes": [
+      "PolicyConsentService"
+    ],
+    "symbols": [
+      "record",
+      "currentVersion"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/ProductService.php",
+    "sha256": "499b2acc91689c9d8a27d764efa4f8388799676cf5374261f26f1a647c15c3de",
+    "lines": 180,
+    "classes": [
+      "ProductService"
+    ],
+    "symbols": [
+      "getProductsPaginated",
+      "getProductBySlug",
+      "getSimilarProducts",
+      "getFeaturedProducts",
+      "getFilterAggregates"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/PublicReflectionService.php",
+    "sha256": "c392843713887151bf5ad56557e111a89614757a818c39ce5e8c62adf84f0db5",
+    "lines": 70,
+    "classes": [
+      "PublicReflectionService"
+    ],
+    "symbols": [
+      "record",
+      "published",
+      "generateCode"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/ScreenImport/ColumnMappingAiService.php",
+    "sha256": "76e2094fc478a35fb03787a448c1ffb94f8fe0f7dfb04bfb36cb452ac7f479b3",
+    "lines": 244,
+    "classes": [
+      "ColumnMappingAiService"
+    ],
+    "symbols": [
+      "propose",
+      "buildPrompt",
+      "parseMapping",
+      "extractJson"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/ScreenImport/ErrorReportExporter.php",
+    "sha256": "107e809ce95bf80778668af54d817499faee116f1d31d0adcc7f9b78f86760e0",
+    "lines": 95,
+    "classes": [
+      "ErrorReportExporter"
+    ],
+    "symbols": [
+      "generate"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/ScreenImport/FieldCatalog.php",
+    "sha256": "8be28fe3c893cad88a76203301e0838d38a721b72ac34cf9507b0de972ac2a49",
+    "lines": 153,
+    "classes": [
+      "FieldCatalog"
+    ],
+    "symbols": [
+      "all",
+      "get",
+      "isValid",
+      "groupedOptions",
+      "flatOptions",
+      "promptSchema",
+      "requiredKeys"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/ScreenImport/RowTransformer.php",
+    "sha256": "ca8ef53ddb7aff5cb83f533d899a171235bbaed263dae4b85e1fad5b2afc758e",
+    "lines": 217,
+    "classes": [
+      "RowTransformer"
+    ],
+    "symbols": [
+      "transform",
+      "assignField",
+      "coerce",
+      "parseNumber",
+      "parseBool",
+      "parseTime",
+      "splitCompound"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/ScreenImport/RowValidator.php",
+    "sha256": "e4abb2bf305acc1c853ba54b24665f5c917e6eecb10a2c9783a88c7ecb3fe355",
+    "lines": 127,
+    "classes": [
+      "RowValidator"
+    ],
+    "symbols": [
+      "__construct",
+      "validate",
+      "resolveSiteId",
+      "resolveVnCategoryId",
+      "screenExternalIdExists"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/ScreenImport/ScreenImportService.php",
+    "sha256": "579bce78ef7cf81a14212b09142c1bb859e203e376af1d896a83b0a31aa9b01b",
+    "lines": 334,
+    "classes": [
+      "ScreenImportService"
+    ],
+    "symbols": [
+      "__construct",
+      "analyze",
+      "proposeMapping",
+      "refineMapping",
+      "saveUserMapping",
+      "dryRun",
+      "queueExecution",
+      "execute"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/ScreenImport/ScreenWriter.php",
+    "sha256": "228e70e9871c0fe44b2673adc80b4710321aada93964516bb228bd22430b5e87",
+    "lines": 174,
+    "classes": [
+      "ScreenWriter"
+    ],
+    "symbols": [
+      "__construct",
+      "write",
+      "createSite"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/ScreenImport/SpreadsheetReader.php",
+    "sha256": "2b6374ef41dcb25e50899be1b5cb4f92b0721a1541ac8616d8a17d003dee1937",
+    "lines": 108,
+    "classes": [
+      "SpreadsheetReader"
+    ],
+    "symbols": [
+      "__construct",
+      "analyze",
+      "iterate",
+      "isEmpty"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/ScreenImport/TemplateGenerator.php",
+    "sha256": "41e43feb7eb59ce18f77937a48df72b2e11a856302cdfc3bc4a97d160d0b9bac",
+    "lines": 118,
+    "classes": [
+      "TemplateGenerator"
+    ],
+    "symbols": [
+      "generate"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/SiteImportService.php",
+    "sha256": "e6f680ed691520f971c7237b14b80459cc54bbf7bfb2095cc99f25bfb5a99fe9",
+    "lines": 419,
+    "classes": [
+      "SiteImportService"
+    ],
+    "symbols": [
+      "__construct",
+      "readPreview",
+      "import",
+      "parseSitesSheet",
+      "parseScreensSheet",
+      "parseNum",
+      "parseInt",
+      "parseTime"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/TenantPermission.php",
+    "sha256": "86d084c353e0510a192b28395f29ac322ffe42ca0d3d8d2852033bbfb07c576a",
+    "lines": 77,
+    "classes": [
+      "TenantPermission"
+    ],
+    "symbols": [
+      "__construct",
+      "check",
+      "for",
+      "can",
+      "cannot",
+      "role",
+      "roleLabel",
+      "getOwnerUser"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Services/UserInvitationService.php",
+    "sha256": "287a6d011ef5d648bfa358ca5d6bafabb5f6df43b647529c0c48dc0c559f364c",
+    "lines": 194,
+    "classes": [
+      "UserInvitationService"
+    ],
+    "symbols": [
+      "invite",
+      "accept",
+      "attachToTenant",
+      "guardRole",
+      "guardNotAlreadyMember",
+      "generateToken"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Support/PoiProjection.php",
+    "sha256": "56a04d61ef11b632a3ca1fdb14c455b3b590688767b6ff18cc7650770e7e94ea",
+    "lines": 186,
+    "classes": [
+      "PoiProjection"
+    ],
+    "symbols": [
+      "project",
+      "groupByCategory",
+      "haversineMeters"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Traits/HasOwnerScope.php",
+    "sha256": "e238541d2254bb2ceb9c234663cef742fcfdd45475be52f9b80b4cf0e6a7129b",
+    "lines": 30,
+    "classes": [
+      "HasOwnerScope"
+    ],
+    "symbols": [
+      "bootHasOwnerScope",
+      "scopeForOwner"
+    ],
+    "tables": []
+  },
+  {
+    "path": "app/Traits/HasSlug.php",
+    "sha256": "627f900f2fa47376a0dcf9cd944c8a901baec75516a3104da211ec21cb16ed91",
+    "lines": 96,
+    "classes": [
+      "HasSlug"
+    ],
+    "symbols": [
+      "bootHasSlug",
+      "slugSource",
+      "generateUniqueSlug",
+      "ensureUniqueSlug",
+      "slugExists"
+    ],
+    "tables": []
+  },
+  {
+    "path": "routes/api.php",
+    "sha256": "e8f7315d7fbbe538b3fc0768f5d2280f4e6365115cee91b8f0e4122010b494e7",
+    "lines": 63,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "routes/console.php",
+    "sha256": "7c988eb0964bc20d5422bf27aaf63857ad02b608bbbfcc1600519261dce5170b",
+    "lines": 34,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "routes/web.php",
+    "sha256": "42d3437a91787c32a5d9f2b340bb5667dd359ff2839d80dfe794575ac57b0f8c",
+    "lines": 144,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/0001_01_01_000000_create_users_table.php",
+    "sha256": "10d79883bc08ce46510f9ad8b1830b4d06d586dc56ae2c8bac3b3e491f69a90f",
+    "lines": 50,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "users",
+      "password_reset_tokens",
+      "sessions"
+    ]
+  },
+  {
+    "path": "database/migrations/0001_01_01_000001_create_cache_table.php",
+    "sha256": "2ca8398390ecef8eaf72aeac7fefce67f7de631b6f2ec7b7081c8db8953215dc",
+    "lines": 36,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "cache",
+      "cache_locks"
+    ]
+  },
+  {
+    "path": "database/migrations/0001_01_01_000002_create_jobs_table.php",
+    "sha256": "9a03f01ec9fedcb6ab0bcde6858b793cc3fdd9f9ee9b3914a958a0a669ef829d",
+    "lines": 60,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "jobs",
+      "job_batches",
+      "failed_jobs"
+    ]
+  },
+  {
+    "path": "database/migrations/2025_01_01_000001_create_owners_table.php",
+    "sha256": "525089cb860f4c4dbc46e1098c5d812941502cc9fefc5fa5bdee68ce8f18d902",
+    "lines": 30,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "owners"
+    ]
+  },
+  {
+    "path": "database/migrations/2025_01_01_000002_create_owner_users_table.php",
+    "sha256": "7645027b2080ae89bb5986aeddc85538bf43607019d4ded9267cb5af60c5a453",
+    "lines": 22,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "owner_users"
+    ]
+  },
+  {
+    "path": "database/migrations/2025_01_01_000003_create_networks_table.php",
+    "sha256": "1345b74b933a09d481b7c9f52378e8ff3ddb4ec98cdb7121dc1b3389caf29467",
+    "lines": 24,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "networks"
+    ]
+  },
+  {
+    "path": "database/migrations/2025_01_01_000004_create_venue_types_table.php",
+    "sha256": "28b8bdfbfe50004ad148de6fecee6e072ee1947ec689749f8ce19624ccfe66e4",
+    "lines": 21,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "venue_types"
+    ]
+  },
+  {
+    "path": "database/migrations/2025_01_01_000005_create_sites_table.php",
+    "sha256": "d53b7fdfbc8dbe755aba7b62d9edd6ade6065ad0efab15ca13262d21779566e6",
+    "lines": 32,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "sites"
+    ]
+  },
+  {
+    "path": "database/migrations/2025_01_01_000006_create_screens_table.php",
+    "sha256": "4fae3651cfb307b911e4f4638044ff126e3ad289319012af7cb9eff5d10e4203",
+    "lines": 36,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "screens"
+    ]
+  },
+  {
+    "path": "database/migrations/2025_01_01_000007_create_screen_specs_table.php",
+    "sha256": "b593d368be1798f3a271bd177953f55d607ffbcd40e8a5fbc645006c24fb7ba7",
+    "lines": 29,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "screen_specs"
+    ]
+  },
+  {
+    "path": "database/migrations/2025_01_01_000008_create_screen_inventory_table.php",
+    "sha256": "41318c71287c6e452c44113576ee62e52bc3c13c147afe0786ea1c5c9b900b68",
+    "lines": 35,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "screen_inventory"
+    ]
+  },
+  {
+    "path": "database/migrations/2025_01_01_000009_create_screen_impression_multipliers_table.php",
+    "sha256": "9565e1a87f59fdbe1e145cf95d61aeb2ef950e7610e26555dbf940e535016f06",
+    "lines": 21,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "screen_impression_multipliers"
+    ]
+  },
+  {
+    "path": "database/migrations/2025_01_01_000010_create_screen_external_ids_table.php",
+    "sha256": "23ecbe96e873b103108576229b1a70cda5ebbbc732d7e9bfa2a6ab62a9bc1a18",
+    "lines": 25,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "screen_external_ids"
+    ]
+  },
+  {
+    "path": "database/migrations/2025_01_01_000011_create_impression_logs_table.php",
+    "sha256": "e9dc4f426dd859f28db5a16cc49d4d4648354af4b15fba97ac19077894c9a75e",
+    "lines": 52,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "impression_logs"
+    ]
+  },
+  {
+    "path": "database/migrations/2025_01_01_000012_add_owner_fields_to_users_table.php",
+    "sha256": "f0fa213d7416eee4b97781ad0ffbfcd4e02e9e21ada3890d7502c4ec55790c08",
+    "lines": 20,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2025_01_01_000013_update_owner_users_role_enum.php",
+    "sha256": "8f8b6b5b1b3aeae382bb553d81bfee935abd9a0b4626f5cc22f43711fa370367",
+    "lines": 95,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2025_01_01_000014_update_venue_types_add_openooh_fields.php",
+    "sha256": "c6b779162176a0c1968c5e6ff6219b537ab2049eab3c611ac2f70b5c9ffee3ce",
+    "lines": 42,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_03_14_111143_create_permission_tables.php",
+    "sha256": "c4b6aede97b984491a0e17055afc0c7d215a64955c964c9e498b5d81cf8d1987",
+    "lines": 137,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_03_14_112135_create_personal_access_tokens_table.php",
+    "sha256": "8c480de68a4670b63f74523214e1a8ce99537b7b824afe4f2028eafd01540542",
+    "lines": 35,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "personal_access_tokens"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_03_19_000001_add_missing_fields_to_screen_inventory.php",
+    "sha256": "56e04a5a432da8e365775cc1f7007a532cfe1afd13ffee253117ffa81437b265",
+    "lines": 59,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_03_19_000002_add_unit_fields_to_screen_specs.php",
+    "sha256": "aca5574510a4fb86ab61db850da0a3c71ab25fee640ee7ceaef1f57e6d4830c3",
+    "lines": 27,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_03_19_000003_add_listing_flags_to_screen_inventory.php",
+    "sha256": "63cd571153d5c5ee88aae796c47061812c6bb413711dd3e6498eb873e3964eba",
+    "lines": 33,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_03_19_000004_add_resolution_preset_to_screen_specs.php",
+    "sha256": "d0d200d8b736c39c32b4f2aeed5ac032dccbf232df19af9ae0e44a3cd832e17a",
+    "lines": 27,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_03_20_000001_add_performance_indexes.php",
+    "sha256": "cbaa82d277ad56b8f41004ed2fd9436ffb6d4c230a48d4c083fa90463faa1cff",
+    "lines": 48,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_03_20_000002_create_vietnam_provinces_table.php",
+    "sha256": "a2fc9a8f751544b1719e049fcb4e53f1cf496e459eae74cf9caa7478a28ae594",
+    "lines": 27,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "vietnam_provinces"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_03_20_000003_create_vietnam_communes_table.php",
+    "sha256": "97374a882849f1b5eb5b47f123dd71f10904c95e6aaf1f0bc65eeadc9d33cdc6",
+    "lines": 34,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "vietnam_communes"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_03_20_000004_add_province_commune_to_sites.php",
+    "sha256": "1a1bdc84ab3a908bdd4f78b0ecf6b298fc51b0d6baa034ba5180bdbd2e6f6675",
+    "lines": 34,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_03_20_000005_create_vietnam_regions_and_update_provinces.php",
+    "sha256": "5274adfe6bb809cd5908fd294f0220cd4bf0f74b09f8143c62139200689c112c",
+    "lines": 44,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "vietnam_regions"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_03_21_101225_create_api_clients_table.php",
+    "sha256": "ed611855159bd4eccb86c641a6be7dbafdbf2975db5a3771a28fa130f50607c7",
+    "lines": 34,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "api_clients"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_03_21_115328_create_webhook_subscriptions_table.php",
+    "sha256": "c8ee9878930f73e10dd34993cde15ef1a341a0ef160d7cb3c96a5bba9bd3dd48",
+    "lines": 37,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "webhook_subscriptions"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_03_24_000001_add_public_profile_to_owners_table.php",
+    "sha256": "79adb74498c1697e2e0c5260e8f2d45cbfa04e14873b06e193346998486eb185",
+    "lines": 46,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_03_24_000004_add_code_to_networks_table.php",
+    "sha256": "e242919e0405a458f418573c03a1d761fc397b70b47b44e438834e93d2195772",
+    "lines": 21,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_03_24_000005_add_network_and_district_to_screens.php",
+    "sha256": "cd1f4442d7c8c3df5e85482a1c8207e8eb0872d655619d73179b185c67c9d4c7",
+    "lines": 38,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_08_000001_add_performance_indexes.php",
+    "sha256": "e5a19b97b22439012bd4fd4e29fa3f8ecbaba8aff3a3be45b6d6e538c031121b",
+    "lines": 79,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_10_000001_create_venue_categories_table.php",
+    "sha256": "ae5f589ffbbbc636623f79cee42e39851130631da6448272b0a16e28c8832c26",
+    "lines": 39,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "venue_categories"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_04_10_000002_add_thumb_to_venue_categories.php",
+    "sha256": "c8354609b35ce1f985a2fc27892879fea51e058d7408412f5e46ff3818dc7d65",
+    "lines": 23,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_11_000001_add_logo_banner_to_networks.php",
+    "sha256": "b3330ec26861459fd96e0d01e12e79d256e7f1221df0e830cf66e386fa7f3fcd",
+    "lines": 24,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_11_000002_add_banner_to_sites.php",
+    "sha256": "a83e92637e6dd1b360c26df7959d366fd2f015628ba248c39326bdbda2b9923f",
+    "lines": 23,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_11_000003_add_vn_category_to_screen_inventory.php",
+    "sha256": "80562897fbae6095a79c655376e3b4e1eb1ea4883f42962b75060ba692bf670f",
+    "lines": 78,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_11_133723_add_network_id_to_sites_table.php",
+    "sha256": "26d59bf7c1911847782a70e3e2e0b20ffbc912cf7328d8b1590ccf8a0481424c",
+    "lines": 43,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_11_162601_add_photos_to_screen_specs_table.php",
+    "sha256": "a5879d8560569367756e0339c04b9810a75c1721143dfc915541b994dbea1c36",
+    "lines": 32,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_11_163904_add_logo_to_sites_table.php",
+    "sha256": "cf1e98eb38477e3bcc6699ca774fef10096a4d6ab5e55555d64038d94e3133e7",
+    "lines": 23,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_12_000001_create_organizations_table.php",
+    "sha256": "87c81e4eaaf41f9a190b0a2e6644580802225b581b3efc15a72d7128571f23d1",
+    "lines": 35,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "organizations"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_04_12_000002_create_organization_users_table.php",
+    "sha256": "91be10af61dd715d119b6afa5f3d1dff979eaea3617e65e913159c6ac3748d44",
+    "lines": 28,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "organization_users"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_04_12_000003_add_current_organization_id_to_users.php",
+    "sha256": "3be62648d75e0cce084c6b3902ab3fa7dcb3ce687ea06c96d9db7936d10b3db4",
+    "lines": 25,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_12_000004_create_carts_table.php",
+    "sha256": "23a2e416de2e1b8b551c722bb0305deb756197f1f2e33009c5a36b0019863da7",
+    "lines": 49,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "carts",
+      "cart_items"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_04_12_000005_create_campaigns_table.php",
+    "sha256": "44a50824967b013dc2e06ccb859c930ba7298fcfcf0b6d185be08858fa7d06f1",
+    "lines": 51,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "campaigns"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_04_12_000006_create_booking_lines_table.php",
+    "sha256": "796c13dfc9d5ef1ac7a851e85dda1b5573e981da3dc89f3180723173ea5733d2",
+    "lines": 50,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "booking_lines"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_04_12_000007_create_creatives_table.php",
+    "sha256": "20e6e11136d5a0d587c58e65fc776492e6fafde7ddab967ca3d31cae34585f19",
+    "lines": 52,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "creatives",
+      "booking_line_creatives"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_04_12_000008_create_payments_table.php",
+    "sha256": "6ceb8390e98cbc180894a6347015d66dff8822c221733f62917e07411b4bcf76",
+    "lines": 41,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "payments"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_04_12_000009_create_campaign_activities_table.php",
+    "sha256": "e0f2c2c1d83fb93c38e6d71f035ec8b15d64d47c6909d3cc08dde8222ec61620",
+    "lines": 30,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "campaign_activities"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_04_12_100001_add_photo_to_vietnam_provinces.php",
+    "sha256": "0bf6535179ec66efd2ea80ba33f1e31917a694ded2e327bd5c9d3b105028eb56",
+    "lines": 23,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_13_000001_create_products_table.php",
+    "sha256": "cdf81dd7c9f100f6008c6433156d4210207ca9239aa135f555461e5e954fd12a",
+    "lines": 114,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "products",
+      "product_screens"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_04_13_100001_update_products_listing_mode.php",
+    "sha256": "71ab91bea9d9f90acc08da228f6601dc42aeacd8df4ad3af412b4b000630150e",
+    "lines": 50,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_13_100002_make_cart_items_screen_id_nullable.php",
+    "sha256": "abf7e06ea15e255d38acf35029ffb2e96c96627937af565a82e3d23e29861484",
+    "lines": 93,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down",
+      "getExistingFKs",
+      "indexExists"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_14_000001_add_address_to_owners.php",
+    "sha256": "ebd412b203e2546cf9685b7a397c6c3251de4d63c8116ae42e86ef7f5b258943",
+    "lines": 25,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_14_000002_add_province_commune_to_owners.php",
+    "sha256": "afd90e1165390f9d80c04094c4a374d18abfae3632f9db41a4922f60e6efb703",
+    "lines": 29,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_14_100001_add_slug_to_screens_and_sites.php",
+    "sha256": "aeede12706d7d4f8d79f492f2ed49456ba0b32221a5743fe418bc933501ee601",
+    "lines": 72,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_14_100002_create_saved_items_table.php",
+    "sha256": "b983a53f7c138f7fe1211624c4ccc49609d50c247379a37993160a83d620af20",
+    "lines": 27,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "saved_items"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_04_14_100003_add_verified_to_owners.php",
+    "sha256": "df51db8adc9e3216a6a4b351d76a723fab316056a96a5fa9f4a9bf00ca1b760f",
+    "lines": 23,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_15_100001_add_pricing_model_fields.php",
+    "sha256": "0f1c17df3b7f922c63908b2e1351473e5b47ba9f896b67b04c39db94f9214113",
+    "lines": 63,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_15_200001_add_vn_category_id_to_networks.php",
+    "sha256": "7dd6ba18834461e8fb262d293bb0927f20185b0ef89be1f0cf717eb1b8d81b61",
+    "lines": 47,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_19_000001_add_phase1_intelligence_to_screens.php",
+    "sha256": "18f328cecf26b59cfaaf2def2517fe386bb4c3f2fb3229171fe4da39dc577e81",
+    "lines": 54,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_04_19_000002_create_poi_snapshots_table.php",
+    "sha256": "91c7a218d66e74b1fc69296bd45c2373d075c395327e165e58f026044c5136d7",
+    "lines": 48,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "poi_snapshots"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_04_21_000001_create_screen_imports_table.php",
+    "sha256": "b35564d88247d4c3a11073185fb257949eb67dbca14f3dac380fbcd635e9bd2c",
+    "lines": 62,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "screen_imports"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_05_07_000001_create_user_invitations_table.php",
+    "sha256": "a286b528c952b1f01b18b3d47e4ea7d58ca6c311a1eb38273d9285bc2431da66",
+    "lines": 35,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "user_invitations"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_07_17_000001_create_public_reflections_table.php",
+    "sha256": "4c23e071fbc4e84a64bf60216940a09095467f79f51a9b56a4268d038a15a58f",
+    "lines": 61,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "public_reflections"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_07_17_000002_create_policy_consents_table.php",
+    "sha256": "c5420cb11f648b99f6f106c91ab2cf0370733d76a9aabdc51cea1f5a1d38688d",
+    "lines": 46,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "policy_consents"
+    ]
+  },
+  {
+    "path": "database/migrations/2026_07_17_000003_add_legal_and_bank_info_to_owners.php",
+    "sha256": "0490f80ff6e40f89b0b1ef1f8d07274f87394a0adbf805994022166b6207727e",
+    "lines": 64,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_07_17_000004_add_owner_to_payments.php",
+    "sha256": "9066fae1066905c32a70d2d5cd230032f4331359d3dbd08b6d27f59bc7ad14fd",
+    "lines": 38,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/migrations/2026_07_17_000005_create_owner_reviews_table.php",
+    "sha256": "54dfd06eaf8218ccd5ca0c656728531c88a9cd705837989631b67a92bfb43d08",
+    "lines": 54,
+    "classes": [],
+    "symbols": [
+      "up",
+      "down"
+    ],
+    "tables": [
+      "owner_reviews"
+    ]
+  },
+  {
+    "path": "database/factories/NetworkFactory.php",
+    "sha256": "d89af6cbd7c9b37eba83dce1b9789ecc737fdd0579e42c0e97f0447a24c73315",
+    "lines": 25,
+    "classes": [
+      "NetworkFactory"
+    ],
+    "symbols": [
+      "definition",
+      "withCode"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/factories/OrganizationFactory.php",
+    "sha256": "dc5956faea473c4d90eafbca48c32a6376dc5ce4021313351c72d0646ac636b5",
+    "lines": 25,
+    "classes": [
+      "OrganizationFactory"
+    ],
+    "symbols": [
+      "definition"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/factories/OwnerFactory.php",
+    "sha256": "e141057d559bf40f6a7a2dba1779222ad786260084da92d74acad041b8d6a31c",
+    "lines": 21,
+    "classes": [
+      "OwnerFactory"
+    ],
+    "symbols": [
+      "definition"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/factories/OwnerReviewFactory.php",
+    "sha256": "d7e2ddd77a41dfcf745a71518562caa98d2776f0ffbc3e3fda2d838d9b63f3df",
+    "lines": 29,
+    "classes": [
+      "OwnerReviewFactory"
+    ],
+    "symbols": [
+      "definition",
+      "published"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/factories/ScreenFactory.php",
+    "sha256": "a9d70bcf42acf6f0cda7fb25271ba5e7dc302601a5f5339c3105ed4dc53b3234",
+    "lines": 29,
+    "classes": [
+      "ScreenFactory"
+    ],
+    "symbols": [
+      "definition",
+      "inactive"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/factories/ScreenInventoryFactory.php",
+    "sha256": "db14c9b5d61f29fc80dfd60f4fe246abf871798e732665269a14406f16cff83c",
+    "lines": 31,
+    "classes": [
+      "ScreenInventoryFactory"
+    ],
+    "symbols": [
+      "definition",
+      "venueType"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/factories/ScreenSpecFactory.php",
+    "sha256": "55f2fbb5bc20eb9a5f4131504670d1778ed23fffb50a55cf371618aff0498a2c",
+    "lines": 66,
+    "classes": [
+      "ScreenSpecFactory"
+    ],
+    "symbols": [
+      "definition",
+      "landscape",
+      "portrait",
+      "square",
+      "billboard"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/factories/SiteFactory.php",
+    "sha256": "83376d0ac1767c380a70e402009175487535aac33d25327abaa680233fbafdb0",
+    "lines": 31,
+    "classes": [
+      "SiteFactory"
+    ],
+    "symbols": [
+      "definition",
+      "inCity"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/factories/UserFactory.php",
+    "sha256": "50bdc543f1b09d1a57260be55ad0e1a68aee4b34f63e1109dc94d9bcd3080526",
+    "lines": 46,
+    "classes": [
+      "UserFactory"
+    ],
+    "symbols": [
+      "definition",
+      "unverified"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/seeders/ApiClientSeeder.php",
+    "sha256": "e49bff9f5ea80f9d2d85655a972198316b6978f56183ac8bf497c90c0cdce6cc",
+    "lines": 24,
+    "classes": [
+      "ApiClientSeeder"
+    ],
+    "symbols": [
+      "run"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/seeders/DatabaseSeeder.php",
+    "sha256": "2d17bad9512d4ec01b19c44b4219b9846d301c8b4a8adc12130eda335cc9adbf",
+    "lines": 28,
+    "classes": [
+      "DatabaseSeeder"
+    ],
+    "symbols": [
+      "run"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/seeders/OpenOOHVenueTypeSeeder.php",
+    "sha256": "e762b65a5165c5383f609b1731b94190cd06c6f3a90cef01f90a92a8254b0af9",
+    "lines": 185,
+    "classes": [
+      "OpenOOHVenueTypeSeeder"
+    ],
+    "symbols": [
+      "run",
+      "getVenueData"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/seeders/RoleSeeder.php",
+    "sha256": "a0bb9919f8c70f522c82709878b8527ff4c9f8ccdf8a854ed6166ba0cee9e7d7",
+    "lines": 25,
+    "classes": [
+      "RoleSeeder"
+    ],
+    "symbols": [
+      "run"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/seeders/VenueCategorySeeder.php",
+    "sha256": "5adf84f5cb0d1a94fdfc4a6b93719fc5bfe59fd1f6cc23227c7e57462f226edb",
+    "lines": 133,
+    "classes": [
+      "VenueCategorySeeder"
+    ],
+    "symbols": [
+      "run"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/seeders/VenueTypeSeeder.php",
+    "sha256": "9a9e934e117fcfbfcc2e11d545e8f1743d0cad3fe707e68f0e6a860d622bdb7d",
+    "lines": 88,
+    "classes": [
+      "VenueTypeSeeder"
+    ],
+    "symbols": [
+      "run"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/seeders/VietnamAdminDivisions2025Seeder.php",
+    "sha256": "8953fb068fa8e3f9415b7e2a87c1b66ed40e2a307364671604a049deeed9f20c",
+    "lines": 176,
+    "classes": [
+      "VietnamAdminDivisions2025Seeder"
+    ],
+    "symbols": [
+      "run"
+    ],
+    "tables": []
+  },
+  {
+    "path": "database/seeders/VietnamProvincesSeeder.php",
+    "sha256": "dda579b49adc15f2ab96de231a1bee891d73e4dead37da305274396451b6ba14",
+    "lines": 103,
+    "classes": [
+      "VietnamProvincesSeeder"
+    ],
+    "symbols": [
+      "run"
+    ],
+    "tables": []
+  },
+  {
+    "path": "resources/css/app.css",
+    "sha256": "9f49ed837fdc773b89a294d1e86dc68828ef2f774d7e797ba5f89c2a08c84760",
+    "lines": 12,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/css/frontpage.css",
+    "sha256": "21caa4307133d881adcd9afe1fa25ec1316787f03f9f5832457d7b64c162b0fc",
+    "lines": 2211,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/js/app.js",
+    "sha256": "cf6dab196c721f6911ff99cc4f910897f978599a2d289971a316a5fc33091f94",
+    "lines": 2,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/js/bootstrap.js",
+    "sha256": "6fd9fc82e68fa915a882f4e227b9faacbe7bfd66cb953c628840e83bda6b72f4",
+    "lines": 5,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/js/frontpage/logo.js",
+    "sha256": "2ee7ac955f370d9c9b902bda372c2c25354656726d6c7bc321910afa5e1647fa",
+    "lines": 13,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/js/frontpage/scroll-reveal.js",
+    "sha256": "7a97f9cd91560fa109649115bf04c9a7a2e246ee93df813a020fc89816da8993",
+    "lines": 13,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/js/frontpage/scroll-to-top.js",
+    "sha256": "a30d512a58730277bc8643b0892bd3d5076b6eba7b72a919e40d00b9c51041c8",
+    "lines": 21,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/js/frontpage.js",
+    "sha256": "efe98abdcfacd9b055ae66fb3b93599c3a2b3b0ee43e8a95f0c8e47863b1aea6",
+    "lines": 4,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/js/table-resizer.js",
+    "sha256": "9c3d22d7d44439d62c239c66de873709c8416cb7f231e77e2f86160c82960f46",
+    "lines": 103,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/buyer/auth/login.blade.php",
+    "sha256": "b7bfe01a7da988d57542c0a03e82f01308cfbcdc90af01455097fb2307dbea80",
+    "lines": 47,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/buyer/auth/register.blade.php",
+    "sha256": "f58b1b04ff144ce367a932b5fdc8270f70a747b47d0b79baff7acafbfba786db",
+    "lines": 74,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/buyer/booking/create.blade.php",
+    "sha256": "919401f3a17d35bf860b29e528fe6a6c8ec9e9fdb6a52b04e8b31219f708529e",
+    "lines": 95,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/buyer/booking/creative.blade.php",
+    "sha256": "d7e05a911377d745c6bc165281a80b8b3a2a8d14d008f6cf49cdeb680ae229c3",
+    "lines": 103,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/buyer/booking/payment-success.blade.php",
+    "sha256": "37a5003425d8d236d1d362dc5bcdc98ba7cb5d10ac37816c9fd808430407d95a",
+    "lines": 43,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/buyer/booking/payment.blade.php",
+    "sha256": "24fd748cded87dfc64a5ac5bff0f85c7e8e77ac14bb9d8ea096d7b94373aaab0",
+    "lines": 162,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/buyer/booking/review.blade.php",
+    "sha256": "441218456ac3cadba3b28fc68fe95627ecfec0a075550b39b56fa0d670d1284d",
+    "lines": 156,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/buyer/cart.blade.php",
+    "sha256": "1c747c31ece46074f1ca58916f685861929978b5a178bd4a838087af48d6e6c2",
+    "lines": 123,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/buyer/dashboard/campaign-detail.blade.php",
+    "sha256": "54c80ee153ec7c60c0b1cebac8228c92bf5fd0353023e3e66ce6c36ed4d39d32",
+    "lines": 138,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/buyer/dashboard/campaigns.blade.php",
+    "sha256": "8e602f6a8236731c3dcace8bb4a2a8d24702c44da25cb4adbf053c390807bddb",
+    "lines": 40,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/buyer/dashboard/index.blade.php",
+    "sha256": "492c54fe611196a4dde21526aa886ff09fbb108ef52957643d5e7c7d434cc95a",
+    "lines": 87,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/buyer/dashboard/report.blade.php",
+    "sha256": "c8917cddcd8ae70753cc92d7cb295c6c92a65e97b273cdc377a3e87725d2b86d",
+    "lines": 160,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/buyer/dashboard/settings.blade.php",
+    "sha256": "fed82c42c3fcea710976b1e7b2fe29536d032bc2ca906eb058a362bfc91c0f17",
+    "lines": 96,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/components/policy-shell.blade.php",
+    "sha256": "693363821a4301f98479d91df032700ff93f0dee3b0a456e43c35a6eb30b378d",
+    "lines": 45,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/components/network-screens-panel.blade.php",
+    "sha256": "59c656b9db72e321e351737c6e2fa5a38df5fb86f159e99f17522f5d781b3dfc",
+    "lines": 335,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/components/screen-map.blade.php",
+    "sha256": "3b3f1a4b2d517d9593be6e819e2e619b1726b198b00159eb21e036697b7a96ef",
+    "lines": 263,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/components/site-map.blade.php",
+    "sha256": "87c85a4aef884ef7bead807b8577e33dd59819ab0c434f61a027de1b5ac35b04",
+    "lines": 47,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/components/site-screens-panel.blade.php",
+    "sha256": "98127a7f35dda20f36cb303f49095dca018134526a373c1b8917acaaf5544bb1",
+    "lines": 232,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/forms/components/map-picker.blade.php",
+    "sha256": "181269a828d65d63c94e17bbba7107bcb14fe24b084e43e6e63e9686bd06869e",
+    "lines": 246,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/forms/components/screen-map-picker.blade.php",
+    "sha256": "ab80680e6acb9a17b2add86b2a62f34a06c0bb06a0e9f96786533a0174042b25",
+    "lines": 247,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/modals/network-screens-map.blade.php",
+    "sha256": "766eb4fc76ae0a7f31701b3de89b74f7c6b7e3a6a8ac4980b633e90f7b04dec6",
+    "lines": 271,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/pages/oohx-analytics.blade.php",
+    "sha256": "e795c3ae3e03465bc15d3ed62e65054d2c122a582e9a9a4eb1bc7893f083dedd",
+    "lines": 241,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/pages/oohx-collectors.blade.php",
+    "sha256": "0dcfe34e56d7fa02c52f2565604a1f04c59265b56bd3df9302a2af73291b82c1",
+    "lines": 146,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/pages/oohx-data-engine.blade.php",
+    "sha256": "a5986f1a15c32912724fac206552699af55cf6bf59b8af5fd8e85a3b9143dff5",
+    "lines": 188,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/pages/oohx-health-raw.blade.php",
+    "sha256": "35a07015d2ecc3a709d1ca3f2232c63c4264e0c51458ff71cd014e8ff654b327",
+    "lines": 10,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/pages/oohx-health.blade.php",
+    "sha256": "8d5f252d4dca1e9afa33dc09ea4f4af1de8c2b9c6157b58f94aa47c73c5266f6",
+    "lines": 209,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/pages/permission-matrix.blade.php",
+    "sha256": "95c858e0f4e2dbe49184051d5fca466b970200084d1ade58f2b491d5f101e4ba",
+    "lines": 234,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/publisher/components/allowed-content-picker.blade.php",
+    "sha256": "8b318e7f4bee6a026573215456bf2ac10cdf5b67601862489f5f07c4f48a6e04",
+    "lines": 63,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/publisher/components/headquarters-map.blade.php",
+    "sha256": "fac71bfdcd34cd678b5b6312bb60b3c28d2d758681be585fc8e195b1fb50fea7",
+    "lines": 122,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/publisher/components/operating-hours-grid.blade.php",
+    "sha256": "3ae878b7dfc9be0e2d5e6c63e9a08d31daf7dd04604fcd243bcae44fe904741a",
+    "lines": 309,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/publisher/components/operating-hours-view.blade.php",
+    "sha256": "a82e1b5e8d596efd8332c16a15f19f67a4b39015ebdbffa073671825ed46e63f",
+    "lines": 86,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/publisher/components/resolution-picker.blade.php",
+    "sha256": "f41c6c9d3854000d96e85dde7a7d8ec242b5079a372b761d175bd7c0c6caea12",
+    "lines": 65,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/publisher/components/selective-listing-picker.blade.php",
+    "sha256": "4c3e5177b671e5afd22e5ef01429e45db6d816576c47df6efa8a50b2103bec8b",
+    "lines": 56,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/publisher/pages/company-profile.blade.php",
+    "sha256": "3dcc59bbbbc4da7ca0f1bf9736bd907c665fb41a8f30d31184bd9e7de19c340f",
+    "lines": 12,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/publisher/pages/import-sites.blade.php",
+    "sha256": "5400a551095dd687f05eeea3640f985d93c83dc2fcfb163894d5f49213d20b95",
+    "lines": 710,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/publisher/pages/import.blade.php",
+    "sha256": "3e8414b0c8c293dc83166d279981add05b1a75f4f3daf735af0073e1b5ff3e0c",
+    "lines": 2,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/network-resource/pages/view-network.blade.php",
+    "sha256": "d5548f9e67d33b4f6d8c33f2c2d68a206b62f98d12790deeed779d701000a71b",
+    "lines": 643,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/oohx-campaign-estimate/create.blade.php",
+    "sha256": "d9d01206b36bbff67ed80d5b091613ae3f88f8dd7307d11b7a6d163d3ce6a98d",
+    "lines": 20,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/oohx-collector-run/stats-widget.blade.php",
+    "sha256": "6ccd89320288a6a6c42c6e0a8bc19e6c864a8a5e289d74211414e85005e5fa98",
+    "lines": 54,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/oohx-config/formula-version-snapshot.blade.php",
+    "sha256": "a5f2c395c29e23674a39192a3b758d6c6e95ad166a60b035fa8245ef8ad3eb02",
+    "lines": 50,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/oohx-config/seasonality-heatmap.blade.php",
+    "sha256": "220dddeadf7add22d476597aa7ffd54ab906db758023804470e6914b79fc106a",
+    "lines": 83,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/oohx-config/seasonality-seed-hint.blade.php",
+    "sha256": "8f60db816801843c4e1ed3e2bd12799f7c435ab1789756303535fcf80c44299d",
+    "lines": 21,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/oohx-recompute-job/preview-result.blade.php",
+    "sha256": "589d6aff1bba8e109d9a5e625d1f661bdf26e9572f83f73442b1141a7d77a909",
+    "lines": 247,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/oohx-recompute-job/progress-widget.blade.php",
+    "sha256": "33d96452e9c78e181636fbae2a187e99bcdb860e9e091fb08370e512a2022fdf",
+    "lines": 116,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/poi-snapshot-resource/features.blade.php",
+    "sha256": "7c8dd62d57b1153f778224681030ffaacfccf0920da648c3e2be6a29fcc7dcac",
+    "lines": 60,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/poi-snapshot-resource/map-and-pois.blade.php",
+    "sha256": "b7753dbbc1b6f065cb2353dd7d6938f0b267798b9f5a2b3ebc9e48ee867f7764",
+    "lines": 270,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/poi-snapshot-resource/pois.blade.php",
+    "sha256": "12b69e2d4ae67f74371a327747458cdebfed15e6f009e4bc0156ac65ae2346a7",
+    "lines": 51,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/role-resource/role-users.blade.php",
+    "sha256": "fc219a0ee1760f21c21545cad53e4fc03beab96f7f2de0231697802cc2bb71e6",
+    "lines": 46,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/screen-import/import-result.blade.php",
+    "sha256": "a39f3e44bcefdf2c20316d16f9da9e4abd5a99087c256d75d3b4cf44f5dff5b7",
+    "lines": 57,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/screen-import/mapping-table.blade.php",
+    "sha256": "f7a42ebf1d91b6a39e55b4793bcf7e2b6299e1a8719e306c60336bf503eb9328",
+    "lines": 87,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/screen-import/preview-result.blade.php",
+    "sha256": "5767eba1e7b3732cbf2a128150533fe324739057aedd7e6c2ad040bc2bb1bf4e",
+    "lines": 101,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/screen-import/progress.blade.php",
+    "sha256": "25551d545b55fd7eb1a2acde5f2013970eb9429d93e6a204500c78a2f540489e",
+    "lines": 57,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/resources/user-resource/permission-matrix.blade.php",
+    "sha256": "bef0ae5e17df34465edefaa430ccaa8ed6e382c16a0869c60be23859d50447cb",
+    "lines": 61,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/shared/components/data-engine-estimate.blade.php",
+    "sha256": "ef7601ce82a7103bc7fc65eacdce963be9cebba4c0a19284a7ce0883a1e8dd4e",
+    "lines": 107,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/shared/components/enrich-ai-preview.blade.php",
+    "sha256": "51fc847cec9ef13c2926d76ce0482bbcc77e0ea9a14adfa7c41c4d626cbb5cde",
+    "lines": 228,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/shared/components/screen-detail-modal.blade.php",
+    "sha256": "b27dfb7d26d547629241a7b56c860bcd45f613d86d46a03a9da9915edcc74910",
+    "lines": 182,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/filament/shared/components/screen-insights-infolist.blade.php",
+    "sha256": "20c4b5cf0610cfd84b90996bc1bf270758175e0388017e09c7ec0234d8073d1d",
+    "lines": 302,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/agency.blade.php",
+    "sha256": "edb85f749208392575a5f069bcbff5bc0705cf9973ee01f595ff9471736bdf48",
+    "lines": 63,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/booking.blade.php",
+    "sha256": "5ce3389734accc087d36a0ce1783b70d5a14f69b0adf66c7e39f5ec4ccd7bda1",
+    "lines": 21,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/detail.blade.php",
+    "sha256": "ce208a18fbf23303cae027a05f15b5b953a484e7508344db6baf3b5da4e7c8ba",
+    "lines": 761,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/index.blade.php",
+    "sha256": "3b86fcbf5d68560aeb46ac8349cfc81d4f5ee28c4a84f63c01679ec0462fc331",
+    "lines": 657,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/layouts/app.blade.php",
+    "sha256": "83f8efa2edecc6df5cf21eeb3301303e79d6d2b43f7f9c144416642fa6186429",
+    "lines": 42,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/listing.blade.php",
+    "sha256": "b9cc8dbcddab9541e4797cd8a6bff611f598f93500e03bb12089ef3151fa3915",
+    "lines": 93,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/map.blade.php",
+    "sha256": "115e3cf71ba34b9368c926f3664476210fd421682db96d06eddf957e2b5e4c70",
+    "lines": 506,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/owner-detail.blade.php",
+    "sha256": "26a1e64a2557dd9e4e0177391880831ddc0e348f1431efbedd6ffefd71e335bf",
+    "lines": 439,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/owners.blade.php",
+    "sha256": "76fb8ffee4898116b0566631fc7471ec38b76efb98f9421d06c2d760b4eb7a13",
+    "lines": 27,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/agency-card.blade.php",
+    "sha256": "0643b1e7f757f2018055f5df9e5e03e1cca39f89cab697294fed3d1caf61a0b0",
+    "lines": 53,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/company-legal.blade.php",
+    "sha256": "ffc8099c67feea12bd3bb0b6fb28169a769d5db3456f9ed4e7955ed41e250e20",
+    "lines": 23,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/footer.blade.php",
+    "sha256": "2e2d9150ca518b4a8983adc5b29d0aa9ab62b6d7c91d39b42e595663bb48e055",
+    "lines": 71,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/header.blade.php",
+    "sha256": "5296755a494cf3c60e0e76c097b205658d887fb5f19dac092e0753f35bce3d9b",
+    "lines": 157,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/map-popup.blade.php",
+    "sha256": "8303bf4ebd48acef4e1e04f8551aa5d9d1517abc8e86d22888385c919604327b",
+    "lines": 48,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/map-shared-js.blade.php",
+    "sha256": "d754851d9d64c137d06739c66c066f2eccda8a72ce7fcdbcabbaeefe34cd90e4",
+    "lines": 233,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/map-styles.blade.php",
+    "sha256": "4ec5f0f95e46dad7ab75233d99b0da7a3dd88a0c4e70e6a8267ac34a5f5c6866",
+    "lines": 49,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/mega-search-js.blade.php",
+    "sha256": "3e5e2bc2b343c16626981e828227b11b56a6f37fecabc43eb671258bb2e45e56",
+    "lines": 188,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/mega-search.blade.php",
+    "sha256": "9fadbefbe010a7ddeb1ef048d0a1f606a7bb16914b248a4acc9faf917af3904a",
+    "lines": 159,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/mobile-nav.blade.php",
+    "sha256": "f0e11db21bfbdfdf874d77741202c4c0e9d0ba9e0c3fad39915be13b731589a3",
+    "lines": 23,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/network-card.blade.php",
+    "sha256": "edec4c70b2f1df828495c1b8601d1d5558f8ef3df7b6e0666d27a6119025635f",
+    "lines": 32,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/owner-card.blade.php",
+    "sha256": "85f601189936bfabecaf33a42337821af431b67395ca723c0bef61b16b0c691c",
+    "lines": 110,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/pagination.blade.php",
+    "sha256": "37958f27d1d29288f762c6f095babab6c72c8e5c89b6164e81ec1b84b0af682d",
+    "lines": 78,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/screen-card.blade.php",
+    "sha256": "0942bce8c15a2fccef2624a72dea2abe7126ee676ef55e82a27cdcbc39f64131",
+    "lines": 85,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/screen-insights.blade.php",
+    "sha256": "f23d495c5dfe39e5871f0140893cde5b990829d6187d7abe6e0ec474cd38357d",
+    "lines": 316,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/seo-meta.blade.php",
+    "sha256": "3e982a837f5c79cb7d660d9b252716b7e2708200699bc8c058b87ea0511053f8",
+    "lines": 40,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/site-card.blade.php",
+    "sha256": "3c66f48d5fcb18c571e01dcc6ed4d313dd0a7a7b0b43992d25fa8c7d414c475a",
+    "lines": 35,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/smart-filter-js.blade.php",
+    "sha256": "00556431aa9e97db5eeb7ef6630d5e56f22171eabf483a078811813bed115b46",
+    "lines": 99,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/smart-filter.blade.php",
+    "sha256": "23ca39c898fccf43dec63f0bc805d41a680799c5bd2efcb8259aacb1a6fe3aca",
+    "lines": 102,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/partials/trial-notice.blade.php",
+    "sha256": "fe39bc4322e153305e7e2d448e9e33ba7d8c48e34e5426997481ee5c5f441582",
+    "lines": 43,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/policies/disputes.blade.php",
+    "sha256": "21a596a8ba206b2814ac2c27689d5313dec533e33a6923e23012567da166816d",
+    "lines": 46,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/policies/fees.blade.php",
+    "sha256": "8712bb3083818c160c7a57a65020eaacc9e38eea9df85b2340c91a9bbdf62a5c",
+    "lines": 92,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/policies/privacy.blade.php",
+    "sha256": "f9176c524918c313614cb14f7d859442427705a1f801b3ab8d177d3b763f532e",
+    "lines": 61,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/policies/terms.blade.php",
+    "sha256": "25efd2f42d1d788cf4ab9acda7208ff26013471a7b8a905e8a6336d4e88f206a",
+    "lines": 62,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/products/index.blade.php",
+    "sha256": "5bb5122183df56ee6e35e58bf7825f8c84e290defa986e5c30c1fdd8048a497a",
+    "lines": 143,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/products/partials/product-card.blade.php",
+    "sha256": "985ca99c461ba9a18da55996adcfdde052c72275cac38b62c0190113f8910c83",
+    "lines": 42,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/products/show.blade.php",
+    "sha256": "2367642d95aa74630224dd94db72c68679aecccf12b3c866c54641c81800b996",
+    "lines": 384,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/reflections/create.blade.php",
+    "sha256": "7b0068737471dd15c6c8b6e8c81b548995c44962494f15db34c77209157e59d8",
+    "lines": 97,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/frontpage/reflections/index.blade.php",
+    "sha256": "fbd89ceb775646258dcaec351a7546988989af29388a9266e0651a1f4cb729df",
+    "lines": 54,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/invitations/accept.blade.php",
+    "sha256": "b16933eb7279e74178cecebfee580f0a96d94bc4d71d45b3ffcef94f7c1ffee8",
+    "lines": 84,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/invitations/error.blade.php",
+    "sha256": "75815315558c201b4f0b6f3f0fcebf24731bb19d34db9feda88cf0d075a92131",
+    "lines": 23,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/vendor/pagination/bootstrap-4.blade.php",
+    "sha256": "1d23c366f66dc8550df37a12fcdd289fe70d515ea342823c6384dc1c560ef576",
+    "lines": 47,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/vendor/pagination/bootstrap-5.blade.php",
+    "sha256": "f91411ca06a5fa9b8e3cd3f0518fe850407a1f4950aee8b69006cff6bfb1a9e4",
+    "lines": 89,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/vendor/pagination/default.blade.php",
+    "sha256": "2205f52d941e60016202d99ef30b14a2a9a7035ed07540101b95edf912b0161f",
+    "lines": 47,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/vendor/pagination/semantic-ui.blade.php",
+    "sha256": "65c3c25864a35c7cca8db328a26cd63be69d1313e455c2021bbea5dfcc940ce6",
+    "lines": 37,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/vendor/pagination/simple-bootstrap-4.blade.php",
+    "sha256": "d3d6c6816c024f603d5273987c22bdccc84dc77e3bb2a3c8b8dc4fa20adc72c0",
+    "lines": 28,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/vendor/pagination/simple-bootstrap-5.blade.php",
+    "sha256": "d528ba0779bfb7f1b0a89d09c1ca39d733a20ebf0fc421b226f41dfe11c2c8a6",
+    "lines": 30,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/vendor/pagination/simple-default.blade.php",
+    "sha256": "292420c1e358e01e13ec8ac540b2d17f7812d058d46da1f720c5463c7aa55aee",
+    "lines": 20,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/vendor/pagination/simple-tailwind.blade.php",
+    "sha256": "b3980b073195d6231bb36b51349e17baf1c9d2380e372648119878b6a515bbb4",
+    "lines": 26,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/vendor/pagination/tailwind.blade.php",
+    "sha256": "b2479608dfe0277fd8d0da3624fe64d1c4e89d220ef2b02e4a94bdd0b44988f6",
+    "lines": 112,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "resources/views/welcome.blade.php",
+    "sha256": "e50e41602994840b788471625fec54a4db6138ec971be05cfdfba40daf906c22",
+    "lines": 278,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/Api/InventoryLocationsTest.php",
+    "sha256": "e0ccad566e3bfc65fc29f64e30b83c4e0f5dd8a37064d447bf9863f9e53322b2",
+    "lines": 216,
+    "classes": [
+      "InventoryLocationsTest"
+    ],
+    "symbols": [
+      "setUp",
+      "makeActiveScreen",
+      "getLocations",
+      "test_returns_correct_structure",
+      "test_returns_empty_arrays_when_no_screens",
+      "test_provinces_only_includes_cities_with_active_screens",
+      "test_province_count_is_correct",
+      "test_province_has_correct_region",
+      "test_region_count_is_rolled_up_from_provinces",
+      "test_region_not_returned_when_no_provinces_have_screens",
+      "test_districts_empty_when_no_district_code_set",
+      "test_districts_includes_district_with_code",
+      "test_district_count_aggregates_correctly",
+      "test_result_is_cached",
+      "test_unauthenticated_is_rejected"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/Api/InventoryNetworksTest.php",
+    "sha256": "147c9ebffa21d85968035d227ab90b1dfffc0f633c10adc7c74f403f6d759554",
+    "lines": 157,
+    "classes": [
+      "InventoryNetworksTest"
+    ],
+    "symbols": [
+      "setUp",
+      "makeActiveScreenWithNetwork",
+      "getNetworks",
+      "test_returns_correct_structure",
+      "test_returns_empty_when_no_networks",
+      "test_only_networks_with_active_screens_are_returned",
+      "test_screen_count_is_correct",
+      "test_sorted_by_screen_count_desc",
+      "test_result_is_cached",
+      "test_unauthenticated_is_rejected"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/Api/InventoryOwnersTest.php",
+    "sha256": "9803ea31297b1071e58248f444a6eb2f2cf11c12bd7d88d23840445bca051cb5",
+    "lines": 263,
+    "classes": [
+      "InventoryOwnersTest"
+    ],
+    "symbols": [
+      "setUp",
+      "makeOwnerWithScreens",
+      "test_owners_returns_correct_structure",
+      "test_owner_id_is_slug",
+      "test_only_active_owners_are_returned",
+      "test_featured_filter_returns_only_featured_owners",
+      "test_screen_count_is_correct",
+      "test_screen_count_excludes_inactive_screens",
+      "test_city_count_counts_distinct_cities",
+      "test_venue_types_returns_distinct_types",
+      "test_owner_detail_returns_correct_structure",
+      "test_owner_detail_includes_about_field",
+      "test_owner_detail_404_for_unknown_slug",
+      "test_owner_detail_404_for_non_active_owner",
+      "test_owner_detail_does_not_have_about_field_in_list",
+      "test_q_filters_by_owner_name",
+      "test_q_returns_empty_when_no_match",
+      "test_q_validates_max_100_chars",
+      "test_owners_unauthenticated_is_rejected",
+      "test_owner_detail_unauthenticated_is_rejected"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/Api/InventoryScreensFilterTest.php",
+    "sha256": "db4c54ca64af48db7f83ae1620f8e2b650082ef608b3b24f681e1334f62d2a3a",
+    "lines": 489,
+    "classes": [
+      "InventoryScreensFilterTest"
+    ],
+    "symbols": [
+      "setUp",
+      "getScreens",
+      "makeScreen",
+      "test_status_active_returns_only_active_screens",
+      "test_city_slug_matches_vietnamese_name_in_db",
+      "test_city_array_filter_returns_matching_screens",
+      "test_city_pipe_separated_backward_compat",
+      "test_city_single_value_backward_compat",
+      "test_venue_type_array_filter",
+      "test_screen_type_lcd_filter",
+      "test_screen_type_led_filter",
+      "test_screen_type_billboard_filter",
+      "test_screen_type_multi_value_lcd_and_led",
+      "test_orientation_landscape_filter",
+      "test_orientation_portrait_filter",
+      "test_orientation_multi_value",
+      "test_orientation_invalid_value_returns_all",
+      "test_q_searches_screen_name",
+      "test_q_searches_site_city",
+      "test_q_empty_returns_all",
+      "test_sort_price_asc",
+      "test_sort_price_desc",
+      "test_sort_invalid_value_does_not_error",
+      "test_response_has_correct_structure",
+      "test_network_filter_returns_matching_screens",
+      "test_network_filter_multi_value_returns_union",
+      "test_network_filter_nonexistent_code_returns_empty",
+      "test_owner_filter_returns_screens_by_owner_slug",
+      "test_owner_filter_nonexistent_slug_returns_empty",
+      "test_district_filter_returns_matching_screens",
+      "test_district_filter_multi_value",
+      "test_region_filter_returns_screens_in_provinces_of_that_region",
+      "test_region_filter_invalid_value_returns_422",
+      "test_region_filter_multi_value",
+      "test_unauthenticated_request_is_rejected"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/Api/InventoryScreensMapTest.php",
+    "sha256": "0e1cfc3e21ac034eaa00925f01922dbe729c586953f7462f93e303e3189d9c93",
+    "lines": 222,
+    "classes": [
+      "InventoryScreensMapTest"
+    ],
+    "symbols": [
+      "setUp",
+      "getMap",
+      "makeScreen",
+      "test_map_returns_correct_structure",
+      "test_map_has_no_page_or_limit_in_response",
+      "test_map_returns_all_screens_without_pagination",
+      "test_map_item_has_only_lightweight_fields",
+      "test_map_route_is_not_matched_by_screen_id_route",
+      "test_map_filters_by_city_array",
+      "test_map_filters_by_venue_type",
+      "test_map_filters_by_status",
+      "test_map_filters_by_orientation",
+      "test_map_size_field_format",
+      "test_map_size_null_when_no_spec_dimensions",
+      "test_map_unauthenticated_is_rejected"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/Api/InventoryStatsTest.php",
+    "sha256": "bc2066415bc0188df74bb2ec3f853c99016e15598492a3107069cdedbac0d0b1",
+    "lines": 218,
+    "classes": [
+      "InventoryStatsTest"
+    ],
+    "symbols": [
+      "setUp",
+      "getStats",
+      "makeActiveScreen",
+      "test_stats_returns_correct_structure",
+      "test_total_screens_counts_only_active",
+      "test_total_cities_counts_distinct_cities",
+      "test_venues_groups_by_venue_type",
+      "test_venues_has_correct_labels",
+      "test_venues_fallback_label_when_not_in_taxonomy",
+      "test_cities_returns_exactly_5_fixed_cities",
+      "test_cities_counts_screens_by_vietnamese_city_name",
+      "test_stats_is_cached",
+      "test_unauthenticated_is_rejected"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/Api/InventoryVenueTypesTest.php",
+    "sha256": "903eef6830424cee1ebab95d8240508b88725ad354915132792b43168fe22350",
+    "lines": 325,
+    "classes": [
+      "InventoryVenueTypesTest"
+    ],
+    "symbols": [
+      "setUp",
+      "seedOutdoorTaxonomy",
+      "makeActiveScreen",
+      "getVenueTypes",
+      "test_returns_correct_structure",
+      "test_returns_empty_when_no_active_screens",
+      "test_only_includes_types_with_active_screens",
+      "test_inactive_screens_are_excluded",
+      "test_parent_count_is_rolled_up_from_children",
+      "test_children_are_nested_correctly",
+      "test_leaf_node_has_empty_children",
+      "test_rollup_aggregates_multiple_leaf_types",
+      "test_orphan_type_not_in_taxonomy_is_returned_flat",
+      "test_orphan_fallback_label_uses_ucfirst",
+      "test_result_is_cached",
+      "test_unauthenticated_is_rejected"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/Buyer/OrgUserPermissionTest.php",
+    "sha256": "4e5ecea63de7ce90c70f00d5aa4332eacb69b1a09f3f4c866fa47d3b88d23665",
+    "lines": 122,
+    "classes": [
+      "OrgUserPermissionTest"
+    ],
+    "symbols": [
+      "setUp",
+      "makeMember",
+      "test_assignable_roles_excludes_admin_for_non_super_admin",
+      "test_org_admin_can_view_and_create",
+      "test_planner_cannot_view_or_create",
+      "test_viewer_cannot_view",
+      "test_org_admin_cannot_update_record_with_role_admin",
+      "test_org_admin_can_update_planner_record",
+      "test_org_admin_cannot_update_self",
+      "test_super_admin_can_update_admin_record"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/ExampleTest.php",
+    "sha256": "aaa4a192fb4aa96d4e81eda06a29968da3d9a73b71026b87a67297e66dd985b8",
+    "lines": 20,
+    "classes": [
+      "ExampleTest"
+    ],
+    "symbols": [
+      "test_the_application_returns_a_successful_response"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/InvitationFlowTest.php",
+    "sha256": "34d7d969733988004c35edb33436b7ffef24d3934d5303a8d13b00e42fc5c493",
+    "lines": 236,
+    "classes": [
+      "InvitationFlowTest"
+    ],
+    "symbols": [
+      "setUp",
+      "test_invite_creates_row_and_sends_notification",
+      "test_invite_revokes_pending_duplicate_for_same_tenant",
+      "test_invite_blocks_existing_member",
+      "test_accept_creates_user_with_pivot_and_role",
+      "test_accept_attaches_existing_user_to_pivot_only",
+      "test_accept_rejects_expired_token",
+      "test_accept_rejects_already_accepted_token",
+      "test_invite_rejects_invalid_role_for_tenant_type",
+      "test_show_route_renders_accept_page",
+      "test_show_route_returns_410_for_expired",
+      "test_store_route_creates_user_and_logs_in"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/LivewireUploadSecurityTest.php",
+    "sha256": "92feb91684fd2a7b154d2bf21979125f679f35432c842b19e904a68d3c17c785",
+    "lines": 133,
+    "classes": [
+      "LivewireUploadSecurityTest"
+    ],
+    "symbols": [
+      "passes",
+      "realFile",
+      "test_endpoint_upload_tu_choi_file_php",
+      "test_endpoint_upload_van_nhan_anh_hop_le",
+      "test_tu_choi_webshell_doi_duoi_thanh_anh",
+      "test_tu_choi_cac_duoi_php_khac",
+      "test_tu_choi_svg",
+      "test_nhan_anh",
+      "test_nhan_pdf_giay_phep_kinh_doanh",
+      "test_nhan_excel_va_csv_de_import",
+      "test_lenh_don_xoa_file_cu_va_giu_file_moi",
+      "test_lenh_don_duoc_dat_lich"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/OwnerRevenueShareHiddenTest.php",
+    "sha256": "6d7fc4be8f3b0ef947f8c60e79a5ca92913ba5a7d29661bba5b8cc4ef925b15f",
+    "lines": 58,
+    "classes": [
+      "OwnerRevenueShareHiddenTest"
+    ],
+    "symbols": [
+      "setUp",
+      "test_danh_sach_media_owner_khong_co_cot_rev_share",
+      "test_form_media_owner_khong_co_truong_revenue_share"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/OwnerReviewTest.php",
+    "sha256": "159911161bbf2de69a9fd28d95cc336b26ba5abaf0a3f77375566f82c1925954",
+    "lines": 220,
+    "classes": [
+      "OwnerReviewTest"
+    ],
+    "symbols": [
+      "setUp",
+      "makeOrg",
+      "makeMemberOf",
+      "makeCampaign",
+      "test_campaign_da_chay_xong_thi_duoc_danh_gia_owner",
+      "test_campaign_con_la_nhap_thi_khong_duoc_danh_gia",
+      "test_khong_danh_gia_duoc_owner_khong_co_trong_campaign",
+      "test_moi_campaign_chi_danh_gia_moi_owner_mot_lan",
+      "test_danh_gia_moi_chua_hien_ngay",
+      "test_diem_trung_binh_chi_tinh_danh_gia_da_duyet",
+      "test_owner_chua_co_danh_gia_thi_khong_co_diem",
+      "test_gui_danh_gia_qua_form",
+      "test_khong_danh_gia_duoc_campaign_cua_to_chuc_khac",
+      "test_so_sao_ngoai_khoang_1_5_bi_tu_choi"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/PanelAccessTest.php",
+    "sha256": "75f4db5711e71254fc645607d026bf309ab85eb3018ef0addb8f2dc25bed4911",
+    "lines": 208,
+    "classes": [
+      "PanelAccessTest"
+    ],
+    "symbols": [
+      "setUp",
+      "test_user_model_implements_filament_user_contract",
+      "test_super_admin_can_access_admin_panel",
+      "test_publisher_cannot_access_admin_panel",
+      "test_buyer_cannot_access_admin_panel",
+      "test_publisher_with_active_owner_can_access_publisher_panel",
+      "test_publisher_without_owner_record_cannot_access_publisher_panel",
+      "test_publisher_with_inactive_owner_cannot_access_publisher_panel",
+      "test_super_admin_cannot_access_publisher_panel",
+      "test_buyer_cannot_access_publisher_panel",
+      "test_buyer_with_active_org_can_access_buyer_panel",
+      "test_buyer_without_org_record_cannot_access_buyer_panel",
+      "test_publisher_cannot_access_buyer_panel",
+      "test_user_with_no_role_cannot_access_any_panel",
+      "test_unknown_panel_id_always_denied",
+      "makePublisherWithActiveOwner",
+      "makeBuyerWithActiveOrg",
+      "canAccess"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/PaymentPerOwnerTest.php",
+    "sha256": "7a1920d21d144145a475cf0d443fb271dbcb9e0b72bc8e95a9decabe7d61e3d4",
+    "lines": 232,
+    "classes": [
+      "PaymentPerOwnerTest"
+    ],
+    "symbols": [
+      "setUp",
+      "makeOwner",
+      "makeCampaign",
+      "test_chia_so_tien_theo_tung_media_owner",
+      "test_tong_cac_phan_bang_tong_campaign",
+      "test_thanh_toan_cho_owner_nay_khong_lam_owner_kia_thanh_da_tra",
+      "test_payment_ghi_nhan_dung_owner_nhan_tien",
+      "paymentUrl",
+      "test_trang_thanh_toan_hien_tai_khoan_cua_media_owner",
+      "test_trang_thanh_toan_khong_con_tai_khoan_gia_cua_san",
+      "test_owner_chua_khai_tai_khoan_thi_noi_thang_ra",
+      "test_khong_tick_dong_y_quy_che_thi_khong_xac_nhan_duoc",
+      "test_khong_tra_duoc_cho_owner_khong_co_trong_campaign"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/PolicyConsentTest.php",
+    "sha256": "68786c107e7253a5b9ab2d36896ca6d2b92d217e6b3a27c5b0553125e0f10c50",
+    "lines": 143,
+    "classes": [
+      "PolicyConsentTest"
+    ],
+    "symbols": [
+      "domain",
+      "registerPayload",
+      "test_dang_ky_khong_tick_dong_y_thi_bi_tu_choi",
+      "test_dang_ky_co_tick_thi_ghi_lai_bang_chung_chap_thuan",
+      "test_ban_ghi_chap_thuan_dong_dau_dung_phien_ban_chinh_sach",
+      "test_dang_ky_that_bai_thi_khong_de_lai_ban_ghi_chap_thuan_mo_coi",
+      "test_key_chinh_sach_sai_thi_no_ngay_thay_vi_ghi_ban_ghi_vo_nghia",
+      "test_phien_ban_luon_lay_tu_config_khong_lay_tu_client",
+      "test_ghi_lai_ip_va_user_agent",
+      "test_ghi_nhieu_chinh_sach_cung_luc"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/PolicyPagesTest.php",
+    "sha256": "88d22caca035acadeaeb4d74ab6d9ff2ab07525166b2d9d03b79a66148baf18c",
+    "lines": 195,
+    "classes": [
+      "PolicyPagesTest"
+    ],
+    "symbols": [
+      "domain",
+      "get_",
+      "test_trang_chinh_sach_tai_duoc",
+      "policySlugs",
+      "test_bang_phi_neu_ro_muc_phi_va_doi_tuong_thu",
+      "test_bang_phi_da_ban_hanh_khong_hien_canh_bao_ban_nhap",
+      "test_bang_phi_khong_noi_toi_chia_doanh_thu",
+      "test_chan_trang_co_link_bang_phi",
+      "test_chinh_sach_bao_mat_neu_viec_chia_se_lien_he_cho_media_owner",
+      "test_slug_chinh_sach_khong_ton_tai_thi_khong_render_trang_chinh_sach",
+      "test_route_chinh_sach_khong_nuot_cac_duong_dan_khac",
+      "test_trang_chinh_sach_noi_ro_la_ban_nhap_khi_chua_ban_hanh",
+      "test_khi_da_ban_hanh_thi_khong_con_canh_bao_ban_nhap",
+      "test_chan_trang_co_day_du_thong_tin_phap_nhan",
+      "test_chan_trang_co_du_nam_link_chinh_sach",
+      "test_chan_trang_khong_con_link_chet",
+      "test_pop_up_thu_nghiem_hien_tren_trang_chu",
+      "test_pop_up_thu_nghiem_hien_ca_o_trang_dang_ky",
+      "test_tat_trial_mode_thi_pop_up_bien_mat_toan_site"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/PublicReflectionTest.php",
+    "sha256": "db257466581af5f347987c0a3a9883d525178abc769b02b7b2d083e3bfb81d97",
+    "lines": 170,
+    "classes": [
+      "PublicReflectionTest"
+    ],
+    "symbols": [
+      "payload",
+      "domain",
+      "test_gui_phan_anh_thi_duoc_ghi_nhan_va_tra_ma_tra_cuu",
+      "test_phan_anh_moi_khong_tu_dong_len_trang_cong_khai",
+      "test_thieu_email_lien_he_thi_khong_nhan",
+      "test_noi_dung_qua_ngan_thi_khong_nhan",
+      "test_bot_dien_vao_bay_spam_thi_bi_tu_choi",
+      "test_danh_sach_cong_khai_chi_hien_phan_anh_da_duoc_dang",
+      "test_trang_cong_khai_khong_lo_email_va_dien_thoai_nguoi_gui",
+      "test_ghi_chu_noi_bo_khong_bao_gio_ra_trang_cong_khai",
+      "test_serialize_model_khong_kem_du_lieu_ca_nhan",
+      "test_ma_tra_cuu_tang_dan_va_khong_trung"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/PublicVisibilityGateTest.php",
+    "sha256": "75ae0cc84b6fa310a42c4723a38403fcf232ce84d978c7949ac9ce6fdcb8b72e",
+    "lines": 153,
+    "classes": [
+      "PublicVisibilityGateTest"
+    ],
+    "symbols": [
+      "screenFor",
+      "test_screen_cua_owner_pending_khong_hien_cong_khai",
+      "test_screen_cua_owner_suspended_khong_hien_cong_khai",
+      "test_owner_bi_xoa_mem_thi_screen_khong_hien",
+      "test_screen_cua_owner_active_van_hien_binh_thuong",
+      "test_owner_active_nhung_screen_tat_thi_khong_hien",
+      "test_listing_khong_tra_ve_screen_cua_owner_pending",
+      "test_trang_chi_tiet_screen_cua_owner_pending_tra_ve_null",
+      "test_hero_stats_khong_dem_screen_cua_owner_pending",
+      "test_product_cua_owner_pending_khong_hien_cong_khai"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/Publisher/BookingInboxBuyerContactTest.php",
+    "sha256": "b485ded805b8d3b6e15085adf5e17c808b8b0538f30eac5cd104660544f45f47",
+    "lines": 121,
+    "classes": [
+      "BookingInboxBuyerContactTest"
+    ],
+    "symbols": [
+      "setUp",
+      "publisherOf",
+      "viewUrl",
+      "test_owner_co_man_hinh_trong_booking_thay_lien_he_nguoi_mua",
+      "test_owner_khong_co_man_hinh_trong_booking_khong_mo_duoc_trang",
+      "test_booking_con_nhap_chua_gui_thi_owner_khong_thay"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/Feature/Publisher/OwnerUserPermissionTest.php",
+    "sha256": "afbd0fde386f2056ad36de36f111ed10008bcce724563930296a980b8f721db1",
+    "lines": 141,
+    "classes": [
+      "OwnerUserPermissionTest"
+    ],
+    "symbols": [
+      "setUp",
+      "makeMember",
+      "test_assignable_roles_excludes_owner_for_non_super_admin",
+      "test_super_admin_can_create_owner_user",
+      "test_tenant_owner_can_create_owner_user",
+      "test_manager_cannot_create_owner_user",
+      "test_read_only_cannot_view_team_list",
+      "test_manager_cannot_view_team_list",
+      "test_tenant_owner_can_view_team_list",
+      "test_tenant_owner_cannot_update_a_record_with_role_owner",
+      "test_tenant_owner_can_update_manager_record",
+      "test_tenant_owner_cannot_update_self",
+      "test_super_admin_can_update_record_with_role_owner"
+    ],
+    "tables": []
+  },
+  {
+    "path": "tests/TestCase.php",
+    "sha256": "c7c209f5579c42647c1f7b2a79ac828e8b54ac62a98442045a6e94fa2c0d0ebc",
+    "lines": 11,
+    "classes": [
+      "TestCase"
+    ],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "tests/Unit/ExampleTest.php",
+    "sha256": "ffacae5c1a2a44c809420af5b3b404910da1b12167d58764dac6d10b8ba8cfaf",
+    "lines": 17,
+    "classes": [
+      "ExampleTest"
+    ],
+    "symbols": [
+      "test_that_true_is_true"
+    ],
+    "tables": []
+  },
+  {
+    "path": "config/app.php",
+    "sha256": "78dcd36b226fd7b24057cb95f567cb6e96561c2406653892d8aef6dcea8461e4",
+    "lines": 127,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/auth.php",
+    "sha256": "c7e204e9785c9f596d66fb884b493f658f2327f157646bdb4088efd6b3a7773f",
+    "lines": 118,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/cache.php",
+    "sha256": "b8bcf382283330b94c0a602ff06452de819041ea709e28eea5065d51d1d7d085",
+    "lines": 118,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/cors.php",
+    "sha256": "c91ed8204d4a57a0fd2b8b49a07913c2cda6e1f8029604866e4b6474353f97c7",
+    "lines": 37,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/database.php",
+    "sha256": "f332a0b2623819f255619bc9a97d8ddf7302ecac3318034758a1ffbe625f6411",
+    "lines": 222,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/domains.php",
+    "sha256": "f5434a2f6280d2e3bdb939a3c2b31aeddc2d0d8731acafe42532fb5fed8e4d2e",
+    "lines": 7,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/filament.php",
+    "sha256": "0c6f90e87fe395c6d35f1c342ebbbd434743b1dcac8438b718700e252cdd7d58",
+    "lines": 5,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/filesystems.php",
+    "sha256": "5c0876147e8bb27980dd6cda4637afb009a3b854c3a6ee4fde9c3a8099823879",
+    "lines": 97,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/livewire.php",
+    "sha256": "92da23fb30e6cc1ac94e5b29778ac95834fde8956eb9562c1beab582d824cd3b",
+    "lines": 196,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/logging.php",
+    "sha256": "d90f24826a3330437f2f2fc12bb28680abe1281d35d62b082c234f4b69873835",
+    "lines": 133,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/mail.php",
+    "sha256": "c43ff49a31c5f32ce21eb7159f2a4b3cd2f4074eaed5838d265646dbfedd3474",
+    "lines": 119,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/oohx.php",
+    "sha256": "e4719d26e7a07bce684796b4e34888871853b3417d6c2324a6f18f44f8b7bee4",
+    "lines": 71,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/oohx_collectors.php",
+    "sha256": "7ddf79345833585787b1173aac6352c994510f2c4647e54174f6018976ac94cc",
+    "lines": 144,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/permission.php",
+    "sha256": "994a9942320e082476818a7e2b2404448127e05e1c244d7385780cdd9d226b88",
+    "lines": 203,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/policies.php",
+    "sha256": "87846ea8e827d72d395994ee8231fa26432dc6d0d646859cc699b722c0d9eb02",
+    "lines": 79,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/queue.php",
+    "sha256": "6101774da7c8b79af46d0028f2b8b31a484c3f7eda10b76e5b27b6093ad364a4",
+    "lines": 130,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/regions.php",
+    "sha256": "f2e3d250ab4aca084991ce17d8b703c2f1712db4afbe582c8a9ddacaa7b77215",
+    "lines": 33,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/sanctum.php",
+    "sha256": "323065061c25833f1c79e6446bf3a560aa3a21dfc87ad2b31c778a8264ea30cf",
+    "lines": 85,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/services.php",
+    "sha256": "78fabc85c570d074d37ad8812a9727d78d9613b0544655046a7bd9d9738ae219",
+    "lines": 44,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/session.php",
+    "sha256": "f2e75e189021597e29940c0859c00c3088ec591e403768fff5143c5687a80f59",
+    "lines": 218,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "config/tapon.php",
+    "sha256": "08fe11457cbe31074319d46539712b14a700e174a6c1f265e5a70c83bb9c3896",
+    "lines": 22,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "bootstrap/app.php",
+    "sha256": "ff85d09a2788265667de835e5d3580f7747c9c1a0353de006e3c810a010e9e0c",
+    "lines": 38,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "bootstrap/providers.php",
+    "sha256": "7c8878161e1bbc3d29c77980d8c9340c3941104faeab1acbf697a8fc5be1e4c1",
+    "lines": 11,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "docker/caddy/Caddyfile",
+    "sha256": "9d94ba8a68979e15b935ee809f92ec3716d87774d9e9b8f60f1fe92f71344771",
+    "lines": 88,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "docker/entrypoint.sh",
+    "sha256": "0a4fd65a7b1ec2bff941af32145ec95f34a06ddcb0dc62db06277fc710531ce0",
+    "lines": 72,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "docker/php/php.ini",
+    "sha256": "eef386302b4a48de82b389dcb4c6f5cf4330fab0fe739061d17ab5a8f4d0ffb1",
+    "lines": 38,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "docker/php/www.conf",
+    "sha256": "2913c562008aa717f86cc09688c6d7a50f60bab9d9ab2a8cfdc2ada3ef33345e",
+    "lines": 37,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": ".github/workflows/deploy.yml",
+    "sha256": "aaa2244094089a2b8c0ab0bcb0c0c78e5d87b6baf97b4a0185ffb5c86a931e91",
+    "lines": 28,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "composer.json",
+    "sha256": "616e2fb2799985e187879630f1498e1712b5bc6680a184b7a23e5208a3d92ec4",
+    "lines": 92,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "composer.lock",
+    "sha256": "cddc03aeabab8055e0f154b710dc088ac54a2f13628f789249e33fd924ce0d70",
+    "lines": 10670,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "package.json",
+    "sha256": "e1bf666b49a401c06ede562b32fc741b8e8dc45cca0a67de136edfbd51335f33",
+    "lines": 18,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "package-lock.json",
+    "sha256": "c5d0bfc360afae5dc4ea948ed4d677500a98b5efcce7c5be8355a09487f4a1ea",
+    "lines": 2422,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "phpunit.xml",
+    "sha256": "493369cfb7feea104da4bec214c2cc6526ca2f1b9d937c50a2961fc59cb61aaf",
+    "lines": 37,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "vite.config.js",
+    "sha256": "06c99c125313c5489371e2981ce870e1abe90a50893ea592a1c32ccf3501e0a7",
+    "lines": 24,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "Dockerfile",
+    "sha256": "25a06fbd52aa529e3b91b861dedeba90bf377ee27a6cbfcbae68c4994a0c218b",
+    "lines": 128,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "docker-compose.yml",
+    "sha256": "1b214a60b2f1631fd4bd2c67bc57a5fe8fff931b3b99835227a819e661147103",
+    "lines": 186,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  },
+  {
+    "path": "CLAUDE.md",
+    "sha256": "1f707c08477f132b15a1f03e89deac7ceeefccdc4f4e4467c27dae489060d59c",
+    "lines": 87,
+    "classes": [],
+    "symbols": [],
+    "tables": []
+  }
+]

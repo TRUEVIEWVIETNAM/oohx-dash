@@ -1,0 +1,16 @@
+
+   WARN  Metadata found in doc-comment for method Tests\Unit\Pricing\BillablePeriodCalculatorTest::test_so_ky_io(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\PolicyPagesTest::test_trang_chinh_sach_tai_duoc(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+SAVED={"pricing_model":"io","floor_cpm":null,"io_rate":"1000000.00","io_rate_unit":"month"}
+RELOADED={"io_rate":"1000000.00","floor_cpm":null,"io_rate_unit":"month","pricing_model":"io"}
+CURRENT={"pricing_model":"io","floor_cpm":null,"io_rate":"1000000.00","io_rate_unit":"month"}
+
+Warning: file_put_contents(/app/.phpunit.result.cache): Failed to open stream: Read-only file system in /app/vendor/phpunit/phpunit/src/Runner/ResultCache/DefaultResultCache.php on line 160
+
+   PASS  Tests\Feature\Buyer\ZzDebugSnapshotTest
+  ✓ dump                                                               178.19s  
+
+  Tests:    1 passed (1 assertions)
+  Duration: 199.08s
+

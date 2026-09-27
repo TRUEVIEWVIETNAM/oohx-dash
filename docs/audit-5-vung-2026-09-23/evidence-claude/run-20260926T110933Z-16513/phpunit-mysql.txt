@@ -1,0 +1,552 @@
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\PolicyPagesTest::test_trang_chinh_sach_tai_duoc(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   PASS  Tests\Unit\ExampleTest
+  ✓ that true is true                                                    0.14s  
+
+   PASS  Tests\Feature\Api\ApiAuthorizationTest
+  ✓ token chi co quyen doc khong ghi duoc man hinh                      47.90s  
+  ✓ api client khong vao duoc nhom quan ly                               3.02s  
+  ✓ publisher khong sua duoc man hinh cua owner khac                     4.00s  
+  ✓ publisher khong tao duoc du lieu cho owner khac                      5.17s  
+  ✓ site duoc tao cho dung owner cua nguoi goi                           3.58s  
+  ✓ nguoi mua khong liet ke duoc man hinh qua api quan ly                4.39s  
+  ✓ scope chan mac dinh khi thanh vien mat tenant dang chon              0.95s  
+  ✓ api owner khong lo truong tai chinh cho nguoi thuong                 3.32s  
+  ✓ super admin van xem duoc truong noi bo                               3.23s  
+  ✓ danh sach owner chi gom owner minh la thanh vien                     2.73s  
+  ✓ super admin van sua duoc moi owner                                   2.68s  
+
+   PASS  Tests\Feature\Api\InventoryLocationsTest
+  ✓ returns correct structure                                            3.90s  
+  ✓ returns empty arrays when no screens                                 2.75s  
+  ✓ provinces only includes cities with active screens                   2.61s  
+  ✓ province count is correct                                            2.50s  
+  ✓ province has correct region                                          3.73s  
+  ✓ region count is rolled up from provinces                             2.74s  
+  ✓ region not returned when no provinces have screens                   3.02s  
+  ✓ districts empty when no district code set                            3.92s  
+  ✓ districts includes district with code                                2.79s  
+  ✓ district count aggregates correctly                                  3.26s  
+  ✓ result is cached                                                     3.73s  
+  ✓ unauthenticated is rejected                                          3.01s  
+
+   FAIL  Tests\Feature\Api\InventoryNetworksTest
+  ⨯ returns correct structure                                            3.59s  
+  ✓ returns empty when no networks                                       3.75s  
+  ⨯ only networks with active screens are returned                       3.77s  
+  ⨯ screen count is correct                                              3.00s  
+  ⨯ sorted by screen count desc                                          3.22s  
+  ⨯ result is cached                                                     4.10s  
+  ✓ unauthenticated is rejected                                          2.89s  
+
+   PASS  Tests\Feature\Api\InventoryOwnersTest
+  ✓ owners returns correct structure                                     2.89s  
+  ✓ owner id is slug                                                     2.85s  
+  ✓ only active owners are returned                                      2.97s  
+  ✓ featured filter returns only featured owners                         3.53s  
+  ✓ screen count is correct                                              3.11s  
+  ✓ screen count excludes inactive screens                               2.98s  
+  ✓ city count counts distinct cities                                    3.47s  
+  ✓ venue types returns distinct types                                   6.02s  
+  ✓ owner detail returns correct structure                               5.18s  
+  ✓ owner detail includes about field                                    2.58s  
+  ✓ owner detail 404 for unknown slug                                    2.57s  
+  ✓ owner detail 404 for non active owner                                2.64s  
+  ✓ owner detail does not have about field in list                       2.95s  
+  ✓ q filters by owner name                                              2.75s  
+  ✓ q returns empty when no match                                        3.01s  
+  ✓ q validates max 100 chars                                            4.01s  
+  ✓ owners unauthenticated is rejected                                   3.64s  
+  ✓ owner detail unauthenticated is rejected                             2.94s  
+
+   FAIL  Tests\Feature\Api\InventoryScreensFilterTest
+  ✓ status active returns only active screens                            3.33s  
+  ✓ city slug matches vietnamese name in db                              2.68s  
+  ✓ city array filter returns matching screens                           2.61s  
+  ✓ city pipe separated backward compat                                  2.86s  
+  ✓ city single value backward compat                                    2.62s  
+  ✓ venue type array filter                                              2.66s  
+  ✓ screen type lcd filter                                               2.40s  
+  ✓ screen type led filter                                               2.60s  
+  ✓ screen type billboard filter                                         2.37s  
+  ✓ screen type multi value lcd and led                                  2.67s  
+  ✓ orientation landscape filter                                         3.36s  
+  ✓ orientation portrait filter                                          3.18s  
+  ✓ orientation multi value                                              2.79s  
+  ✓ orientation invalid value returns all                                2.63s  
+  ✓ q searches screen name                                               3.66s  
+  ✓ q searches site city                                                 2.83s  
+  ✓ q empty returns all                                                  3.24s  
+  ✓ sort price asc                                                       3.54s  
+  ✓ sort price desc                                                      3.76s  
+  ✓ sort invalid value does not error                                    3.33s  
+  ✓ response has correct structure                                       3.58s  
+  ⨯ network filter returns matching screens                              3.08s  
+  ⨯ network filter multi value returns union                             3.31s  
+  ✓ network filter nonexistent code returns empty                        4.39s  
+  ✓ owner filter returns screens by owner slug                           3.19s  
+  ✓ owner filter nonexistent slug returns empty                          2.91s  
+  ✓ district filter returns matching screens                             3.07s  
+  ✓ district filter multi value                                          2.99s  
+  ✓ region filter returns screens in provinces of that region            5.06s  
+  ✓ region filter invalid value returns 422                              3.35s  
+  ✓ region filter multi value                                            2.81s  
+  ✓ unauthenticated request is rejected                                  3.07s  
+
+   PASS  Tests\Feature\Api\InventoryScreensMapTest
+  ✓ map returns correct structure                                        3.39s  
+  ✓ map has no page or limit in response                                 2.79s  
+  ✓ map returns all screens without pagination                           2.71s  
+  ✓ map item has only lightweight fields                                 3.17s  
+  ✓ map route is not matched by screen id route                          3.12s  
+  ✓ map filters by city array                                            2.97s  
+  ✓ map filters by venue type                                            3.12s  
+  ✓ map filters by status                                                2.74s  
+  ✓ map filters by orientation                                           2.94s  
+  ✓ map size field format                                                3.01s  
+  ✓ map size null when no spec dimensions                                2.83s  
+  ✓ map unauthenticated is rejected                                      2.86s  
+
+   PASS  Tests\Feature\Api\InventoryStatsTest
+  ✓ stats returns correct structure                                      3.27s  
+  ✓ total screens counts only active                                     3.08s  
+  ✓ total cities counts distinct cities                                  2.89s  
+  ✓ venues groups by venue type                                          2.75s  
+  ✓ venues has correct labels                                            3.89s  
+  ✓ venues fallback label when not in taxonomy                           3.22s  
+  ✓ cities returns exactly 5 fixed cities                                2.59s  
+  ✓ cities counts screens by vietnamese city name                        2.83s  
+  ✓ stats is cached                                                      3.76s  
+  ✓ unauthenticated is rejected                                          3.21s  
+
+   PASS  Tests\Feature\Api\InventoryVenueTypesTest
+  ✓ returns correct structure                                            3.20s  
+  ✓ returns empty when no active screens                                 3.37s  
+  ✓ only includes types with active screens                              3.11s  
+  ✓ inactive screens are excluded                                        2.90s  
+  ✓ parent count is rolled up from children                              3.08s  
+  ✓ children are nested correctly                                        3.17s  
+  ✓ leaf node has empty children                                         3.05s  
+  ✓ rollup aggregates multiple leaf types                                3.05s  
+  ✓ orphan type not in taxonomy is returned flat                         2.87s  
+  ✓ orphan fallback label uses ucfirst                                   3.10s  
+  ✓ result is cached                                                     2.93s  
+  ✓ unauthenticated is rejected                                          2.87s  
+
+   PASS  Tests\Feature\Api\T1ReviewTest
+  ✓ token chi co quyen doc khong ghi duoc man hinh                       2.63s  
+  ✓ api client khong vao duoc nhom quan ly                               5.48s  
+  ✓ publisher khong sua duoc man hinh cua owner khac                     3.27s  
+  ✓ publisher khong tao duoc du lieu cho owner khac                      2.77s  
+  ✓ site duoc tao cho dung owner cua nguoi goi                           3.66s  
+  ✓ nguoi mua khong liet ke duoc man hinh qua api quan ly                3.23s  
+  ✓ scope chan mac dinh khi thanh vien mat tenant dang chon              0.97s  
+  ✓ api owner khong lo truong tai chinh cho nguoi thuong                 3.19s  
+  ✓ super admin van xem duoc truong noi bo                               3.39s  
+  ✓ danh sach owner chi gom owner minh la thanh vien                     3.14s  
+  ✓ super admin van sua duoc moi owner                                   3.08s  
+  ✓ review revoked member cannot read screen                             3.24s  
+  ✓ review revoked member cannot write screen                            3.34s  
+  ✓ review suspended owner cannot write                                  2.56s  
+  ✓ review scheduler cannot set floor price                              2.38s  
+  ✓ review read only cannot read revenue                                 2.74s  
+  ✓ review reporting only cannot read inventory                          2.98s  
+  ✓ review screen response hides device token                            3.12s  
+
+   PASS  Tests\Feature\Buyer\OrgUserPermissionTest
+  ✓ assignable roles excludes admin for non super admin                  0.96s  
+  ✓ org admin can view and create                                        1.07s  
+  ✓ planner cannot view or create                                        0.97s  
+  ✓ viewer cannot view                                                   0.83s  
+  ✓ org admin cannot update record with role admin                       1.03s  
+  ✓ org admin can update planner record                                  0.81s  
+  ✓ org admin cannot update self                                         0.81s  
+  ✓ super admin can update admin record                                  0.89s  
+
+   PASS  Tests\Feature\ExampleTest
+  ✓ the application returns a successful response                        4.98s  
+
+   FAIL  Tests\Feature\InvitationFlowTest
+  ⨯ invite creates row and sends notification                            2.60s  
+  ✓ invite revokes pending duplicate for same tenant                     0.75s  
+  ✓ invite blocks existing member                                        0.81s  
+  ✓ accept creates user with pivot and role                              0.78s  
+  ✓ accept attaches existing user to pivot only                          0.79s  
+  ✓ accept rejects expired token                                         1.07s  
+  ✓ accept rejects already accepted token                                2.54s  
+  ✓ invite rejects invalid role for tenant type                          2.47s  
+  ✓ show route renders accept page                                      10.23s  
+  ⨯ show route returns 410 for expired                                  84.51s  
+  ✓ store route creates user and logs in                                 8.19s  
+
+   PASS  Tests\Feature\LivewireUploadSecurityTest
+  ✓ endpoint upload tu choi file php                                     6.23s  
+  ✓ endpoint upload van nhan anh hop le                                  3.64s  
+  ✓ tu choi webshell doi duoi thanh anh                                  1.19s  
+  ✓ tu choi cac duoi php khac                                            1.49s  
+  ✓ tu choi svg                                                          1.40s  
+  ✓ nhan anh                                                             1.65s  
+  ✓ nhan pdf giay phep kinh doanh                                        1.40s  
+  ✓ nhan excel va csv de import                                          5.11s  
+  ✓ lenh don xoa file cu va giu file moi                                 1.34s  
+  ✓ lenh don duoc dat lich                                               3.27s  
+
+   PASS  Tests\Feature\OwnerRevenueShareHiddenTest
+  ✓ danh sach media owner khong co cot rev share                        17.73s  
+  ✓ form media owner khong co truong revenue share                       8.16s  
+
+   PASS  Tests\Feature\OwnerReviewTest
+  ✓ campaign da chay xong thi duoc danh gia owner                        1.38s  
+  ✓ campaign con la nhap thi khong duoc danh gia                         1.01s  
+  ✓ khong danh gia duoc owner khong co trong campaign                    0.83s  
+  ✓ moi campaign chi danh gia moi owner mot lan                          0.87s  
+  ✓ danh gia moi chua hien ngay                                          0.84s  
+  ✓ diem trung binh chi tinh danh gia da duyet                           0.80s  
+  ✓ owner chua co danh gia thi khong co diem                             0.97s  
+  ✓ gui danh gia qua form                                                4.56s  
+  ✓ khong danh gia duoc campaign cua to chuc khac                        3.55s  
+  ✓ so sao ngoai khoang 1 5 bi tu choi                                   5.12s  
+
+   FAIL  Tests\Feature\PanelAccessTest
+  ✓ user model implements filament user contract                         1.22s  
+  ✓ super admin can access admin panel                                   1.38s  
+  ✓ publisher cannot access admin panel                                  1.04s  
+  ✓ buyer cannot access admin panel                                      0.97s  
+  ✓ publisher with active owner can access publisher panel               0.94s  
+  ✓ publisher without owner record cannot access publisher panel         0.93s  
+  ⨯ publisher with inactive owner cannot access publisher panel          1.32s  
+  ✓ super admin cannot access publisher panel                            1.34s  
+  ✓ buyer cannot access publisher panel                                  0.92s  
+  ✓ buyer with active org can access buyer panel                         0.81s  
+  ✓ buyer without org record cannot access buyer panel                   1.16s  
+  ✓ publisher cannot access buyer panel                                  0.95s  
+  ✓ user with no role cannot access any panel                            0.92s  
+  ✓ unknown panel id always denied                                       1.27s  
+
+   PASS  Tests\Feature\PaymentPerOwnerTest
+  ✓ chia so tien theo tung media owner                                   1.01s  
+  ✓ tong cac phan bang tong campaign                                     0.96s  
+  ✓ thanh toan cho owner nay khong lam owner kia thanh da tra            1.26s  
+  ✓ payment ghi nhan dung owner nhan tien                                1.04s  
+  ✓ trang thanh toan hien tai khoan cua media owner                      3.34s  
+  ✓ trang thanh toan khong con tai khoan gia cua san                     6.31s  
+  ✓ owner chua khai tai khoan thi noi thang ra                           3.27s  
+  ✓ khong tick dong y quy che thi khong xac nhan duoc                    3.16s  
+  ✓ khong tra duoc cho owner khong co trong campaign                    65.43s  
+
+   PASS  Tests\Feature\PolicyConsentTest
+  ✓ dang ky khong tick dong y thi bi tu choi                             4.35s  
+  ✓ dang ky co tick thi ghi lai bang chung chap thuan                    3.11s  
+  ✓ ban ghi chap thuan dong dau dung phien ban chinh sach                3.92s  
+  ✓ dang ky that bai thi khong de lai ban ghi chap thuan mo coi          3.15s  
+  ✓ key chinh sach sai thi no ngay thay vi ghi ban ghi vo nghia          1.05s  
+  ✓ phien ban luon lay tu config khong lay tu client                     1.01s  
+  ✓ ghi lai ip va user agent                                             1.04s  
+  ✓ ghi nhieu chinh sach cung luc                                        1.31s  
+
+   PASS  Tests\Feature\PolicyPagesTest
+  ✓ trang chinh sach tai duoc with data set "quy chế"                    4.85s  
+  ✓ trang chinh sach tai duoc with data set "bảo mật"                    8.61s  
+  ✓ trang chinh sach tai duoc with data set "tranh chấp"                 6.83s  
+  ✓ trang chinh sach tai duoc with data set "bảng phí"                  10.35s  
+  ✓ bang phi neu ro muc phi va doi tuong thu                             7.56s  
+  ✓ bang phi da ban hanh khong hien canh bao ban nhap                    3.23s  
+  ✓ bang phi khong noi toi chia doanh thu                                3.30s  
+  ✓ chan trang co link bang phi                                          3.21s  
+  ✓ chinh sach bao mat neu viec chia se lien he cho media owner          4.82s  
+  ✓ slug chinh sach khong ton tai thi khong render trang chinh sach      3.24s  
+  ✓ route chinh sach khong nuot cac duong dan khac                       3.40s  
+  ✓ trang chinh sach noi ro la ban nhap khi chua ban hanh                7.25s  
+  ✓ khi da ban hanh thi khong con canh bao ban nhap                      3.28s  
+  ✓ chan trang co day du thong tin phap nhan                             4.59s  
+  ✓ chan trang co du nam link chinh sach                                 3.90s  
+  ✓ chan trang khong con link chet                                       4.43s  
+  ✓ pop up thu nghiem hien tren trang chu                                3.62s  
+  ✓ pop up thu nghiem hien ca o trang dang ky                            3.41s  
+  ✓ tat trial mode thi pop up bien mat toan site                         7.71s  
+
+   PASS  Tests\Feature\PublicReflectionTest
+  ✓ gui phan anh thi duoc ghi nhan va tra ma tra cuu                     3.64s  
+  ✓ phan anh moi khong tu dong len trang cong khai                       3.81s  
+  ✓ thieu email lien he thi khong nhan                                   3.42s  
+  ✓ noi dung qua ngan thi khong nhan                                     4.29s  
+  ✓ bot dien vao bay spam thi bi tu choi                                 4.54s  
+  ✓ danh sach cong khai chi hien phan anh da duoc dang                   3.60s  
+  ✓ trang cong khai khong lo email va dien thoai nguoi gui               6.65s  
+  ✓ ghi chu noi bo khong bao gio ra trang cong khai                      3.41s  
+  ✓ serialize model khong kem du lieu ca nhan                            1.28s  
+  ✓ ma tra cuu tang dan va khong trung                                   1.18s  
+
+   PASS  Tests\Feature\PublicVisibilityGateTest
+  ✓ screen cua owner pending khong hien cong khai                        1.14s  
+  ✓ screen cua owner suspended khong hien cong khai                      1.06s  
+  ✓ owner bi xoa mem thi screen khong hien                               1.02s  
+  ✓ screen cua owner active van hien binh thuong                         1.02s  
+  ✓ owner active nhung screen tat thi khong hien                         0.91s  
+  ✓ listing khong tra ve screen cua owner pending                        1.08s  
+  ✓ trang chi tiet screen cua owner pending tra ve null                  0.89s  
+  ✓ hero stats khong dem screen cua owner pending                        1.10s  
+  ✓ product cua owner pending khong hien cong khai                       1.11s  
+
+   PASS  Tests\Feature\Publisher\BookingInboxBuyerContactTest
+  ✓ owner co man hinh trong booking thay lien he nguoi mua               5.53s  
+  ✓ owner khong co man hinh trong booking khong mo duoc trang            5.33s  
+  ✓ booking con nhap chua gui thi owner khong thay                       5.41s  
+
+Warning: file_put_contents(/app/.phpunit.result.cache): Failed to open stream: Read-only file system in /app/vendor/phpunit/phpunit/src/Runner/ResultCache/DefaultResultCache.php on line 160
+
+   PASS  Tests\Feature\Publisher\OwnerUserPermissionTest
+  ✓ assignable roles excludes owner for non super admin                  0.78s  
+  ✓ super admin can create owner user                                    0.98s  
+  ✓ tenant owner can create owner user                                   1.15s  
+  ✓ manager cannot create owner user                                     1.02s  
+  ✓ read only cannot view team list                                      0.97s  
+  ✓ manager cannot view team list                                        1.14s  
+  ✓ tenant owner can view team list                                      1.53s  
+  ✓ tenant owner cannot update a record with role owner                  0.92s  
+  ✓ tenant owner can update manager record                               0.89s  
+  ✓ tenant owner cannot update self                                      1.04s  
+  ✓ super admin can update record with role owner                        1.25s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Api\InventoryNetworksTest > returns correct structu…   
+  Failed asserting that an array has the key 0.
+
+  at tests/Feature/Api/InventoryNetworksTest.php:63
+     59▕ 
+     60▕         $response = $this->getNetworks();
+     61▕ 
+     62▕         $response->assertOk()
+  ➜  63▕             ->assertJsonStructure([
+     64▕                 'data' => [['code', 'name', 'screen_count']],
+     65▕             ]);
+     66▕     }
+     67▕
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Api\InventoryNetworksTest > only networks with acti…   
+  Failed asserting that an array contains 'net-a'.
+
+  at tests/Feature/Api/InventoryNetworksTest.php:100
+     96▕         $response = $this->getNetworks();
+     97▕ 
+     98▕         $response->assertOk();
+     99▕         $codes = collect($response->json('data'))->pluck('code');
+  ➜ 100▕         $this->assertContains('net-a', $codes->toArray());
+    101▕         $this->assertNotContains('net-b', $codes->toArray());
+    102▕     }
+    103▕ 
+    104▕     public function test_screen_count_is_correct(): void
+
+  1   tests/Feature/Api/InventoryNetworksTest.php:100
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Api\InventoryNetworksTest > screen…   ErrorException   
+  Trying to access array offset on null
+
+  at tests/Feature/Api/InventoryNetworksTest.php:115
+    111▕         $response = $this->getNetworks();
+    112▕ 
+    113▕         $response->assertOk();
+    114▕         $item = collect($response->json('data'))->firstWhere('code', 'aeon');
+  ➜ 115▕         $this->assertEquals(2, $item['screen_count']);
+    116▕     }
+    117▕ 
+    118▕     public function test_sorted_by_screen_count_desc(): void
+    119▕     {
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Api\InventoryNetworksTest > sorted…   ErrorException   
+  Undefined array key 0
+
+  at tests/Feature/Api/InventoryNetworksTest.php:132
+    128▕         $response = $this->getNetworks();
+    129▕ 
+    130▕         $response->assertOk();
+    131▕         $codes = collect($response->json('data'))->pluck('code')->toArray();
+  ➜ 132▕         $this->assertEquals('big-net', $codes[0]);
+    133▕         $this->assertEquals('small-net', $codes[1]);
+    134▕     }
+    135▕ 
+    136▕     public function test_result_is_cached(): void
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Api\InventoryNetworksTest > result…   ErrorException   
+  Trying to access array offset on null
+
+  at tests/Feature/Api/InventoryNetworksTest.php:149
+    145▕         // Thêm màn hình mới nhưng không clear cache — count vẫn là 1
+    146▕         $this->makeActiveScreenWithNetwork('cached-net');
+    147▕         $response = $this->getNetworks();
+    148▕         $item = collect($response->json('data'))->firstWhere('code', 'cached-net');
+  ➜ 149▕         $this->assertEquals(1, $item['screen_count']);
+    150▕     }
+    151▕ 
+    152▕     public function test_unauthenticated_is_rejected(): void
+    153▕     {
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Api\InventoryScreensFilterTest > network filter ret…   
+  Failed asserting that 0 matches expected 1.
+
+  at tests/Feature/Api/InventoryScreensFilterTest.php:350
+    346▕ 
+    347▕         $response = $this->getScreens(['network' => ['winmart']]);
+    348▕ 
+    349▕         $response->assertOk();
+  ➜ 350▕         $this->assertEquals(1, $response->json('total'));
+    351▕     }
+    352▕ 
+    353▕     public function test_network_filter_multi_value_returns_union(): void
+    354▕     {
+
+  1   tests/Feature/Api/InventoryScreensFilterTest.php:350
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\Api\InventoryScreensFilterTest > network filter mul…   
+  Failed asserting that 0 matches expected 2.
+
+  at tests/Feature/Api/InventoryScreensFilterTest.php:366
+    362▕ 
+    363▕         $response = $this->getScreens(['network' => ['net-a', 'net-b']]);
+    364▕ 
+    365▕         $response->assertOk();
+  ➜ 366▕         $this->assertEquals(2, $response->json('total'));
+    367▕     }
+    368▕ 
+    369▕     public function test_network_filter_nonexistent_code_returns_empty(): void
+    370▕     {
+
+  1   tests/Feature/Api/InventoryScreensFilterTest.php:366
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\InvitationFlowTest > invite creates row…   TypeError   
+  in_array(): Argument #2 ($haystack) must be of type array, string given
+
+  at tests/Feature/InvitationFlowTest.php:63
+     59▕         $this->assertNull($invitation->accepted_at);
+     60▕         $this->assertTrue($invitation->expires_at->isFuture());
+     61▕ 
+     62▕         Notification::assertSentOnDemand(UserInvitationNotification::class, function ($n, $channels, $notifiable) {
+  ➜  63▕             return in_array('newbie@example.com', $notifiable->routes['mail'] ?? []);
+     64▕         });
+     65▕     }
+     66▕ 
+     67▕     public function test_invite_revokes_pending_duplicate_for_same_tenant(): void
+
+  1   tests/Feature/InvitationFlowTest.php:63
+      [2m+7 vendor frames [22m
+  9   tests/Feature/InvitationFlowTest.php:62
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\InvitationFlowTest > show route returns 410 for exp…   
+  Expected response status code [410] but received 500.
+Failed asserting that 500 is identical to 410.
+
+The following exception occurred during the last request:
+
+TypeError: array_merge(): Argument #1 must be of type array, int given in /app/vendor/laravel/framework/src/Illuminate/View/Factory.php:157
+Stack trace:
+#0 /app/vendor/laravel/framework/src/Illuminate/View/Factory.php(157): array_merge(410, Array)
+#1 /app/vendor/laravel/framework/src/Illuminate/Foundation/helpers.php(1100): Illuminate\View\Factory->make('invitations.err...', Array, 410)
+#2 /app/app/Http/Controllers/InvitationController.php(34): view('invitations.err...', Array, 410)
+#3 /app/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php(46): App\Http\Controllers\InvitationController->show('RoE9zT8TtsFxRTr...')
+#4 /app/vendor/laravel/framework/src/Illuminate/Routing/Route.php(265): Illuminate\Routing\ControllerDispatcher->dispatch(Object(Illuminate\Routing\Route), Object(App\Http\Controllers\InvitationController), 'show')
+#5 /app/vendor/laravel/framework/src/Illuminate/Routing/Route.php(211): Illuminate\Routing\Route->runController()
+#6 /app/vendor/laravel/framework/src/Illuminate/Routing/Router.php(822): Illuminate\Routing\Route->run()
+#7 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\Routing\Router->{closure:Illuminate\Routing\Router::runRouteWithinStack():821}(Object(Illuminate\Http\Request))
+#8 /app/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate\Pipeline\Pipeline->{closure:Illuminate\Pipeline\Pipeline::prepareDestination():178}(Object(Illuminate\Http\Request))
+#9 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Routing\Middleware\SubstituteBindings->handle(Object(Illuminate\Http\Request), Object(Closure))
+#10 /app/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php(87): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#11 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\VerifyCsrfToken->handle(Object(Illuminate\Http\Request), Object(Closure))
+#12 /app/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php(48): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#13 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\View\Middleware\ShareErrorsFromSession->handle(Object(Illuminate\Http\Request), Object(Closure))
+#14 /app/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(120): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#15 /app/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(63): Illuminate\Session\Middleware\StartSession->handleStatefulRequest(Object(Illuminate\Http\Request), Object(Illuminate\Session\Store), Object(Closure))
+#16 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Session\Middleware\StartSession->handle(Object(Illuminate\Http\Request), Object(Closure))
+#17 /app/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php(36): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#18 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse->handle(Object(Illuminate\Http\Request), Object(Closure))
+#19 /app/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php(74): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#20 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Cookie\Middleware\EncryptCookies->handle(Object(Illuminate\Http\Request), Object(Closure))
+#21 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#22 /app/vendor/laravel/framework/src/Illuminate/Routing/Router.php(821): Illuminate\Pipeline\Pipeline->then(Object(Closure))
+#23 /app/vendor/laravel/framework/src/Illuminate/Routing/Router.php(800): Illuminate\Routing\Router->runRouteWithinStack(Object(Illuminate\Routing\Route), Object(Illuminate\Http\Request))
+#24 /app/vendor/laravel/framework/src/Illuminate/Routing/Router.php(764): Illuminate\Routing\Router->runRoute(Object(Illuminate\Http\Request), Object(Illuminate\Routing\Route))
+#25 /app/vendor/laravel/framework/src/Illuminate/Routing/Router.php(753): Illuminate\Routing\Router->dispatchToRoute(Object(Illuminate\Http\Request))
+#26 /app/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(200): Illuminate\Routing\Router->dispatch(Object(Illuminate\Http\Request))
+#27 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\Foundation\Http\Kernel->{closure:Illuminate\Foundation\Http\Kernel::dispatchToRouter():197}(Object(Illuminate\Http\Request))
+#28 /app/vendor/livewire/livewire/src/Features/SupportDisablingBackButtonCache/DisableBackButtonCacheMiddleware.php(19): Illuminate\Pipeline\Pipeline->{closure:Illuminate\Pipeline\Pipeline::prepareDestination():178}(Object(Illuminate\Http\Request))
+#29 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Livewire\Features\SupportDisablingBackButtonCache\DisableBackButtonCacheMiddleware->handle(Object(Illuminate\Http\Request), Object(Closure))
+#30 /app/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#31 /app/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\Foundation\Http\Middleware\TransformsRequest->handle(Object(Illuminate\Http\Request), Object(Closure))
+#32 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull->handle(Object(Illuminate\Http\Request), Object(Closure))
+#33 /app/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#34 /app/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\Foundation\Http\Middleware\TransformsRequest->handle(Object(Illuminate\Http\Request), Object(Closure))
+#35 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\TrimStrings->handle(Object(Illuminate\Http\Request), Object(Closure))
+#36 /app/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#37 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\ValidatePostSize->handle(Object(Illuminate\Http\Request), Object(Closure))
+#38 /app/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#39 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance->handle(Object(Illuminate\Http\Request), Object(Closure))
+#40 /app/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(61): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#41 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\HandleCors->handle(Object(Illuminate\Http\Request), Object(Closure))
+#42 /app/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#43 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\TrustProxies->handle(Object(Illuminate\Http\Request), Object(Closure))
+#44 /app/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#45 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks->handle(Object(Illuminate\Http\Request), Object(Closure))
+#46 /app/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#47 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\Http\Middleware\ValidatePathEncoding->handle(Object(Illuminate\Http\Request), Object(Closure))
+#48 /app/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\Pipeline\Pipeline->{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#49 /app/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\Pipeline\Pipeline->then(Object(Closure))
+#50 /app/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\Foundation\Http\Kernel->sendRequestThroughRouter(Object(Illuminate\Http\Request))
+#51 /app/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(607): Illuminate\Foundation\Http\Kernel->handle(Object(Illuminate\Http\Request))
+#52 /app/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(368): Illuminate\Foundation\Testing\TestCase->call('GET', 'http://dash.ooh...', Array, Array, Array, Array)
+#53 /app/tests/Feature/InvitationFlowTest.php(209): Illuminate\Foundation\Testing\TestCase->get('http://dash.ooh...')
+#54 /app/vendor/phpunit/phpunit/src/Framework/TestCase.php(1667): Tests\Feature\InvitationFlowTest->test_show_route_returns_410_for_expired()
+#55 /app/vendor/phpunit/phpunit/src/Framework/TestCase.php(519): PHPUnit\Framework\TestCase->runTest()
+#56 /app/vendor/phpunit/phpunit/src/Framework/TestRunner/TestRunner.php(87): PHPUnit\Framework\TestCase->runBare()
+#57 /app/vendor/phpunit/phpunit/src/Framework/TestCase.php(365): PHPUnit\Framework\TestRunner->run(Object(Tests\Feature\InvitationFlowTest))
+#58 /app/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\Framework\TestCase->run()
+#59 /app/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\Framework\TestSuite->run()
+#60 /app/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\Framework\TestSuite->run()
+#61 /app/vendor/phpunit/phpunit/src/TextUI/TestRunner.php(64): PHPUnit\Framework\TestSuite->run()
+#62 /app/vendor/phpunit/phpunit/src/TextUI/Application.php(211): PHPUnit\TextUI\TestRunner->run(Object(PHPUnit\TextUI\Configuration\Configuration), Object(PHPUnit\Runner\ResultCache\DefaultResultCache), Object(PHPUnit\Framework\TestSuite))
+#63 /app/vendor/phpunit/phpunit/phpunit(104): PHPUnit\TextUI\Application->run(Array)
+#64 {main}
+
+----------------------------------------------------------------------------------
+
+array_merge(): Argument #1 must be of type array, int given
+
+  at tests/Feature/InvitationFlowTest.php:210
+    206▕         );
+    207▕         $invitation->update(['expires_at' => now()->subDay()]);
+    208▕ 
+    209▕         $response = $this->get(route('invitations.accept', $invitation->token));
+  ➜ 210▕         $response->assertStatus(410);
+    211▕         $response->assertSee('hết hạn');
+    212▕     }
+    213▕ 
+    214▕     public function test_store_route_creates_user_and_logs_in(): void
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\PanelAccessTest > publisher with in…  QueryException   
+  SQLSTATE[01000]: Warning: 1265 Data truncated for column 'status' at row 1 (Connection: mysql, Host: oohx-verify-db-20260926T110933Z-16513, Port: 3306, Database: oohx_verify, SQL: insert into `owners` (`name`, `slug`, `type`, `onboard_method`, `revenue_share_pct`, `status`, `id`, `updated_at`, `created_at`) values (Buckridge Ltd, explicabo-et-natus-et-libero-quia, media_owner, api, 70, inactive, 01m3eq70772qfcz80dca5gkwy0, 2026-09-26 11:22:09, 2026-09-26 11:22:09))
+
+  at vendor/laravel/framework/src/Illuminate/Database/Connection.php:838
+    834▕             $exceptionType = $this->isUniqueConstraintError($e)
+    835▕                 ? UniqueConstraintViolationException::class
+    836▕                 : QueryException::class;
+    837▕ 
+  ➜ 838▕             throw new $exceptionType(
+    839▕                 $this->getNameWithReadWriteType(),
+    840▕                 $query,
+    841▕                 $this->prepareBindings($bindings),
+    842▕                 $e,
+
+      [2m+15 vendor frames [22m
+  16  tests/Feature/PanelAccessTest.php:92
+
+
+  Tests:    10 failed, 248 passed (606 assertions)
+  Duration: 956.94s
+

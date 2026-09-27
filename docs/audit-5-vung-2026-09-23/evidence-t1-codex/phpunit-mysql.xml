@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="Tests\Feature\Api\T1ReviewTest" file="/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php" tests="18" assertions="31" errors="0" failures="6" skipped="0" time="116.346620">
+    <testcase name="test_token_chi_co_quyen_doc_khong_ghi_duoc_man_hinh" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="93" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="2" time="65.080452"/>
+    <testcase name="test_api_client_khong_vao_duoc_nhom_quan_ly" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="104" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="5.457780"/>
+    <testcase name="test_publisher_khong_sua_duoc_man_hinh_cua_owner_khac" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="123" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="2" time="2.737280"/>
+    <testcase name="test_publisher_khong_tao_duoc_du_lieu_cho_owner_khac" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="134" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="2" time="2.831599"/>
+    <testcase name="test_site_duoc_tao_cho_dung_owner_cua_nguoi_goi" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="147" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="2" time="3.219250"/>
+    <testcase name="test_nguoi_mua_khong_liet_ke_duoc_man_hinh_qua_api_quan_ly" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="164" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="2.469307"/>
+    <testcase name="test_scope_chan_mac_dinh_khi_thanh_vien_mat_tenant_dang_chon" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="175" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="0.963632"/>
+    <testcase name="test_api_owner_khong_lo_truong_tai_chinh_cho_nguoi_thuong" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="195" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="5" time="3.365514"/>
+    <testcase name="test_super_admin_van_xem_duoc_truong_noi_bo" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="207" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="2" time="2.765688"/>
+    <testcase name="test_danh_sach_owner_chi_gom_owner_minh_la_thanh_vien" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="216" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="3" time="2.368485"/>
+    <testcase name="test_super_admin_van_sua_duoc_moi_owner" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="228" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="2" time="2.475678"/>
+    <testcase name="test_review_revoked_member_cannot_read_screen" file="/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php" line="23" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="2.962497">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Api\T1ReviewTest::test_review_revoked_member_cannot_read_screen
+Expected response status code [403] but received 200.
+Failed asserting that 200 is identical to 403.
+
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/app/vendor/laravel/framework/src/Illuminate/Testing/Concerns/AssertsStatusCodes.php:141
+/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php:27</failure>
+    </testcase>
+    <testcase name="test_review_revoked_member_cannot_write_screen" file="/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php" line="30" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="4.154441"/>
+    <testcase name="test_review_suspended_owner_cannot_write" file="/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php" line="37" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="2.904774">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Api\T1ReviewTest::test_review_suspended_owner_cannot_write
+Expected response status code [403] but received 200.
+Failed asserting that 200 is identical to 403.
+
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/app/vendor/laravel/framework/src/Illuminate/Testing/Concerns/AssertsStatusCodes.php:141
+/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php:40</failure>
+    </testcase>
+    <testcase name="test_review_scheduler_cannot_set_floor_price" file="/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php" line="43" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="2.230869">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Api\T1ReviewTest::test_review_scheduler_cannot_set_floor_price
+Expected response status code [403] but received 200.
+Failed asserting that 200 is identical to 403.
+
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/app/vendor/laravel/framework/src/Illuminate/Testing/Concerns/AssertsStatusCodes.php:141
+/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php:46</failure>
+    </testcase>
+    <testcase name="test_review_read_only_cannot_read_revenue" file="/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php" line="49" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="3.025720">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Api\T1ReviewTest::test_review_read_only_cannot_read_revenue
+Expected response status code [403] but received 200.
+Failed asserting that 200 is identical to 403.
+
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/app/vendor/laravel/framework/src/Illuminate/Testing/Concerns/AssertsStatusCodes.php:141
+/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php:52</failure>
+    </testcase>
+    <testcase name="test_review_reporting_only_cannot_read_inventory" file="/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php" line="55" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="3.677615">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Api\T1ReviewTest::test_review_reporting_only_cannot_read_inventory
+Expected response status code [403] but received 200.
+Failed asserting that 200 is identical to 403.
+
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/app/vendor/laravel/framework/src/Illuminate/Testing/Concerns/AssertsStatusCodes.php:141
+/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php:58</failure>
+    </testcase>
+    <testcase name="test_review_screen_response_hides_device_token" file="/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php" line="61" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="2" time="3.656039">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Api\T1ReviewTest::test_review_screen_response_hides_device_token
+Failed asserting that true is false.
+
+/app/vendor/laravel/framework/src/Illuminate/Testing/AssertableJsonString.php:226
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:988
+/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php:65</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

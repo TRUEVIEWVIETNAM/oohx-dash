@@ -1,0 +1,3 @@
+phpunit_exit=2
+migrate_exit=0
+probe_exit=0

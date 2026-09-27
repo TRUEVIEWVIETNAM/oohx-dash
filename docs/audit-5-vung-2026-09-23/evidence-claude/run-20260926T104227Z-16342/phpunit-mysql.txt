@@ -1,0 +1,28 @@
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\PolicyPagesTest::test_trang_chinh_sach_tai_duoc(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+Warning: file_put_contents(/app/.phpunit.result.cache): Failed to open stream: Read-only file system in /app/vendor/phpunit/phpunit/src/Runner/ResultCache/DefaultResultCache.php on line 160
+
+   PASS  Tests\Feature\Api\T1ReviewTest
+  ✓ token chi co quyen doc khong ghi duoc man hinh                      61.47s  
+  ✓ api client khong vao duoc nhom quan ly                               3.80s  
+  ✓ publisher khong sua duoc man hinh cua owner khac                     3.20s  
+  ✓ publisher khong tao duoc du lieu cho owner khac                      3.59s  
+  ✓ site duoc tao cho dung owner cua nguoi goi                           4.02s  
+  ✓ nguoi mua khong liet ke duoc man hinh qua api quan ly                2.93s  
+  ✓ scope chan mac dinh khi thanh vien mat tenant dang chon              0.84s  
+  ✓ api owner khong lo truong tai chinh cho nguoi thuong                 4.05s  
+  ✓ super admin van xem duoc truong noi bo                              31.49s  
+  ✓ danh sach owner chi gom owner minh la thanh vien                     9.47s  
+  ✓ super admin van sua duoc moi owner                                   3.74s  
+  ✓ review revoked member cannot read screen                             3.89s  
+  ✓ review revoked member cannot write screen                            3.31s  
+  ✓ review suspended owner cannot write                                  2.96s  
+  ✓ review scheduler cannot set floor price                              3.28s  
+  ✓ review read only cannot read revenue                                 2.95s  
+  ✓ review reporting only cannot read inventory                          2.68s  
+  ✓ review screen response hides device token                            3.97s  
+
+  Tests:    18 passed (31 assertions)
+  Duration: 156.70s
+

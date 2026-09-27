@@ -1,0 +1,9 @@
+== Probe ImpressionLog::create()
+sql_mode=ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+id_column: type=char(26) null=NO key=PRI default=NULL
+partitions=6
+model_uses_HasUlids=false
+RESULT=INSERT_FAILED class=Illuminate\Database\QueryException
+message=SQLSTATE[HY000]: General error: 1364 Field 'id' doesn't have a default value (Connection: mysql, Host: oohx-verify-db-20260926T130436Z-17717, Port: 3306, Database: oohx_probe, SQL: insert into `impression_logs` (`screen_id`, `owner_id`, `ca
+rows_in_table=0
+== Hết probe

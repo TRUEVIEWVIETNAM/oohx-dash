@@ -1,0 +1,80 @@
+
+   INFO  Preparing database.  
+
+  Creating migration table ..................................... 108.86ms DONE
+
+   INFO  Running migrations.  
+
+  0001_01_01_000000_create_users_table ......................... 192.57ms DONE
+  0001_01_01_000001_create_cache_table .......................... 86.93ms DONE
+  0001_01_01_000002_create_jobs_table .......................... 137.42ms DONE
+  2025_01_01_000001_create_owners_table ......................... 63.87ms DONE
+  2025_01_01_000002_create_owner_users_table ................... 216.03ms DONE
+  2025_01_01_000003_create_networks_table ...................... 103.57ms DONE
+  2025_01_01_000004_create_venue_types_table .................... 65.35ms DONE
+  2025_01_01_000005_create_sites_table ......................... 144.58ms DONE
+  2025_01_01_000006_create_screens_table ....................... 234.30ms DONE
+  2025_01_01_000007_create_screen_specs_table .................. 117.98ms DONE
+  2025_01_01_000008_create_screen_inventory_table .............. 208.90ms DONE
+  2025_01_01_000009_create_screen_impression_multipliers_table . 100.96ms DONE
+  2025_01_01_000010_create_screen_external_ids_table ........... 114.56ms DONE
+  2025_01_01_000011_create_impression_logs_table ............... 426.50ms DONE
+  2025_01_01_000012_add_owner_fields_to_users_table ............ 127.15ms DONE
+  2025_01_01_000013_update_owner_users_role_enum ............... 253.74ms DONE
+  2025_01_01_000014_update_venue_types_add_openooh_fields ...... 458.36ms DONE
+  2026_03_14_111143_create_permission_tables ................... 581.98ms DONE
+  2026_03_14_112135_create_personal_access_tokens_table ........ 103.76ms DONE
+  2026_03_19_000001_add_missing_fields_to_screen_inventory ..... 331.11ms DONE
+  2026_03_19_000002_add_unit_fields_to_screen_specs ............ 138.37ms DONE
+  2026_03_19_000003_add_listing_flags_to_screen_inventory ...... 158.41ms DONE
+  2026_03_19_000004_add_resolution_preset_to_screen_specs ....... 66.06ms DONE
+  2026_03_20_000001_add_performance_indexes .................... 179.63ms DONE
+  2026_03_20_000002_create_vietnam_provinces_table .............. 56.22ms DONE
+  2026_03_20_000003_create_vietnam_communes_table .............. 187.11ms DONE
+  2026_03_20_000004_add_province_commune_to_sites .............. 353.93ms DONE
+  2026_03_20_000005_create_vietnam_regions_and_update_provinces  240.05ms DONE
+  2026_03_21_101225_create_api_clients_table .................... 49.49ms DONE
+  2026_03_21_115328_create_webhook_subscriptions_table ......... 127.03ms DONE
+  2026_03_24_000001_add_public_profile_to_owners_table ......... 799.41ms DONE
+  2026_03_24_000004_add_code_to_networks_table ................. 117.03ms DONE
+  2026_03_24_000005_add_network_and_district_to_screens ........ 524.91ms DONE
+  2026_04_08_000001_add_performance_indexes .................... 371.71ms DONE
+  2026_04_10_000001_create_venue_categories_table .............. 335.36ms DONE
+  2026_04_10_000002_add_thumb_to_venue_categories ............... 71.81ms DONE
+  2026_04_11_000001_add_logo_banner_to_networks ................ 202.49ms DONE
+  2026_04_11_000002_add_banner_to_sites ........................ 106.85ms DONE
+  2026_04_11_000003_add_vn_category_to_screen_inventory ........ 411.09ms DONE
+  2026_04_11_133723_add_network_id_to_sites_table .............. 285.29ms DONE
+  2026_04_11_162601_add_photos_to_screen_specs_table ............ 63.28ms DONE
+  2026_04_11_163904_add_logo_to_sites_table ..................... 99.16ms DONE
+  2026_04_12_000001_create_organizations_table .................. 55.96ms DONE
+  2026_04_12_000002_create_organization_users_table ............ 206.69ms DONE
+  2026_04_12_000003_add_current_organization_id_to_users ....... 149.72ms DONE
+  2026_04_12_000004_create_carts_table ......................... 405.35ms DONE
+  2026_04_12_000005_create_campaigns_table ..................... 281.88ms DONE
+  2026_04_12_000006_create_booking_lines_table ................. 473.36ms DONE
+  2026_04_12_000007_create_creatives_table ..................... 449.11ms DONE
+  2026_04_12_000008_create_payments_table ...................... 206.49ms DONE
+  2026_04_12_000009_create_campaign_activities_table ........... 198.51ms DONE
+  2026_04_12_100001_add_photo_to_vietnam_provinces .............. 59.18ms DONE
+  2026_04_13_000001_create_products_table ............................ 1s DONE
+  2026_04_13_100001_update_products_listing_mode ............... 307.20ms DONE
+  2026_04_13_100002_make_cart_items_screen_id_nullable ......... 112.44ms DONE
+  2026_04_14_000001_add_address_to_owners ...................... 287.29ms DONE
+  2026_04_14_000002_add_province_commune_to_owners ............. 421.72ms DONE
+  2026_04_14_100001_add_slug_to_screens_and_sites .............. 485.64ms DONE
+  2026_04_14_100002_create_saved_items_table ................... 235.22ms DONE
+  2026_04_14_100003_add_verified_to_owners ...................... 90.63ms DONE
+  2026_04_15_100001_add_pricing_model_fields ......................... 1s DONE
+  2026_04_15_200001_add_vn_category_id_to_networks ............. 230.42ms DONE
+  2026_04_19_000001_add_phase1_intelligence_to_screens ............... 1s DONE
+  2026_04_19_000002_create_poi_snapshots_table .................. 89.13ms DONE
+  2026_04_21_000001_create_screen_imports_table ................ 302.64ms DONE
+  2026_05_07_000001_create_user_invitations_table .............. 224.70ms DONE
+  2026_07_17_000001_create_public_reflections_table ............ 170.19ms DONE
+  2026_07_17_000002_create_policy_consents_table ............... 139.48ms DONE
+  2026_07_17_000003_add_legal_and_bank_info_to_owners ................ 1s DONE
+  2026_07_17_000004_add_owner_to_payments ...................... 213.53ms DONE
+  2026_07_17_000005_create_owner_reviews_table ................. 594.22ms DONE
+  2026_09_26_000001_add_rate_snapshot_to_cart_items ............ 182.68ms DONE
+

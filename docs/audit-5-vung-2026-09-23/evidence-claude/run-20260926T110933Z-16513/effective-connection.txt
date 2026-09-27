@@ -1,0 +1,1 @@
+connection=mysql host=oohx-verify-db-20260926T110933Z-16513 database=oohx_verify

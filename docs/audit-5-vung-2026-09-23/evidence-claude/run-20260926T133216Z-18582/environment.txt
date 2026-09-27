@@ -1,0 +1,12 @@
+run_id=20260926T133216Z-18582
+date_utc=2026-09-26T13:32:46Z
+repo_sha=b9923a01eef776112109a12c8c2c3bba5e3a72a8
+repo_dirty_code= M app/Http/Controllers/Buyer/CartController.php; M app/Models/CartItem.php; M app/Services/CampaignService.php; M app/Services/CartService.php;?? app/Services/Pricing/;?? config/pricing.php;?? database/migrations/2026_09_26_000001_add_rate_snapshot_to_cart_items.php;?? tests/Feature/Buyer/CartPricingTest.php;?? tests/Unit/Pricing/;
+repo_dirty_all= M .claude/settings.local.json; M app/Http/Controllers/Buyer/CartController.php; M app/Models/CartItem.php; M app/Services/CampaignService.php; M app/Services/CartService.php;?? app/Services/Pricing/;?? config/pricing.php;?? database/migrations/2026_09_26_000001_add_rate_snapshot_to_cart_items.php;?? tests/Feature/Buyer/CartPricingTest.php;?? tests/Unit/Pricing/;
+php_image=foodyman-local-backend
+php_image_id=sha256:66c020ab405eee4cabccb0b6cb7d32eb81cc4ba3e443a3a3fad126aeb2bbe104
+php_version=8.4.21
+mysql_image=mysql:8.0
+mysql_image_digest=mysql@sha256:d0304ed9fdb64a3f6c7ad11a5fb4f13abfc10e6dfa3f288d652e7320c34df7f9
+mysql_version=8.0.46
+suite_filter=<full suite>

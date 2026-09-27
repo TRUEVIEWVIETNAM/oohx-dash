@@ -1,0 +1,67 @@
+PHPUnit 11.5.55 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.21
+Configuration: /app/phpunit.xml
+
+...........F.FFFFF                                                18 / 18 (100%)
+Warning: file_put_contents(/app/.phpunit.result.cache): Failed to open stream: Read-only file system in /app/vendor/phpunit/phpunit/src/Runner/ResultCache/DefaultResultCache.php on line 160
+
+
+Time: 01:56.698, Memory: 82.50 MB
+
+There were 6 failures:
+
+1) Tests\Feature\Api\T1ReviewTest::test_review_revoked_member_cannot_read_screen
+Expected response status code [403] but received 200.
+Failed asserting that 200 is identical to 403.
+
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/app/vendor/laravel/framework/src/Illuminate/Testing/Concerns/AssertsStatusCodes.php:141
+/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php:27
+
+2) Tests\Feature\Api\T1ReviewTest::test_review_suspended_owner_cannot_write
+Expected response status code [403] but received 200.
+Failed asserting that 200 is identical to 403.
+
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/app/vendor/laravel/framework/src/Illuminate/Testing/Concerns/AssertsStatusCodes.php:141
+/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php:40
+
+3) Tests\Feature\Api\T1ReviewTest::test_review_scheduler_cannot_set_floor_price
+Expected response status code [403] but received 200.
+Failed asserting that 200 is identical to 403.
+
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/app/vendor/laravel/framework/src/Illuminate/Testing/Concerns/AssertsStatusCodes.php:141
+/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php:46
+
+4) Tests\Feature\Api\T1ReviewTest::test_review_read_only_cannot_read_revenue
+Expected response status code [403] but received 200.
+Failed asserting that 200 is identical to 403.
+
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/app/vendor/laravel/framework/src/Illuminate/Testing/Concerns/AssertsStatusCodes.php:141
+/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php:52
+
+5) Tests\Feature\Api\T1ReviewTest::test_review_reporting_only_cannot_read_inventory
+Expected response status code [403] but received 200.
+Failed asserting that 200 is identical to 403.
+
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/app/vendor/laravel/framework/src/Illuminate/Testing/Concerns/AssertsStatusCodes.php:141
+/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php:58
+
+6) Tests\Feature\Api\T1ReviewTest::test_review_screen_response_hides_device_token
+Failed asserting that true is false.
+
+/app/vendor/laravel/framework/src/Illuminate/Testing/AssertableJsonString.php:226
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:988
+/app/docs/audit-5-vung-2026-09-23/T1ReviewTest.php:65
+
+FAILURES!
+Tests: 18, Assertions: 31, Failures: 6.

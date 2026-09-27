@@ -1,0 +1,3674 @@
+[
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "/",
+    "name": null,
+    "action": "Closure",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "/",
+    "name": "fp.index",
+    "action": "App\\Http\\Controllers\\FrontpageController@index",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin",
+    "name": "filament.admin.pages.dashboard",
+    "action": "Filament\\Pages\\Dashboard",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/campaigns",
+    "name": "filament.admin.resources.campaigns.index",
+    "action": "App\\Filament\\Resources\\CampaignResource\\Pages\\ListCampaigns",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/campaigns/{record}",
+    "name": "filament.admin.resources.campaigns.view",
+    "action": "App\\Filament\\Resources\\CampaignResource\\Pages\\ViewCampaign",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/creatives",
+    "name": "filament.admin.resources.creatives.index",
+    "action": "App\\Filament\\Resources\\CreativeResource\\Pages\\ListCreatives",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/login",
+    "name": "filament.admin.auth.login",
+    "action": "Filament\\Pages\\Auth\\Login",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "POST",
+    "uri": "admin/logout",
+    "name": "filament.admin.auth.logout",
+    "action": "Filament\\Http\\Controllers\\Auth\\LogoutController",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/networks",
+    "name": "filament.admin.resources.networks.index",
+    "action": "App\\Filament\\Resources\\NetworkResource\\Pages\\ListNetworks",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/networks/create",
+    "name": "filament.admin.resources.networks.create",
+    "action": "App\\Filament\\Resources\\NetworkResource\\Pages\\CreateNetwork",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/networks/{record}",
+    "name": "filament.admin.resources.networks.view",
+    "action": "App\\Filament\\Resources\\NetworkResource\\Pages\\ViewNetwork",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/networks/{record}/edit",
+    "name": "filament.admin.resources.networks.edit",
+    "action": "App\\Filament\\Resources\\NetworkResource\\Pages\\EditNetwork",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-analytics",
+    "name": "filament.admin.pages.oohx-analytics",
+    "action": "App\\Filament\\Pages\\OohxAnalytics",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-campaign-estimates",
+    "name": "filament.admin.resources.oohx-campaign-estimates.index",
+    "action": "App\\Filament\\Resources\\OohxCampaignEstimateResource\\Pages\\ListOohxCampaignEstimates",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-campaign-estimates/create",
+    "name": "filament.admin.resources.oohx-campaign-estimates.create",
+    "action": "App\\Filament\\Resources\\OohxCampaignEstimateResource\\Pages\\CreateOohxCampaignEstimate",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-campaign-estimates/{record}",
+    "name": "filament.admin.resources.oohx-campaign-estimates.view",
+    "action": "App\\Filament\\Resources\\OohxCampaignEstimateResource\\Pages\\ViewOohxCampaignEstimate",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-collector-runs",
+    "name": "filament.admin.resources.oohx-collector-runs.index",
+    "action": "App\\Filament\\Resources\\OohxCollectorRunResource\\Pages\\ListCollectorRuns",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-collector-runs/{record}",
+    "name": "filament.admin.resources.oohx-collector-runs.view",
+    "action": "App\\Filament\\Resources\\OohxCollectorRunResource\\Pages\\ViewCollectorRun",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-collectors",
+    "name": "filament.admin.pages.oohx-collectors",
+    "action": "App\\Filament\\Pages\\OohxCollectors",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-config/audit-logs",
+    "name": "filament.admin.resources.oohx-config.audit-logs.index",
+    "action": "App\\Filament\\Resources\\OohxConfig\\AuditLogResource\\Pages\\ListAuditLog",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-config/audit-logs/{record}",
+    "name": "filament.admin.resources.oohx-config.audit-logs.view",
+    "action": "App\\Filament\\Resources\\OohxConfig\\AuditLogResource\\Pages\\ViewAuditEntry",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-config/base-city-traffics",
+    "name": "filament.admin.resources.oohx-config.base-city-traffics.index",
+    "action": "App\\Filament\\Resources\\OohxConfig\\BaseCityTrafficResource\\Pages\\ListBaseCityTraffic",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-config/delivery-defaults",
+    "name": "filament.admin.resources.oohx-config.delivery-defaults.index",
+    "action": "App\\Filament\\Resources\\OohxConfig\\DeliveryDefaultResource\\Pages\\ListDeliveryDefaults",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-config/formula-versions",
+    "name": "filament.admin.resources.oohx-config.formula-versions.index",
+    "action": "App\\Filament\\Resources\\OohxConfig\\FormulaVersionResource\\Pages\\ListFormulaVersions",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-config/formula-versions/{record}",
+    "name": "filament.admin.resources.oohx-config.formula-versions.view",
+    "action": "App\\Filament\\Resources\\OohxConfig\\FormulaVersionResource\\Pages\\ViewFormulaVersion",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-config/road-class-multipliers",
+    "name": "filament.admin.resources.oohx-config.road-class-multipliers.index",
+    "action": "App\\Filament\\Resources\\OohxConfig\\RoadClassMultiplierResource\\Pages\\ListRoadClassMultipliers",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-config/seasonality-factors",
+    "name": "filament.admin.resources.oohx-config.seasonality-factors.index",
+    "action": "App\\Filament\\Resources\\OohxConfig\\SeasonalityFactorResource\\Pages\\ListSeasonalityFactors",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-config/seasonality-factors/heatmap",
+    "name": "filament.admin.resources.oohx-config.seasonality-factors.heatmap",
+    "action": "App\\Filament\\Resources\\OohxConfig\\SeasonalityFactorResource\\Pages\\SeasonalityHeatmap",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-config/zone-factors",
+    "name": "filament.admin.resources.oohx-config.zone-factors.index",
+    "action": "App\\Filament\\Resources\\OohxConfig\\ZoneFactorResource\\Pages\\ListZoneFactors",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-data-engine",
+    "name": "filament.admin.pages.oohx-data-engine",
+    "action": "App\\Filament\\Pages\\OohxDataEngine",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-estimates",
+    "name": "filament.admin.resources.oohx-estimates.index",
+    "action": "App\\Filament\\Resources\\OohxEstimateResource\\Pages\\ListOohxEstimates",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-estimates/{record}",
+    "name": "filament.admin.resources.oohx-estimates.view",
+    "action": "App\\Filament\\Resources\\OohxEstimateResource\\Pages\\ViewOohxEstimate",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-health",
+    "name": "filament.admin.pages.oohx-health",
+    "action": "App\\Filament\\Pages\\OohxHealth",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-recompute-jobs",
+    "name": "filament.admin.resources.oohx-recompute-jobs.index",
+    "action": "App\\Filament\\Resources\\OohxRecomputeJobResource\\Pages\\ListRecomputeJobs",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/oohx-recompute-jobs/{record}",
+    "name": "filament.admin.resources.oohx-recompute-jobs.view",
+    "action": "App\\Filament\\Resources\\OohxRecomputeJobResource\\Pages\\ViewRecomputeJob",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "NOT_VERIFIABLE"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/organizations",
+    "name": "filament.admin.resources.organizations.index",
+    "action": "App\\Filament\\Resources\\OrganizationResource\\Pages\\ListOrganizations",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/organizations/create",
+    "name": "filament.admin.resources.organizations.create",
+    "action": "App\\Filament\\Resources\\OrganizationResource\\Pages\\CreateOrganization",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/organizations/{record}",
+    "name": "filament.admin.resources.organizations.view",
+    "action": "App\\Filament\\Resources\\OrganizationResource\\Pages\\ViewOrganization",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/organizations/{record}/edit",
+    "name": "filament.admin.resources.organizations.edit",
+    "action": "App\\Filament\\Resources\\OrganizationResource\\Pages\\EditOrganization",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/owner-reviews",
+    "name": "filament.admin.resources.owner-reviews.index",
+    "action": "App\\Filament\\Resources\\OwnerReviewResource\\Pages\\ListOwnerReviews",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/owner-reviews/{record}/edit",
+    "name": "filament.admin.resources.owner-reviews.edit",
+    "action": "App\\Filament\\Resources\\OwnerReviewResource\\Pages\\EditOwnerReview",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/owners",
+    "name": "filament.admin.resources.owners.index",
+    "action": "App\\Filament\\Resources\\OwnerResource\\Pages\\ListOwners",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/owners/create",
+    "name": "filament.admin.resources.owners.create",
+    "action": "App\\Filament\\Resources\\OwnerResource\\Pages\\CreateOwner",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/owners/{record}/edit",
+    "name": "filament.admin.resources.owners.edit",
+    "action": "App\\Filament\\Resources\\OwnerResource\\Pages\\EditOwner",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/permission-matrix",
+    "name": "filament.admin.pages.permission-matrix",
+    "action": "App\\Filament\\Pages\\PermissionMatrix",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/poi-snapshots",
+    "name": "filament.admin.resources.poi-snapshots.index",
+    "action": "App\\Filament\\Resources\\PoiSnapshotResource\\Pages\\ListPoiSnapshots",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/poi-snapshots/{record}",
+    "name": "filament.admin.resources.poi-snapshots.view",
+    "action": "App\\Filament\\Resources\\PoiSnapshotResource\\Pages\\ViewPoiSnapshot",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/products",
+    "name": "filament.admin.resources.products.index",
+    "action": "App\\Filament\\Resources\\ProductResource\\Pages\\ListProducts",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/products/create",
+    "name": "filament.admin.resources.products.create",
+    "action": "App\\Filament\\Resources\\ProductResource\\Pages\\CreateProduct",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/products/{record}",
+    "name": "filament.admin.resources.products.view",
+    "action": "App\\Filament\\Resources\\ProductResource\\Pages\\ViewProduct",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/products/{record}/edit",
+    "name": "filament.admin.resources.products.edit",
+    "action": "App\\Filament\\Resources\\ProductResource\\Pages\\EditProduct",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/public-reflections",
+    "name": "filament.admin.resources.public-reflections.index",
+    "action": "App\\Filament\\Resources\\PublicReflectionResource\\Pages\\ListPublicReflections",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/public-reflections/{record}/edit",
+    "name": "filament.admin.resources.public-reflections.edit",
+    "action": "App\\Filament\\Resources\\PublicReflectionResource\\Pages\\EditPublicReflection",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/roles",
+    "name": "filament.admin.resources.roles.index",
+    "action": "App\\Filament\\Resources\\RoleResource\\Pages\\ListRoles",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/roles/create",
+    "name": "filament.admin.resources.roles.create",
+    "action": "App\\Filament\\Resources\\RoleResource\\Pages\\CreateRole",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/roles/{record}",
+    "name": "filament.admin.resources.roles.view",
+    "action": "App\\Filament\\Resources\\RoleResource\\Pages\\ViewRole",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/roles/{record}/edit",
+    "name": "filament.admin.resources.roles.edit",
+    "action": "App\\Filament\\Resources\\RoleResource\\Pages\\EditRole",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/screen-imports",
+    "name": "filament.admin.resources.screen-imports.index",
+    "action": "App\\Filament\\Resources\\ScreenImportResource\\Pages\\ListScreenImports",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/screen-imports/{record}",
+    "name": "filament.admin.resources.screen-imports.view",
+    "action": "App\\Filament\\Resources\\ScreenImportResource\\Pages\\ViewScreenImport",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/screens",
+    "name": "filament.admin.resources.screens.index",
+    "action": "App\\Filament\\Resources\\ScreenResource\\Pages\\ListScreen",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/screens/create",
+    "name": "filament.admin.resources.screens.create",
+    "action": "App\\Filament\\Resources\\ScreenResource\\Pages\\CreateScreen",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/screens/{record}",
+    "name": "filament.admin.resources.screens.view",
+    "action": "App\\Filament\\Resources\\ScreenResource\\Pages\\ViewScreen",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/screens/{record}/edit",
+    "name": "filament.admin.resources.screens.edit",
+    "action": "App\\Filament\\Resources\\ScreenResource\\Pages\\EditScreen",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/sites",
+    "name": "filament.admin.resources.sites.index",
+    "action": "App\\Filament\\Resources\\SiteResource\\Pages\\ListSites",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/sites/create",
+    "name": "filament.admin.resources.sites.create",
+    "action": "App\\Filament\\Resources\\SiteResource\\Pages\\CreateSite",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/sites/{record}",
+    "name": "filament.admin.resources.sites.view",
+    "action": "App\\Filament\\Resources\\SiteResource\\Pages\\ViewSite",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/sites/{record}/edit",
+    "name": "filament.admin.resources.sites.edit",
+    "action": "App\\Filament\\Resources\\SiteResource\\Pages\\EditSite",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/users",
+    "name": "filament.admin.resources.users.index",
+    "action": "App\\Filament\\Resources\\UserResource\\Pages\\ListUsers",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/users/create",
+    "name": "filament.admin.resources.users.create",
+    "action": "App\\Filament\\Resources\\UserResource\\Pages\\CreateUser",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/users/{record}",
+    "name": "filament.admin.resources.users.view",
+    "action": "App\\Filament\\Resources\\UserResource\\Pages\\ViewUser",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/users/{record}/edit",
+    "name": "filament.admin.resources.users.edit",
+    "action": "App\\Filament\\Resources\\UserResource\\Pages\\EditUser",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/venue-categories",
+    "name": "filament.admin.resources.venue-categories.index",
+    "action": "App\\Filament\\Resources\\VenueCategoryResource\\Pages\\ListVenueCategories",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/venue-categories/create",
+    "name": "filament.admin.resources.venue-categories.create",
+    "action": "App\\Filament\\Resources\\VenueCategoryResource\\Pages\\CreateVenueCategory",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/venue-categories/{record}/edit",
+    "name": "filament.admin.resources.venue-categories.edit",
+    "action": "App\\Filament\\Resources\\VenueCategoryResource\\Pages\\EditVenueCategory",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/venue-types",
+    "name": "filament.admin.resources.venue-types.index",
+    "action": "App\\Filament\\Resources\\VenueTypeResource\\Pages\\ListVenueType",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/venue-types/create",
+    "name": "filament.admin.resources.venue-types.create",
+    "action": "App\\Filament\\Resources\\VenueTypeResource\\Pages\\CreateVenueType",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/venue-types/{record}/edit",
+    "name": "filament.admin.resources.venue-types.edit",
+    "action": "App\\Filament\\Resources\\VenueTypeResource\\Pages\\EditVenueType",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/vietnam-communes",
+    "name": "filament.admin.resources.vietnam-communes.index",
+    "action": "App\\Filament\\Resources\\VietnamCommuneResource\\Pages\\ListVietnamCommunes",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/vietnam-communes/create",
+    "name": "filament.admin.resources.vietnam-communes.create",
+    "action": "App\\Filament\\Resources\\VietnamCommuneResource\\Pages\\CreateVietnamCommune",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/vietnam-communes/{record}/edit",
+    "name": "filament.admin.resources.vietnam-communes.edit",
+    "action": "App\\Filament\\Resources\\VietnamCommuneResource\\Pages\\EditVietnamCommune",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/vietnam-provinces",
+    "name": "filament.admin.resources.vietnam-provinces.index",
+    "action": "App\\Filament\\Resources\\VietnamProvinceResource\\Pages\\ListVietnamProvinces",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/vietnam-provinces/create",
+    "name": "filament.admin.resources.vietnam-provinces.create",
+    "action": "App\\Filament\\Resources\\VietnamProvinceResource\\Pages\\CreateVietnamProvince",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/vietnam-provinces/{record}/edit",
+    "name": "filament.admin.resources.vietnam-provinces.edit",
+    "action": "App\\Filament\\Resources\\VietnamProvinceResource\\Pages\\EditVietnamProvince",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/vietnam-regions",
+    "name": "filament.admin.resources.vietnam-regions.index",
+    "action": "App\\Filament\\Resources\\VietnamRegionResource\\Pages\\ListVietnamRegions",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/vietnam-regions/create",
+    "name": "filament.admin.resources.vietnam-regions.create",
+    "action": "App\\Filament\\Resources\\VietnamRegionResource\\Pages\\CreateVietnamRegion",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "admin/vietnam-regions/{record}/edit",
+    "name": "filament.admin.resources.vietnam-regions.edit",
+    "action": "App\\Filament\\Resources\\VietnamRegionResource\\Pages\\EditVietnamRegion",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:admin",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "04 Marketplace Admin",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "agency",
+    "name": "fp.agency",
+    "action": "App\\Http\\Controllers\\FrontpageController@agency",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "api/v1/auth/token",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\AuthController@token",
+    "middleware": [
+      "api"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/inventory/locations",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\InventoryController@locations",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+      "App\\Http\\Middleware\\CheckTokenAbility:inventory"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/inventory/networks",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\InventoryController@networks",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+      "App\\Http\\Middleware\\CheckTokenAbility:inventory"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/inventory/owners",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\InventoryController@owners",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+      "App\\Http\\Middleware\\CheckTokenAbility:inventory"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/inventory/owners/{slug}",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\InventoryController@ownerDetail",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+      "App\\Http\\Middleware\\CheckTokenAbility:inventory"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/inventory/screens",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\InventoryController@index",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+      "App\\Http\\Middleware\\CheckTokenAbility:inventory"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/inventory/screens/map",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\InventoryController@map",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+      "App\\Http\\Middleware\\CheckTokenAbility:inventory"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/inventory/screens/{screen_id}",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\InventoryController@show",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+      "App\\Http\\Middleware\\CheckTokenAbility:inventory"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/inventory/stats",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\InventoryController@stats",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+      "App\\Http\\Middleware\\CheckTokenAbility:inventory"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/inventory/venue-types",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\InventoryController@venueTypes",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+      "App\\Http\\Middleware\\CheckTokenAbility:inventory"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "api/v1/inventory/webhook/register",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\WebhookController@register",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+      "App\\Http\\Middleware\\CheckTokenAbility:inventory"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/oohx/estimates",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\OohxEstimateController@topByCity",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+      "App\\Http\\Middleware\\CheckTokenAbility:inventory"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/oohx/estimates/{externalId}",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\OohxEstimateController@show",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+      "App\\Http\\Middleware\\CheckTokenAbility:inventory"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/owners",
+    "name": "owners.index",
+    "action": "App\\Http\\Controllers\\Api\\V1\\OwnerController@index",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "api/v1/owners",
+    "name": "owners.store",
+    "action": "App\\Http\\Controllers\\Api\\V1\\OwnerController@store",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/owners/{owner}",
+    "name": "owners.show",
+    "action": "App\\Http\\Controllers\\Api\\V1\\OwnerController@show",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "PUT|PATCH",
+    "uri": "api/v1/owners/{owner}",
+    "name": "owners.update",
+    "action": "App\\Http\\Controllers\\Api\\V1\\OwnerController@update",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "DELETE",
+    "uri": "api/v1/owners/{owner}",
+    "name": "owners.destroy",
+    "action": "App\\Http\\Controllers\\Api\\V1\\OwnerController@destroy",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/owners/{owner}/stats",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\OwnerController@stats",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "api/v1/owners/{owner}/switch",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\OwnerController@switchContext",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "api/v1/player/heartbeat",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\PlayerController@heartbeat",
+    "middleware": [
+      "api"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "api/v1/player/impression",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\PlayerController@impression",
+    "middleware": [
+      "api"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/screens",
+    "name": "screens.index",
+    "action": "App\\Http\\Controllers\\Api\\V1\\ScreenController@index",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "api/v1/screens",
+    "name": "screens.store",
+    "action": "App\\Http\\Controllers\\Api\\V1\\ScreenController@store",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/screens/{screen}",
+    "name": "screens.show",
+    "action": "App\\Http\\Controllers\\Api\\V1\\ScreenController@show",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": null,
+    "method": "PUT|PATCH",
+    "uri": "api/v1/screens/{screen}",
+    "name": "screens.update",
+    "action": "App\\Http\\Controllers\\Api\\V1\\ScreenController@update",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": null,
+    "method": "DELETE",
+    "uri": "api/v1/screens/{screen}",
+    "name": "screens.destroy",
+    "action": "App\\Http\\Controllers\\Api\\V1\\ScreenController@destroy",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/screens/{screen}/multipliers",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\ScreenController@multipliers",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": null,
+    "method": "PUT",
+    "uri": "api/v1/screens/{screen}/multipliers",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\ScreenController@updateMultipliers",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "api/v1/screens/{screen}/toggle-programmatic",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Api\\V1\\ScreenController@toggleProgrammatic",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/sites",
+    "name": "sites.index",
+    "action": "App\\Http\\Controllers\\Api\\V1\\SiteController@index",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "api/v1/sites",
+    "name": "sites.store",
+    "action": "App\\Http\\Controllers\\Api\\V1\\SiteController@store",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/sites/{site}",
+    "name": "sites.show",
+    "action": "App\\Http\\Controllers\\Api\\V1\\SiteController@show",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": null,
+    "method": "PUT|PATCH",
+    "uri": "api/v1/sites/{site}",
+    "name": "sites.update",
+    "action": "App\\Http\\Controllers\\Api\\V1\\SiteController@update",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": null,
+    "method": "DELETE",
+    "uri": "api/v1/sites/{site}",
+    "name": "sites.destroy",
+    "action": "App\\Http\\Controllers\\Api\\V1\\SiteController@destroy",
+    "middleware": [
+      "api",
+      "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "booking/create",
+    "name": "buyer.booking.create",
+    "action": "App\\Http\\Controllers\\Buyer\\BookingController@create",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "POST",
+    "uri": "booking/create",
+    "name": "buyer.booking.store",
+    "action": "App\\Http\\Controllers\\Buyer\\BookingController@store",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "booking/{campaign}/creative",
+    "name": "buyer.booking.creative",
+    "action": "App\\Http\\Controllers\\Buyer\\BookingController@creative",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "POST",
+    "uri": "booking/{campaign}/creative",
+    "name": "buyer.booking.creative.upload",
+    "action": "App\\Http\\Controllers\\Buyer\\BookingController@uploadCreative",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "booking/{campaign}/payment",
+    "name": "buyer.payment",
+    "action": "App\\Http\\Controllers\\Buyer\\PaymentController@show",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "POST",
+    "uri": "booking/{campaign}/payment",
+    "name": "buyer.payment.process",
+    "action": "App\\Http\\Controllers\\Buyer\\PaymentController@process",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "booking/{campaign}/payment/success",
+    "name": "buyer.payment.success",
+    "action": "App\\Http\\Controllers\\Buyer\\PaymentController@success",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "booking/{campaign}/review",
+    "name": "buyer.booking.review",
+    "action": "App\\Http\\Controllers\\Buyer\\BookingController@review",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "POST",
+    "uri": "booking/{campaign}/submit",
+    "name": "buyer.booking.submit",
+    "action": "App\\Http\\Controllers\\Buyer\\BookingController@submit",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "buyer",
+    "name": "filament.buyer.pages.dashboard",
+    "action": "Filament\\Pages\\Dashboard",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:buyer",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "buyer/login",
+    "name": "filament.buyer.auth.login",
+    "action": "Filament\\Pages\\Auth\\Login",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:buyer",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "POST",
+    "uri": "buyer/logout",
+    "name": "filament.buyer.auth.logout",
+    "action": "Filament\\Http\\Controllers\\Auth\\LogoutController",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:buyer",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "buyer/team",
+    "name": "filament.buyer.resources.team.index",
+    "action": "App\\Filament\\Buyer\\Resources\\OrgUserResource\\Pages\\ListOrgUsers",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:buyer",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "buyer/team/{record}/edit",
+    "name": "filament.buyer.resources.team.edit",
+    "action": "App\\Filament\\Buyer\\Resources\\OrgUserResource\\Pages\\EditOrgUser",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:buyer",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "cart",
+    "name": "buyer.cart",
+    "action": "App\\Http\\Controllers\\Buyer\\CartController@index",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "POST",
+    "uri": "cart/add",
+    "name": "buyer.cart.add",
+    "action": "App\\Http\\Controllers\\Buyer\\CartController@add",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "cart/count",
+    "name": "buyer.cart.count",
+    "action": "App\\Http\\Controllers\\Buyer\\CartController@count",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "PUT",
+    "uri": "cart/{item}",
+    "name": "buyer.cart.update",
+    "action": "App\\Http\\Controllers\\Buyer\\CartController@update",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "DELETE",
+    "uri": "cart/{item}",
+    "name": "buyer.cart.remove",
+    "action": "App\\Http\\Controllers\\Buyer\\CartController@remove",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "BROKEN"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "explore",
+    "name": "fp.listing",
+    "action": "App\\Http\\Controllers\\FrontpageController@listing",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "explore/{screen}",
+    "name": "fp.detail",
+    "action": "App\\Http\\Controllers\\FrontpageController@detail",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "filament/exports/{export}/download",
+    "name": "filament.exports.download",
+    "action": "Filament\\Actions\\Exports\\Http\\Controllers\\DownloadExport",
+    "middleware": [
+      "filament.actions"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "filament/imports/{import}/failed-rows/download",
+    "name": "filament.imports.failed-rows.download",
+    "action": "Filament\\Actions\\Imports\\Http\\Controllers\\DownloadImportFailureCsv",
+    "middleware": [
+      "filament.actions"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "geocode/search",
+    "name": null,
+    "action": "Closure",
+    "middleware": [
+      "web"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "invitations/{token}/accept",
+    "name": "invitations.accept",
+    "action": "App\\Http\\Controllers\\InvitationController@show",
+    "middleware": [
+      "web"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "POST",
+    "uri": "invitations/{token}/accept",
+    "name": "invitations.accept.store",
+    "action": "App\\Http\\Controllers\\InvitationController@store",
+    "middleware": [
+      "web"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "livewire/livewire.min.js",
+    "name": null,
+    "action": "Livewire\\Mechanisms\\FrontendAssets\\FrontendAssets@returnJavaScriptAsFile",
+    "middleware": [],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "livewire/livewire.min.js.map",
+    "name": null,
+    "action": "Livewire\\Mechanisms\\FrontendAssets\\FrontendAssets@maps",
+    "middleware": [],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "livewire/preview-file/{filename}",
+    "name": "livewire.preview-file",
+    "action": "Livewire\\Features\\SupportFileUploads\\FilePreviewController@handle",
+    "middleware": [
+      "web"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "livewire/update",
+    "name": "default.livewire.update",
+    "action": "Livewire\\Mechanisms\\HandleRequests\\HandleRequests@handleUpdate",
+    "middleware": [
+      "web"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "livewire/upload-file",
+    "name": "livewire.upload-file",
+    "action": "Livewire\\Features\\SupportFileUploads\\FileUploadController@handle",
+    "middleware": [
+      "web",
+      "Illuminate\\Routing\\Middleware\\ThrottleRequests:60,1"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "login",
+    "name": "login",
+    "action": "App\\Http\\Controllers\\Buyer\\BuyerAuthController@showLogin",
+    "middleware": [
+      "web"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "POST",
+    "uri": "login",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Buyer\\BuyerAuthController@login",
+    "middleware": [
+      "web"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "POST",
+    "uri": "logout",
+    "name": "buyer.logout",
+    "action": "App\\Http\\Controllers\\Buyer\\BuyerAuthController@logout",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "map",
+    "name": "fp.map",
+    "action": "App\\Http\\Controllers\\FrontpageController@map",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "my",
+    "name": "buyer.dashboard",
+    "action": "App\\Http\\Controllers\\Buyer\\BuyerDashboardController@index",
+    "middleware": [
+      "web",
+      "App\\Http\\Middleware\\EnsureBuyerAuth"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "my/campaigns",
+    "name": "buyer.campaigns",
+    "action": "App\\Http\\Controllers\\Buyer\\BuyerCampaignController@index",
+    "middleware": [
+      "web",
+      "App\\Http\\Middleware\\EnsureBuyerAuth"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "my/campaigns/{campaign}",
+    "name": "buyer.campaigns.show",
+    "action": "App\\Http\\Controllers\\Buyer\\BuyerCampaignController@show",
+    "middleware": [
+      "web",
+      "App\\Http\\Middleware\\EnsureBuyerAuth"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "my/campaigns/{campaign}/report",
+    "name": "buyer.campaigns.report",
+    "action": "App\\Http\\Controllers\\Buyer\\BuyerReportController@show",
+    "middleware": [
+      "web",
+      "App\\Http\\Middleware\\EnsureBuyerAuth"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "POST",
+    "uri": "my/campaigns/{campaign}/reviews",
+    "name": "buyer.campaigns.reviews.store",
+    "action": "App\\Http\\Controllers\\Buyer\\OwnerReviewController@store",
+    "middleware": [
+      "web",
+      "App\\Http\\Middleware\\EnsureBuyerAuth"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "my/settings",
+    "name": "buyer.settings",
+    "action": "App\\Http\\Controllers\\Buyer\\BuyerSettingsController@index",
+    "middleware": [
+      "web",
+      "App\\Http\\Middleware\\EnsureBuyerAuth"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "PUT",
+    "uri": "my/settings/organization",
+    "name": "buyer.settings.organization",
+    "action": "App\\Http\\Controllers\\Buyer\\BuyerSettingsController@updateOrganization",
+    "middleware": [
+      "web",
+      "App\\Http\\Middleware\\EnsureBuyerAuth"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "PUT",
+    "uri": "my/settings/password",
+    "name": "buyer.settings.password",
+    "action": "App\\Http\\Controllers\\Buyer\\BuyerSettingsController@updatePassword",
+    "middleware": [
+      "web",
+      "App\\Http\\Middleware\\EnsureBuyerAuth"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "PUT",
+    "uri": "my/settings/profile",
+    "name": "buyer.settings.profile",
+    "action": "App\\Http\\Controllers\\Buyer\\BuyerSettingsController@updateProfile",
+    "middleware": [
+      "web",
+      "App\\Http\\Middleware\\EnsureBuyerAuth"
+    ],
+    "zone": "02 Buyer / Agency",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "owners",
+    "name": "fp.owners",
+    "action": "App\\Http\\Controllers\\FrontpageController@owners",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "owners/{owner}",
+    "name": "fp.owner-detail",
+    "action": "App\\Http\\Controllers\\FrontpageController@ownerDetail",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "phan-anh-to-chuc-xa-hoi",
+    "name": "fp.reflections.create",
+    "action": "App\\Http\\Controllers\\PublicReflectionController@create",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "POST",
+    "uri": "phan-anh-to-chuc-xa-hoi",
+    "name": "fp.reflections.store",
+    "action": "App\\Http\\Controllers\\PublicReflectionController@store",
+    "middleware": [
+      "web",
+      "Illuminate\\Routing\\Middleware\\ThrottleRequests:5,60"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "phan-anh-to-chuc-xa-hoi/danh-sach",
+    "name": "fp.reflections.index",
+    "action": "App\\Http\\Controllers\\PublicReflectionController@index",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "products",
+    "name": "fp.products",
+    "action": "App\\Http\\Controllers\\ProductController@index",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "products/{slug}",
+    "name": "fp.product-detail",
+    "action": "App\\Http\\Controllers\\ProductController@show",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher",
+    "name": "filament.publisher.pages.dashboard",
+    "action": "Filament\\Pages\\Dashboard",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/booking-inboxes",
+    "name": "filament.publisher.resources.booking-inboxes.index",
+    "action": "App\\Filament\\Publisher\\Resources\\BookingInboxResource\\Pages\\ListBookingInbox",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/booking-inboxes/{record}",
+    "name": "filament.publisher.resources.booking-inboxes.view",
+    "action": "App\\Filament\\Publisher\\Resources\\BookingInboxResource\\Pages\\ViewBookingInbox",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/company-profile",
+    "name": "filament.publisher.pages.company-profile",
+    "action": "App\\Filament\\Publisher\\Pages\\CompanyProfile",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/login",
+    "name": "filament.publisher.auth.login",
+    "action": "Filament\\Pages\\Auth\\Login",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "POST",
+    "uri": "publisher/logout",
+    "name": "filament.publisher.auth.logout",
+    "action": "Filament\\Http\\Controllers\\Auth\\LogoutController",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/networks",
+    "name": "filament.publisher.resources.networks.index",
+    "action": "App\\Filament\\Publisher\\Resources\\NetworkResource\\Pages\\ListNetwork",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/networks/create",
+    "name": "filament.publisher.resources.networks.create",
+    "action": "App\\Filament\\Publisher\\Resources\\NetworkResource\\Pages\\CreateNetwork",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/networks/{record}",
+    "name": "filament.publisher.resources.networks.view",
+    "action": "App\\Filament\\Publisher\\Resources\\NetworkResource\\Pages\\ViewNetwork",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/networks/{record}/edit",
+    "name": "filament.publisher.resources.networks.edit",
+    "action": "App\\Filament\\Publisher\\Resources\\NetworkResource\\Pages\\EditNetwork",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/owner-users",
+    "name": "filament.publisher.resources.owner-users.index",
+    "action": "App\\Filament\\Publisher\\Resources\\OwnerUserResource\\Pages\\ListOwnerUsers",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/owner-users/{record}/edit",
+    "name": "filament.publisher.resources.owner-users.edit",
+    "action": "App\\Filament\\Publisher\\Resources\\OwnerUserResource\\Pages\\EditOwnerUser",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/products",
+    "name": "filament.publisher.resources.products.index",
+    "action": "App\\Filament\\Publisher\\Resources\\ProductResource\\Pages\\ListProducts",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/products/create",
+    "name": "filament.publisher.resources.products.create",
+    "action": "App\\Filament\\Publisher\\Resources\\ProductResource\\Pages\\CreateProduct",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/products/{record}/edit",
+    "name": "filament.publisher.resources.products.edit",
+    "action": "App\\Filament\\Publisher\\Resources\\ProductResource\\Pages\\EditProduct",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/screens",
+    "name": "filament.publisher.resources.screens.index",
+    "action": "App\\Filament\\Publisher\\Resources\\ScreenResource\\Pages\\ListScreen",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/screens/create",
+    "name": "filament.publisher.resources.screens.create",
+    "action": "App\\Filament\\Publisher\\Resources\\ScreenResource\\Pages\\CreateScreen",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/screens/{record}",
+    "name": "filament.publisher.resources.screens.view",
+    "action": "App\\Filament\\Publisher\\Resources\\ScreenResource\\Pages\\ViewScreen",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/screens/{record}/edit",
+    "name": "filament.publisher.resources.screens.edit",
+    "action": "App\\Filament\\Publisher\\Resources\\ScreenResource\\Pages\\EditScreen",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/sites",
+    "name": "filament.publisher.resources.sites.index",
+    "action": "App\\Filament\\Publisher\\Resources\\SiteResource\\Pages\\ListSite",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/sites/create",
+    "name": "filament.publisher.resources.sites.create",
+    "action": "App\\Filament\\Publisher\\Resources\\SiteResource\\Pages\\CreateSite",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/sites/import",
+    "name": "filament.publisher.pages.sites.import",
+    "action": "App\\Filament\\Publisher\\Pages\\ImportSites",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/sites/{record}",
+    "name": "filament.publisher.resources.sites.view",
+    "action": "App\\Filament\\Publisher\\Resources\\SiteResource\\Pages\\ViewSite",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "dash.oohx.net",
+    "method": "GET|HEAD",
+    "uri": "publisher/sites/{record}/edit",
+    "name": "filament.publisher.resources.sites.edit",
+    "action": "App\\Filament\\Publisher\\Resources\\SiteResource\\Pages\\EditSite",
+    "middleware": [
+      "Filament\\Http\\Middleware\\SetUpPanel:publisher",
+      "Illuminate\\Cookie\\Middleware\\EncryptCookies",
+      "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse",
+      "Illuminate\\Session\\Middleware\\StartSession",
+      "Illuminate\\View\\Middleware\\ShareErrorsFromSession",
+      "Filament\\Http\\Middleware\\Authenticate",
+      "Illuminate\\Session\\Middleware\\AuthenticateSession",
+      "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken",
+      "Illuminate\\Routing\\Middleware\\SubstituteBindings",
+      "Filament\\Http\\Middleware\\DisableBladeIconComponents",
+      "Filament\\Http\\Middleware\\DispatchServingFilamentEvent"
+    ],
+    "zone": "03 Media Owner",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "register",
+    "name": "buyer.register",
+    "action": "App\\Http\\Controllers\\Buyer\\BuyerAuthController@showRegister",
+    "middleware": [
+      "web"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "POST",
+    "uri": "register",
+    "name": null,
+    "action": "App\\Http\\Controllers\\Buyer\\BuyerAuthController@register",
+    "middleware": [
+      "web"
+    ],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "sanctum/csrf-cookie",
+    "name": "sanctum.csrf-cookie",
+    "action": "Laravel\\Sanctum\\Http\\Controllers\\CsrfCookieController@show",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "POST",
+    "uri": "save/{screen}",
+    "name": "screen.save",
+    "action": "Closure",
+    "middleware": [
+      "web",
+      "Illuminate\\Auth\\Middleware\\Authenticate"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "sitemap.xml",
+    "name": "sitemap",
+    "action": "App\\Http\\Controllers\\SitemapController@index",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "storage/{path}",
+    "name": "storage.local",
+    "action": "Closure",
+    "middleware": [],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "PUT",
+    "uri": "storage/{path}",
+    "name": "storage.local.upload",
+    "action": "Closure",
+    "middleware": [],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "up",
+    "name": null,
+    "action": "Closure",
+    "middleware": [],
+    "zone": "05 Shared Platform",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "{fallbackPlaceholder}",
+    "name": null,
+    "action": "Closure",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  },
+  {
+    "domain": "oohx.net",
+    "method": "GET|HEAD",
+    "uri": "{slug}",
+    "name": "fp.policy",
+    "action": "App\\Http\\Controllers\\PolicyController@show",
+    "middleware": [
+      "web"
+    ],
+    "zone": "01 Public Marketplace",
+    "capability_status": "PARTIAL"
+  }
+]
