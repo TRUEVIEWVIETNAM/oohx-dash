@@ -35,7 +35,8 @@
       "Bash(grep -n \"class=\\\\\"hdr-nav\\\\|<nav\\\\|Navigation\" /d/Code-Project/oohx-frontpage/*.html)",
       "Bash(grep -n \"bnav\\\\|nav class=\" /d/Code-Project/oohx-frontpage/*.html)",
       "Bash(grep -n \"class=\\\\\"ac\\\\\"\" /d/Code-Project/oohx-frontpage/*.html)",
-      "Bash(wc -l d:/Code-Project/oohx-dash/public/oohx-frontpage/*.html)"
+      "Bash(wc -l d:/Code-Project/oohx-dash/public/oohx-frontpage/*.html)",
+      "Bash(ssh -i ~/.ssh/trueview_vps root@172.104.188.62:*)"
     ],
     "additionalDirectories": [
       "D:\\Projects\\2026\\AdTRUE Platform\\oohx\\app\\api\\venue-types",
