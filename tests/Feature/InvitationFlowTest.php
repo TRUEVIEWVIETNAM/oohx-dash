@@ -60,7 +60,10 @@ class InvitationFlowTest extends TestCase
         $this->assertTrue($invitation->expires_at->isFuture());
 
         Notification::assertSentOnDemand(UserInvitationNotification::class, function ($n, $channels, $notifiable) {
-            return in_array('newbie@example.com', $notifiable->routes['mail'] ?? []);
+            // Notification::route('mail', $email) lưu routes['mail'] là CHUỖI chứ
+            // không phải mảng, nên in_array() ném TypeError. Ép kiểu ở phía test,
+            // không đổi cách gửi thông báo.
+            return in_array('newbie@example.com', (array) ($notifiable->routes['mail'] ?? []), true);
         });
     }
 
