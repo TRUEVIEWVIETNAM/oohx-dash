@@ -47,6 +47,18 @@ jobs:
 
       - run: composer install --no-interaction --prefer-dist --no-progress
 
+      # Tài nguyên frontend phải build trước khi chạy test: public/build không
+      # theo repo, mà mọi trang Blade đều gọi @vite() — thiếu manifest thì hàng
+      # chục test render trang hỏng vì lý do không liên quan gì tới nội dung test.
+      - name: Cài Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
       # Bước chặn: dừng ngay nếu biến CSDL không trỏ tới DB test dùng một lần.
       # .env của dự án trỏ vào production, nên một cấu hình sai ở đây là mất dữ liệu thật.
       - name: Kiểm tra an toàn trước khi chạy test
