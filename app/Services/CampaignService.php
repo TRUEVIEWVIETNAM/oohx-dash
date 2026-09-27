@@ -8,6 +8,7 @@ use App\Models\CampaignActivity;
 use App\Models\Cart;
 use App\Models\Organization;
 use App\Models\User;
+use App\Services\PurchaseEligibilityService;
 use App\Notifications\BookingResolvedNotification;
 use App\Notifications\BookingSubmittedNotification;
 use Illuminate\Support\Collection;
@@ -28,6 +29,14 @@ class CampaignService
             // dừng lại để người mua xem con số mới rồi tự quyết — không im lặng lấy
             // giá mới, cũng không giữ giá cũ đã hết hiệu lực (audit F-01, Codex R03).
             $this->assertCartRatesUnchanged($items);
+
+            // Owner có thể bị tạm ngưng trong lúc giỏ nằm đó — kiểm lại trước khi ghi.
+            $eligibility = app(PurchaseEligibilityService::class);
+            foreach ($items as $cartItem) {
+                if ($cartItem->screen) {
+                    $eligibility->assertScreenPurchasable($cartItem->screen);
+                }
+            }
 
             $campaign = Campaign::create([
                 'organization_id'             => $org->id,
@@ -90,6 +99,10 @@ class CampaignService
     {
         abort_unless($campaign->isDraft(), 422, 'Campaign không ở trạng thái nháp');
 
+        // Kiểm lại lần cuối trước khi gửi cho media owner: giữa lúc tạo nháp và
+        // lúc gửi, owner có thể đã bị tạm ngưng hoặc màn hình đã bị gỡ bán.
+        $this->assertLinesStillPurchasable($campaign);
+
         $campaign->update([
             'status'       => Campaign::STATUS_PENDING,
             'submitted_at' => now(),
@@ -109,6 +122,27 @@ class CampaignService
         }
 
         return $campaign->fresh();
+    }
+
+    /**
+     * Mọi màn hình trong chiến dịch còn bán được không.
+     *
+     * Cổng bán hàng trước đây chỉ chặn ở bước thêm giỏ. Giữa thêm giỏ và gửi
+     * booking có thể cách nhau nhiều ngày — đủ để owner bị tạm ngưng hoặc màn
+     * hình bị tắt (audit F10, Codex R05: eligibility phải kiểm ở mọi chuyển
+     * trạng thái, không chỉ lúc thêm).
+     */
+    private function assertLinesStillPurchasable(Campaign $campaign): void
+    {
+        $eligibility = app(PurchaseEligibilityService::class);
+
+        $lines = $campaign->bookingLines()->with('screen')->get();
+
+        foreach ($lines as $line) {
+            if ($line->screen) {
+                $eligibility->assertScreenPurchasable($line->screen);
+            }
+        }
     }
 
     /**

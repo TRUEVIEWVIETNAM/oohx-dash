@@ -190,6 +190,12 @@ class CartService
     {
         $screen = $item->screen()->with('inventory')->first();
 
+        // Sửa dòng giỏ cũng phải qua cổng: màn hình có thể đã bị gỡ bán kể từ lúc
+        // thêm vào (audit F10 / Codex R05).
+        if ($screen) {
+            $this->eligibility->assertScreenPurchasable($screen);
+        }
+
         // Preserve pricing_model from item (already resolved on addItem)
         $pricingModel = $item->pricing_model ?? 'io';
         // KHÔNG mang theo booked_cpms / duration_units / screen_count cũ.
