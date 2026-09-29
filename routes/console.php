@@ -36,3 +36,8 @@ Schedule::command('uploads:prune-livewire-tmp')->hourly()->withoutOverlapping();
 // Không phải cơ chế bảo vệ: phép tính sức chứa đã tự loại giữ chỗ hết hạn theo
 // expires_at, nên lệnh này hỏng cũng không giam kho. Xem InventoryHoldService.
 Schedule::command('inventory:purge-holds')->everyFiveMinutes()->withoutOverlapping();
+
+// ── Tổng hợp lượt phát theo ngày ──
+// Chạy mỗi giờ cho hôm nay + hôm qua: thiết bị mất mạng gửi bù sau nửa đêm là
+// chuyện thường, nên chỉ tổng hợp hôm nay sẽ bỏ sót phần gửi muộn của hôm trước.
+Schedule::command('impressions:rollup')->hourly()->withoutOverlapping();

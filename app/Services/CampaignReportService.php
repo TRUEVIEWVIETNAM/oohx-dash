@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Campaign;
-use App\Models\ImpressionLog;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -58,17 +57,23 @@ class CampaignReportService
             $start = now()->subDays($days - 1);
         }
 
-        // Query impression_logs grouped by date
+        // Đọc bảng tổng hợp theo ngày, không quét bảng thô.
+        //
+        // `impression_logs` nhận ghi liên tục từ mọi màn hình và đã phân vùng;
+        // quét lại nó mỗi lần mở trang báo cáo là cách chắc chắn để trang này
+        // chết khi số màn hình tăng. Bảng tổng hợp do `impressions:rollup` cập
+        // nhật mỗi giờ.
         $screenIds = $campaign->bookingLines()
             ->whereIn('status', ['active', 'completed'])
             ->pluck('screen_id');
 
-        $data = ImpressionLog::whereIn('screen_id', $screenIds)
+        $data = DB::table('impression_daily_rollups')
+            ->whereIn('screen_id', $screenIds)
             ->where('campaign_id', $campaign->id)
-            ->whereBetween('played_at', [$start->startOfDay(), $end->endOfDay()])
-            ->selectRaw('DATE(played_at) as date, SUM(imp_count) as impressions, SUM(revenue_gross) as revenue')
-            ->groupByRaw('DATE(played_at)')
-            ->orderBy('date')
+            ->whereBetween('day', [$start->toDateString(), $end->toDateString()])
+            ->selectRaw('day as date, SUM(impressions) as impressions, SUM(revenue_gross) as revenue')
+            ->groupBy('day')
+            ->orderBy('day')
             ->get()
             ->keyBy('date');
 
