@@ -28,6 +28,7 @@ class DeadlockOrderTest extends TestCase
     use RefreshDatabase;
 
     private ?string $screenId = null;
+    private ?string $cartId = null;
 
     protected function tearDown(): void
     {
@@ -35,6 +36,7 @@ class DeadlockOrderTest extends TestCase
             try {
                 DB::table('cart_items')->where('screen_id', $this->screenId)->delete();
                 DB::table('screens')->where('id', $this->screenId)->delete();
+                DB::table('carts')->where('id', $this->cartId)->delete();
             } catch (\Throwable) {
                 // dọn hết sức, không che lỗi thật của test
             }
@@ -75,8 +77,19 @@ class DeadlockOrderTest extends TestCase
     private function seedScreen(): string
     {
         $this->screenId = (string) Str::ulid();
+        $this->cartId   = (string) Str::ulid();
 
+        // Giỏ phải TỒN TẠI THẬT: phần đo dựa vào việc chèn `cart_items` kích
+        // hoạt kiểm khóa ngoại. Nếu bản thân phép chèn hỏng vì thiếu giỏ thì
+        // test dừng trước khi chạm tới thứ cần đo — đúng lỗi vòng CI trước.
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        DB::table('carts')->insert([
+            'id'         => $this->cartId,
+            'user_id'    => 1,
+            'status'     => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         DB::table('screens')->insert([
             'id'          => $this->screenId,
             'site_id'     => (string) Str::ulid(),
@@ -123,7 +136,7 @@ class DeadlockOrderTest extends TestCase
                 // Thứ tự đúng: khóa trước.
                 DB::table('screens')->where('id', $screenId)->lockForUpdate()->first();
                 DB::table('cart_items')->insert([
-                    'cart_id'    => (string) Str::ulid(),
+                    'cart_id'    => $this->cartId,
                     'screen_id'  => $screenId,
                     'start_date' => now()->addYear()->toDateString(),
                     'end_date'   => now()->addYear()->addMonth()->toDateString(),
@@ -160,7 +173,7 @@ class DeadlockOrderTest extends TestCase
     public function test_chen_truoc_roi_moi_khoa_gay_deadlock(): void
     {
         $screenId = $this->seedScreen();
-        $cartId   = (string) Str::ulid();
+        $cartId   = $this->cartId;
 
         [$process, $pipes] = $this->spawn(<<<PHP
         \$pdo->beginTransaction();
@@ -186,7 +199,7 @@ class DeadlockOrderTest extends TestCase
             DB::beginTransaction();
 
             DB::table('cart_items')->insert([
-                'cart_id'    => (string) Str::ulid(),
+                'cart_id'    => $this->cartId,
                 'screen_id'  => $screenId,
                 'start_date' => now()->addYear()->toDateString(),
                 'end_date'   => now()->addYear()->addMonth()->toDateString(),
