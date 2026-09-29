@@ -101,9 +101,14 @@ class ScreenInventoryObserver
             'io_rate'            => $inventory->io_rate,
             'io_rate_unit'       => $inventory->io_rate_unit,
             'duration_discounts' => $inventory->duration_discounts,
-            // auth() có thể rỗng khi chạy từ lệnh artisan hoặc job — chấp nhận
-            // null, nhưng không bỏ luôn việc ghi phiên bản.
-            'changed_by'         => auth()->id(),
+            // Chỉ ghi id khi người gọi thực sự là một `User`.
+            //
+            // `auth()->id()` gọi `getAuthIdentifier()` trên đối tượng đang đăng
+            // nhập, mà với đối tác dùng token thì đó là `ApiClient` — lớp này
+            // không có phương thức đó, nên gọi vào là BadMethodCallException.
+            // Ngoài ra `changed_by` là khóa ngoại tới `users`: nhét id của
+            // ApiClient vào là ghi một liên kết sai.
+            'changed_by'         => auth()->user() instanceof User ? auth()->id() : null,
         ]);
     }
 }

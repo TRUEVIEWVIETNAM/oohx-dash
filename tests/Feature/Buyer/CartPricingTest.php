@@ -193,7 +193,7 @@ class CartPricingTest extends TestCase
         app(CartService::class)->addItem($cart, $screen->id, $this->dates(30));
 
         // Media owner đổi giá trong lúc giỏ còn nằm đó.
-        $screen->inventory->update(['io_rate' => 2_000_000]);
+        $this->asDataFixture(fn () => $screen->inventory->update(['io_rate' => 2_000_000]));
 
         try {
             app(CampaignService::class)->createFromCart(

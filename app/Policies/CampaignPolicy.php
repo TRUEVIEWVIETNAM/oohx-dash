@@ -24,9 +24,22 @@ use App\Models\User;
  */
 class CampaignPolicy
 {
+    /**
+     * Xem chiến dịch: người của tổ chức mua, **hoặc** media owner có màn hình
+     * trong chiến dịch đó.
+     *
+     * Nhánh media owner không phải phần thêm cho đẹp: panel publisher đọc chính
+     * `Campaign` để dựng hộp thư đặt chỗ, và Filament gọi policy này. Thiếu
+     * nhánh đó thì đăng ký policy làm cả hộp thư đặt chỗ trả 403 — đúng như
+     * `BookingInboxBuyerContactTest` bắt được trên CI.
+     */
     public function view(User $user, Campaign $campaign): bool
     {
-        return $this->allows($user, $campaign, 'view_campaigns');
+        if ($this->allows($user, $campaign, 'view_campaigns')) {
+            return true;
+        }
+
+        return $this->ownsLinesIn($user, $campaign);
     }
 
     public function update(User $user, Campaign $campaign): bool
@@ -76,6 +89,23 @@ class CampaignPolicy
      * người thuộc hai tổ chức chỉ cần đổi tổ chức đang chọn là cách kiểm cũ cho
      * qua hoặc chặn sai.
      */
+    /**
+     * Người này có thuộc media owner nào đang có màn hình trong chiến dịch không.
+     *
+     * Chỉ tính owner **còn hoạt động**: tạm ngưng một media owner phải có hiệu
+     * lực ở mọi cửa, kể cả cửa đọc.
+     */
+    private function ownsLinesIn(User $user, Campaign $campaign): bool
+    {
+        $ownerIds = $user->owners()->where('owners.status', 'active')->pluck('owners.id');
+
+        if ($ownerIds->isEmpty()) {
+            return false;
+        }
+
+        return $campaign->bookingLines()->whereIn('owner_id', $ownerIds)->exists();
+    }
+
     private function membership(User $user, Campaign $campaign): ?OrganizationUser
     {
         return OrganizationUser::where('organization_id', $campaign->organization_id)

@@ -101,7 +101,7 @@ class RateCardVersionTest extends TestCase
     {
         $screen = $this->screen();
 
-        $screen->inventory->update(['io_rate' => 1_500_000]);
+        $this->asDataFixture(fn () => $screen->inventory->update(['io_rate' => 1_500_000]));
 
         $versions = ScreenRateVersion::where('screen_id', $screen->id)->orderBy('effective_from')->get();
 
@@ -114,7 +114,7 @@ class RateCardVersionTest extends TestCase
     {
         $screen = $this->screen();
 
-        $screen->inventory->update(['weekly_impressions' => 500_000]);
+        $this->asDataFixture(fn () => $screen->inventory->update(['weekly_impressions' => 500_000]));
 
         $this->assertSame(
             1,
@@ -127,7 +127,7 @@ class RateCardVersionTest extends TestCase
     {
         $screen = $this->screen();
 
-        $screen->inventory->update(['duration_discounts' => [['min_units' => 6, 'discount_pct' => 10]]]);
+        $this->asDataFixture(fn () => $screen->inventory->update(['duration_discounts' => [['min_units' => 6, 'discount_pct' => 10]]]));
 
         $this->assertSame(2, ScreenRateVersion::where('screen_id', $screen->id)->count());
     }
@@ -138,7 +138,7 @@ class RateCardVersionTest extends TestCase
 
         // Phiên bản cũ lùi về quá khứ để mô phỏng lịch sử thật.
         ScreenRateVersion::where('screen_id', $screen->id)->update(['effective_from' => now()->subDays(30)]);
-        $screen->inventory->update(['io_rate' => 2_000_000]);
+        $this->asDataFixture(fn () => $screen->inventory->update(['io_rate' => 2_000_000]));
 
         $old = ScreenRateVersion::effectiveAt($screen->id, now()->subDays(10));
         $new = ScreenRateVersion::effectiveAt($screen->id, now());
@@ -228,7 +228,7 @@ class RateCardVersionTest extends TestCase
 
         // Owner bỏ chiết khấu sau khi khách đã bỏ vào giỏ: tiền đổi, khách phải
         // được xem lại con số mới.
-        $screen->inventory->update(['duration_discounts' => null]);
+        $this->asDataFixture(fn () => $screen->inventory->update(['duration_discounts' => null]));
 
         try {
             app(CampaignService::class)->createFromCart($this->org, $this->buyer, $cart->fresh(), ['name' => 'CD']);
