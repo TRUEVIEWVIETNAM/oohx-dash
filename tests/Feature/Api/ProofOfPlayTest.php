@@ -66,7 +66,7 @@ class ProofOfPlayTest extends TestCase
         $this->screen->refresh();
     }
 
-    private function post(array $payload, ?string $token = null): \Illuminate\Testing\TestResponse
+    private function sendImpression(array $payload, ?string $token = null): \Illuminate\Testing\TestResponse
     {
         $headers = $token === null ? [] : ['X-Device-Token' => $token];
 
@@ -89,7 +89,7 @@ class ProofOfPlayTest extends TestCase
 
     public function test_ghi_duoc_mot_luot_phat(): void
     {
-        $response = $this->post($this->payload(), $this->token);
+        $response = $this->sendImpression($this->payload(), $this->token);
 
         $response->assertStatus(201)->assertJsonPath('duplicate', false);
 
@@ -101,14 +101,14 @@ class ProofOfPlayTest extends TestCase
 
     public function test_khong_co_token_thi_khong_ghi_duoc(): void
     {
-        $this->post($this->payload())->assertStatus(401);
+        $this->sendImpression($this->payload())->assertStatus(401);
 
         $this->assertSame(0, ImpressionLog::count(), 'Biết UUID không đủ để chế ra bằng chứng phát sóng.');
     }
 
     public function test_token_sai_thi_khong_ghi_duoc(): void
     {
-        $this->post($this->payload(), 'token-bia-dat')->assertStatus(401);
+        $this->sendImpression($this->payload(), 'token-bia-dat')->assertStatus(401);
 
         $this->assertSame(0, ImpressionLog::count());
     }
@@ -121,7 +121,7 @@ class ProofOfPlayTest extends TestCase
             'active'   => true,
         ]);
 
-        $this->post($this->payload(['screen_uuid' => $other->uuid]), $this->token)
+        $this->sendImpression($this->payload(['screen_uuid' => $other->uuid]), $this->token)
             ->assertStatus(401);
     }
 
@@ -134,7 +134,7 @@ class ProofOfPlayTest extends TestCase
         ]);
         $otherToken = app(DeviceAuthenticator::class)->issueToken($other);
 
-        $this->post($this->payload(), $otherToken)->assertStatus(401);
+        $this->sendImpression($this->payload(), $otherToken)->assertStatus(401);
     }
 
     public function test_token_luu_duoi_dang_bam(): void
@@ -162,8 +162,8 @@ class ProofOfPlayTest extends TestCase
     {
         $payload = $this->payload();
 
-        $this->post($payload, $this->token)->assertStatus(201);
-        $second = $this->post($payload, $this->token);
+        $this->sendImpression($payload, $this->token)->assertStatus(201);
+        $second = $this->sendImpression($payload, $this->token);
 
         $second->assertOk()->assertJsonPath('duplicate', true);
 
@@ -175,20 +175,20 @@ class ProofOfPlayTest extends TestCase
         $payload = $this->payload();
         unset($payload['played_at']);
 
-        $this->post($payload, $this->token)->assertStatus(422);
+        $this->sendImpression($payload, $this->token)->assertStatus(422);
     }
 
     public function test_gui_lai_voi_moc_thoi_gian_lech_van_khong_cong_them(): void
     {
         $eventId = (string) Str::ulid();
 
-        $this->post($this->payload([
+        $this->sendImpression($this->payload([
             'event_id'  => $eventId,
             'played_at' => now()->subMinutes(10)->toIso8601String(),
         ]), $this->token)->assertStatus(201);
 
         // Thiết bị gửi lại nhưng đồng hồ đã nhích: mốc khác một chút.
-        $this->post($this->payload([
+        $this->sendImpression($this->payload([
             'event_id'  => $eventId,
             'played_at' => now()->subMinutes(9)->toIso8601String(),
         ]), $this->token)->assertOk()->assertJsonPath('duplicate', true);
@@ -211,8 +211,8 @@ class ProofOfPlayTest extends TestCase
         ]);
         $otherToken = app(DeviceAuthenticator::class)->issueToken($other);
 
-        $this->post($this->payload(['event_id' => $eventId]), $this->token)->assertStatus(201);
-        $this->post($this->payload(['event_id' => $eventId, 'screen_uuid' => $other->uuid]), $otherToken)
+        $this->sendImpression($this->payload(['event_id' => $eventId]), $this->token)->assertStatus(201);
+        $this->sendImpression($this->payload(['event_id' => $eventId, 'screen_uuid' => $other->uuid]), $otherToken)
             ->assertStatus(201);
 
         $this->assertSame(2, ImpressionLog::count(), 'event_id do thiết bị tự sinh, chỉ duy nhất trong phạm vi một thiết bị.');
@@ -220,8 +220,8 @@ class ProofOfPlayTest extends TestCase
 
     public function test_hai_su_kien_khac_nhau_van_ghi_ca_hai(): void
     {
-        $this->post($this->payload(), $this->token)->assertStatus(201);
-        $this->post($this->payload(), $this->token)->assertStatus(201);
+        $this->sendImpression($this->payload(), $this->token)->assertStatus(201);
+        $this->sendImpression($this->payload(), $this->token)->assertStatus(201);
 
         $this->assertSame(2, ImpressionLog::count());
     }
@@ -262,7 +262,7 @@ class ProofOfPlayTest extends TestCase
     {
         $line = $this->activeLine();
 
-        $this->post($this->payload(['booking_line_id' => $line->id]), $this->token)->assertStatus(201);
+        $this->sendImpression($this->payload(['booking_line_id' => $line->id]), $this->token)->assertStatus(201);
 
         $log = ImpressionLog::firstOrFail();
 
@@ -274,7 +274,7 @@ class ProofOfPlayTest extends TestCase
     {
         $line = $this->activeLine();
 
-        $this->post($this->payload(['campaign_id' => $line->campaign_id]), $this->token)->assertStatus(201);
+        $this->sendImpression($this->payload(['campaign_id' => $line->campaign_id]), $this->token)->assertStatus(201);
 
         $this->assertSame($line->id, ImpressionLog::firstOrFail()->booking_line_id);
     }
@@ -290,7 +290,7 @@ class ProofOfPlayTest extends TestCase
         ]);
         $line->update(['screen_id' => $otherScreen->id]);
 
-        $this->post($this->payload(['booking_line_id' => $line->id]), $this->token)->assertStatus(201);
+        $this->sendImpression($this->payload(['booking_line_id' => $line->id]), $this->token)->assertStatus(201);
 
         $this->assertNull(
             ImpressionLog::firstOrFail()->booking_line_id,
@@ -301,7 +301,7 @@ class ProofOfPlayTest extends TestCase
     public function test_id_dang_ulid_khong_bi_luat_kiem_tu_choi(): void
     {
         // Luật cũ ghi 'integer' nên mọi id thật đều bị từ chối 422.
-        $this->post($this->payload(['campaign_id' => (string) Str::ulid()]), $this->token)
+        $this->sendImpression($this->payload(['campaign_id' => (string) Str::ulid()]), $this->token)
             ->assertStatus(201);
     }
 
@@ -309,7 +309,7 @@ class ProofOfPlayTest extends TestCase
 
     public function test_thoi_diem_phat_o_tuong_lai_bi_keo_ve_hien_tai(): void
     {
-        $this->post($this->payload(['played_at' => now()->addYear()->toIso8601String()]), $this->token)
+        $this->sendImpression($this->payload(['played_at' => now()->addYear()->toIso8601String()]), $this->token)
             ->assertStatus(201);
 
         $this->assertTrue(
@@ -322,7 +322,7 @@ class ProofOfPlayTest extends TestCase
     {
         $twoDaysAgo = now()->subDays(2)->startOfHour();
 
-        $this->post($this->payload(['played_at' => $twoDaysAgo->toIso8601String()]), $this->token)
+        $this->sendImpression($this->payload(['played_at' => $twoDaysAgo->toIso8601String()]), $this->token)
             ->assertStatus(201);
 
         $this->assertSame(
@@ -334,7 +334,7 @@ class ProofOfPlayTest extends TestCase
 
     public function test_bao_muon_qua_han_bi_kep_ve_bien(): void
     {
-        $this->post($this->payload(['played_at' => now()->subDays(60)->toIso8601String()]), $this->token)
+        $this->sendImpression($this->payload(['played_at' => now()->subDays(60)->toIso8601String()]), $this->token)
             ->assertStatus(201);
 
         $playedAt = ImpressionLog::firstOrFail()->played_at;
@@ -350,7 +350,7 @@ class ProofOfPlayTest extends TestCase
         $line = $this->activeLine();
 
         foreach (range(1, 3) as $i) {
-            $this->post($this->payload(['booking_line_id' => $line->id]), $this->token)->assertStatus(201);
+            $this->sendImpression($this->payload(['booking_line_id' => $line->id]), $this->token)->assertStatus(201);
         }
 
         $rollups = app(ImpressionRollupService::class);
@@ -366,7 +366,7 @@ class ProofOfPlayTest extends TestCase
 
     public function test_tong_hop_tach_theo_tung_man_hinh(): void
     {
-        $this->post($this->payload(), $this->token)->assertStatus(201);
+        $this->sendImpression($this->payload(), $this->token)->assertStatus(201);
 
         $other = Screen::factory()->create([
             'owner_id' => $this->screen->owner_id,
@@ -375,7 +375,7 @@ class ProofOfPlayTest extends TestCase
         ]);
         $otherToken = app(DeviceAuthenticator::class)->issueToken($other);
 
-        $this->post($this->payload(['screen_uuid' => $other->uuid]), $otherToken)->assertStatus(201);
+        $this->sendImpression($this->payload(['screen_uuid' => $other->uuid]), $otherToken)->assertStatus(201);
 
         app(ImpressionRollupService::class)->rollupDay(now());
 
@@ -384,7 +384,7 @@ class ProofOfPlayTest extends TestCase
 
     public function test_lenh_tong_hop_chay_duoc(): void
     {
-        $this->post($this->payload(), $this->token)->assertStatus(201);
+        $this->sendImpression($this->payload(), $this->token)->assertStatus(201);
 
         $this->artisan('impressions:rollup')->assertSuccessful();
 
