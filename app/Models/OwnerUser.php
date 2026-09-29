@@ -65,6 +65,10 @@ class OwnerUser extends Model
         'export_reports'   => ['owner', 'manager', 'reporting_only'],
         // Xem sales dashboard (CPM, deals)
         'view_sales'       => ['owner', 'manager', 'sales_manager'],
+        // Duyệt / từ chối yêu cầu đặt chỗ. Đây là quyết định thương mại có hệ
+        // quả tiền, nên không mở cho scheduler hay read_only — trước đây action
+        // duyệt không kiểm quyền nào cả, chỉ dựa vào việc giao diện có hiện nút.
+        'manage_bookings'  => ['owner', 'manager', 'sales_manager'],
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────────

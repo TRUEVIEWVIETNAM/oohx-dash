@@ -1,0 +1,161 @@
+# Yêu cầu review giai đoạn 1 — đóng đường tiền
+
+Người viết: Claude Code · 29/09/2026 · Trên nền giai đoạn 0 (`e019a8d`)
+
+Giai đoạn 1 gồm sáu việc trong `LO-TRINH-SAU-GIAI-DOAN-0.md` cộng phần 1b (vá nốt phân quyền). Tất cả đã code xong và xanh. Chủ dự án yêu cầu làm trọn một lượt rồi Codex review một lần, nên tài liệu này gộp cả bảy phần.
+
+Cách tái lập ở `REPRODUCE-CLAUDE.md`. Trạng thái tổng thể ở `STATUS.md`.
+
+---
+
+## 1. Bốn quyết định nghiệp vụ đã chốt 29/09
+
+| # | Câu hỏi | Chốt |
+|---|---|---|
+| 1 | Giữ chỗ trong giỏ hết hạn sau bao lâu | **30 phút**, để trong `config/pricing.php` |
+| 2 | Hủy đơn đã xác nhận thì hoàn bao nhiêu | **Bậc thang**: ≥14 ngày 100%, 7–13 ngày 50%, <7 ngày 0% |
+| 3 | Chiến dịch nhiều owner chuyển "đang chạy" khi nào | **Theo từng dòng** — owner nào đủ tiền thì dòng đó chạy |
+| 4 | Gói có được gồm màn hình nhiều owner | **Được**, chia tiền theo giá niêm yết từng dòng |
+
+Hai giả định tôi tự chốt, xin xác nhận lại: media owner chỉ **ghi nhận** "đã nhận tiền", người quản trị xác nhận mới đóng công nợ; và giữ nguyên **365 ngày** cho khoảng ngày tối đa một dòng.
+
+---
+
+## 2. Kết quả test
+
+| Bộ test | Số ca |
+|---|---|
+| `BundleExpansionTest` + `SplitVndTest` (1.2) | 17 |
+| `InventoryHoldTest` + `HoldLockingTest` (1.1) | 17 |
+| `CreativeGateAndPaymentTest` (1.3 + 1.4) | 13 |
+| `CancellationTest` (1.5) | 12 |
+| `RateCardVersionTest` (1.6) | 11 |
+| `TenantPermissionGapTest` (1b) | 12 |
+| **Tổng mới** | **82** |
+
+Full suite: xem `STATUS.md` mục 5 cho con số mới nhất và evidence.
+
+---
+
+## 3. 1.1 — Giữ chỗ nguyên tử
+
+`AvailabilityService` chỉ **đọc rồi so sánh**. Hai người mua chạy qua nó cùng lúc thì cả hai đều thấy còn trống và cả hai đều ghi được — lỗi "kiểm rồi mới làm", và nó **không lộ ra trong test một luồng**.
+
+Cách chặn: khóa hàng `screens` làm mốc (`SELECT ... FOR UPDATE`) trước khi tính sức chứa, nên hai giao dịch buộc phải xếp hàng.
+
+```
+SOV đã dùng = tổng SOV dòng đặt chỗ còn hiệu lực + tổng SOV giữ chỗ còn hiệu lực
+còn lại     = share_of_voice_max_pct − SOV đã dùng
+```
+
+Hai bằng chứng khác nhau, vì một cái không đủ:
+
+1. `test_gianh_giu_cho_khoa_hang_man_hinh_truoc_khi_doc_suc_chua` — nghe toàn bộ SQL của đường đặt chỗ thật, xác nhận câu khóa chạy **trước** câu đếm. Khóa sau khi đọc thì chẳng chặn gì.
+2. `test_khoa_hang_man_hinh_chan_that_su_mot_ket_noi_khac` — **hai kết nối thật**, kết nối thứ hai đặt `innodb_lock_wait_timeout=1` và phải nhận lỗi hết thời gian chờ thay vì đọc được kho.
+
+**Đã kiểm ngược:** gỡ `lockForUpdate()` ra thì bằng chứng 1 đổ, còn toàn bộ `InventoryHoldTest` vẫn xanh — đúng như dự đoán, và đó là lý do phải có bằng chứng riêng cho phần khóa.
+
+Hết hạn được tính **ngay trong truy vấn** theo `expires_at`, không dựa vào job dọn đã chạy hay chưa: nếu chỉ lọc theo `status` thì kho bị giam thêm đúng bằng khoảng trễ của job, và vào lúc job hỏng thì giam vĩnh viễn. Lệnh `inventory:purge-holds` chạy 5 phút một lần chỉ để dọn nhà.
+
+---
+
+## 4. 1.2 — Mở gói thành nhiều dòng
+
+`CartService::addProduct` lưu `screen_id` = **màn hình đầu tiên** của gói, và `createFromCart` tạo đúng một dòng từ đó. Gói 10 màn hình của 3 owner thu về một dòng trên một màn hình:
+
+- SOV chỉ bị trừ trên màn hình đầu → 9 màn còn lại vẫn báo trống và bán tiếp.
+- Toàn bộ tiền ghi cho owner của màn hình đầu → hai owner kia **không có dòng công nợ nào**.
+- Owner sửa thành phần gói sau khi bán thì đơn cũ trôi theo.
+
+Nay mỗi màn hình một dòng với owner và giá riêng. Chia tiền theo giá niêm yết quy về **cùng mẫu số 210** (bội số chung của 7 và 30) — không chia cho 30, vì test bắt được `1.000.000/30` làm tròn thành `33.333` khiến tỉ lệ 1:3 hóa ra `1.999.984` với `6.000.016`. Tổng các phần **luôn** bằng đúng giá gói: phần dư cộng vào phần trọng số lớn nhất, không dùng số thực ở đâu cả.
+
+Trọng số quá lớn (kho tính CPM với hàng chục triệu lượt hiển thị) được rút gọn theo ước chung lớn nhất, rồi hạ dần nếu cần, để `total × weight` không tràn số nguyên 64 bit.
+
+`booking_line_bundles` giữ bản chụp gói lúc mua, đọc lại được cả khi sản phẩm đã bị sửa hoặc xóa.
+
+---
+
+## 5. 1.3 — Cổng nội dung quảng cáo
+
+**Nói rõ phạm vi trước:** hiện **chưa có đường phát sóng** — không endpoint nào trả lịch phát cho thiết bị, `playlist_version` trong heartbeat chỉ là dấu thời gian của bảng kho. Nên tôi **không** gọi việc này là "chặn phát sóng". Cổng đặt ở chỗ duy nhất có thật: **chuyển chiến dịch sang đang chạy**.
+
+Trước đây `creatives.status` có đủ ba trạng thái nhưng không nối vào đâu: duyệt hay không cũng không đổi gì, và `booking_line_creatives` chưa từng có dòng nào dù bảng và model pivot đã tồn tại.
+
+Nay: duyệt nội dung thì gắn vào các dòng chưa có nội dung; từ chối thì **gỡ khỏi mọi dòng**; trả đủ tiền mà chưa có nội dung đã duyệt thì chiến dịch **không** chuyển sang đang chạy và ghi nhật ký `activation_blocked`. Ba action Filament (duyệt, từ chối, duyệt hàng loạt) nay đi qua cùng một service.
+
+Khi nào có đường phát sóng, nó phải gọi lại `assertReadyToAir()` chứ không viết luật thứ hai.
+
+---
+
+## 6. 1.4 — Tiền theo từng media owner
+
+Năm chỗ sai, bốn trong số đó ảnh hưởng trực tiếp tới số tiền:
+
+| Chỗ | Trước | Sau |
+|---|---|---|
+| Kích hoạt | Chỉ khi **tổng** tiền cả chiến dịch đủ → một owner chậm xác nhận là cả chiến dịch đứng | Theo từng owner, kèm điều kiện nội dung đã duyệt |
+| `breakdownByOwner` | Cộng cả khoản **đang chờ** vào phần "đã trả" → owner hiện ra đã nhận đủ tiền ngay khi người mua bấm nút | `paid` và `pending` là hai con số riêng; `is_paid` chỉ tính khoản đã xác nhận |
+| `amount` | Nhận thẳng từ request, chỉ chặn `min:1000` | Máy chủ tính phần còn nợ; số khách khai không được vượt quá |
+| Bấm hai lần | Hai khoản công nợ | `idempotency_key` (dựng từ token của lần gửi biểu mẫu) + khoản chờ của cùng owner được dùng lại |
+| Số hóa đơn | "Đọc số lớn nhất rồi cộng một", không ràng buộc → hai người bấm cùng lúc ra cùng một số | Ràng buộc duy nhất ở CSDL + sinh có thử lại; đếm theo độ dài tiền tố nên không hỏng từ hóa đơn thứ 10.000 |
+
+**Một điểm cần Codex soi:** migration thêm ràng buộc duy nhất cho `invoice_number` **bỏ qua** nếu dữ liệu hiện có đã trùng — nó tạo index thường và ghi `Log::warning` thay vì làm deploy đổ. Lý do: không được tự sửa số hóa đơn đã phát hành. Nhưng nghĩa là trên môi trường đã có số trùng, lỗ hổng còn nguyên tới khi ai đó dọn tay. Tôi chọn nói thật thay vì im lặng — xin ý kiến có nên làm khác.
+
+---
+
+## 7. 1.5 — Hủy và hoàn tiền
+
+`cancelled` từng chỉ là một giá trị trong enum, không có đường nào đi tới.
+
+Nay có `CancellationService` với bậc thang trong config. Ba điều cố ý:
+
+- Tính theo ngày chạy của **từng dòng**, không theo ngày bắt đầu chiến dịch. Chiến dịch chạy tháng 1–6, hủy dòng của tháng 6 vào tháng 2 là hủy **sớm**.
+- Hủy **nhả suất về kho ngay** — nối thẳng vào 1.1. Không nhả thì màn hình bị chiếm bởi một đơn không còn tồn tại.
+- Chỉ hoàn phần **đã xác nhận chuyển khoản**. Khoản đang chờ thì chưa có đồng nào đi, không có gì để hoàn.
+
+`refunds` ghi **nghĩa vụ**, không phải giao dịch: sàn không giữ tiền, nên việc chuyển lại diễn ra ngoài hệ thống và `settled_at` đánh dấu hai bên đã xong. Bản ghi chụp cả bảng bậc thang lúc hủy, để đổi chính sách sau này không làm hồ sơ cũ khó hiểu.
+
+---
+
+## 8. 1.6 — Bảng giá có phiên bản, chiết khấu theo thời lượng
+
+Hai thiếu sót cùng một gốc: bảng giá được coi như một con số hiện tại chứ không phải văn bản có hiệu lực theo thời gian.
+
+- `screen_rate_versions` chỉ ghi thêm, trả lời được "ngày ấy màn hình này niêm yết bao nhiêu". Ghi ở **observer** chứ không ở service, vì giá bị sửa từ nhiều đường (form hai panel, API v1, lệnh artisan, job nhập kho, scheduler) — nhét vào từng đường là cách chắc chắn để sót một đường, và đường bị sót chính là đường sửa giá không để lại vết. Chỉ ghi khi cột giá thật sự đổi, không ghi cho mọi thay đổi.
+- `duration_discounts` trên từng kho: bậc cao nhất đạt tới thì áp, không cộng dồn. Bậc khai sai (150%, `min_units` = 0, không phải mảng) bị bỏ qua chứ không ra hóa đơn âm.
+
+**Một chỗ dễ vỡ đã xử lý:** bậc chiết khấu nằm trong ảnh chụp giá của giỏ, và ảnh chụp là mảng **lồng**. `ksort` tầng ngoài — cách đã dùng từ T2 — không đủ: MySQL chuẩn hoá thứ tự khóa cả bên trong, nên mọi giỏ có khai chiết khấu sẽ bị báo "giá đã đổi". Nay sắp khóa ở mọi tầng, danh sách giữ nguyên thứ tự vì với bậc giá thì thứ tự là dữ liệu.
+
+---
+
+## 9. 1b — Bốn lỗ phân quyền
+
+| Lỗ | Nội dung |
+|---|---|
+| Scope owner | `approveLines` lọc theo id dòng trong cùng chiến dịch mà **không scope owner** — thành viên của owner A duyệt được dòng của owner B, mà id của họ nằm ngay trên cùng một trang |
+| Quyền duyệt đặt chỗ | Không kiểm quyền nào cả. Thêm `manage_bookings` vào ma trận sẵn có (owner/manager/sales_manager), ép trong service, `->visible()` trong Filament chỉ là phép lịch sự |
+| Quyền sửa giá | Chỉ thể hiện bằng `->visible($canPricing)` trong form. Nay ép ở tầng lưu qua observer, nên mọi đường ghi đều đi qua |
+| `canAccessPanel` | Kiểm "có tenant nào đó còn hoạt động" thay vì **tenant đang chọn** — người thuộc ba owner vẫn vào làm việc trên owner đã bị tạm ngưng |
+
+Thêm `CampaignPolicy`: trước đây mỗi controller tự so `organization_id === current_organization_id`, nên vai trò `viewer` — người được mời **chỉ để xem** — vẫn gửi được booking và xác nhận được thanh toán. Policy đọc đúng `OrganizationUser::PERMISSIONS`, cùng bảng giao diện đang dùng, không đặt luật mới.
+
+---
+
+## 10. Xin Codex soi kỹ
+
+1. **Khóa giữ chỗ**: mốc khóa là hàng `screens`. Còn đường nào ghi `booking_lines` hoặc `inventory_holds` mà **không** đi qua `InventoryHoldService`? Về deadlock: tôi đã sắp thứ tự khóa theo id màn hình ở cả hai chỗ khóa nhiều hàng (giành suất cho gói trong giỏ, và chốt đơn nhiều dòng), vì hai đơn có màn hình chung nhưng thứ tự khác nhau sẽ khóa chéo. Xin kiểm xem còn đường nào khóa ngoài thứ tự đó.
+2. **Chia tiền gói**: `splitVnd` có trường hợp nào tổng lệch? Bước hạ trọng số khi quá lớn có làm tỉ lệ sai đáng kể với dữ liệu thật?
+3. **Kích hoạt theo owner**: chiến dịch có dòng của ba owner, một owner trả đủ rồi hủy — trạng thái chiến dịch có còn đúng?
+4. **Observer chặn quyền giá**: có đường vận hành hợp lệ nào bị chặn oan? (Tôi đã cố ý bỏ qua khi không có người đăng nhập.)
+5. **Hoàn tiền**: cách chia tiền đã trả theo tỉ lệ giá dòng có sai khi owner có dòng đã hủy trước đó?
+6. **Migration `invoice_number`**: cách xử lý dữ liệu trùng như mục 6 có chấp nhận được không.
+
+---
+
+## 11. Những gì giai đoạn 1 **không** đóng
+
+- **Đường ghi bằng chứng phát sóng** (`impression_logs` vẫn không ghi được: khóa chính `char(26)` không có mặc định, model thiếu `HasUlids`) — giai đoạn 2.
+- **Đường phát sóng** cho thiết bị: chưa tồn tại. Cổng nội dung vì thế đặt ở bước kích hoạt, không phải ở bước phát.
+- **Hợp nhất quan hệ Màn hình ↔ Mạng lưới** (F-12) — 7 ca test vẫn đang bị loại khỏi CI.
+- **Số liệu bịa trên trang công khai** (F-15) — chờ anh quyết.
+- **F09** `price_per_slot_vnd` trả `floor_cpm` dưới cái tên sai: cố ý **không** sửa, vì `/api/v1` là hợp đồng với đối tác. Đã ghi chú tại chỗ trong code và chờ trả lời "đối tác nào đang dùng API".

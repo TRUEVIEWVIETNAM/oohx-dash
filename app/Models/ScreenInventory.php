@@ -48,6 +48,7 @@ class ScreenInventory extends Model
         'programmatic_enabled',
         // Pricing model
         'pricing_model', 'io_rate', 'io_rate_unit', 'io_kpi_spots_per_day',
+        'duration_discounts',
 
         // AdOps (Phase 2)
         'max_spot_length', 'min_spot_length', 'loop_length',
@@ -69,6 +70,7 @@ class ScreenInventory extends Model
         'floor_cpm_usd'            => 'decimal:4',
         'io_rate'                  => 'decimal:2',
         'io_kpi_spots_per_day'     => 'integer',
+        'duration_discounts'       => 'array',
     ];
 
     // ── Relationships ───────────────────────────────────────

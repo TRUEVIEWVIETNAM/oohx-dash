@@ -15,7 +15,7 @@ class CartItem extends Model
         'notes',
         // Pricing model fields
         'pricing_model', 'booked_cpms', 'screen_count',
-        'duration_units', 'duration_unit', 'unit_price',
+        'duration_units', 'duration_unit', 'unit_price', 'duration_discount_pct',
         // Giá đã chụp lúc thêm vào giỏ, để phát hiện giá đổi trước khi chốt đơn.
         'rate_captured_at', 'rate_snapshot',
     ];

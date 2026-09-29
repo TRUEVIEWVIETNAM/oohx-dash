@@ -13,7 +13,7 @@ class Payment extends Model
     protected $fillable = [
         'campaign_id', 'organization_id', 'owner_id',
         'amount', 'currency', 'method',
-        'transaction_ref', 'gateway_ref',
+        'transaction_ref', 'gateway_ref', 'idempotency_key',
         'status', 'paid_at', 'due_date',
         'invoice_number', 'invoice_url',
         'notes', 'metadata',

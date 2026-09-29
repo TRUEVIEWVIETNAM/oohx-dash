@@ -122,19 +122,34 @@ class User extends Authenticatable implements FilamentUser
         return match ($panel->getId()) {
             'admin'     => $this->hasRole('super_admin'),
 
+            // Kiểm **tenant đang chọn**, không chỉ "có tenant nào đó còn hoạt
+            // động". Người thuộc ba owner mà owner đang chọn bị tạm ngưng thì
+            // vẫn vào được panel và làm việc trên owner bị ngưng đó — cách kiểm
+            // cũ cho qua vì hai owner kia vẫn active (Codex R02).
             'publisher' => $this->hasRole('publisher')
-                && $this->owners()
-                    ->wherePivot('role', '!=', null)
-                    ->where('owners.status', 'active')
-                    ->exists(),
+                && $this->hasActiveTenant($this->owners(), 'owners', $this->current_owner_id),
 
             'buyer'     => $this->hasRole('buyer')
-                && $this->organizations()
-                    ->wherePivot('role', '!=', null)
-                    ->where('organizations.status', 'active')
-                    ->exists(),
+                && $this->hasActiveTenant($this->organizations(), 'organizations', $this->current_organization_id),
 
             default     => false,
         };
+    }
+
+    /**
+     * Tenant đang chọn có còn hoạt động không.
+     *
+     * Chưa chọn tenant nào thì xét "có ít nhất một tenant còn hoạt động" — đó là
+     * người vừa được mời, chưa kịp chọn, và họ cần vào được để chọn.
+     */
+    private function hasActiveTenant(BelongsToMany $relation, string $table, ?string $currentId): bool
+    {
+        $query = $relation->wherePivot('role', '!=', null)->where("{$table}.status", 'active');
+
+        if ($currentId) {
+            return (clone $query)->where("{$table}.id", $currentId)->exists();
+        }
+
+        return $query->exists();
     }
 }

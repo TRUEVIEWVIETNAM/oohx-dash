@@ -9,6 +9,7 @@ use App\Models\CampaignActivity;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Organization;
+use App\Models\Owner;
 use App\Models\Screen;
 use App\Models\User;
 use App\Services\Booking\BundleExpander;
@@ -64,12 +65,33 @@ class CampaignService
             ]);
 
             // Convert cart items → booking lines (freeze pricing at booking time)
-            $lineCount = 0;
+            //
+            // Hai bước tách rời có lý do: tạo dòng trước, giành suất sau. Giành
+            // suất phải KHÓA hàng màn hình, và một đơn nhiều màn hình sẽ khóa
+            // nhiều hàng. Khóa theo thứ tự tùy ý thì hai đơn có màn hình chung
+            // nhưng thứ tự khác nhau sẽ khóa chéo và MySQL hủy một trong hai vì
+            // deadlock. Gom lại rồi khóa theo thứ tự id là cách rẻ nhất để mọi
+            // giao dịch trong hệ thống luôn khóa cùng một thứ tự.
+            /** @var array<int, array{line: BookingLine, item: CartItem}> $pairs */
+            $pairs = [];
+
             foreach ($items as $item) {
-                $lineCount += $item->product_id
-                    ? count($this->createBundleLines($campaign, $item))
-                    : (int) (bool) $this->createScreenLine($campaign, $item);
+                $lines = $item->product_id
+                    ? $this->createBundleLines($campaign, $item)
+                    : array_filter([$this->createScreenLine($campaign, $item)]);
+
+                foreach ($lines as $line) {
+                    $pairs[] = ['line' => $line, 'item' => $item];
+                }
             }
+
+            $holds = app(InventoryHoldService::class);
+
+            foreach (collect($pairs)->sortBy(fn ($p) => $p['line']->screen_id)->values() as $pair) {
+                $holds->consumeForBookingLine($pair['line'], $pair['item']);
+            }
+
+            $lineCount = count($pairs);
 
             $campaign->update([
                 'total_screens'               => $lineCount,
@@ -94,18 +116,14 @@ class CampaignService
             return null;
         }
 
-        $line = BookingLine::create($this->linePayload($campaign, $item, $item->screen, [
+        // Giữ chỗ được giành ở bước sau, trong `createFromCart`, theo thứ tự id
+        // màn hình — xem chú thích ở đó về deadlock.
+        return BookingLine::create($this->linePayload($campaign, $item, $item->screen, [
             'estimated_cost'        => (int) round((float) $item->estimated_cost),
             'estimated_impressions' => (int) $item->estimated_impressions,
             'booked_cpms'           => $item->booked_cpms,
             'screen_count'          => $item->screen_count ?? 1,
         ]));
-
-        // Suất giữ tạm trong giỏ thành suất của dòng đặt chỗ. Nếu giữ chỗ đã hết
-        // hạn và người khác đã lấy suất thì ném 422 ở đây, cả đơn bị hủy.
-        app(InventoryHoldService::class)->consumeForBookingLine($line, $item);
-
-        return $line;
     }
 
     /**
@@ -172,8 +190,6 @@ class CampaignService
             ],
         ]);
 
-        $holds = app(InventoryHoldService::class);
-
         $created = [];
         foreach ($lines as $line) {
             $bookingLine = BookingLine::create($this->linePayload($campaign, $item, $line['screen'], [
@@ -185,10 +201,6 @@ class CampaignService
                 'booked_cpms'           => null,
                 'screen_count'          => 1,
             ]));
-
-            // Mỗi màn hình trong gói có giữ chỗ riêng từ lúc thêm giỏ; chuyển
-            // từng cái thành suất của dòng tương ứng.
-            $holds->consumeForBookingLine($bookingLine, $item);
 
             $created[] = $bookingLine;
         }
@@ -222,6 +234,9 @@ class CampaignService
             'floor_cpm_at_booking'  => $inv?->floor_cpm ?? 0,
             'status'                => 'pending',
             'pricing_model'         => $pricingModel,
+            // Mức chiết khấu đã áp đi theo đơn: hóa đơn phải giải thích được vì
+            // sao tiền không bằng đơn giá nhân số kỳ.
+            'duration_discount_pct' => (int) ($item->duration_discount_pct ?? 0),
             'io_rate_at_booking'    => $pricingModel === 'io' ? ($inv?->io_rate ?? 0) : null,
             'io_rate_unit'          => $pricingModel === 'io' ? ($inv?->io_rate_unit ?? 'month') : null,
             'kpi_spots_per_day'     => $pricingModel === 'io' ? $inv?->io_kpi_spots_per_day : null,
@@ -301,10 +316,13 @@ class CampaignService
             // So sánh không phụ thuộc thứ tự khóa: MySQL lưu cột JSON dưới dạng đã
             // chuẩn hoá và trả về với thứ tự khóa khác lúc ghi. Dùng === trực tiếp
             // sẽ báo "giá đã đổi" cho mọi đơn hàng.
-            $current  = $cart->rateSnapshot($item->screen?->inventory);
-            $snapshot = $item->rate_snapshot;
-            ksort($current);
-            ksort($snapshot);
+            // Sắp khóa ở MỌI tầng, không chỉ tầng ngoài: ảnh chụp giá nay có
+            // `duration_discounts` là một mảng lồng, và MySQL chuẩn hoá thứ tự
+            // khóa cả bên trong. Chỉ ksort tầng ngoài thì mọi giỏ hàng có khai
+            // chiết khấu đều bị báo "giá đã đổi" — đúng lỗi đã mắc một lần với
+            // tầng ngoài.
+            $current  = self::normalizeKeys($cart->rateSnapshot($item->screen?->inventory));
+            $snapshot = self::normalizeKeys($item->rate_snapshot);
 
             if ($current !== $snapshot) {
                 $changed[] = $item->screen?->name ?? $item->screen_id;
@@ -320,12 +338,66 @@ class CampaignService
     }
 
     /**
+     * Các owner mà người này được thay mặt quyết định duyệt / từ chối.
+     *
+     * Quyền đọc từ cùng một bảng với Filament và API (`OwnerUser::PERMISSIONS`
+     * qua `TenantPermission`) — không viết bộ luật thứ hai ở đây.
+     *
+     * @return array<int, string>
+     */
+    private function ownerIdsUserCanDecideFor(User $user): array
+    {
+        if ($user->hasRole('super_admin')) {
+            return Owner::query()->pluck('id')->all();
+        }
+
+        return $user->owners()
+            ->get()
+            ->filter(fn ($owner) => TenantPermission::for($user, $owner->id)->can('manage_bookings'))
+            ->pluck('id')
+            ->all();
+    }
+
+    private function assertCanDecideForOwner(User $user, string $ownerId): void
+    {
+        if (! in_array($ownerId, $this->ownerIdsUserCanDecideFor($user), true)) {
+            throw new HttpException(403, 'Bạn không có quyền duyệt hoặc từ chối đặt chỗ cho media owner này.');
+        }
+    }
+
+    /**
+     * Sắp thứ tự khóa của mảng ở mọi tầng, để so sánh không phụ thuộc thứ tự.
+     *
+     * Danh sách (khóa 0,1,2…) giữ nguyên thứ tự vì với bậc chiết khấu thì thứ
+     * tự phần tử là dữ liệu, không phải chuyện trình bày.
+     */
+    private static function normalizeKeys(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        $value = array_map(fn ($v) => self::normalizeKeys($v), $value);
+
+        if (! array_is_list($value)) {
+            ksort($value);
+        }
+
+        return $value;
+    }
+
+    /**
      * Approve specific booking lines by owner.
      */
     public function approveLines(Campaign $campaign, array $lineIds, User $user): void
     {
-        BookingLine::where('campaign_id', $campaign->id)
+        // Lọc theo owner mà người này thực sự được duyệt thay. Trước đây chỉ lọc
+        // theo id dòng trong cùng chiến dịch, nên thành viên của owner A duyệt
+        // được dòng của owner B miễn là biết id — một chiến dịch gồm màn hình
+        // của nhiều owner thì id của họ nằm ngay trên cùng một trang.
+        $affected = BookingLine::where('campaign_id', $campaign->id)
             ->whereIn('id', $lineIds)
+            ->whereIn('owner_id', $this->ownerIdsUserCanDecideFor($user))
             ->where('status', 'pending')
             ->update([
                 'status'      => 'approved',
@@ -333,8 +405,11 @@ class CampaignService
                 'approved_at' => now(),
             ]);
 
-        $approvedCount = count($lineIds);
-        CampaignActivity::log($campaign, 'approved', "$approvedCount màn hình được duyệt bởi " . $user->name, $user->id);
+        if ($affected === 0) {
+            throw new HttpException(403, 'Bạn không có quyền duyệt các dòng đặt chỗ này.');
+        }
+
+        CampaignActivity::log($campaign, 'approved', "$affected màn hình được duyệt bởi " . $user->name, $user->id);
 
         $this->checkAllLinesResolved($campaign);
     }
@@ -344,16 +419,20 @@ class CampaignService
      */
     public function rejectLines(Campaign $campaign, array $lineIds, string $reason, User $user): void
     {
-        BookingLine::where('campaign_id', $campaign->id)
+        $affected = BookingLine::where('campaign_id', $campaign->id)
             ->whereIn('id', $lineIds)
+            ->whereIn('owner_id', $this->ownerIdsUserCanDecideFor($user))
             ->where('status', 'pending')
             ->update([
                 'status'          => 'rejected',
                 'rejected_reason' => $reason,
             ]);
 
-        $rejectedCount = count($lineIds);
-        CampaignActivity::log($campaign, 'rejected', "$rejectedCount màn hình bị từ chối: $reason", $user->id);
+        if ($affected === 0) {
+            throw new HttpException(403, 'Bạn không có quyền từ chối các dòng đặt chỗ này.');
+        }
+
+        CampaignActivity::log($campaign, 'rejected', "$affected màn hình bị từ chối: $reason", $user->id);
 
         $this->checkAllLinesResolved($campaign);
     }
@@ -363,6 +442,8 @@ class CampaignService
      */
     public function approveAllForOwner(Campaign $campaign, string $ownerId, User $user): int
     {
+        $this->assertCanDecideForOwner($user, $ownerId);
+
         $lines = BookingLine::where('campaign_id', $campaign->id)
             ->where('owner_id', $ownerId)
             ->where('status', 'pending')
@@ -389,6 +470,8 @@ class CampaignService
      */
     public function rejectAllForOwner(Campaign $campaign, string $ownerId, string $reason, User $user): int
     {
+        $this->assertCanDecideForOwner($user, $ownerId);
+
         $lines = BookingLine::where('campaign_id', $campaign->id)
             ->where('owner_id', $ownerId)
             ->where('status', 'pending')

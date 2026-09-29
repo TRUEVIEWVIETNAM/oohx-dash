@@ -7,6 +7,7 @@ use App\Models\CartItem;
 use App\Models\Screen;
 use App\Models\User;
 use App\Services\Pricing\BillablePeriodCalculator;
+use App\Services\Pricing\DurationDiscount;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -16,6 +17,7 @@ class CartService
         private readonly PurchaseEligibilityService $eligibility = new PurchaseEligibilityService(),
         private readonly BillablePeriodCalculator $periods = new BillablePeriodCalculator(),
         private readonly InventoryHoldService $holds = new InventoryHoldService(),
+        private readonly DurationDiscount $discounts = new DurationDiscount(),
     ) {
     }
 
@@ -116,7 +118,11 @@ class CartService
             // Một gói chiếm suất trên TẤT CẢ màn hình của nó, không chỉ màn hình
             // đầu tiên. Thiếu vòng lặp này thì các màn hình còn lại vẫn báo
             // trống và bán tiếp cho người khác.
-            foreach ($screens as $screen) {
+            //
+            // Sắp theo id trước khi giành: mỗi lần giành là một lần khóa hàng
+            // màn hình, và hai gói có màn hình chung nhưng thứ tự khác nhau sẽ
+            // khóa chéo rồi deadlock. Thứ tự id là thứ tự chung của toàn hệ thống.
+            foreach ($screens->sortBy('id') as $screen) {
                 $this->holds->acquireForCartItem($item->fresh(), $screen, (int) $sovPct);
             }
 
@@ -180,6 +186,7 @@ class CartService
                 'duration_units' => $estimated['duration_units'] ?? 1,
                 'duration_unit' => $estimated['duration_unit'] ?? ($inv?->io_rate_unit ?? 'month'),
                 'unit_price' => $estimated['unit_price'] ?? 0,
+                'duration_discount_pct' => $estimated['duration_discount_pct'] ?? 0,
                 'rate_captured_at' => now(),
                 'rate_snapshot' => $this->rateSnapshot($inv),
             ]
@@ -204,6 +211,10 @@ class CartService
             'floor_cpm'     => $inv?->floor_cpm !== null ? (string) $inv->floor_cpm : null,
             'io_rate'       => $inv?->io_rate !== null ? (string) $inv->io_rate : null,
             'io_rate_unit'  => $inv?->io_rate_unit,
+            // Bậc chiết khấu cũng là giá: owner sửa bậc trong lúc giỏ còn nằm đó
+            // thì tiền đổi, nên nó phải nằm trong ảnh chụp để bước chốt đơn phát
+            // hiện được.
+            'duration_discounts' => $inv?->duration_discounts,
         ];
     }
 
@@ -264,6 +275,7 @@ class CartService
             'duration_units' => $estimated['duration_units'] ?? $item->duration_units,
             'duration_unit' => $estimated['duration_unit'] ?? $item->duration_unit,
             'unit_price' => $estimated['unit_price'] ?? $item->unit_price,
+            'duration_discount_pct' => $estimated['duration_discount_pct'] ?? 0,
             'notes' => $data['notes'] ?? $item->notes,
             'rate_captured_at' => now(),
             'rate_snapshot' => $this->rateSnapshot($screen?->inventory),
@@ -374,7 +386,11 @@ class CartService
             $durationUnits = $requested;
         }
 
-        $cost = round($ioRate * $screenCount * $durationUnits, 2);
+        // Chiết khấu theo số kỳ: thuê dài được giảm, và mức giảm nằm trong kho
+        // chứ không nằm trong tin nhắn của người bán. Trước đây 12 kỳ đúng bằng
+        // 12 lần một kỳ, nên mọi thỏa thuận giảm giá đều ở ngoài hệ thống.
+        $discountPct = $this->discounts->pctFor($inv?->duration_discounts, $durationUnits);
+        $cost = $this->discounts->apply($ioRate * $screenCount * $durationUnits, $discountPct);
 
         return [
             'impressions' => $totalImpressions,
@@ -385,6 +401,7 @@ class CartService
             'screen_count' => $screenCount,
             'duration_units' => $durationUnits,
             'duration_unit' => $rateUnit,
+            'duration_discount_pct' => $discountPct,
         ];
     }
 

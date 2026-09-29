@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CreativeResource\Pages;
 use App\Models\Creative;
+use App\Services\Booking\CreativeGate;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -123,11 +124,11 @@ class CreativeResource extends Resource
                         ->visible(fn (Creative $r) => $r->status === 'pending_review')
                         ->requiresConfirmation()
                         ->action(function (Creative $record) {
-                            $record->update([
-                                'status'      => 'approved',
-                                'reviewed_by' => auth()->id(),
-                                'reviewed_at' => now(),
-                            ]);
+                            // Đi qua CreativeGate chứ không update thẳng: duyệt
+                            // còn kéo theo gắn nội dung vào dòng đặt chỗ và ghi
+                            // nhật ký. Hai đường duyệt song song thì sớm muộn
+                            // một đường quên mất phần việc của đường kia.
+                            app(CreativeGate::class)->approve($record, auth()->id());
                             Notification::make()->title('Creative đã duyệt')->success()->send();
                         }),
 
@@ -139,11 +140,7 @@ class CreativeResource extends Resource
                         ->requiresConfirmation()
                         ->modalHeading('Từ chối creative?')
                         ->action(function (Creative $record) {
-                            $record->update([
-                                'status'      => 'rejected',
-                                'reviewed_by' => auth()->id(),
-                                'reviewed_at' => now(),
-                            ]);
+                            app(CreativeGate::class)->reject($record, auth()->id());
                             Notification::make()->title('Creative đã từ chối')->warning()->send();
                         }),
                 ]),
@@ -155,11 +152,8 @@ class CreativeResource extends Resource
                     ->color('success')
                     ->requiresConfirmation()
                     ->action(function ($records) {
-                        $records->each(fn ($r) => $r->update([
-                            'status' => 'approved',
-                            'reviewed_by' => auth()->id(),
-                            'reviewed_at' => now(),
-                        ]));
+                        $gate = app(CreativeGate::class);
+                        $records->each(fn ($r) => $gate->approve($r, auth()->id()));
                         Notification::make()->title($records->count() . ' creatives đã duyệt')->success()->send();
                     }),
             ]);

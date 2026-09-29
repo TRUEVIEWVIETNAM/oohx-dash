@@ -6,8 +6,12 @@ use App\Models\Campaign;
 use App\Models\CampaignActivity;
 use App\Models\Owner;
 use App\Models\Payment;
+use App\Services\Booking\CreativeGate;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class PaymentService
 {
@@ -23,40 +27,108 @@ class PaymentService
     }
 
     /**
-     * Create a payment record for a campaign.
+     * Tạo một khoản thanh toán cho một media owner trong chiến dịch.
+     *
+     * Ba điểm khác trước:
+     *
+     * - **Số tiền do máy chủ tính.** Trước đây `amount` đến thẳng từ request và
+     *   chỉ bị chặn `min:1000`, nên người mua khai bao nhiêu cũng được. Nay mặc
+     *   định là phần còn nợ của owner đó, và số khách khai không được vượt quá.
+     * - **Chống trùng.** Bấm nút hai lần không tạo hai khoản: khoản chờ của
+     *   cùng chiến dịch + cùng owner được dùng lại.
+     * - **Số hóa đơn có ràng buộc duy nhất** và sinh có thử lại.
      */
     public function createPayment(
         Campaign $campaign,
         string $method,
         ?float $amount = null,
         ?string $ownerId = null,
+        ?string $idempotencyKey = null,
     ): Payment {
-        $totalCost = $campaign->bookingLines()
-            ->whereIn('status', ['approved', 'active'])
+        return DB::transaction(function () use ($campaign, $method, $amount, $ownerId, $idempotencyKey) {
+            if ($idempotencyKey) {
+                $existing = Payment::where('idempotency_key', $idempotencyKey)->first();
+
+                if ($existing) {
+                    return $existing;
+                }
+            }
+
+            // Khoản chờ của cùng owner trong cùng chiến dịch: lần bấm thứ hai
+            // nhận lại đúng khoản đó thay vì sinh thêm một dòng công nợ ma.
+            $pending = Payment::where('campaign_id', $campaign->id)
+                ->where('owner_id', $ownerId)
+                ->whereIn('status', ['pending', 'processing'])
+                ->first();
+
+            if ($pending) {
+                return $pending;
+            }
+
+            $outstanding = $this->outstandingForOwner($campaign, $ownerId);
+
+            if ($outstanding <= 0) {
+                throw new HttpException(422, 'Khoản này đã được thanh toán đủ, không cần tạo thêm.');
+            }
+
+            $requested = $amount !== null ? (int) round($amount) : $outstanding;
+
+            if ($requested <= 0) {
+                throw new HttpException(422, 'Số tiền thanh toán phải lớn hơn 0.');
+            }
+
+            if ($requested > $outstanding) {
+                throw new HttpException(422, sprintf(
+                    'Số tiền vượt quá phần còn nợ (%s ₫).',
+                    number_format($outstanding, 0, ',', '.'),
+                ));
+            }
+
+            $payment = $this->createWithUniqueInvoice([
+                'campaign_id'     => $campaign->id,
+                'organization_id' => $campaign->organization_id,
+                'owner_id'        => $ownerId,
+                'amount'          => $requested,
+                'currency'        => $campaign->currency ?? 'VND',
+                'method'          => $method,
+                'transaction_ref' => $this->generateTransactionRef(),
+                'idempotency_key' => $idempotencyKey,
+                'status'          => 'pending',
+                'due_date'        => now()->addDays($campaign->organization?->payment_terms_days ?? 30),
+            ]);
+
+            CampaignActivity::log(
+                $campaign,
+                'payment_created',
+                "Payment được tạo: " . number_format($payment->amount, 0, ',', '.') . " ₫ via " . $method,
+                auth()->id()
+            );
+
+            return $payment;
+        });
+    }
+
+    /**
+     * Phần một media owner còn phải nhận trong chiến dịch, đã gồm VAT.
+     *
+     * Khoản đang chờ xác nhận cũng bị trừ ra: nếu không, khách bấm tạo khoản
+     * thanh toán nhiều lần sẽ tạo ra tổng công nợ lớn hơn giá trị đơn hàng.
+     */
+    public function outstandingForOwner(Campaign $campaign, ?string $ownerId): int
+    {
+        $cost = (float) $campaign->bookingLines()
+            ->whereIn('status', ['approved', 'active', 'completed'])
             ->when($ownerId, fn ($q) => $q->where('owner_id', $ownerId))
             ->sum('estimated_cost');
 
-        $payment = Payment::create([
-            'campaign_id'     => $campaign->id,
-            'organization_id' => $campaign->organization_id,
-            'owner_id'        => $ownerId,
-            'amount'          => $amount ?? $totalCost,
-            'currency'        => $campaign->currency ?? 'VND',
-            'method'          => $method,
-            'transaction_ref' => $this->generateTransactionRef(),
-            'status'          => 'pending',
-            'due_date'        => now()->addDays($campaign->organization?->payment_terms_days ?? 30),
-            'invoice_number'  => $this->generateInvoiceNumber(),
-        ]);
+        $due = (int) round($cost * (1 + $this->vatRate()));
 
-        CampaignActivity::log(
-            $campaign,
-            'payment_created',
-            "Payment được tạo: " . number_format($payment->amount, 0, ',', '.') . " ₫ via " . $method,
-            auth()->id()
-        );
+        $counted = (int) round((float) $campaign->payments()
+            ->where('owner_id', $ownerId)
+            ->whereIn('status', ['completed', 'pending', 'processing'])
+            ->sum('amount'));
 
-        return $payment;
+        return max(0, $due - $counted);
     }
 
     /**
@@ -106,7 +178,15 @@ class PaymentService
     }
 
     /**
-     * Check if campaign is fully paid and activate it.
+     * Kích hoạt phần đã đủ tiền — **theo từng media owner**.
+     *
+     * Chốt 29/09/2026: mỗi owner là một quan hệ mua bán riêng, nên owner nào đã
+     * nhận đủ tiền thì các dòng của owner đó chạy, không phải chờ owner khác.
+     * Trước đây cả chiến dịch chỉ chạy khi TỔNG tiền đủ, nên một owner chậm xác
+     * nhận là cả chiến dịch đứng — và tiền của những owner đã nhận thì nằm im.
+     *
+     * Điều kiện thứ hai: **nội dung phải được duyệt**. Trả tiền xong mà mẫu
+     * quảng cáo chưa duyệt thì vẫn chưa được lên sóng (xem CreativeGate).
      */
     public function checkAndActivate(Campaign $campaign): void
     {
@@ -114,28 +194,53 @@ class PaymentService
             return;
         }
 
-        $totalCost = $campaign->bookingLines()
-            ->whereIn('status', ['approved', 'active'])
-            ->sum('estimated_cost');
+        $gate = app(CreativeGate::class);
 
-        $totalCostWithVat = $totalCost * (1 + $this->vatRate());
+        if (! $gate->isReadyToAir($campaign)) {
+            CampaignActivity::log(
+                $campaign,
+                'activation_blocked',
+                'Đã đủ tiền nhưng chưa lên sóng: còn dòng đặt chỗ chưa có nội dung đã duyệt',
+            );
 
-        $totalPaid = $campaign->payments()
-            ->where('status', 'completed')
-            ->sum('amount');
+            return;
+        }
 
-        if ($totalPaid >= $totalCostWithVat && $campaign->status === Campaign::STATUS_APPROVED) {
+        $activatedOwners = [];
+
+        foreach ($this->breakdownByOwner($campaign) as $row) {
+            if (! $row['is_paid'] || ! $row['owner']) {
+                continue;
+            }
+
+            $updated = $campaign->bookingLines()
+                ->where('owner_id', $row['owner']->id)
+                ->where('status', 'approved')
+                ->update(['status' => 'active']);
+
+            if ($updated > 0) {
+                $activatedOwners[] = $row['owner']->name;
+            }
+        }
+
+        if ($activatedOwners !== []) {
+            CampaignActivity::log(
+                $campaign,
+                'lines_activated',
+                'Đã kích hoạt dòng đặt chỗ của: ' . implode(', ', $activatedOwners),
+            );
+        }
+
+        // Chiến dịch coi là đang chạy khi có ít nhất một dòng chạy.
+        $hasActiveLine = $campaign->bookingLines()->where('status', 'active')->exists();
+
+        if ($hasActiveLine && $campaign->status === Campaign::STATUS_APPROVED) {
             $campaign->update([
                 'status'       => Campaign::STATUS_ACTIVE,
                 'activated_at' => now(),
             ]);
 
-            // Activate approved booking lines
-            $campaign->bookingLines()
-                ->where('status', 'approved')
-                ->update(['status' => 'active']);
-
-            CampaignActivity::log($campaign, 'activated', 'Campaign được kích hoạt sau khi thanh toán đủ');
+            CampaignActivity::log($campaign, 'activated', 'Campaign chuyển sang đang chạy');
         }
     }
 
@@ -191,17 +296,27 @@ class PaymentService
 
         $owners = Owner::whereIn('id', $costs->keys())->get()->keyBy('id');
 
+        // Tiền đã nhận và tiền đang chờ xác nhận là HAI con số khác nhau.
+        // Gộp chung là cách cũ, và nó khiến owner hiện ra "đã nhận đủ" ngay khi
+        // người mua bấm nút, trước khi một đồng nào thực sự chuyển đi.
         $paidByOwner = $campaign->payments()
-            ->whereIn('status', ['completed', 'pending', 'processing'])
+            ->where('status', 'completed')
             ->selectRaw('owner_id, SUM(amount) as paid')
             ->groupBy('owner_id')
             ->pluck('paid', 'owner_id');
 
-        return $costs->map(function ($cost, $ownerId) use ($owners, $paidByOwner) {
-            $cost  = (float) $cost;
-            $vat   = $cost * $this->vatRate();
-            $total = $cost + $vat;
-            $paid  = (float) ($paidByOwner[$ownerId] ?? 0);
+        $pendingByOwner = $campaign->payments()
+            ->whereIn('status', ['pending', 'processing'])
+            ->selectRaw('owner_id, SUM(amount) as pending')
+            ->groupBy('owner_id')
+            ->pluck('pending', 'owner_id');
+
+        return $costs->map(function ($cost, $ownerId) use ($owners, $paidByOwner, $pendingByOwner) {
+            $cost    = (float) $cost;
+            $vat     = $cost * $this->vatRate();
+            $total   = $cost + $vat;
+            $paid    = (float) ($paidByOwner[$ownerId] ?? 0);
+            $pending = (float) ($pendingByOwner[$ownerId] ?? 0);
 
             return [
                 'owner'     => $owners[$ownerId] ?? null,
@@ -209,7 +324,8 @@ class PaymentService
                 'vat'       => $vat,
                 'total'     => $total,
                 'paid'      => $paid,
-                'remaining' => max(0, $total - $paid),
+                'pending'   => $pending,
+                'remaining' => max(0, $total - $paid - $pending),
                 'is_paid'   => $paid >= $total,
             ];
         })->filter(fn ($row) => $row['owner'] !== null)->values();
@@ -220,15 +336,50 @@ class PaymentService
         return 'TXN-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
     }
 
-    private function generateInvoiceNumber(): string
+    /**
+     * Số hóa đơn kế tiếp trong tháng.
+     *
+     * "Đọc số lớn nhất rồi cộng một" là một cuộc đua: hai người bấm cùng lúc
+     * cùng đọc ra một số. Ràng buộc duy nhất ở tầng CSDL mới là thứ chặn thật
+     * (xem migration harden_payments_table); hàm này chỉ cần nhường và thử lại
+     * khi đụng nhau.
+     *
+     * Đếm theo số dòng thay vì cắt bốn ký tự cuối: cách cũ hỏng từ hóa đơn thứ
+     * 10.000 trở đi.
+     */
+    private function generateInvoiceNumber(int $attempt = 0): string
     {
         $prefix = 'INV-' . now()->format('Ym') . '-';
+
         $last = Payment::where('invoice_number', 'like', $prefix . '%')
             ->orderByDesc('invoice_number')
             ->value('invoice_number');
 
-        $num = $last ? (int) substr($last, -4) + 1 : 1;
+        $num = $last ? ((int) substr($last, strlen($prefix)) + 1) : 1;
 
-        return $prefix . str_pad($num, 4, '0', STR_PAD_LEFT);
+        return $prefix . str_pad((string) ($num + $attempt), 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Ghi khoản thanh toán, nhường số hóa đơn nếu vừa bị người khác lấy mất.
+     *
+     * @throws UniqueConstraintViolationException khi thử hết số lần vẫn đụng
+     */
+    private function createWithUniqueInvoice(array $attributes, int $tries = 5): Payment
+    {
+        for ($attempt = 0; $attempt < $tries; $attempt++) {
+            try {
+                return Payment::create($attributes + [
+                    'invoice_number' => $this->generateInvoiceNumber($attempt),
+                ]);
+            } catch (UniqueConstraintViolationException $e) {
+                if (! str_contains($e->getMessage(), 'invoice_number')) {
+                    throw $e;
+                }
+                // vòng sau lấy số kế tiếp
+            }
+        }
+
+        throw new HttpException(503, 'Không cấp được số hóa đơn, vui lòng thử lại.');
     }
 }

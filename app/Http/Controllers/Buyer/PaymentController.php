@@ -23,7 +23,7 @@ class PaymentController extends Controller
      */
     public function show(Request $request, Campaign $campaign): View
     {
-        $this->authorize($request, $campaign);
+        $this->authorize($request, $campaign, 'view');
 
         abort_unless(
             in_array($campaign->status, ['approved', 'active']),
@@ -80,12 +80,22 @@ class PaymentController extends Controller
             return back()->withErrors(['method' => 'MoMo chưa được hỗ trợ. Vui lòng chọn chuyển khoản.']);
         }
 
-        // Bank transfer — create pending payment
+        // Bank transfer — create pending payment.
+        //
+        // Khóa chống trùng dựng từ chiến dịch + owner + token của chính lần gửi
+        // biểu mẫu này: bấm nút hai lần gửi lại cùng token nên nhận lại đúng
+        // khoản đã tạo, thay vì sinh thêm một dòng công nợ ma.
         $payment = $this->paymentService->createPayment(
             $campaign,
             'bank_transfer',
             $data['amount'] ?? null,
             $data['owner_id'],
+            idempotencyKey: hash('sha256', implode('|', [
+                $campaign->id,
+                $data['owner_id'],
+                (string) $request->user()?->id,
+                (string) $request->session()->token(),
+            ])),
         );
 
         $this->consents->record(
@@ -106,7 +116,7 @@ class PaymentController extends Controller
      */
     public function success(Request $request, Campaign $campaign): View
     {
-        $this->authorize($request, $campaign);
+        $this->authorize($request, $campaign, 'view');
 
         $payment = $campaign->payments()->latest()->first();
 
@@ -116,11 +126,16 @@ class PaymentController extends Controller
         ]);
     }
 
-    private function authorize(Request $request, Campaign $campaign): void
+    /**
+     * Xác nhận thanh toán là quyền riêng (`manage_payments`), không phải quyền
+     * xem. Phép so `organization_id` cũ cho cả vai trò `viewer` làm việc này.
+     */
+    private function authorize(Request $request, Campaign $campaign, string $ability = 'pay'): void
     {
         abort_unless(
-            $campaign->organization_id === $request->user()->current_organization_id,
-            403
+            $request->user()?->can($ability, $campaign) ?? false,
+            403,
+            'Bạn không có quyền xác nhận thanh toán cho campaign này.'
         );
     }
 }

@@ -13,6 +13,7 @@ class BookingLine extends Model
 
     protected $fillable = [
         'campaign_id', 'product_id', 'bundle_id', 'screen_id', 'owner_id',
+        'duration_discount_pct',
         'start_date', 'end_date', 'spot_length',
         'share_of_voice_pct',
         'floor_cpm_at_booking', 'negotiated_cpm',

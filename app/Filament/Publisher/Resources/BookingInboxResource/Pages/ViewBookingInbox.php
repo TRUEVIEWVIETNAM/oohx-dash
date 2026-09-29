@@ -5,6 +5,7 @@ namespace App\Filament\Publisher\Resources\BookingInboxResource\Pages;
 use App\Filament\Publisher\Resources\BookingInboxResource;
 use App\Models\Campaign;
 use App\Services\CampaignService;
+use App\Services\TenantPermission;
 use Filament\Actions;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
@@ -127,6 +128,12 @@ class ViewBookingInbox extends ViewRecord
             ->exists();
 
         if (! $hasPending) return [];
+
+        // Giao diện khớp với quyền. Việc CHẶN thật nằm trong CampaignService —
+        // ẩn nút chỉ là phép lịch sự với người dùng, không phải cơ chế bảo vệ.
+        if (! TenantPermission::for(auth()->user(), $ownerId)->can('manage_bookings')) {
+            return [];
+        }
 
         return [
             Actions\Action::make('approveAll')

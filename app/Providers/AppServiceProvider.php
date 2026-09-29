@@ -2,13 +2,17 @@
 
 namespace App\Providers;
 
+use App\Models\Campaign;
 use App\Models\OrganizationUser;
 use App\Models\Owner;
 use App\Models\OwnerUser;
 use App\Models\Screen;
+use App\Models\ScreenInventory;
+use App\Observers\ScreenInventoryObserver;
 use App\Observers\ScreenObserver;
 use App\Models\Network;
 use App\Models\Site;
+use App\Policies\CampaignPolicy;
 use App\Policies\NetworkPolicy;
 use App\Policies\OrganizationUserPolicy;
 use App\Policies\OwnerPolicy;
@@ -34,8 +38,12 @@ class AppServiceProvider extends ServiceProvider
     {
         Screen::observe(ScreenObserver::class);
 
+        // Mọi đường sửa giá đều để lại phiên bản — xem ScreenInventoryObserver.
+        ScreenInventory::observe(ScreenInventoryObserver::class);
+
         $this->registerRateLimiters();
 
+        Gate::policy(Campaign::class, CampaignPolicy::class);
         Gate::policy(Owner::class, OwnerPolicy::class);
         Gate::policy(OwnerUser::class, OwnerUserPolicy::class);
         Gate::policy(OrganizationUser::class, OrganizationUserPolicy::class);
