@@ -175,12 +175,23 @@ class DeadlockOrderTest extends TestCase
         $screenId = $this->seedScreen();
         $cartId   = $this->cartId;
 
+        // Bắt tay qua file thay vì canh giờ.
+        //
+        // Vòng đo trước dùng usleep(300ms) để đoán lúc tiến trình nền đã chèn
+        // xong. Khởi động PHP cộng kết nối PDO dễ lâu hơn thế, nên hai giao
+        // dịch có thể chưa hề chồng nhau — và test kết luận "không hỏng" trong
+        // khi thực ra nó chưa đo được gì. Canh giờ trong test tranh chấp là
+        // cách chắc chắn để có một kết quả không nói lên điều gì.
+        $ready = tempnam(sys_get_temp_dir(), 'ready');
+        @unlink($ready);
+
         [$process, $pipes] = $this->spawn(<<<PHP
         \$pdo->beginTransaction();
         // Chèn trước: MySQL kiểm khóa ngoại và giữ shared lock trên hàng screens.
         \$stmt = \$pdo->prepare('INSERT INTO cart_items (cart_id, screen_id, start_date, end_date, created_at, updated_at) VALUES (?,?,?,?,NOW(),NOW())');
         \$stmt->execute(['{$cartId}', '{$screenId}', '2027-01-01', '2027-02-01']);
-        usleep(800000);
+        file_put_contents('{$ready}', 'da-chen');
+        usleep(2000000);
         try {
             \$pdo->prepare('SELECT id FROM screens WHERE id = ? FOR UPDATE')->execute(['{$screenId}']);
             \$pdo->commit();
@@ -190,7 +201,19 @@ class DeadlockOrderTest extends TestCase
         }
         PHP);
 
-        usleep(300000);
+        // Chờ tiến trình nền báo đã chèn xong — tới đây nó chắc chắn đang giữ
+        // shared lock trên hàng màn hình.
+        $deadline = microtime(true) + 10;
+        while (! file_exists($ready) && microtime(true) < $deadline) {
+            usleep(20000);
+        }
+
+        if (! file_exists($ready)) {
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            proc_close($process);
+            $this->markTestSkipped('Tiến trình nền không chèn được, không đo được gì.');
+        }
 
         $outcome = 'khong-loi';
 
@@ -222,6 +245,7 @@ class DeadlockOrderTest extends TestCase
             fclose($pipes[1]);
             fclose($pipes[2]);
             proc_close($process);
+            @unlink($ready);
 
             DB::table('cart_items')->where('screen_id', $screenId)->delete();
         }
