@@ -201,6 +201,52 @@ class TenantPermissionGapTest extends TestCase
         $this->assertSame(1_000_000, (int) round((float) $screen->fresh('inventory')->inventory->io_rate));
     }
 
+    /**
+     * Chống hồi quy: bản đầu của cổng quyền giá đặt ở `saving` nên chặn cả lúc
+     * TẠO kho, và full suite trên CI đổ 63 ca. Tạo màn hình mới bao giờ cũng
+     * kèm giá ban đầu; quyền cho bước tạo đã kiểm ở tầng API từ T1a.
+     */
+    public function test_tao_kho_lan_dau_khong_bi_chan_boi_cong_quyen_gia(): void
+    {
+        $owner = Owner::factory()->create(['status' => 'active']);
+
+        // Người mua — không thuộc owner nào — dựng dữ liệu, đúng như hàng chục
+        // test khác đang làm.
+        $buyer = User::factory()->create();
+        $buyer->assignRole('buyer');
+        $this->actingAs($buyer);
+
+        $screen = $this->screen($owner);
+
+        $this->assertSame(1_000_000, (int) round((float) $screen->inventory->io_rate));
+    }
+
+    /**
+     * Chống hồi quy: `auth()->user()` có thể là `ApiClient` (đối tác dùng
+     * token), mà lớp đó không có `hasRole()` — gọi vào là BadMethodCallException.
+     * Đây là 5 ca còn lại trong 68 ca đổ trên CI.
+     */
+    public function test_doi_tac_dung_token_khong_lam_vo_cong_quyen_gia(): void
+    {
+        $owner  = Owner::factory()->create(['status' => 'active']);
+        $screen = $this->screen($owner);
+
+        $client = \App\Models\ApiClient::create([
+            'client_id'     => 'partner-' . uniqid(),
+            'client_secret' => bcrypt('secret'),
+            'name'          => 'Đối tác',
+            'scopes'        => ['inventory'],
+            'active'        => true,
+        ]);
+
+        // Giả lập đúng tình huống: người đăng nhập không phải User.
+        auth()->setUser($client);
+
+        $screen->inventory->update(['io_rate' => 1_234_000]);
+
+        $this->assertSame(1_234_000, (int) round((float) $screen->fresh('inventory')->inventory->io_rate));
+    }
+
     public function test_scheduler_van_sua_duoc_thu_khong_phai_gia(): void
     {
         $owner  = Owner::factory()->create(['status' => 'active']);

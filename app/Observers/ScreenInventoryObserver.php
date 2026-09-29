@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Screen;
 use App\Models\ScreenInventory;
 use App\Models\ScreenRateVersion;
+use App\Models\User;
 use App\Services\TenantPermission;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -22,20 +23,30 @@ class ScreenInventoryObserver
     private const PRICE_FIELDS = ['pricing_model', 'floor_cpm', 'io_rate', 'io_rate_unit', 'duration_discounts'];
 
     /**
-     * Không có quyền giá thì không ghi được giá — kể cả khi form đã ẩn trường.
+     * Không có quyền giá thì không **sửa** được giá — kể cả khi form đã ẩn trường.
      *
      * Trước đây quyền giá chỉ thể hiện bằng `->visible($canPricing)` trong form
      * Filament. Ẩn trường là phép lịch sự với người dùng, không phải cơ chế bảo
      * vệ: mọi đường ghi khác (API, lệnh, job nhập kho) không đi qua form.
      *
-     * Chỉ chặn khi có người đang đăng nhập: lệnh artisan và job chạy không có
-     * người dùng, và chặn chúng thì hỏng việc vận hành chứ không tăng an toàn.
+     * **Chỉ chặn lúc sửa, không chặn lúc tạo.** Bản đầu đặt ở `saving` nên chặn
+     * cả lúc tạo kho lần đầu, và full suite trên CI đổ 63 ca: tạo màn hình mới
+     * bao giờ cũng kèm giá ban đầu, còn quyền cho bước tạo đã được kiểm ở tầng
+     * API từ T1a (`authorizePricingPayload`). Chặn ở đây nữa là chặn nhầm.
+     *
+     * Hai trường hợp cố ý bỏ qua:
+     * - Không có ai đăng nhập: lệnh artisan và job. Chặn chúng thì hỏng việc
+     *   vận hành chứ không tăng an toàn.
+     * - Người đăng nhập không phải `User` mà là `ApiClient` (đối tác dùng
+     *   token). `ApiClient` không có `hasRole()` — gọi vào là ném
+     *   BadMethodCallException, đúng lỗi 5 ca còn lại trên CI. Đường API của
+     *   đối tác đã có `authorizePricingForOwner` ở controller.
      */
-    public function saving(ScreenInventory $inventory): void
+    public function updating(ScreenInventory $inventory): void
     {
         $user = auth()->user();
 
-        if (! $user || $user->hasRole('super_admin')) {
+        if (! $user instanceof User || $user->hasRole('super_admin')) {
             return;
         }
 
