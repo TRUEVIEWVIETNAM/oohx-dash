@@ -92,7 +92,7 @@ Việc nhỏ nhưng là đúng loại lỗ hổng mà audit đã bắt được 
 
 Cần: sửa schema và model, xác thực thiết bị player, chống trùng (khóa duy nhất **phải chứa cột phân vùng** `played_at`, bảng đang có 6 phân vùng), và bảng tổng hợp để báo cáo không quét bảng thô.
 
-**Câu hỏi cần anh trả lời:** hiện có thiết bị player nào đang gửi dữ liệu thật không? Nếu có thì phải làm migration không mất dữ liệu; nếu chưa thì làm lại schema cho sạch, rẻ hơn nhiều.
+**Đã trả lời 29/09/2026: chưa có thiết bị nào gửi dữ liệu thật.** Nghĩa là được làm lại schema cho sạch, không phải viết migration bảo toàn dữ liệu — rẻ hơn nhiều. Vẫn phải giữ ràng buộc của bảng phân vùng: mọi khóa unique phải chứa `played_at`.
 
 ---
 
@@ -173,7 +173,7 @@ Không có giai đoạn nào cho `/admin` và `/publisher`. Nếu sau này vẫn
 | 3 | Chính sách hủy và hoàn tiền? | 1.5 |
 | 4 | Chiến dịch chạy khi một owner đủ tiền hay tất cả? | 1.4 |
 | 5 | Media owner có được tự xác nhận đã nhận tiền? | 1.4 |
-| 6 | Có thiết bị player nào đang gửi dữ liệu thật? | Giai đoạn 2 |
+| ~~6~~ | ~~Có thiết bị player nào đang gửi dữ liệu thật?~~ **Đã trả lời 29/09: chưa có.** | — |
 | 7 | Gói có gồm màn hình nhiều owner? Chia tiền thế nào? | 1.2 |
 
 Thêm một câu treo từ giai đoạn 0: **khoảng ngày tối đa cho một dòng đặt chỗ** — đang tạm 365 ngày, có nới lên 730 hay bỏ hẳn không.

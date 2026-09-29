@@ -67,7 +67,7 @@ Chi tiết và những gì giai đoạn 1 **không** đóng: `REVIEW-REQUEST-GIA
 - Quyền cho các action Filament còn lại (CRUD product, settings của owner).
 
 ### Nợ giao dịch còn lại
-- **Sửa đường ghi bằng chứng phát sóng** (F-04/F08): `impression_logs` hiện **không ghi được** — khóa chính `char(26)` không có mặc định, model thiếu `HasUlids`, đã dựng probe tái hiện. Cần schema ULID, xác thực thiết bị, chống trùng (khóa unique phải chứa cột phân vùng `played_at`), và bảng tổng hợp. Đây là giai đoạn 2.
+- **Sửa đường ghi bằng chứng phát sóng** (F-04/F08): `impression_logs` hiện **không ghi được** — khóa chính `char(26)` không có mặc định, model thiếu `HasUlids`, đã dựng probe tái hiện. Cần schema ULID, xác thực thiết bị, chống trùng (khóa unique **phải chứa cột phân vùng** `played_at`, bảng đang có 6 phân vùng), và bảng tổng hợp. Đây là giai đoạn 2. Chủ dự án xác nhận 29/09: **chưa có thiết bị player nào gửi dữ liệu thật**, nên được làm lại schema cho sạch thay vì migration bảo toàn dữ liệu.
 - **Đường phát sóng cho thiết bị**: chưa tồn tại. Không endpoint nào trả lịch phát; `playlist_version` trong heartbeat chỉ là dấu thời gian của bảng kho. Vì vậy cổng nội dung của 1.3 đặt ở bước kích hoạt chứ không phải bước phát.
 - **Khiếu nại**: luồng hủy và hoàn tiền đã có (1.5), phần khiếu nại chưa.
 
@@ -83,10 +83,9 @@ Chưa bắt đầu — xem `PLAN-API-FIRST-NEXTJS.md` và `LO-TRINH-SAU-GIAI-DOA
 | 1 | Khoảng ngày tối đa cho một dòng đặt chỗ — giữ 365, nới 730, hay bỏ? | Đang tạm 365 |
 | 2 | Có đối tác nào đang **ghi** dữ liệu qua API không? | Deploy giai đoạn 0 sẽ chặn họ; cũng chặn việc đặt tên lại F09 |
 | 3 | Media owner có được **tự** xác nhận đã nhận tiền không? | Tôi đang giả định: owner chỉ ghi nhận, quản trị xác nhận mới đóng công nợ |
-| 4 | Có thiết bị player nào đang gửi dữ liệu thật không? | Giai đoạn 2 — sửa schema bằng chứng phát sóng |
-| 5 | Số liệu bịa trên trang công khai: thay bằng số thật hay gỡ hẳn? | Giai đoạn 4 |
+| 4 | Số liệu bịa trên trang công khai: thay bằng số thật hay gỡ hẳn? | Giai đoạn 4 |
 
-**Đã chốt 29/09, không còn treo:** giữ chỗ 30 phút · hoàn tiền bậc thang · chiến dịch chạy theo từng dòng · gói nhiều owner chia theo giá từng dòng.
+**Đã chốt 29/09, không còn treo:** giữ chỗ 30 phút · hoàn tiền bậc thang · chiến dịch chạy theo từng dòng · gói nhiều owner chia theo giá từng dòng · **chưa có thiết bị player nào gửi dữ liệu thật**, nên giai đoạn 2 được làm lại schema `impression_logs` cho sạch thay vì migration bảo toàn dữ liệu.
 
 ---
 ## 5. Mốc số liệu test
