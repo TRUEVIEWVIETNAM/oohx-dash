@@ -52,6 +52,15 @@ return [
     'hold_ttl_minutes' => env('PRICING_HOLD_TTL_MINUTES', 30),
 
     /**
+     * Thiết bị phát được báo muộn tối đa bao nhiêu ngày.
+     *
+     * Một con số, hai nơi dùng: PlayerController kẹp mốc thời gian theo nó, và
+     * lệnh tổng hợp phải phủ trọn đúng cửa sổ đó. Hai nơi lệch nhau thì lượt
+     * phát gửi muộn vào được CSDL nhưng không bao giờ vào báo cáo.
+     */
+    'impression_late_days' => env('PRICING_IMPRESSION_LATE_DAYS', 7),
+
+    /**
      * Hoàn tiền khi khách hủy đơn đã xác nhận. CHỐT 29/09/2026: bậc thang theo
      * số ngày còn lại tính tới ngày chạy đầu tiên của dòng bị hủy.
      *

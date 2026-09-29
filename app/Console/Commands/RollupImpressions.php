@@ -31,7 +31,15 @@ class RollupImpressions extends Command
             return self::SUCCESS;
         }
 
-        $from = $this->option('from') ? Carbon::parse($this->option('from')) : now()->subDay();
+        // Mặc định phủ TRỌN cửa sổ nhận muộn, không phải chỉ hôm qua.
+        //
+        // API nhận lượt phát báo muộn tới 7 ngày, nhưng lịch định kỳ chỉ tổng
+        // hợp hôm qua và hôm nay — nên một lượt phát cách đây ba ngày gửi về
+        // hôm nay sẽ không bao giờ vào bảng tổng hợp, và báo cáo thiếu nó cho
+        // tới khi có người chạy bù bằng tay (Codex R18).
+        $lateDays = (int) config('pricing.impression_late_days', 7);
+
+        $from = $this->option('from') ? Carbon::parse($this->option('from')) : now()->subDays($lateDays);
         $to   = $this->option('to') ? Carbon::parse($this->option('to')) : now();
 
         $count = $rollups->rollupRange($from, $to);

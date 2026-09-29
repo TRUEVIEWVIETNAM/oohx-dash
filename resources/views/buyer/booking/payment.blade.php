@@ -100,6 +100,13 @@
                                 <input type="hidden" name="method" value="bank_transfer">
                                 <input type="hidden" name="owner_id" value="{{ $owner->id }}">
                                 <input type="hidden" name="amount" value="{{ $row['remaining'] }}">
+                                {{-- Mã riêng cho LẦN xác nhận này. Bấm hai lần trên cùng
+                                     biểu mẫu gửi lại cùng mã nên không tạo hai khoản; tải
+                                     lại trang để trả tiếp phần còn lại thì có mã mới.
+                                     Trước đây dùng token CSRF của phiên, mà token đó không
+                                     đổi giữa các lần trả nên lần trả thứ hai nhận lại đúng
+                                     khoản đã hoàn tất (Codex R07). --}}
+                                <input type="hidden" name="payment_nonce" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
 
                                 <label class="consent">
                                     <input type="checkbox" name="accept_terms" value="1" required>

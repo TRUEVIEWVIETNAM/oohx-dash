@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\BookingLine;
+use App\Models\Creative;
 use App\Models\ImpressionLog;
 use App\Models\Screen;
 use App\Services\Player\DeviceAuthenticator;
@@ -11,6 +12,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Endpoint cho thiết bị phát.
@@ -26,8 +28,16 @@ use Illuminate\Support\Carbon;
  */
 class PlayerController extends Controller
 {
-    /** Thiết bị được phép báo muộn tối đa bao nhiêu ngày (gửi bù sau khi mất mạng). */
-    private const MAX_LATE_DAYS = 7;
+    /**
+     * Thiết bị được phép báo muộn tối đa bao nhiêu ngày (gửi bù sau mất mạng).
+     *
+     * Đọc từ config vì lệnh tổng hợp phải phủ trọn đúng cửa sổ này — hai nơi
+     * lệch nhau thì lượt phát gửi muộn vào được CSDL nhưng không vào báo cáo.
+     */
+    private function maxLateDays(): int
+    {
+        return max(1, (int) config('pricing.impression_late_days', 7));
+    }
 
     /** Sai lệch đồng hồ về phía tương lai được bỏ qua. */
     private const MAX_CLOCK_SKEW_MINUTES = 5;
@@ -102,38 +112,57 @@ class PlayerController extends Controller
             return $this->duplicateResponse($existing);
         }
 
+        // Giành quyền ghi sự kiện này ở bảng KHÔNG phân vùng.
+        //
+        // Khóa duy nhất của `impression_logs` buộc phải chứa `played_at` (ràng
+        // buộc của bảng phân vùng), nên nó không chặn được hai yêu cầu cùng
+        // `event_id` với mốc lệch vài giây. Phép hỏi phía trên cũng không, vì
+        // hai yêu cầu song song cùng vượt qua nó. Bảng `impression_events` có
+        // khóa duy nhất thật trên `(screen_id, event_id)` và là thứ quyết định
+        // ai được ghi (Codex R15).
+        try {
+            $eventRowId = DB::table('impression_events')->insertGetId([
+                'screen_id'  => $screen->id,
+                'event_id'   => $data['event_id'],
+                'played_at'  => $playedAt,
+                'created_at' => now(),
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            $already = ImpressionLog::where('screen_id', $screen->id)
+                ->where('event_id', $data['event_id'])
+                ->first();
+
+            // Yêu cầu song song đã giành được chỗ nhưng chưa ghi xong bản ghi
+            // chính. Nói rõ là trùng, không bịa ra một bản ghi thứ hai.
+            return $already
+                ? $this->duplicateResponse($already)
+                : response()->json(['duplicate' => true, 'message' => 'Sự kiện đang được xử lý.'], 202);
+        }
+
         $line = $this->resolveBookingLine($screen, $data, $playedAt);
 
         $multiplier = $screen->getCurrentMultiplier();
 
-        $payload = [
+        $log = ImpressionLog::create([
             'screen_id'          => $screen->id,
             'owner_id'           => $screen->owner_id,
-            'campaign_id'        => $line?->campaign_id ?? ($data['campaign_id'] ?? null),
+            'campaign_id'        => $line?->campaign_id,
             'booking_line_id'    => $line?->id,
-            'creative_id'        => $data['creative_id'] ?? null,
+            'creative_id'        => $this->resolveCreativeId($line, $data),
             'event_id'           => $data['event_id'],
             'played_at'          => $playedAt,
+            // Mốc gốc thiết bị báo, giữ nguyên kể cả khi đã bị kẹp về biên.
+            'reported_played_at' => Carbon::parse($data['played_at']),
+            'played_at_clamped'  => ! $playedAt->equalTo(Carbon::parse($data['played_at'])),
             'duration_sec'       => $data['duration_sec'],
             'multiplier_applied' => $multiplier,
             'imp_count'          => max(1, $screen->inventory?->effective_screen_count ?? 1) * $multiplier,
             'deal_type'          => $data['deal_type'] ?? 'direct',
             'proof_url'          => $data['proof_url'] ?? null,
             'source'             => 'adtrue_player',
-        ];
+        ]);
 
-        try {
-            $log = ImpressionLog::create($payload);
-        } catch (UniqueConstraintViolationException) {
-            // Hai yêu cầu chạy song song cùng vượt qua phép hỏi ở trên. Trả về
-            // bản ghi đã có thay vì cộng thêm một lượt: cộng thêm ở đây là cộng
-            // thêm tiền.
-            return $this->duplicateResponse(
-                ImpressionLog::where('screen_id', $screen->id)
-                    ->where('event_id', $data['event_id'])
-                    ->firstOrFail()
-            );
-        }
+        DB::table('impression_events')->where('id', $eventRowId)->update(['impression_log_id' => $log->id]);
 
         return response()->json([
             'id'         => $log->id,
@@ -141,6 +170,28 @@ class PlayerController extends Controller
             'multiplier' => $log->multiplier_applied,
             'duplicate'  => false,
         ], 201);
+    }
+
+    /**
+     * Mã nội dung, chỉ nhận khi nó thật sự thuộc chiến dịch của dòng đặt chỗ.
+     *
+     * Trước đây `creative_id` được ghi thẳng từ yêu cầu, chỉ kiểm độ dài chuỗi
+     * — thiết bị hợp lệ gửi mã của chiến dịch khác thì bằng chứng vẫn mang liên
+     * kết đó. `campaign_id` cũng vậy: khi không tìm được dòng đặt chỗ thì mã
+     * chiến dịch do thiết bị gửi vẫn được ghi, tạo ra bằng chứng quy thuộc cho
+     * một suất không hề bán (Codex R16). Nay không tìm được dòng thì để trống.
+     */
+    private function resolveCreativeId(?BookingLine $line, array $data): ?string
+    {
+        if (! $line || empty($data['creative_id'])) {
+            return null;
+        }
+
+        $belongs = Creative::where('id', $data['creative_id'])
+            ->where('campaign_id', $line->campaign_id)
+            ->exists();
+
+        return $belongs ? $data['creative_id'] : null;
     }
 
     private function duplicateResponse(ImpressionLog $log): JsonResponse
@@ -169,7 +220,7 @@ class PlayerController extends Controller
         $now    = now();
         $played = Carbon::parse($raw);
 
-        $earliest = $now->copy()->subDays(self::MAX_LATE_DAYS);
+        $earliest = $now->copy()->subDays($this->maxLateDays());
         $latest   = $now->copy()->addMinutes(self::MAX_CLOCK_SKEW_MINUTES);
 
         if ($played->lessThan($earliest)) {
@@ -208,7 +259,15 @@ class PlayerController extends Controller
         }
 
         if (! empty($data['campaign_id'])) {
-            return (clone $query)->where('campaign_id', $data['campaign_id'])->first();
+            $matches = (clone $query)->where('campaign_id', $data['campaign_id'])->limit(2)->get();
+
+            // Đúng một dòng khớp thì gắn. Nhiều dòng cùng khớp — cùng màn hình,
+            // cùng chiến dịch, hai khoảng ngày chồng nhau — thì KHÔNG chọn bừa
+            // dòng đầu: gắn sai tạo ra bằng chứng cho một suất, và thiếu bằng
+            // chứng cho suất kia (Codex R16).
+            if ($matches->count() === 1) {
+                return $matches->first();
+            }
         }
 
         return null;

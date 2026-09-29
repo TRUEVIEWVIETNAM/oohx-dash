@@ -57,6 +57,10 @@ class PaymentController extends Controller
             // owner thật sự có màn hình trong campaign này.
             'owner_id' => ['required', 'string', 'exists:owners,id'],
 
+            // Mã chống trùng của chính lần gửi biểu mẫu này — xem chú thích
+            // ở chỗ gọi createPayment.
+            'payment_nonce' => ['nullable', 'string', 'max:64'],
+
             'accept_terms' => ['accepted'],
         ], [
             'accept_terms.accepted' => 'Bạn cần đồng ý với Quy chế hoạt động để xác nhận thanh toán.',
@@ -82,20 +86,26 @@ class PaymentController extends Controller
 
         // Bank transfer — create pending payment.
         //
-        // Khóa chống trùng dựng từ chiến dịch + owner + token của chính lần gửi
-        // biểu mẫu này: bấm nút hai lần gửi lại cùng token nên nhận lại đúng
-        // khoản đã tạo, thay vì sinh thêm một dòng công nợ ma.
+        // Khóa chống trùng dựng từ mã riêng của LẦN gửi biểu mẫu này, không
+        // phải token CSRF của phiên. Token phiên không đổi giữa các lần trả,
+        // nên trả một phần rồi quay lại trả nốt sẽ nhận lại đúng khoản cũ đã
+        // hoàn tất và không tạo được khoản mới (Codex R07).
+        //
+        // Không có mã (gọi bằng script, hoặc biểu mẫu cũ còn mở) thì vẫn chạy:
+        // tầng service đã có phép dùng lại khoản đang chờ của cùng owner.
         $payment = $this->paymentService->createPayment(
             $campaign,
             'bank_transfer',
             $data['amount'] ?? null,
             $data['owner_id'],
-            idempotencyKey: hash('sha256', implode('|', [
-                $campaign->id,
-                $data['owner_id'],
-                (string) $request->user()?->id,
-                (string) $request->session()->token(),
-            ])),
+            idempotencyKey: $data['payment_nonce'] ?? null
+                ? hash('sha256', implode('|', [
+                    $campaign->id,
+                    $data['owner_id'],
+                    (string) $request->user()?->id,
+                    (string) $data['payment_nonce'],
+                ]))
+                : null,
         );
 
         $this->consents->record(

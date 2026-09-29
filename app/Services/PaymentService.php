@@ -47,6 +47,15 @@ class PaymentService
         ?string $idempotencyKey = null,
     ): Payment {
         return DB::transaction(function () use ($campaign, $method, $amount, $ownerId, $idempotencyKey) {
+            // Khóa chiến dịch để hai yêu cầu cùng lúc phải xếp hàng.
+            //
+            // Không khóa thì hai người trong cùng tổ chức, hai phiên khác nhau,
+            // cùng bấm trả toàn bộ cho một owner: cả hai đều thấy chưa có khoản
+            // chờ, cùng tính ra một số nợ, và cùng tạo payment. Ràng buộc duy
+            // nhất của số hóa đơn không ngăn được chuyện đó vì hai số hóa đơn
+            // vẫn khác nhau — thứ bị nhân đôi là NGHĨA VỤ (Codex R08).
+            Campaign::withoutGlobalScopes()->whereKey($campaign->getKey())->lockForUpdate()->first();
+
             if ($idempotencyKey) {
                 $existing = Payment::where('idempotency_key', $idempotencyKey)->first();
 
@@ -85,7 +94,7 @@ class PaymentService
                 ));
             }
 
-            $payment = $this->createWithUniqueInvoice([
+            $payment = $this->createWithUniqueInvoice($idempotencyKey, [
                 'campaign_id'     => $campaign->id,
                 'organization_id' => $campaign->organization_id,
                 'owner_id'        => $ownerId,
@@ -402,12 +411,19 @@ class PaymentService
     {
         $prefix = 'INV-' . now()->format('Ym') . '-';
 
+        // Sắp theo GIÁ TRỊ SỐ của phần hậu tố, không theo chuỗi.
+        //
+        // Sắp theo chuỗi thì "…-9999" đứng trên "…-10000" (ký tự '9' > '1'),
+        // nên từ hóa đơn thứ 10.000 trở đi hàm luôn đọc ra 9999, thử lại năm
+        // số đã tồn tại rồi trả 503 — không cấp được hóa đơn nào nữa
+        // (Codex R20).
         $last = Payment::where('invoice_number', 'like', $prefix . '%')
-            ->orderByDesc('invoice_number')
+            ->orderByRaw('CAST(SUBSTRING(invoice_number, ?) AS UNSIGNED) DESC', [strlen($prefix) + 1])
             ->value('invoice_number');
 
         $num = $last ? ((int) substr($last, strlen($prefix)) + 1) : 1;
 
+        // str_pad chỉ đệm, không cắt: số vượt bốn chữ số vẫn ra đủ.
         return $prefix . str_pad((string) ($num + $attempt), 4, '0', STR_PAD_LEFT);
     }
 
@@ -416,7 +432,7 @@ class PaymentService
      *
      * @throws UniqueConstraintViolationException khi thử hết số lần vẫn đụng
      */
-    private function createWithUniqueInvoice(array $attributes, int $tries = 5): Payment
+    private function createWithUniqueInvoice(?string $idempotencyKey, array $attributes, int $tries = 5): Payment
     {
         for ($attempt = 0; $attempt < $tries; $attempt++) {
             try {
@@ -424,6 +440,18 @@ class PaymentService
                     'invoice_number' => $this->generateInvoiceNumber($attempt),
                 ]);
             } catch (UniqueConstraintViolationException $e) {
+                // Đụng khóa chống trùng nghĩa là một yêu cầu song song vừa tạo
+                // xong đúng khoản này. Trả lại khoản đó chứ không ném lỗi ra
+                // mặt người dùng — đây chính là việc mà khóa sinh ra để làm
+                // (Codex R08).
+                if ($idempotencyKey && str_contains($e->getMessage(), 'idempotency_key')) {
+                    $existing = Payment::where('idempotency_key', $idempotencyKey)->first();
+
+                    if ($existing) {
+                        return $existing;
+                    }
+                }
+
                 if (! str_contains($e->getMessage(), 'invoice_number')) {
                     throw $e;
                 }

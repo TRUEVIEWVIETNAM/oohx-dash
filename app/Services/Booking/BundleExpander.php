@@ -160,7 +160,7 @@ class BundleExpander
             $weights = array_fill(0, $n, 1);
             $sum = $n;
         } else {
-            $weights = self::reduceWeights($weights);
+            $weights = self::fitWeightsTo($total, self::reduceWeights($weights));
             $sum = array_sum($weights);
         }
 
@@ -209,9 +209,29 @@ class BundleExpander
             $weights = array_map(fn ($w) => intdiv($w, $gcd), $weights);
         }
 
-        // 10^8 × số tiền lớn nhất thực tế (~10^10 VND) vẫn nằm trong khoảng an
-        // toàn của số nguyên 64 bit.
-        while (max($weights) > 100_000_000) {
+        return $weights;
+    }
+
+    /**
+     * Hạ trọng số xuống mức mà `total * weight` chắc chắn không tràn.
+     *
+     * Ngưỡng phải tính TỪ CHÍNH số tiền, không phải một hằng số. Bản trước
+     * chốt cứng 10^8 dựa trên giả định "số tiền lớn nhất khoảng 10^10", nhưng
+     * cột tiền là `decimal(15,2)` nên nhận tới 10^13, và biểu mẫu không chặn ở
+     * mức tương ứng: `splitVnd(100_000_000_000, [100_000_000, 99_999_999])`
+     * cho tích vượt số nguyên 64 bit (Codex R21).
+     *
+     * @param  array<int, int>  $weights
+     * @return array<int, int>
+     */
+    private static function fitWeightsTo(int $total, array $weights): array
+    {
+        $total = max(1, abs($total));
+
+        // Giữ biên an toàn: tích lớn nhất không vượt 1/4 khoảng số nguyên.
+        $maxWeight = max(1, intdiv(PHP_INT_MAX >> 2, $total));
+
+        while (max($weights) > $maxWeight) {
             $weights = array_map(fn ($w) => max($w > 0 ? 1 : 0, intdiv($w, 2)), $weights);
         }
 

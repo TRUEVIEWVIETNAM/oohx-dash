@@ -24,13 +24,16 @@ class ImpressionLog extends Model
 
     protected $fillable = [
         'id', 'screen_id', 'owner_id', 'campaign_id', 'booking_line_id', 'creative_id',
-        'event_id', 'played_at', 'duration_sec', 'multiplier_applied', 'imp_count',
+        'event_id', 'played_at', 'reported_played_at', 'played_at_clamped',
+        'duration_sec', 'multiplier_applied', 'imp_count',
         'deal_type', 'cpm_charged', 'revenue_gross', 'revenue_owner',
         'proof_url', 'source', 'created_at',
     ];
 
     protected $casts = [
         'played_at'          => 'datetime',
+        'reported_played_at' => 'datetime',
+        'played_at_clamped'  => 'boolean',
         'created_at'         => 'datetime',
         'imp_count'          => 'decimal:2',
         'multiplier_applied' => 'decimal:2',
