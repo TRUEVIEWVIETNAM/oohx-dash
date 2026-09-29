@@ -3,7 +3,9 @@
 namespace App\Filament\Publisher\Widgets;
 
 use App\Models\Network;
+use App\Models\Screen;
 use App\Models\ScreenInventory;
+use App\Models\Site;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -32,21 +34,29 @@ class NetworkStatsWidget extends BaseWidget
 
         $networkIds = Network::where('owner_id', $ownerId)->pluck('id');
 
-        // Networks có ít nhất 1 screen (qua screen_inventory)
+        // Đếm qua ĐỊA ĐIỂM, không qua screen_inventory.
+        //
+        // Trước đây widget này đếm theo `screen_inventory.network_id` trong khi
+        // trang công khai đếm theo `sites.network_id`, nên cùng một mạng lưới
+        // hiện hai con số màn hình khác nhau ở hai nơi (F-12). Nay cả hai đi
+        // chung một đường: mạng lưới là chuỗi địa điểm, màn hình thừa hưởng
+        // mạng lưới của nơi nó đứng.
+        $screensInNetworks = $networkIds->isNotEmpty()
+            ? Screen::whereHas('site', fn ($q) => $q->whereIn('network_id', $networkIds))
+            : null;
+
         $networksWithScreens = $networkIds->isNotEmpty()
-            ? ScreenInventory::whereIn('network_id', $networkIds)
+            ? Site::whereIn('network_id', $networkIds)
+                ->whereHas('screens')
                 ->distinct('network_id')
                 ->count('network_id')
             : 0;
 
-        // Tổng screens đã được gán vào network
-        $totalScreensInNetworks = $networkIds->isNotEmpty()
-            ? ScreenInventory::whereIn('network_id', $networkIds)->count()
-            : 0;
+        $totalScreensInNetworks = $screensInNetworks ? (clone $screensInNetworks)->count() : 0;
 
-        // Trung bình floor CPM (tất cả screens có floor_cpm trong các networks này)
+        // Trung bình floor CPM của các màn hình trong những mạng lưới này.
         $avgFloorCpm = $networkIds->isNotEmpty()
-            ? ScreenInventory::whereIn('network_id', $networkIds)
+            ? ScreenInventory::whereHas('screen.site', fn ($q) => $q->whereIn('network_id', $networkIds))
                 ->whereNotNull('floor_cpm')
                 ->where('floor_cpm', '>', 0)
                 ->avg('floor_cpm')

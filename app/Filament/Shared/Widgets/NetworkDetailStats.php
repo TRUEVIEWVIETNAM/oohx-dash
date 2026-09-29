@@ -23,7 +23,7 @@ class NetworkDetailStats extends BaseWidget
 
         $networkId = $this->record->id;
 
-        $base = fn() => Screen::whereHas('inventory', fn($q) => $q->where('network_id', $networkId));
+        $base = fn() => Screen::whereHas('site', fn($q) => $q->where('network_id', $networkId));
 
         $total   = $base()->count();
         $active  = $base()->where('active', true)->count();

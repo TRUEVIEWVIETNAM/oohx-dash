@@ -71,14 +71,11 @@ jobs:
           DB_DATABASE: oohx_ci
           DB_HOST: 127.0.0.1
 
-      # --exclude-group f12-network-relation: bảy ca hỏng TỪ TRƯỚC giai đoạn 0,
-      # nguyên nhân là F-12 (hai đường quan hệ Màn hình ↔ Mạng lưới chưa hợp
-      # nhất). Sửa dứt điểm cần migration trên dữ liệu production, đang chờ
-      # duyệt. Loại ra để cổng chắn deploy dùng được, KHÔNG phải vì chúng không
-      # quan trọng — xem mục 2 của docs/audit-5-vung-2026-09-23/STATUS.md và gỡ
-      # cờ này ngay khi migration xong.
+      # Chạy TOÀN BỘ, không loại nhóm nào. Cờ --exclude-group
+      # f12-network-relation đã được gỡ ở giai đoạn 3 cùng lúc với việc hợp
+      # nhất quan hệ Màn hình ↔ Mạng lưới.
       - name: Chạy test
-        run: php artisan test --exclude-group f12-network-relation --log-junit storage/logs/junit.xml
+        run: php artisan test --log-junit storage/logs/junit.xml
         env:
           APP_ENV: testing
           APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=

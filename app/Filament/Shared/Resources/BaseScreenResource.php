@@ -722,7 +722,7 @@ abstract class BaseScreenResource extends Resource
                     ->options(fn () => static::networkFilterOptions())
                     ->query(fn (Builder $query, array $data) => $query->when(
                         $data['value'] ?? null,
-                        fn ($q, $v) => $q->whereHas('inventory', fn ($iq) => $iq->where('network_id', $v))
+                        fn ($q, $v) => $q->whereHas('site', fn ($sq) => $sq->where('network_id', $v))
                     ))
                     ->searchable(),
 

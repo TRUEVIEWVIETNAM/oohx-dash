@@ -34,8 +34,8 @@ abstract class BaseViewNetwork extends ViewRecord
         $network = $this->record;
         $network->loadMissing(['owner']);
 
-        $this->totalScreens = Screen::whereHas('inventory', fn($q) => $q->where('network_id', $network->id))->count();
-        $this->totalSites   = Screen::whereHas('inventory', fn($q) => $q->where('network_id', $network->id))
+        $this->totalScreens = Screen::whereHas('site', fn($q) => $q->where('network_id', $network->id))->count();
+        $this->totalSites   = Screen::whereHas('site', fn($q) => $q->where('network_id', $network->id))
             ->distinct('site_id')->count('site_id');
 
         $this->screensMapData = $this->buildScreensMapData();
@@ -44,7 +44,7 @@ abstract class BaseViewNetwork extends ViewRecord
     protected function buildScreensMapData(): array
     {
         $network = $this->record;
-        $screens = Screen::whereHas('inventory', fn($q) => $q->where('network_id', $network->id))
+        $screens = Screen::whereHas('site', fn($q) => $q->where('network_id', $network->id))
             ->with(['site.province', 'site.commune'])
             ->get();
 

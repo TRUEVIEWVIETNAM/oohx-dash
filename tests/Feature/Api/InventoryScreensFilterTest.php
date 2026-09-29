@@ -15,10 +15,9 @@ use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
 /**
- * Hai ca lọc theo mạng lưới gắn #[Group('f12-network-relation')] đang HỎNG TỪ
- * TRƯỚC giai đoạn 0 vì F-12 (hai đường quan hệ Màn hình ↔ Mạng lưới chưa hợp
- * nhất). CI loại nhóm này để cổng chắn deploy dùng được; xem chú thích đầy đủ ở
- * InventoryNetworksTest và mục 2 của docs/audit-5-vung-2026-09-23/STATUS.md.
+ * Hai ca lọc theo mạng lưới hỏng từ trước giai đoạn 0 vì F-12. Giai đoạn 3
+ * chốt `sites.network_id` là nguồn sự thật duy nhất — xem chú thích đầy đủ ở
+ * `InventoryNetworksTest`.
  */
 class InventoryScreensFilterTest extends TestCase
 {
@@ -54,7 +53,27 @@ class InventoryScreensFilterTest extends TestCase
     {
         $owner  = Owner::factory()->create();
         $city   = $overrides['city'] ?? 'hanoi';
-        $site   = Site::factory()->create(['owner_id' => $owner->id, 'city' => $city]);
+
+        // "Màn hình này thuộc mạng lưới X" nay được dựng qua ĐỊA ĐIỂM, vì
+        // `sites.network_id` là nguồn sự thật duy nhất kể từ giai đoạn 3.
+        // Trước đây fixture gán `screens.network_code` trong khi endpoint đếm
+        // theo địa điểm, nên bảy ca này luôn ra rỗng (F-12).
+        $networkCode = $overrides['network_code'] ?? null;
+        $networkId   = null;
+
+        if ($networkCode) {
+            $networkId = \App\Models\Network::firstOrCreate(
+                ['code' => $networkCode],
+                ['name' => $networkCode, 'owner_id' => $owner->id],
+            )->id;
+        }
+
+        $site = Site::factory()->create([
+            'owner_id'   => $owner->id,
+            'city'       => $city,
+            'network_id' => $networkId,
+        ]);
+
         $screen = Screen::factory()->create(array_merge(
             ['owner_id' => $owner->id, 'site_id' => $site->id],
             array_diff_key($overrides, ['city' => true])
@@ -342,7 +361,6 @@ class InventoryScreensFilterTest extends TestCase
 
     // ── network[] filter ──────────────────────────────────
 
-    #[Group('f12-network-relation')]
     public function test_network_filter_returns_matching_screens(): void
     {
         Network::factory()->create(['code' => 'winmart', 'name' => 'Winmart+']);
@@ -358,7 +376,6 @@ class InventoryScreensFilterTest extends TestCase
         $this->assertEquals(1, $response->json('total'));
     }
 
-    #[Group('f12-network-relation')]
     public function test_network_filter_multi_value_returns_union(): void
     {
         Network::factory()->create(['code' => 'net-a', 'name' => 'Net A']);
