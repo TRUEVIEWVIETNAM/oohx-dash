@@ -239,8 +239,15 @@ class TenantPermissionGapTest extends TestCase
             'active'        => true,
         ]);
 
-        // Giả lập đúng tình huống: người đăng nhập không phải User.
-        auth()->setUser($client);
+        // Đi qua đúng đường thật: một lần gọi API bằng token làm cho
+        // `auth()->user()` là ApiClient trong phần còn lại của tiến trình test.
+        // Không dùng `auth()->setUser($client)` được — SessionGuard chỉ nhận
+        // Authenticatable, mà ApiClient không phải; chính cách giả lập sai đó
+        // làm ca test này đổ ở vòng CI trước.
+        $token = $client->createToken('t', ['inventory'])->plainTextToken;
+        $this->withToken($token)->getJson('/api/v1/inventory/screens')->assertOk();
+
+        $this->assertInstanceOf(\App\Models\ApiClient::class, auth()->user(), 'Phải đúng tình huống: người đăng nhập không phải User.');
 
         $screen->inventory->update(['io_rate' => 1_234_000]);
 
