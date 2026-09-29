@@ -34,11 +34,24 @@ Baseline: `112e2aa`. **Giai đoạn 0 đã push** lên `feat/tmdt-review-1107` (
 
 Chi tiết và những gì giai đoạn 1 **không** đóng: `REVIEW-REQUEST-GIAI-DOAN-1-CLAUDE.md`.
 
+## 1d. Giai đoạn 2 — đường ghi bằng chứng phát sóng (xong 29/09)
+
+Bốn lỗi trên cùng một đường, nên "bằng chứng phát sóng" của sàn cho tới nay **không tồn tại**:
+
+| # | Lỗi | Sửa |
+|---|---|---|
+| 1 | **Không ghi được dòng nào** — khóa chính `char(26)` không có mặc định, model thiếu `HasUlids` → SQLSTATE 1364 ở mọi lần chèn | Dựng lại bảng; migration đếm lại trước khi xóa và dừng nếu có bản ghi |
+| 2 | **Ai biết UUID cũng ghi được** — UUID nằm trong cấu hình thiết bị và log; `device_token` có sẵn từ đầu nhưng chưa từng dùng | Token băm, gửi qua `X-Device-Token`, cấp bằng `screens:issue-device-token`; chưa cấp token thì không cho qua |
+| 3 | **Cộng trùng** khi thiết bị gửi lại sau mất mạng | Khóa `(screen_id, event_id, played_at)` + hỏi theo `event_id` trước khi ghi; `played_at` thành bắt buộc |
+| 4 | **Không nối được với đơn hàng** — `campaign_id` khai `bigint` trong khi chiến dịch dùng ULID, nên báo cáo lọc theo nó vĩnh viễn không khớp | ULID + thêm `booking_line_id`, máy chủ tự xác minh dòng thuộc đúng màn hình và khoảng ngày |
+
+Kèm theo: chặn biên đồng hồ thiết bị (muộn tối đa 7 ngày, tương lai kéo về hiện tại), bảng tổng hợp theo ngày và lệnh `impressions:rollup` chạy mỗi giờ để báo cáo không quét bảng thô. 23 ca test.
+
 **Bốn quyết định nghiệp vụ chốt 29/09:** giữ chỗ 30 phút · hoàn tiền bậc thang 14/7 ngày · chiến dịch chạy theo từng dòng · gói được gồm nhiều owner, chia theo giá từng dòng.
 
 ---
 
-## 1c. Lỗi do test bắt được, không nhìn ra khi đọc code
+## 1e. Lỗi do test bắt được, không nhìn ra khi đọc code
 
 1. Đóng băng giá **chặn mọi đơn hàng** — MySQL sắp xếp lại khóa cột JSON, `===` báo khác nhau.
 2. DNS trục trặc **tắt vĩnh viễn webhook** của đối tác — phải tách "cấm hẳn" khỏi "lỗi tạm thời".
@@ -67,8 +80,7 @@ Chi tiết và những gì giai đoạn 1 **không** đóng: `REVIEW-REQUEST-GIA
 - Quyền cho các action Filament còn lại (CRUD product, settings của owner).
 
 ### Nợ giao dịch còn lại
-- **Sửa đường ghi bằng chứng phát sóng** (F-04/F08): `impression_logs` hiện **không ghi được** — khóa chính `char(26)` không có mặc định, model thiếu `HasUlids`, đã dựng probe tái hiện. Cần schema ULID, xác thực thiết bị, chống trùng (khóa unique **phải chứa cột phân vùng** `played_at`, bảng đang có 6 phân vùng), và bảng tổng hợp. Đây là giai đoạn 2. Chủ dự án xác nhận 29/09: **chưa có thiết bị player nào gửi dữ liệu thật**, nên được làm lại schema cho sạch thay vì migration bảo toàn dữ liệu.
-- **Đường phát sóng cho thiết bị**: chưa tồn tại. Không endpoint nào trả lịch phát; `playlist_version` trong heartbeat chỉ là dấu thời gian của bảng kho. Vì vậy cổng nội dung của 1.3 đặt ở bước kích hoạt chứ không phải bước phát.
+- **Đường phát sóng cho thiết bị**: vẫn chưa tồn tại — không endpoint nào trả lịch phát. Giai đoạn 2 mới làm xong đường thiết bị **báo về**, chưa làm đường máy chủ **gửi xuống**. Cổng nội dung của 1.3 vì thế vẫn đặt ở bước kích hoạt.
 - **Khiếu nại**: luồng hủy và hoàn tiền đã có (1.5), phần khiếu nại chưa.
 
 ### Chuyển sang Next.js
@@ -98,7 +110,8 @@ Chưa bắt đầu — xem `PLAN-API-FIRST-NEXTJS.md` và `LO-TRINH-SAU-GIAI-DOA
 | Sau tháng lịch + VAT | 286 | 276 | 10 |
 | Sau T3 + T4 + việc nhỏ | 307 | 297 | 10 |
 | Sau khi sửa 3 ca baseline | 307 | 300 | 7 |
-| **Sau giai đoạn 1** (CI, run 36535168463) | **390** | **383** | **0** ngoài 7 ca F-12 bị loại |
+| **Sau giai đoạn 1** (CI, run 36535168463) | 390 | 383 | 0 ngoài 7 ca F-12 bị loại |
+| **Sau giai đoạn 2** (CI, run 36544802797) | **413** | **406** | **0** ngoài 7 ca F-12 bị loại |
 
 Trong 10 ca hỏng baseline, **3 ca đã sửa ngày 27/09**: 2 ca `InvitationFlowTest` — trong đó có một lỗi sản phẩm thật, `InvitationController::show` dùng sai tham số thứ ba của `view()` nên link mời hết hạn trả 500 thay vì 410 — và 1 ca `PanelAccessTest` (test dùng `status = inactive`, enum chỉ có `pending/active/suspended`).
 

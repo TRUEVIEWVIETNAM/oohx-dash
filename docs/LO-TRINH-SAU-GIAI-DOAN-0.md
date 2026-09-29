@@ -12,9 +12,9 @@ Nguyên tắc xuyên suốt: **đóng đường tiền trước, đổi giao di�
 
 | Giai đoạn | Nội dung | Quy mô | Chặn bởi |
 |---|---|---|---|
-| **1** | Đóng đường tiền: giữ chỗ, gói, creative, thanh toán, hủy/hoàn | XL | 5 câu hỏi nghiệp vụ |
-| **1b** | Vá nốt phân quyền còn thiếu (T1b) | M | — |
-| **2** | Sửa đường ghi bằng chứng phát sóng | L | Câu hỏi 6 |
+| ~~1~~ | ~~Đóng đường tiền~~ **XONG 29/09** | XL | — |
+| ~~1b~~ | ~~Vá nốt phân quyền~~ **XONG 29/09** | M | — |
+| ~~2~~ | ~~Sửa đường ghi bằng chứng phát sóng~~ **XONG 29/09** | L | — |
 | **3** | Hợp nhất quan hệ Màn hình ↔ Mạng lưới, gỡ nhãn khỏi CI | M | Duyệt migration |
 | **4** | Dọn số liệu bịa trên trang công khai | S | Quyết định của anh |
 | **5** | API v2 + OpenAPI, Blade tự đọc qua API | M | Xong 1–3 |
@@ -86,7 +86,7 @@ Việc nhỏ nhưng là đúng loại lỗ hổng mà audit đã bắt được 
 
 ---
 
-## Giai đoạn 2 — Sửa đường ghi bằng chứng phát sóng (F-04 / F08)
+## Giai đoạn 2 — Sửa đường ghi bằng chứng phát sóng (F-04 / F08) — **ĐÃ XONG 29/09/2026**
 
 `impression_logs` hiện **không ghi được**: khóa chính `char(26)` không có giá trị mặc định và model thiếu trait `HasUlids` — đã dựng probe tái hiện, lỗi SQLSTATE 1364. Nghĩa là toàn bộ bằng chứng phát sóng đang không có thật.
 

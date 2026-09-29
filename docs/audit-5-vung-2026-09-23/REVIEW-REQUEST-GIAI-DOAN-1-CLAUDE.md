@@ -171,3 +171,44 @@ Thêm `CampaignPolicy`: trước đây mỗi controller tự so `organization_id
 - **Hợp nhất quan hệ Màn hình ↔ Mạng lưới** (F-12) — 7 ca test vẫn đang bị loại khỏi CI.
 - **Số liệu bịa trên trang công khai** (F-15) — chờ anh quyết.
 - **F09** `price_per_slot_vnd` trả `floor_cpm` dưới cái tên sai: cố ý **không** sửa, vì `/api/v1` là hợp đồng với đối tác. Đã ghi chú tại chỗ trong code và chờ trả lời "đối tác nào đang dùng API".
+
+---
+
+# Phụ lục — Giai đoạn 2: đường ghi bằng chứng phát sóng
+
+Làm tiếp ngay sau giai đoạn 1, cùng gửi một lượt. CI: **406 ca chạy, 0 đổ** (run `36544802797`).
+
+## A. Bốn lỗi trên cùng một đường
+
+| # | Lỗi | Hệ quả thật |
+|---|---|---|
+| 1 | Khóa chính `(id, played_at)` với `id` là `char(26)` không có mặc định, model thiếu `HasUlids` | **Chưa từng ghi được một dòng nào** — SQLSTATE 1364 ở mọi lần chèn. Bằng chứng phát sóng của sàn không tồn tại |
+| 2 | Endpoint chỉ hỏi `screen_uuid` trong thân yêu cầu | UUID nằm trong cấu hình thiết bị và trong log. Biết nó là bơm được lượt hiển thị, tức chế ra doanh thu. `device_token` có sẵn từ đầu, chưa từng dùng |
+| 3 | Không có cách chống trùng | Thiết bị mất mạng gửi lại là cộng thêm lượt, tức thêm tiền |
+| 4 | `campaign_id`/`creative_id` khai `unsignedBigInteger`, luật kiểm ghi `integer`, trong khi cả hai đều là ULID | Báo cáo lọc `campaign_id = <ulid>` trên cột số nguyên — **vĩnh viễn không khớp** |
+
+## B. Quyết định đáng soi
+
+**Dựng lại bảng thay vì migration bảo toàn dữ liệu.** Dựa trên xác nhận của chủ dự án ngày 29/09: chưa có thiết bị nào gửi dữ liệu thật. Nhưng migration **đếm lại trước khi xóa** và ném lỗi nếu có bản ghi — giả định phải được kiểm lúc chạy, không phải tin.
+
+**`played_at` thành bắt buộc.** Chống trùng dựa vào `(screen_id, event_id, played_at)`; khóa unique bắt buộc chứa cột phân vùng. Nếu để thiết bị bỏ trống rồi máy chủ điền `now()` thì lần gửi lại mang mốc khác và khóa không chặn được. Thêm cả `screen_id` vì `event_id` do thiết bị tự sinh, chỉ duy nhất trong phạm vi một thiết bị.
+
+**Chưa cấp token thì không cho gửi.** Cố ý không mở ngoại lệ "chưa cấu hình thì bỏ kiểm" — mở là giữ nguyên đúng lỗ hổng vừa bịt. Đổi lại: **phải cấp token cho mọi màn hình trước khi lắp thiết bị thật**, bằng `php artisan screens:issue-device-token`.
+
+**Chặn biên đồng hồ thiết bị:** báo muộn tối đa 7 ngày (gửi bù sau mất mạng là bình thường), lệch về tương lai thì kéo về hiện tại. Quá hạn thì **kẹp về biên chứ không vứt dữ liệu**. `played_at` quyết định lượt phát rơi vào phân vùng nào, kỳ báo cáo nào, hóa đơn nào.
+
+**Không có khóa ngoại** trên `impression_logs`: MySQL không cho khóa ngoại trên bảng đã phân vùng. Việc kiểm tham chiếu nằm ở tầng ứng dụng — đây là chỗ dễ trôi, xin Codex soi.
+
+## C. Xin Codex soi kỹ
+
+1. Chống trùng có lỗ nào khi hai yêu cầu chạy song song với cùng `event_id` nhưng `played_at` lệch vài giây? (Tôi hỏi trước theo `event_id`, khóa unique là chốt cuối — nhưng hai thứ đó dùng điều kiện khác nhau.)
+2. Kẹp biên `played_at` có làm sai số liệu đối soát không: một lượt phát thật ngày thứ 60 bị kẹp về ngày thứ 7 sẽ nằm sai kỳ. Vứt đi hay kẹp — cách nào đúng hơn?
+3. `resolveBookingLine` chọn **dòng đầu tiên** khớp khi thiết bị chỉ gửi `campaign_id`. Một màn hình có hai dòng của cùng chiến dịch trong hai khoảng ngày chồng nhau thì chọn sai. Có nên từ chối thay vì đoán?
+4. Bảng tổng hợp dùng chuỗi rỗng thay `NULL` cho `campaign_id`/`booking_line_id` để khóa unique chặn được trùng. Có cách nào sạch hơn?
+5. Phân vùng hiện tới 2027-Q2 rồi `p_future`. Chưa có việc tự thêm phân vùng theo lịch — cần không?
+
+## D. Giai đoạn 2 **không** đóng
+
+- **Đường phát sóng cho thiết bị**: vẫn chưa tồn tại. Giai đoạn 2 làm xong đường thiết bị **báo về**, chưa làm đường máy chủ **gửi lịch phát xuống**. Cổng nội dung của 1.3 vì thế vẫn đặt ở bước kích hoạt.
+- **Đối soát doanh thu từ bằng chứng**: `cpm_charged`, `revenue_gross`, `revenue_owner` vẫn để trống — chưa có bước tính tiền từ lượt phát thật.
+- **Khiếu nại** về số liệu phát sóng.
