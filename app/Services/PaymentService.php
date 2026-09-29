@@ -6,6 +6,7 @@ use App\Models\Campaign;
 use App\Models\CampaignActivity;
 use App\Models\Owner;
 use App\Models\Payment;
+use App\Models\Refund;
 use App\Services\Booking\CreativeGate;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
@@ -121,14 +122,19 @@ class PaymentService
             ->when($ownerId, fn ($q) => $q->where('owner_id', $ownerId))
             ->sum('estimated_cost');
 
-        $due = (int) round($cost * (1 + $this->vatRate()));
+        $due = $this->withVat((int) round($cost));
 
         $counted = (int) round((float) $campaign->payments()
             ->where('owner_id', $ownerId)
             ->whereIn('status', ['completed', 'pending', 'processing'])
             ->sum('amount'));
 
-        return max(0, $due - $counted);
+        $refunded = (int) round((float) Refund::where('campaign_id', $campaign->id)
+            ->where('owner_id', $ownerId)
+            ->whereIn('status', [Refund::STATUS_PENDING, Refund::STATUS_SETTLED])
+            ->sum('amount'));
+
+        return max(0, $due - $counted + $refunded);
     }
 
     /**
@@ -196,31 +202,43 @@ class PaymentService
 
         $gate = app(CreativeGate::class);
 
-        if (! $gate->isReadyToAir($campaign)) {
-            CampaignActivity::log(
-                $campaign,
-                'activation_blocked',
-                'Đã đủ tiền nhưng chưa lên sóng: còn dòng đặt chỗ chưa có nội dung đã duyệt',
-            );
-
-            return;
-        }
+        // Danh sách dòng CÒN THIẾU nội dung, tính một lần rồi lọc theo owner.
+        //
+        // Trước đây cổng nội dung xét cả chiến dịch: owner A có nội dung đã
+        // duyệt và đã trả đủ tiền vẫn không được chạy chỉ vì owner B chưa nộp
+        // mẫu quảng cáo. Trái hẳn quyết định "chạy theo từng dòng" (Codex R11).
+        $blockedLineIds = $gate->linesMissingApprovedCreative($campaign)->pluck('id');
 
         $activatedOwners = [];
+        $blockedOwners   = [];
 
         foreach ($this->breakdownByOwner($campaign) as $row) {
             if (! $row['is_paid'] || ! $row['owner']) {
                 continue;
             }
 
-            $updated = $campaign->bookingLines()
+            $ownerLines = $campaign->bookingLines()
                 ->where('owner_id', $row['owner']->id)
-                ->where('status', 'approved')
-                ->update(['status' => 'active']);
+                ->where('status', 'approved');
+
+            if ((clone $ownerLines)->whereIn('id', $blockedLineIds)->exists()) {
+                $blockedOwners[] = $row['owner']->name;
+                continue;
+            }
+
+            $updated = $ownerLines->update(['status' => 'active']);
 
             if ($updated > 0) {
                 $activatedOwners[] = $row['owner']->name;
             }
+        }
+
+        if ($blockedOwners !== []) {
+            CampaignActivity::log(
+                $campaign,
+                'activation_blocked',
+                'Đã đủ tiền nhưng chưa lên sóng vì thiếu nội dung đã duyệt: ' . implode(', ', $blockedOwners),
+            );
         }
 
         if ($activatedOwners !== []) {
@@ -311,24 +329,57 @@ class PaymentService
             ->groupBy('owner_id')
             ->pluck('pending', 'owner_id');
 
-        return $costs->map(function ($cost, $ownerId) use ($owners, $paidByOwner, $pendingByOwner) {
-            $cost    = (float) $cost;
-            $vat     = $cost * $this->vatRate();
-            $total   = $cost + $vat;
-            $paid    = (float) ($paidByOwner[$ownerId] ?? 0);
-            $pending = (float) ($pendingByOwner[$ownerId] ?? 0);
+        // Tiền đã hoàn trả lại cho người mua thì không còn là tiền owner đã
+        // nhận. Trước đây mọi payment `completed` đều được cộng vào phần "đã
+        // trả" kể cả khi dòng tương ứng đã hủy và tiền đã hoàn — nên dòng còn
+        // lại hiện ra đã trả đủ trong khi người mua chỉ thực giữ lại một nửa
+        // (Codex R12).
+        $refundedByOwner = Refund::where('campaign_id', $campaign->id)
+            ->whereIn('status', [Refund::STATUS_PENDING, Refund::STATUS_SETTLED])
+            ->selectRaw('owner_id, SUM(amount) as refunded')
+            ->groupBy('owner_id')
+            ->pluck('refunded', 'owner_id');
+
+        return $costs->map(function ($cost, $ownerId) use ($owners, $paidByOwner, $pendingByOwner, $refundedByOwner) {
+            // Tiền tính bằng VND nguyên ở MỌI phép so sánh.
+            //
+            // Trước đây `outstandingForOwner` làm tròn về số nguyên còn chỗ này
+            // giữ số lẻ, nên với giá 1.000.001 đồng thì công nợ về 0 mà
+            // `is_paid` vẫn false — trả thêm cũng không được vì hệ thống bảo
+            // không còn nợ. Chiến dịch kẹt vĩnh viễn (Codex R09).
+            $cost     = (int) round((float) $cost);
+            $total    = $this->withVat($cost);
+            $vat      = $total - $cost;
+            $paid     = (int) round((float) ($paidByOwner[$ownerId] ?? 0));
+            $pending  = (int) round((float) ($pendingByOwner[$ownerId] ?? 0));
+            $refunded = (int) round((float) ($refundedByOwner[$ownerId] ?? 0));
+
+            $netPaid = max(0, $paid - $refunded);
 
             return [
                 'owner'     => $owners[$ownerId] ?? null,
-                'cost'      => $cost,
-                'vat'       => $vat,
-                'total'     => $total,
-                'paid'      => $paid,
-                'pending'   => $pending,
-                'remaining' => max(0, $total - $paid - $pending),
-                'is_paid'   => $paid >= $total,
+                'cost'      => (float) $cost,
+                'vat'       => (float) $vat,
+                'total'     => (float) $total,
+                'paid'      => (float) $netPaid,
+                'paid_gross'=> (float) $paid,
+                'refunded'  => (float) $refunded,
+                'pending'   => (float) $pending,
+                'remaining' => (float) max(0, $total - $netPaid - $pending),
+                'is_paid'   => $netPaid >= $total,
             ];
         })->filter(fn ($row) => $row['owner'] !== null)->values();
+    }
+
+    /**
+     * Số tiền đã gồm VAT, tính bằng VND nguyên.
+     *
+     * Một chỗ duy nhất làm phép này. Hai chỗ làm tròn khác nhau là cách sinh ra
+     * "công nợ bằng 0 nhưng chưa trả đủ".
+     */
+    public function withVat(int $amountVnd): int
+    {
+        return (int) round($amountVnd * (1 + $this->vatRate()));
     }
 
     private function generateTransactionRef(): string

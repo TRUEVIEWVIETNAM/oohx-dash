@@ -6,6 +6,7 @@ use App\Models\BookingLine;
 use App\Models\Campaign;
 use App\Models\CampaignActivity;
 use App\Models\Creative;
+use App\Services\PaymentService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -62,6 +63,15 @@ class CreativeGate
                     "Nội dung \"{$creative->name}\" đã được duyệt",
                     $reviewerId,
                 );
+
+                // Xét lại việc lên sóng ngay tại đây.
+                //
+                // Hai thứ chặn lên sóng: tiền và nội dung. Trước đây chỉ nhánh
+                // XÁC NHẬN TIỀN gọi checkAndActivate, nên thứ tự "trả tiền
+                // trước, duyệt nội dung sau" khiến chiến dịch nằm mãi ở
+                // approved dù đã đủ cả hai điều kiện (Codex R10). Điều kiện
+                // nào được gỡ sau cùng thì chính nó phải xét lại.
+                app(PaymentService::class)->checkAndActivate($creative->campaign->fresh());
             }
 
             return $creative->fresh();

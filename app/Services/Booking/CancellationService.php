@@ -74,6 +74,25 @@ class CancellationService
         }
 
         return DB::transaction(function () use ($line, $actor, $reason) {
+            // Khóa và ĐỌC LẠI trong transaction trước khi quyết định.
+            //
+            // Phép kiểm trạng thái ở trên chạy trên đối tượng người gọi truyền
+            // vào, có thể đã cũ. Hai yêu cầu hủy song song — hoặc hai lần bấm
+            // trên hai tab — đều thấy 'approved' và đều tạo nghĩa vụ hoàn tiền,
+            // tức hoàn hai lần cho một dòng (Codex R13).
+            $line = BookingLine::withoutGlobalScopes()
+                ->whereKey($line->getKey())
+                ->lockForUpdate()
+                ->first();
+
+            if (! $line) {
+                throw new HttpException(422, 'Dòng đặt chỗ không còn tồn tại.');
+            }
+
+            if (in_array($line->status, self::UNCANCELLABLE, true)) {
+                throw new HttpException(422, 'Dòng đặt chỗ đã được xử lý bởi một yêu cầu khác.');
+            }
+
             $quote = $this->quote($line);
 
             $line->update([
@@ -229,10 +248,31 @@ class CancellationService
             ->whereNotIn('status', ['cancelled', 'rejected'])
             ->exists();
 
-        if (! $alive && $campaign->status !== Campaign::STATUS_CANCELLED) {
-            $campaign->update(['status' => Campaign::STATUS_CANCELLED]);
+        if (! $alive) {
+            if ($campaign->status !== Campaign::STATUS_CANCELLED) {
+                $campaign->update(['status' => Campaign::STATUS_CANCELLED]);
+                CampaignActivity::log($campaign, 'cancelled', 'Chiến dịch chuyển sang đã hủy vì không còn dòng đặt chỗ nào');
+            }
 
-            CampaignActivity::log($campaign, 'cancelled', 'Chiến dịch chuyển sang đã hủy vì không còn dòng đặt chỗ nào');
+            return;
+        }
+
+        // Còn dòng sống, nhưng không còn dòng nào ĐANG CHẠY thì chiến dịch
+        // không còn là "đang chạy".
+        //
+        // Trước đây chỉ xét "còn dòng chưa hủy hay không", nên hủy dòng active
+        // cuối cùng vẫn để chiến dịch ở trạng thái đang chạy trong khi không có
+        // màn hình nào phát (Codex R14).
+        $hasActive = $campaign->bookingLines()->where('status', 'active')->exists();
+
+        if (! $hasActive && $campaign->status === Campaign::STATUS_ACTIVE) {
+            $campaign->update(['status' => Campaign::STATUS_APPROVED]);
+
+            CampaignActivity::log(
+                $campaign,
+                'deactivated',
+                'Chiến dịch quay lại trạng thái đã duyệt: không còn dòng đặt chỗ nào đang chạy',
+            );
         }
     }
 }

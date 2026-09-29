@@ -109,7 +109,20 @@ class InventoryHoldService
         }
 
         // Không còn giữ chỗ (hết hạn, hoặc đặt chỗ không đi qua giỏ): phải giành lại.
-        $this->assertCapacity($screen, $start, $end, $sov, ignoreCartItemId: $item?->id);
+        //
+        // `ignoreBookingLineId` là bắt buộc, không phải tinh chỉnh: `createFromCart`
+        // ghi dòng đặt chỗ TRƯỚC rồi mới giành suất, mà dòng ở trạng thái
+        // `pending` đã bị tính vào sức chứa đã dùng. Thiếu tham số này thì một
+        // màn hình hoàn toàn trống cũng trả 422 mỗi khi giữ chỗ hết hạn —
+        // người mua bị chặn bởi chính đơn của mình (Codex R02).
+        $this->assertCapacity(
+            $screen,
+            $start,
+            $end,
+            $sov,
+            ignoreCartItemId: $item?->id,
+            ignoreBookingLineId: $line->id,
+        );
 
         return InventoryHold::create([
             'screen_id'       => $screen->id,
@@ -165,6 +178,7 @@ class InventoryHoldService
         string $endDate,
         ?string $ignoreCartItemId = null,
         ?string $ignoreBookingLineId = null,
+        bool $locking = false,
     ): int {
         $max = (int) ($screen->inventory?->share_of_voice_max_pct ?? 100);
 
@@ -174,6 +188,7 @@ class InventoryHoldService
             ->when($ignoreBookingLineId, fn ($q) => $q->where('id', '!=', $ignoreBookingLineId))
             ->where('start_date', '<=', $endDate)
             ->where('end_date', '>=', $startDate)
+            ->when($locking, fn ($q) => $q->lockForUpdate())
             ->sum('share_of_voice_pct');
 
         // Giữ chỗ đã gắn dòng đặt chỗ thì không cộng hai lần — dòng đặt chỗ ở
@@ -183,6 +198,7 @@ class InventoryHoldService
             ->whereNull('booking_line_id')
             ->when($ignoreCartItemId, fn ($q) => $q->where('cart_item_id', '!=', $ignoreCartItemId))
             ->overlapping($startDate, $endDate)
+            ->when($locking, fn ($q) => $q->lockForUpdate())
             ->sum('sov_pct');
 
         return max(0, $max - $bookedByLines - $heldBySelf);
@@ -222,10 +238,26 @@ class InventoryHoldService
         string $endDate,
         int $sovPct,
         ?string $ignoreCartItemId = null,
+        ?string $ignoreBookingLineId = null,
     ): void {
         $locked = $lockedScreen;
 
-        $remaining = $this->remainingSov($locked, $startDate, $endDate, $ignoreCartItemId);
+        // `locking: true` — phép đếm này PHẢI là phép đọc có khóa.
+        //
+        // MySQL mặc định chạy REPEATABLE READ: một truy vấn đọc thường dùng ảnh
+        // chụp lập từ lần đọc đầu tiên của transaction. Giao dịch B đã đọc giỏ
+        // hàng trước khi xin khóa màn hình, nên ảnh chụp của nó có từ trước;
+        // khóa hàng màn hình bắt B xếp hàng nhưng KHÔNG làm mới ảnh chụp đó.
+        // B chờ xong, đếm trên ảnh cũ, không thấy giữ chỗ A vừa commit, và bán
+        // vượt suất. Phép đọc có khóa luôn đọc bản mới nhất đã commit (Codex R04).
+        $remaining = $this->remainingSov(
+            $locked,
+            $startDate,
+            $endDate,
+            $ignoreCartItemId,
+            $ignoreBookingLineId,
+            locking: true,
+        );
 
         if ($sovPct > $remaining) {
             throw new HttpException(422, sprintf(

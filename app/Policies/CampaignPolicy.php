@@ -25,20 +25,31 @@ use App\Models\User;
 class CampaignPolicy
 {
     /**
-     * Xem chiến dịch: người của tổ chức mua, **hoặc** media owner có màn hình
-     * trong chiến dịch đó.
+     * Xem chiến dịch **ở khu người mua**: chỉ người của tổ chức đã đặt.
      *
-     * Nhánh media owner không phải phần thêm cho đẹp: panel publisher đọc chính
-     * `Campaign` để dựng hộp thư đặt chỗ, và Filament gọi policy này. Thiếu
-     * nhánh đó thì đăng ký policy làm cả hộp thư đặt chỗ trả 403 — đúng như
-     * `BookingInboxBuyerContactTest` bắt được trên CI.
+     * Media owner KHÔNG được vào đây. Ở giai đoạn 3 tôi gộp nhánh owner vào
+     * chính quyền này để hộp thư đặt chỗ của Filament hết 403, và hậu quả là
+     * publisher của owner A mở được `/booking/{campaign}/payment` — trang đó
+     * nạp toàn bộ payments của chiến dịch, tức số tiền, số hóa đơn và trạng
+     * thái thanh toán của owner B (Codex R01).
+     *
+     * Bài học nằm ở chỗ: một quyền đọc dùng chung cho hai màn hình có phạm vi
+     * dữ liệu khác nhau thì sớm muộn màn hình rộng hơn sẽ rò. Nay tách hẳn —
+     * xem `viewAsOwner()`.
      */
     public function view(User $user, Campaign $campaign): bool
     {
-        if ($this->allows($user, $campaign, 'view_campaigns')) {
-            return true;
-        }
+        return $this->allows($user, $campaign, 'view_campaigns');
+    }
 
+    /**
+     * Xem chiến dịch **ở khu media owner** (hộp thư đặt chỗ).
+     *
+     * Chỉ thấy phần liên quan tới mình: dữ liệu hiển thị đã được
+     * `BookingInboxResource::getEloquentQuery()` lọc theo owner đang chọn.
+     */
+    public function viewAsOwner(User $user, Campaign $campaign): bool
+    {
         return $this->ownsLinesIn($user, $campaign);
     }
 
