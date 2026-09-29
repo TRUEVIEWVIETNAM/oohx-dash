@@ -283,10 +283,13 @@ class CodexBatch1Test extends TestCase
         ]);
         $this->approvedCreative($campaign);
 
-        $this->payInFull($campaign, $owner->id);
-        $this->assertTrue(app(PaymentService::class)->breakdownByOwner($campaign->fresh())->first()['is_paid']);
+        // Trả MỘT PHẦN: 1.080.000 trên tổng nợ 2.160.000 của owner này.
+        // Trả đủ cả hai dòng thì hoàn một dòng xong vẫn còn đủ cho dòng kia —
+        // lúc đó `is_paid = true` là đúng, không lộ được lỗi.
+        $partial = app(PaymentService::class)->createPayment($campaign, 'bank_transfer', 1_080_000, $owner->id);
+        app(PaymentService::class)->confirmBankTransfer($partial);
 
-        // Hủy sớm một dòng → hoàn 100% phần của dòng đó.
+        // Hủy sớm một dòng → hoàn phần đã trả phân bổ cho dòng đó (540.000).
         $line = $campaign->fresh()->bookingLines()->first();
         $line->update(['start_date' => now()->addDays(30)->toDateString()]);
         app(CancellationService::class)->cancelLine($line->fresh(), $this->buyer, 'đổi kế hoạch');

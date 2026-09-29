@@ -87,11 +87,20 @@ class InventoryHoldService
         $end   = $line->end_date->toDateString();
         $sov   = (int) ($line->share_of_voice_pct ?: 100);
 
+        // Giữ chỗ chỉ được nâng cấp khi nó **bao phủ đúng** khoảng ngày và đủ
+        // SOV mà dòng đặt chỗ cần.
+        //
+        // Điều kiện cũ chỉ đòi hai khoảng GIAO NHAU. Khách giữ tháng 1 rồi sửa
+        // sang tháng 2 mà hold cũ chưa cập nhật thì hold tháng 1 vẫn khớp, và
+        // suất tháng 2 được cấp mà không qua phép kiểm sức chứa nào — kể cả
+        // khi người khác đã lấy (Codex R03).
         $existing = $item
             ? InventoryHold::effective()
                 ->where('cart_item_id', $item->id)
                 ->where('screen_id', $screen->id)
-                ->overlapping($start, $end)
+                ->where('start_date', '<=', $start)
+                ->where('end_date', '>=', $end)
+                ->where('sov_pct', '>=', $sov)
                 ->first()
             : null;
 

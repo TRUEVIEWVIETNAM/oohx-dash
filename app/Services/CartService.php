@@ -201,6 +201,29 @@ class CartService
     }
 
     /**
+     * Tập màn hình mà một dòng giỏ đang chiếm suất.
+     *
+     * Dòng mua lẻ: đúng một màn hình. Dòng thuộc gói: **toàn bộ** màn hình của
+     * gói, đọc lại từ sản phẩm chứ không tin danh sách đã lưu.
+     *
+     * @return \Illuminate\Support\Collection<int, Screen>
+     */
+    private function screensToHold(CartItem $item, ?Screen $fallback): \Illuminate\Support\Collection
+    {
+        if (! $item->product_id) {
+            return collect(array_filter([$fallback]));
+        }
+
+        $expander = app(\App\Services\Booking\BundleExpander::class);
+        $product  = $this->eligibility->findPurchasableProduct($item->product_id);
+
+        // Sắp theo id: nhiều hàng bị khóa trong cùng một transaction thì thứ
+        // tự khóa phải cố định, nếu không hai đơn có màn hình chung sẽ khóa
+        // chéo nhau.
+        return $expander->resolveScreens($item, $product)->sortBy('id')->values();
+    }
+
+    /**
      * Ảnh chụp giá của kho tại thời điểm tính. Dùng để phát hiện media owner đổi
      * giá trong lúc giỏ hàng còn nằm đó.
      */
@@ -284,8 +307,15 @@ class CartService
             // Ngày hoặc SOV đổi thì suất đang giữ cũng phải đổi theo. Giành lại
             // ở khoảng ngày mới: khoảng mới đã có người lấy thì 422 ở đây và
             // toàn bộ thay đổi phía trên bị hủy.
-            if ($screen) {
-                $this->holds->acquireForCartItem($item->fresh(), $screen);
+            //
+            // Với dòng giỏ thuộc GÓI thì phải giành lại cho **mọi** màn hình
+            // của gói, không chỉ màn hình đầu. Trước đây chỉ đổi hold của
+            // `item->screen_id`, nên các màn hình còn lại giữ nguyên ngày cũ:
+            // khách sửa ngày sang tháng sau vẫn "giữ" tháng trước, rồi lúc
+            // chốt đơn nhánh chuyển hold chỉ đòi hai khoảng GIAO NHAU nên nó
+            // nhận luôn hold cũ và bỏ qua phép kiểm sức chứa (Codex R03).
+            foreach ($this->screensToHold($item->fresh(), $screen) as $target) {
+                $this->holds->acquireForCartItem($item->fresh(), $target);
             }
 
             return $item->fresh();

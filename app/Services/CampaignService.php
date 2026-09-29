@@ -149,6 +149,24 @@ class CampaignService
         $totalVnd  = (int) round((float) $item->estimated_cost);
         $unitPrice = (int) round((float) ($product->individual_price ?: $product->floor_price));
 
+        // Giá sản phẩm đổi giữa lúc thêm giỏ và lúc chốt đơn thì DỪNG LẠI.
+        //
+        // Nhánh mua lẻ nhân đơn giá HIỆN TẠI với số màn hình, nên owner đổi
+        // giá là tổng tiền đơn hàng đổi theo mà khách không hề xác nhận — và
+        // bản chụp gói vẫn ghi con số cũ, tức hai con số mâu thuẫn trong cùng
+        // một đơn (Codex R06). `assertCartRatesUnchanged` không bắt được vì nó
+        // chỉ so giá kho của màn hình, không so giá sản phẩm.
+        $expected = $buyMode === 'individual' ? $unitPrice * $screens->count() : $totalVnd;
+
+        if ($expected !== $totalVnd) {
+            throw new HttpException(409, sprintf(
+                'Giá của "%s" vừa thay đổi (%s ₫ → %s ₫). Vui lòng xem lại giỏ hàng trước khi gửi booking.',
+                $product->name,
+                number_format($totalVnd, 0, ',', '.'),
+                number_format($expected, 0, ',', '.'),
+            ));
+        }
+
         $split = $expander->splitCost($totalVnd, $screens, $buyMode, $unitPrice);
 
         $snapshotScreens = [];
