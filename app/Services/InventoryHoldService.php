@@ -219,7 +219,16 @@ class InventoryHoldService
      * Đây là dòng code khiến hai người mua phải xếp hàng. Bỏ `lockForUpdate()`
      * thì mọi thứ còn lại vẫn "chạy đúng" trong test một luồng và sai trong thực tế.
      */
-    private function lockScreen(string $screenId): Screen
+    /**
+     * Khóa hàng màn hình. **Gọi trước mọi lần chèn tham chiếu tới màn hình đó.**
+     *
+     * Công khai vì thứ tự này phải do người gọi bảo đảm: MySQL kiểm khóa ngoại
+     * khi chèn và giữ shared lock trên hàng `screens`. Chèn trước rồi mới xin
+     * `FOR UPDATE` là nâng shared lên exclusive — hai giao dịch cùng làm vậy
+     * trên **cùng một** màn hình sẽ khóa chéo nhau, và không thứ tự khóa nào
+     * cứu được vì chỉ có một hàng (Codex R05). Xem `DeadlockOrderTest`.
+     */
+    public function lockScreen(string $screenId): Screen
     {
         $screen = Screen::withoutGlobalScopes()
             ->whereKey($screenId)

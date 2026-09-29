@@ -84,6 +84,12 @@ class CartService
         }
 
         return DB::transaction(function () use ($cart, $productId, $firstScreen, $screens, $buyMode, $startDate, $endDate, $data, $quantity, $selectedScreenIds, $sovPct, $impressions, $cost, $pricingModel, $inv) {
+            // Khóa mọi màn hình của gói TRƯỚC khi chèn, theo thứ tự id — xem
+            // chú thích ở `addItem` và `InventoryHoldService::lockScreen`.
+            foreach ($screens->sortBy('id') as $screenToLock) {
+                $this->holds->lockScreen($screenToLock->id);
+            }
+
             $item = CartItem::updateOrCreate(
             ['cart_id' => $cart->id, 'product_id' => $productId],
             [
@@ -165,6 +171,14 @@ class CartService
         // Không có transaction thì updateOrCreate đã ghi xong trước khi giữ chỗ
         // báo 422, và khách thấy một dòng giỏ không có suất nào đứng sau.
         return DB::transaction(function () use ($cart, $screenId, $screen, $data, $estimated, $startDate, $endDate, $spotLength, $sovPct, $pricingModel, $inv) {
+            // Khóa màn hình TRƯỚC khi chèn dòng giỏ.
+            //
+            // `cart_items` có khóa ngoại tới `screens`, nên chèn trước là nhận
+            // shared lock trên hàng màn hình; xin exclusive sau đó là nâng cấp
+            // khóa, và hai người cùng thêm một màn hình vào giỏ sẽ khóa chéo
+            // nhau (Codex R05). Thứ tự này là thứ duy nhất tránh được.
+            $this->holds->lockScreen($screenId);
+
             $item = CartItem::updateOrCreate(
             ['cart_id' => $cart->id, 'screen_id' => $screenId],
             [

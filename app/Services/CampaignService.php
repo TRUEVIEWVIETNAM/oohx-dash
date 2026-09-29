@@ -64,6 +64,18 @@ class CampaignService
                 'notes'                       => $data['notes'] ?? null,
             ]);
 
+            // Khóa mọi màn hình liên quan TRƯỚC khi ghi dòng nào.
+            //
+            // `booking_lines` có khóa ngoại tới `screens`: chèn trước là nhận
+            // shared lock, xin exclusive sau là nâng cấp khóa, và hai đơn có
+            // màn hình chung sẽ khóa chéo nhau (Codex R05). Sắp theo id để mọi
+            // giao dịch trong hệ thống luôn khóa cùng một thứ tự.
+            $holdService = app(InventoryHoldService::class);
+
+            foreach ($this->screenIdsInCart($items)->sort()->values() as $screenId) {
+                $holdService->lockScreen($screenId);
+            }
+
             // Convert cart items → booking lines (freeze pricing at booking time)
             //
             // Hai bước tách rời có lý do: tạo dòng trước, giành suất sau. Giành
@@ -105,6 +117,28 @@ class CampaignService
 
             return $campaign;
         });
+    }
+
+    /**
+     * Mọi màn hình mà các dòng giỏ này sẽ chạm tới, kể cả màn hình trong gói.
+     *
+     * @param  Collection<int, CartItem>  $items
+     * @return Collection<int, string>
+     */
+    private function screenIdsInCart(Collection $items): Collection
+    {
+        $expander    = app(BundleExpander::class);
+        $eligibility = app(PurchaseEligibilityService::class);
+
+        return $items->flatMap(function (CartItem $item) use ($expander, $eligibility) {
+            if (! $item->product_id) {
+                return $item->screen_id ? [$item->screen_id] : [];
+            }
+
+            $product = $eligibility->findPurchasableProduct($item->product_id);
+
+            return $expander->resolveScreens($item, $product)->pluck('id')->all();
+        })->unique()->values();
     }
 
     /**
