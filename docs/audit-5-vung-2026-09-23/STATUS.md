@@ -98,6 +98,7 @@ Chưa bắt đầu — xem `PLAN-API-FIRST-NEXTJS.md` và `LO-TRINH-SAU-GIAI-DOA
 | Sau tháng lịch + VAT | 286 | 276 | 10 |
 | Sau T3 + T4 + việc nhỏ | 307 | 297 | 10 |
 | Sau khi sửa 3 ca baseline | 307 | 300 | 7 |
+| **Sau giai đoạn 1** (CI, run 36535168463) | **390** | **383** | **0** ngoài 7 ca F-12 bị loại |
 
 Trong 10 ca hỏng baseline, **3 ca đã sửa ngày 27/09**: 2 ca `InvitationFlowTest` — trong đó có một lỗi sản phẩm thật, `InvitationController::show` dùng sai tham số thứ ba của `view()` nên link mời hết hạn trả 500 thay vì 410 — và 1 ca `PanelAccessTest` (test dùng `status = inactive`, enum chỉ có `pending/active/suspended`).
 

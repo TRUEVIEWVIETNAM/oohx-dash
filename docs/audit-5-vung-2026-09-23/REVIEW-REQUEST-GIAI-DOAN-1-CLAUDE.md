@@ -31,9 +31,21 @@ Hai giả định tôi tự chốt, xin xác nhận lại: media owner chỉ **g
 | `CancellationTest` (1.5) | 12 |
 | `RateCardVersionTest` (1.6) | 11 |
 | `TenantPermissionGapTest` (1b) | 12 |
-| **Tổng mới** | **82** |
+| Chống hồi quy sau bốn vòng CI | 2 |
+| **Tổng mới** | **84** |
 
-Full suite: xem `STATUS.md` mục 5 cho con số mới nhất và evidence.
+Full suite trên CI (MySQL 8, GitHub Actions): **383 ca chạy, 0 đổ** — run `36535168463`. Bảy ca F-12 vẫn bị loại bằng `--exclude-group`, xem `STATUS.md` mục 5.
+
+**Bốn vòng CI mới xanh, và ba vòng đầu bắt được lỗi thật của tôi** — đáng đọc trước khi review, vì nó cho thấy chỗ nào trong đợt này dễ vỡ:
+
+| Vòng | Đổ | Nguyên nhân |
+|---|---|---|
+| 1 | 68 | Cổng quyền giá đặt ở `saving` nên chặn cả lúc TẠO kho (63 ca); `auth()->user()` là `ApiClient` không có `hasRole()` (5 ca) |
+| 2 | 11 | `CampaignPolicy` làm hộp thư đặt chỗ của publisher trả 403 — Filament tự gọi policy, mà policy chỉ mô tả phía người mua; `auth()->id()` vỡ với `ApiClient`; 5 fixture đổi giá khi đang đóng vai người mua; `PaymentPerOwnerTest` đóng đinh VAT 10% và "bấm nút = đã trả" |
+| 3 | 1 | Ca test tôi thêm giả lập sai: `auth()->setUser()` ném TypeError |
+| 4 | 0 | — |
+
+Điểm chung: **cả bốn lỗi đều ở chỗ thêm một cơ chế chung** (observer, policy) — loại thay đổi mà Laravel và Filament tự gọi ở những nơi không viết ra. Chạy từng nhóm test không thấy được.
 
 ---
 
