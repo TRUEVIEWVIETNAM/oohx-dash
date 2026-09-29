@@ -7,6 +7,7 @@ use App\Models\CartItem;
 use App\Models\Screen;
 use App\Models\User;
 use App\Services\Pricing\BillablePeriodCalculator;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class CartService
@@ -14,6 +15,7 @@ class CartService
     public function __construct(
         private readonly PurchaseEligibilityService $eligibility = new PurchaseEligibilityService(),
         private readonly BillablePeriodCalculator $periods = new BillablePeriodCalculator(),
+        private readonly InventoryHoldService $holds = new InventoryHoldService(),
     ) {
     }
 
@@ -79,10 +81,15 @@ class CartService
             $pricingModel = 'io'; // Products default to I/O
         }
 
-        return CartItem::updateOrCreate(
+        return DB::transaction(function () use ($cart, $productId, $firstScreen, $screens, $buyMode, $startDate, $endDate, $data, $quantity, $selectedScreenIds, $sovPct, $impressions, $cost, $pricingModel, $inv) {
+            $item = CartItem::updateOrCreate(
             ['cart_id' => $cart->id, 'product_id' => $productId],
             [
                 'screen_id' => $firstScreen?->id,
+                // Ghi thẳng kiểu mua: lúc chốt đơn phải mở gói ra thành nhiều
+                // dòng, và việc đó cần biết chắc khách mua cả gói hay mua lẻ,
+                // không suy đoán từ danh sách màn hình đã chọn.
+                'buy_mode' => $buyMode,
                 'start_date' => $startDate,
                 'end_date' => $endDate,
                 'spot_length' => $data['spot_length'] ?? 15,
@@ -100,7 +107,21 @@ class CartService
                 'duration_units' => 1,
                 'duration_unit' => $inv?->io_rate_unit ?? 'month',
             ]
-        );
+            );
+
+            // Nhả hết giữ chỗ cũ trước: khách có thể vừa đổi tập màn hình đã
+            // chọn, và những màn hình bị bỏ ra phải trả suất về kho ngay.
+            $this->holds->releaseForCartItem($item->fresh());
+
+            // Một gói chiếm suất trên TẤT CẢ màn hình của nó, không chỉ màn hình
+            // đầu tiên. Thiếu vòng lặp này thì các màn hình còn lại vẫn báo
+            // trống và bán tiếp cho người khác.
+            foreach ($screens as $screen) {
+                $this->holds->acquireForCartItem($item->fresh(), $screen, (int) $sovPct);
+            }
+
+            return $item->fresh();
+        });
     }
 
     /**
@@ -134,7 +155,11 @@ class CartService
 
         $estimated = $this->estimateCost($screen, $data);
 
-        return CartItem::updateOrCreate(
+        // Trong transaction: nếu suất đã hết thì dòng giỏ không được nằm lại.
+        // Không có transaction thì updateOrCreate đã ghi xong trước khi giữ chỗ
+        // báo 422, và khách thấy một dòng giỏ không có suất nào đứng sau.
+        return DB::transaction(function () use ($cart, $screenId, $screen, $data, $estimated, $startDate, $endDate, $spotLength, $sovPct, $pricingModel, $inv) {
+            $item = CartItem::updateOrCreate(
             ['cart_id' => $cart->id, 'screen_id' => $screenId],
             [
                 'product_id' => $data['product_id'] ?? null,
@@ -158,7 +183,14 @@ class CartService
                 'rate_captured_at' => now(),
                 'rate_snapshot' => $this->rateSnapshot($inv),
             ]
-        );
+            );
+
+            // Giành suất ngay khi bỏ vào giỏ. Đây là chỗ duy nhất quyết định
+            // "suất này của ai" — trước đây không có chỗ nào cả.
+            $this->holds->acquireForCartItem($item->fresh(), $screen, (int) $sovPct);
+
+            return $item->fresh();
+        });
     }
 
     /**
@@ -180,7 +212,13 @@ class CartService
      */
     public function removeItem(CartItem $item): void
     {
-        $item->delete();
+        DB::transaction(function () use ($item) {
+            // Nhả suất về kho ngay, không chờ hết hạn. Khóa ngoại có cascade nên
+            // giữ chỗ cũng biến mất theo, nhưng ghi 'released' tường minh để lịch
+            // sử đọc được: suất này đã được nhả vì khách bỏ khỏi giỏ.
+            $this->holds->releaseForCartItem($item);
+            $item->delete();
+        });
     }
 
     /**
@@ -210,7 +248,10 @@ class CartService
 
         $estimated = $this->estimateCost($screen, $mergedData);
 
-        $item->update([
+        // Sửa dòng giỏ và đổi suất đang giữ phải cùng thành hoặc cùng không:
+        // nếu khoảng ngày mới đã có người lấy, dòng giỏ không được đổi theo.
+        return DB::transaction(function () use ($item, $mergedData, $data, $estimated, $pricingModel, $screen) {
+            $item->update([
             'start_date' => $mergedData['start_date'],
             'end_date' => $mergedData['end_date'],
             'spot_length' => $data['spot_length'] ?? $item->spot_length,
@@ -226,9 +267,17 @@ class CartService
             'notes' => $data['notes'] ?? $item->notes,
             'rate_captured_at' => now(),
             'rate_snapshot' => $this->rateSnapshot($screen?->inventory),
-        ]);
+            ]);
 
-        return $item->fresh();
+            // Ngày hoặc SOV đổi thì suất đang giữ cũng phải đổi theo. Giành lại
+            // ở khoảng ngày mới: khoảng mới đã có người lấy thì 422 ở đây và
+            // toàn bộ thay đổi phía trên bị hủy.
+            if ($screen) {
+                $this->holds->acquireForCartItem($item->fresh(), $screen);
+            }
+
+            return $item->fresh();
+        });
     }
 
     /**

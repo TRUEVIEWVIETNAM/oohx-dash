@@ -3,11 +3,16 @@
 namespace App\Services;
 
 use App\Models\BookingLine;
+use App\Models\BookingLineBundle;
 use App\Models\Campaign;
 use App\Models\CampaignActivity;
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Organization;
+use App\Models\Screen;
 use App\Models\User;
+use App\Services\Booking\BundleExpander;
+use App\Services\InventoryHoldService;
 use App\Services\PurchaseEligibilityService;
 use App\Notifications\BookingResolvedNotification;
 use App\Notifications\BookingSubmittedNotification;
@@ -50,46 +55,177 @@ class CampaignService
                 'end_date'                    => $items->max('end_date'),
                 'total_budget'                => $data['total_budget'] ?? null,
                 'currency'                    => 'VND',
-                'total_screens'               => $items->count(),
-                'total_impressions_estimated' => $items->sum('estimated_impressions'),
+                // Điền lại sau khi mở gói: một dòng giỏ thuộc gói sinh ra nhiều
+                // dòng đặt chỗ, nên đếm số dòng giỏ là đếm sai số màn hình.
+                'total_screens'               => 0,
+                'total_impressions_estimated' => 0,
                 'status'                      => Campaign::STATUS_DRAFT,
                 'notes'                       => $data['notes'] ?? null,
             ]);
 
             // Convert cart items → booking lines (freeze pricing at booking time)
+            $lineCount = 0;
             foreach ($items as $item) {
-                $inv = $item->screen->inventory;
-                $pricingModel = $item->pricing_model ?? $inv?->pricing_model ?? 'io';
-
-                BookingLine::create([
-                    'campaign_id'          => $campaign->id,
-                    'screen_id'            => $item->screen_id,
-                    'owner_id'             => $item->screen->owner_id,
-                    'start_date'           => $item->start_date,
-                    'end_date'             => $item->end_date,
-                    'spot_length'          => $item->spot_length,
-                    'share_of_voice_pct'   => $item->share_of_voice_pct,
-                    'floor_cpm_at_booking' => $inv?->floor_cpm ?? 0,
-                    'estimated_impressions'=> $item->estimated_impressions,
-                    'estimated_cost'       => $item->estimated_cost,
-                    'status'               => 'pending',
-                    // Pricing model freeze
-                    'pricing_model'        => $pricingModel,
-                    'io_rate_at_booking'   => $pricingModel === 'io' ? ($inv?->io_rate ?? 0) : null,
-                    'io_rate_unit'         => $pricingModel === 'io' ? ($inv?->io_rate_unit ?? 'month') : null,
-                    'kpi_spots_per_day'    => $pricingModel === 'io' ? $inv?->io_kpi_spots_per_day : null,
-                    'booked_cpms'          => $pricingModel === 'cpm' ? $item->booked_cpms : null,
-                    'screen_count'         => $item->screen_count ?? 1,
-                ]);
+                $lineCount += $item->product_id
+                    ? count($this->createBundleLines($campaign, $item))
+                    : (int) (bool) $this->createScreenLine($campaign, $item);
             }
+
+            $campaign->update([
+                'total_screens'               => $lineCount,
+                'total_impressions_estimated' => (int) $campaign->bookingLines()->sum('estimated_impressions'),
+            ]);
 
             // Mark cart as converted
             $cart->update(['status' => 'converted']);
 
-            CampaignActivity::log($campaign, 'created', 'Campaign được tạo từ plan với ' . $items->count() . ' màn hình', $user->id);
+            CampaignActivity::log($campaign, 'created', 'Campaign được tạo từ plan với ' . $lineCount . ' màn hình', $user->id);
 
             return $campaign;
         });
+    }
+
+    /**
+     * Một dòng giỏ mua màn hình lẻ → một dòng đặt chỗ.
+     */
+    private function createScreenLine(Campaign $campaign, CartItem $item): ?BookingLine
+    {
+        if (! $item->screen) {
+            return null;
+        }
+
+        $line = BookingLine::create($this->linePayload($campaign, $item, $item->screen, [
+            'estimated_cost'        => (int) round((float) $item->estimated_cost),
+            'estimated_impressions' => (int) $item->estimated_impressions,
+            'booked_cpms'           => $item->booked_cpms,
+            'screen_count'          => $item->screen_count ?? 1,
+        ]));
+
+        // Suất giữ tạm trong giỏ thành suất của dòng đặt chỗ. Nếu giữ chỗ đã hết
+        // hạn và người khác đã lấy suất thì ném 422 ở đây, cả đơn bị hủy.
+        app(InventoryHoldService::class)->consumeForBookingLine($line, $item);
+
+        return $line;
+    }
+
+    /**
+     * Một dòng giỏ thuộc sản phẩm → N dòng đặt chỗ, mỗi màn hình một dòng.
+     *
+     * Trước đây gói thu về **một** dòng trỏ vào màn hình đầu tiên: SOV chỉ bị
+     * trừ ở một chỗ nên các màn hình còn lại vẫn bán tiếp, và toàn bộ tiền ghi
+     * cho owner của màn hình đầu. Xem `BundleExpander` để biết cách chia tiền.
+     *
+     * @return array<int, BookingLine>
+     */
+    private function createBundleLines(Campaign $campaign, CartItem $item): array
+    {
+        $expander = app(BundleExpander::class);
+
+        // Đọc lại thành phần gói từ sản phẩm, không tin danh sách đã lưu trong
+        // giỏ: owner có thể đã gỡ một màn hình khỏi gói từ lúc khách thêm giỏ.
+        // Màn hình không còn bán được thì cổng bán hàng ném 422 ở đây.
+        $product = app(PurchaseEligibilityService::class)->findPurchasableProduct($item->product_id);
+        $screens = $expander->resolveScreens($item, $product);
+        $buyMode = $expander->buyModeOf($item);
+
+        $totalVnd  = (int) round((float) $item->estimated_cost);
+        $unitPrice = (int) round((float) ($product->individual_price ?: $product->floor_price));
+
+        $split = $expander->splitCost($totalVnd, $screens, $buyMode, $unitPrice);
+
+        $snapshotScreens = [];
+        $lines = [];
+
+        foreach ($screens->values() as $i => $screen) {
+            $amount      = (int) ($split['amounts'][$i] ?? 0);
+            $impressions = (int) ($screen->inventory?->weekly_impressions ?? 0);
+
+            $snapshotScreens[] = [
+                'screen_id'   => $screen->id,
+                'screen_name' => $screen->name,
+                'owner_id'    => $screen->owner_id,
+                'weight'      => (int) ($split['weights'][$i] ?? 0),
+                'amount_vnd'  => $amount,
+            ];
+
+            $lines[] = [
+                'screen'      => $screen,
+                'amount'      => $amount,
+                'impressions' => $impressions,
+            ];
+        }
+
+        $bundle = BookingLineBundle::create([
+            'campaign_id' => $campaign->id,
+            'product_id'  => $product->id,
+            'buy_mode'    => $buyMode,
+            'price_total' => $totalVnd,
+            'snapshot'    => [
+                'product_id'      => $product->id,
+                'product_name'    => $product->name,
+                'listing_mode'    => $product->listing_mode,
+                'buy_mode'        => $buyMode,
+                'price_total_vnd' => $totalVnd,
+                'split_method'    => $split['method'],
+                'screens'         => $snapshotScreens,
+                'captured_at'     => now()->toIso8601String(),
+            ],
+        ]);
+
+        $holds = app(InventoryHoldService::class);
+
+        $created = [];
+        foreach ($lines as $line) {
+            $bookingLine = BookingLine::create($this->linePayload($campaign, $item, $line['screen'], [
+                'product_id'            => $product->id,
+                'bundle_id'             => $bundle->id,
+                'estimated_cost'        => $line['amount'],
+                'estimated_impressions' => $line['impressions'],
+                // Gói tính theo giá gói, không theo số CPM của từng màn hình.
+                'booked_cpms'           => null,
+                'screen_count'          => 1,
+            ]));
+
+            // Mỗi màn hình trong gói có giữ chỗ riêng từ lúc thêm giỏ; chuyển
+            // từng cái thành suất của dòng tương ứng.
+            $holds->consumeForBookingLine($bookingLine, $item);
+
+            $created[] = $bookingLine;
+        }
+
+        return $created;
+    }
+
+    /**
+     * Phần chung của một dòng đặt chỗ: ngày, SOV, và ảnh chụp giá lúc đặt.
+     *
+     * Giá được đóng băng ở đây theo kho của **chính màn hình đó**, không phải
+     * màn hình đầu tiên của gói.
+     */
+    private function linePayload(Campaign $campaign, CartItem $item, Screen $screen, array $overrides): array
+    {
+        $inv = $screen->inventory;
+        $pricingModel = $item->pricing_model ?? $inv?->pricing_model ?? 'io';
+
+        if ($pricingModel === 'both') {
+            $pricingModel = 'io';
+        }
+
+        return array_merge([
+            'campaign_id'           => $campaign->id,
+            'screen_id'             => $screen->id,
+            'owner_id'              => $screen->owner_id,
+            'start_date'            => $item->start_date,
+            'end_date'              => $item->end_date,
+            'spot_length'           => $item->spot_length,
+            'share_of_voice_pct'    => $item->share_of_voice_pct,
+            'floor_cpm_at_booking'  => $inv?->floor_cpm ?? 0,
+            'status'                => 'pending',
+            'pricing_model'         => $pricingModel,
+            'io_rate_at_booking'    => $pricingModel === 'io' ? ($inv?->io_rate ?? 0) : null,
+            'io_rate_unit'          => $pricingModel === 'io' ? ($inv?->io_rate_unit ?? 'month') : null,
+            'kpi_spots_per_day'     => $pricingModel === 'io' ? $inv?->io_kpi_spots_per_day : null,
+        ], $overrides);
     }
 
     /**

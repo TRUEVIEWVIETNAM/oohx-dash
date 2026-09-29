@@ -42,4 +42,26 @@ return [
     // Thuế suất VAT. CHỐT 27/09/2026: 8%. Trước đây viết cứng 0.1 ở 13 chỗ.
     'vat_rate' => env('PRICING_VAT_RATE', 0.08),
 
+    /**
+     * Giữ chỗ trong giỏ hàng hết hạn sau bao nhiêu phút. CHỐT 29/09/2026: 30 phút.
+     *
+     * Đủ để hoàn tất đặt chỗ và xác nhận chuyển khoản, đủ ngắn để một giỏ bỏ dở
+     * không giam suất của người khác. Giữ chỗ đã chuyển thành dòng đặt chỗ thì
+     * không hết hạn nữa.
+     */
+    'hold_ttl_minutes' => env('PRICING_HOLD_TTL_MINUTES', 30),
+
+    /**
+     * Hoàn tiền khi khách hủy đơn đã xác nhận. CHỐT 29/09/2026: bậc thang theo
+     * số ngày còn lại tính tới ngày chạy đầu tiên của dòng bị hủy.
+     *
+     * Đọc từ trên xuống, mốc đầu tiên khớp thì áp tỉ lệ đó. `min_days_before`
+     * là "còn ít nhất bao nhiêu ngày nữa mới tới ngày chạy".
+     */
+    'refund_tiers' => [
+        ['min_days_before' => 14, 'refund_pct' => 100],
+        ['min_days_before' => 7,  'refund_pct' => 50],
+        ['min_days_before' => 0,  'refund_pct' => 0],
+    ],
+
 ];

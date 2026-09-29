@@ -31,3 +31,8 @@ Schedule::command('invitations:prune')->dailyAt('03:00');
 
 // ── Dọn upload tạm Livewire bị bỏ dở (Livewire chỉ tự dọn khi upload hoàn tất) ──
 Schedule::command('uploads:prune-livewire-tmp')->hourly()->withoutOverlapping();
+
+// ── Dọn giữ chỗ hết hạn mỗi 5 phút ──
+// Không phải cơ chế bảo vệ: phép tính sức chứa đã tự loại giữ chỗ hết hạn theo
+// expires_at, nên lệnh này hỏng cũng không giam kho. Xem InventoryHoldService.
+Schedule::command('inventory:purge-holds')->everyFiveMinutes()->withoutOverlapping();

@@ -23,12 +23,24 @@ class AvailabilityService
     }
 
     /**
-     * Get remaining available SOV % for a screen.
+     * SOV còn lại của một màn hình, **đã trừ cả suất đang có người giữ**.
+     *
+     * Không trừ giữ chỗ thì trang công khai báo còn trống một suất mà thực tế đã
+     * có người đang thanh toán, và người thứ hai chỉ biết mình mất suất ở bước
+     * cuối. `InventoryHoldService` là nơi duy nhất biết công thức sức chứa —
+     * hàm này đi qua nó chứ không tự tính lại, để hai chỗ không trôi khỏi nhau
+     * như `InventoryController` với `FrontpageService` đã từng.
      */
-    public function getRemainingSOV(string $screenId, string $startDate, string $endDate): int
+    public function getRemainingSOV(string $screenId, string $startDate, string $endDate, ?string $ignoreCartItemId = null): int
     {
-        $maxSOV = Screen::find($screenId)?->inventory?->share_of_voice_max_pct ?? 100;
-        return max(0, $maxSOV - $this->getBookedSOV($screenId, $startDate, $endDate));
+        $screen = Screen::withoutGlobalScopes()->with('inventory')->find($screenId);
+
+        if (! $screen) {
+            return 0;
+        }
+
+        return app(InventoryHoldService::class)
+            ->remainingSov($screen, $startDate, $endDate, $ignoreCartItemId);
     }
 
     /**
@@ -45,22 +57,28 @@ class AvailabilityService
      */
     public function validateCampaign(string $campaignId): array
     {
-        $lines = BookingLine::where('campaign_id', $campaignId)
-            ->whereNotIn('status', ['cancelled', 'rejected'])
+        $lines = BookingLine::where("campaign_id", $campaignId)
+            ->whereNotIn("status", ["cancelled", "rejected"])
+            ->with("screen.inventory")
             ->get();
+
+        $holds = app(InventoryHoldService::class);
 
         $conflicts = [];
         foreach ($lines as $line) {
-            // Exclude this line's own SOV from calculation
-            $otherBookedSOV = BookingLine::where('screen_id', $line->screen_id)
-                ->where('id', '!=', $line->id)
-                ->whereNotIn('status', ['cancelled', 'rejected'])
-                ->where('start_date', '<=', $line->end_date)
-                ->where('end_date', '>=', $line->start_date)
-                ->sum('share_of_voice_pct');
+            if (! $line->screen) {
+                continue;
+            }
 
-            $maxSOV = $line->screen?->inventory?->share_of_voice_max_pct ?? 100;
-            $available = max(0, $maxSOV - $otherBookedSOV);
+            // Không tự viết lại phép tính sức chứa ở đây: đi qua cùng một hàm
+            // với đường đặt chỗ, chỉ bỏ qua chính dòng này. Hai công thức song
+            // song là cách chắc chắn nhất để hai con số trôi khỏi nhau.
+            $available = $holds->remainingSov(
+                $line->screen,
+                $line->start_date->toDateString(),
+                $line->end_date->toDateString(),
+                ignoreBookingLineId: $line->id,
+            );
 
             if ($line->share_of_voice_pct > $available) {
                 $conflicts[] = [

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CartItem extends Model
 {
     protected $fillable = [
-        'cart_id', 'screen_id', 'product_id',
+        'cart_id', 'screen_id', 'product_id', 'buy_mode',
         'start_date', 'end_date', 'spot_length',
         'quantity', 'selected_screen_ids', 'selected_region',
         'share_of_voice_pct', 'estimated_impressions', 'estimated_cost',
