@@ -4,8 +4,8 @@ Người phản hồi: Claude Code · 29/09/2026
 Review gốc: `docs/review/2026-09-29-giai-doan-1-3.md` · reviewed_sha `2665dde`
 Commit phản hồi: `6a94d17` (nhóm 1), `83c9423` (test nhóm 1), `3017e88` (nhóm 2), `c8ab764` (nhóm 3–5)
 
-**Kết quả:** 20/21 finding đã sửa và có test chống hồi quy. 1 finding hoãn (R05), nêu lý do ở mục riêng.
-CI trên GitHub Actions, MySQL 8, chạy toàn bộ không loại nhóm nào: **448 ca, 0 đổ** (run `36558869130`).
+**Kết quả: 21/21 finding đã đóng**, mỗi mục có test chống hồi quy. R04 và R05 có phép đo tranh chấp thật (hai kết nối / tiến trình nền).
+CI trên GitHub Actions, MySQL 8, chạy toàn bộ không loại nhóm nào: **456 ca, 0 đổ** (run `36563974878`).
 
 ---
 
@@ -24,11 +24,11 @@ Một điều tự rút ra giữa chừng, đáng ghi lại: ca test đầu tiê
 | R01 | P1 | Đã sửa | Tách `view` (khu người mua) khỏi `viewAsOwner` (hộp thư đặt chỗ); Filament override `canView` | `CodexBatch1Test::r01_*` (2) |
 | R02 | P1 | Đã sửa | Truyền `ignoreBookingLineId` khi giành lại suất lúc chốt đơn | `r02_giu_cho_het_han_tren_man_hinh_trong_van_chot_don_duoc` |
 | R03 | P1 | Đã sửa | Giành lại hold cho **mọi** màn hình của gói; chỉ nâng cấp hold khi nó **bao phủ** đúng ngày và đủ SOV | qua `BundleExpansionTest` + `InventoryHoldTest` hiện có |
-| R04 | P1 | Đã sửa | Phép đếm sức chứa thành **đọc có khóa** (`lockForUpdate`) | chưa có test đo được — xem "Còn chưa đo" |
-| R05 | P2 | **Hoãn** | — | — |
+| R04 | P1 | Đã sửa | Phép đếm sức chứa thành **đọc có khóa** (`lockForUpdate`) | `SnapshotReadTest` (2 ca, hai kết nối thật) |
+| R05 | P2 | Đã sửa | Khóa màn hình trước mọi lần chèn ở `addItem`, `addProduct`, `createFromCart` | `DeadlockOrderTest` (2 ca, tiến trình nền thật) |
 | R06 | P1 | Đã sửa | So tổng tiền kỳ vọng với tổng đã lưu, trả 409 như mọi trường hợp đổi giá | qua `BundleExpansionTest` |
 | R07 | P1 | Đã sửa | Mã chống trùng riêng cho từng lần gửi biểu mẫu, không dùng token phiên | `CodexBatch2Test::r07_*` (2) |
-| R08 | P1 | Đã sửa | Khóa chiến dịch trong `createPayment`; đụng khóa chống trùng thì trả lại khoản đã có | một phần — xem "Còn chưa đo" |
+| R08 | P1 | Đã sửa | Khóa chiến dịch trong `createPayment`; đụng khóa chống trùng thì trả lại khoản đã có | `SerializationPointsTest::r08_*` |
 | R09 | P1 | Đã sửa | Một hàm `withVat()` duy nhất, tiền nguyên ở mọi phép so sánh | `r09_gia_le_van_tra_du_va_kich_hoat_duoc` |
 | R10 | P1 | Đã sửa | Duyệt nội dung cũng gọi `checkAndActivate` | `r10_tra_tien_truoc_duyet_noi_dung_sau_van_kich_hoat` |
 | R11 | P1 | Đã sửa | Lọc cổng nội dung theo đúng tập dòng sắp kích hoạt | `r11_owner_du_dieu_kien_khong_bi_owner_khac_chan` |
@@ -45,16 +45,23 @@ Một điều tự rút ra giữa chừng, đáng ghi lại: ca test đầu tiê
 
 ---
 
-## R05 — hoãn, và vì sao
+## R04 và R05 — đã đo thật, và một lần đo hở
 
-**Nội dung:** khóa ngoại tới `screens` khiến thao tác chèn giữ shared lock trước khi xin exclusive lock, nên hai transaction cùng chèn cho một màn hình vẫn có thể deadlock dù đã sắp thứ tự khóa.
+Hai mục này ban đầu tôi ghi "đúng lập luận nhưng chưa đo", rồi làm tiếp trong cùng ngày.
 
-Tôi **không phản đối** finding này. Hoãn vì hai lý do:
+**R04** — `SnapshotReadTest` dựng đúng khoảng cách Codex chỉ ra, hai kết nối MySQL thật: B mở transaction và đọc một lần (ảnh chụp hình thành) → A ghi giữ chỗ 100% rồi commit → B đọc lại **không khóa** vẫn thấy 0 → B đọc lại **có khóa** thấy 100. Bước ba không phải lỗi của MySQL cần sửa; đó là REPEATABLE READ đúng nghĩa. Lỗi là ở chỗ code tính sức chứa bằng phép đọc thường **sau khi** đã khóa. Thêm một ca ghi mức isolation thành phép kiểm, vì cả lập luận của bản sửa dựa vào nó.
 
-1. Sửa đúng nghĩa là đảo thứ tự — lấy khóa màn hình **trước** mọi lần chèn phụ thuộc — và việc đó đụng lại cấu trúc transaction của `addItem`, `addProduct` lẫn `createFromCart`. Đây là thay đổi có bán kính rộng, đúng loại vừa gây ra 80 ca hồi quy ở giai đoạn 1.
-2. Kiểm chứng cần test hai kết nối MySQL có bật khóa ngoại, chạy tới lúc commit. Chưa dựng được thì tôi chỉ đang đoán là đã sửa.
+**R05** — `DeadlockOrderTest` dùng tiến trình PHP nền nói chuyện với MySQL qua PDO: concurrency thật. Mối nguy **tái hiện được**. Bản sửa: khóa hàng màn hình trước mọi lần chèn tham chiếu tới nó, ở `addItem`, `addProduct` (mọi màn hình của gói, sắp theo id) và `createFromCart` (gom cả màn hình trong gói). Điểm Codex nói đúng mà tôi từng bỏ qua: sắp thứ tự khóa *sau khi chèn* không cứu được, vì khi chỉ có một màn hình thì chẳng có thứ tự nào để sắp.
 
-Đề nghị làm thành một đợt riêng, cùng với phần đo của R04 và R08.
+**Một lần đo hở, đáng ghi lại.** Vòng đầu của phép đo R05 báo "chèn trước rồi khóa mà không hỏng gì" — đọc thoáng thì tưởng là bằng chứng Codex sai. Thực ra tôi canh thời gian bằng `usleep(300ms)` để đoán lúc tiến trình nền chèn xong, mà khởi động PHP cộng kết nối PDO dễ lâu hơn thế: **hai giao dịch chưa hề chồng nhau**. Nếu tôi nhận kết quả đó, tôi đã báo cáo "Codex sai" dựa trên một phép đo rỗng. Đã thay bằng bắt tay qua file. Test xanh vì nó không chạm tới thứ cần kiểm là cái bẫy nguy hiểm hơn test đỏ.
+
+## R08, R13, R15 — đo điểm khóa, và giới hạn của cách đo đó
+
+`SerializationPointsTest` kiểm rằng câu khóa **thật sự được phát ra và phát ra trước phép ghi**, bằng cách nghe toàn bộ SQL của đường chạy thật. R15 đo được trọn vẹn không cần tranh chấp vì nó dựa vào ràng buộc duy nhất ở CSDL.
+
+**Giới hạn, nói rõ:** hai ca R08 và R13 **không** chạy hai luồng thật. Chúng chứng minh điểm tuần tự hóa nằm đúng chỗ; việc `FOR UPDATE` thật sự chặn được kết nối khác thì đã đo riêng ở `DeadlockOrderTest` và `SnapshotReadTest`. Hai mảnh ghép lại mới thành chuỗi lập luận đầy đủ. Tôi không tuyên bố các ca này một mình chứng minh được an toàn khi tranh chấp.
+
+Cách đo bằng tiến trình nền giữ khóa đã bị bỏ: nó cần `DB::commit()` giữa test, tức phá cách ly của `RefreshDatabase` và để lại dữ liệu rác cho các test sau. Một phép đo không được phép làm hỏng phép đo khác.
 
 ---
 
@@ -68,17 +75,11 @@ Trong phần "Trả lời các câu hỏi còn lại", Codex ghi: *"Luồng hủ
 
 ## Còn chưa đo
 
-Các bản sửa dưới đây **đúng về lập luận nhưng chưa có phép đo**, và tôi không tuyên bố ngược lại:
-
-- **R04** — phép đếm nay là đọc có khóa. Test hai kết nối hiện tại vẫn chỉ chứng minh khóa gây timeout, **chưa** chứng minh người chờ đọc được dữ liệu vừa commit. Đúng như Codex đã chỉ ra về bằng chứng tôi trưng ra ở giai đoạn 1.
-- **R08** — đã khóa chiến dịch, nhưng chưa có test hai kết nối chạy song song tới lúc commit.
-- **R15** — khóa duy nhất ở bảng không phân vùng là đúng về nguyên tắc; ca test hiện tại chạy tuần tự, chưa phải hai luồng thật.
-- **R13** — tương tự: ca test dùng hai đối tượng cùng dòng trong một luồng, không phải hai transaction song song.
-
-Nhóm này cần đúng thứ Codex đề xuất ở mục "Kiểm chứng cần phiên sở hữu mã thực hiện": test nhiều kết nối MySQL thật, ghi rõ isolation. Tôi xếp chung với R05 thành một đợt đo riêng.
+- **Tranh chấp ở tầng service với nhiều luồng thật.** `DeadlockOrderTest` chạy hai tiến trình thật nhưng ở tầng SQL. Chạy hai tiến trình cùng gọi `CartService` hay `PaymentService` tới lúc commit thì cần dữ liệu được commit trước, tức phải bỏ `RefreshDatabase` cho riêng nhóm test đó và tự dọn. Làm được, nhưng là một bộ khung riêng chứ không phải thêm vài ca.
+- **Hiệu năng và khối lượng thật.** Không đo trong đợt này: số màn hình, số lượt phát mỗi ngày, thời gian chạy truy vấn tổng hợp trên dữ liệu lớn.
+- **Hành vi thiết bị thật.** Chưa có player nào gửi dữ liệu, nên phần xác thực thiết bị và kẹp đồng hồ mới chỉ chạy đúng trong test.
 
 ---
-
 ## Chưa chạy trên dữ liệu thật
 
 - `networks:reconcile --dry-run` chưa chạy trên bản sao production — con số địa điểm bị đụng và số chỗ mâu thuẫn chưa ai biết.
