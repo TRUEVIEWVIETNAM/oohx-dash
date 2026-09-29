@@ -212,3 +212,44 @@ Làm tiếp ngay sau giai đoạn 1, cùng gửi một lượt. CI: **406 ca ch�
 - **Đường phát sóng cho thiết bị**: vẫn chưa tồn tại. Giai đoạn 2 làm xong đường thiết bị **báo về**, chưa làm đường máy chủ **gửi lịch phát xuống**. Cổng nội dung của 1.3 vì thế vẫn đặt ở bước kích hoạt.
 - **Đối soát doanh thu từ bằng chứng**: `cpm_charged`, `revenue_gross`, `revenue_owner` vẫn để trống — chưa có bước tính tiền từ lượt phát thật.
 - **Khiếu nại** về số liệu phát sóng.
+
+---
+
+# Phụ lục 2 — Giai đoạn 3: hợp nhất quan hệ Màn hình ↔ Mạng lưới (F-12)
+
+CI: **426 ca chạy, 0 đổ, KHÔNG loại nhóm nào** (run `36548265693`). Đây là lần đầu tiên bộ test chạy đủ kể từ khi bắt đầu.
+
+## A. Không phải hai đường mà ba
+
+| Đường | Ai dùng | Ghi chú |
+|---|---|---|
+| `sites.network_id` | Trang công khai, API `inventory/networks`, bộ lọc khám phá | Trình nhập kho cũng ghi cột này |
+| `screen_inventory.network_id` | **Sáu** chỗ trong Filament (admin + publisher) | Chỗ thứ sáu — `NetworkStatsWidget` của publisher — chỉ lộ ra khi rà lại toàn bộ |
+| `screens.network_code` | Quan hệ `Screen::network()` | **Không code nào GHI cột này.** Chỉ test dùng — và đó là lý do 7 ca hỏng suốt từ baseline |
+
+Hệ quả: cùng một mạng lưới, trang quản trị và trang công khai báo hai con số màn hình khác nhau, không ai biết con số nào đúng.
+
+## B. Quyết định
+
+**`sites.network_id` là nguồn sự thật duy nhất.** Mạng lưới là một chuỗi địa điểm; màn hình nằm tại một địa điểm nên thừa hưởng mạng lưới của nơi nó đứng. Một màn hình trong cửa hàng Winmart thuộc chuỗi khác là chuyện vô nghĩa về nghiệp vụ.
+
+`Screen::network()` nay là `hasOneThrough` đảo chiều (`screens.site_id → sites.id`, `sites.network_id → networks.id`). Đây là chỗ tôi muốn Codex soi kỹ nhất về mặt kỹ thuật — xem mục D.
+
+**Phần đối chiếu dữ liệu tách khỏi migration** thành `NetworkRelationReconciler` + lệnh `networks:reconcile --dry-run`. Lý do: một phép sửa trên dữ liệu production mà không ai chạy thử được là một phép sửa không ai kiểm được. Ba nguyên tắc cài trong đó, mỗi nguyên tắc có test riêng:
+
+- **Chỉ điền vào ô trống**, không bao giờ ghi đè.
+- **Không đoán khi mâu thuẫn**: site có hai màn hình chỉ về hai mạng lưới khác nhau thì để nguyên và báo cáo.
+- **Chạy lại không đổi kết quả.**
+
+**Cột `screens.network_code` và `screen_inventory.network_id` vẫn còn trong CSDL**, chỉ là không còn ai đọc. Cố ý chưa xóa: xóa cột trên production là việc một chiều, nên để sau khi đã chạy thật và đối chiếu xong. Nhưng đây là nợ có thật — một cột còn được ghi mà không ai đọc chính là cách F-12 bắt đầu.
+
+## C. Test kiểm cái gì
+
+`NetworkRelationUnifiedTest` **không** kiểm "đếm có đúng 3 không" mà kiểm **hai đường có cho cùng một đáp số không**. Đó mới là thứ đã hỏng, và là thứ sẽ hỏng lại nếu ai đó thêm đường thứ tư. Có một ca đặt `network_code` mâu thuẫn để chứng minh cột cũ không còn quyết định gì.
+
+## D. Xin Codex soi kỹ
+
+1. **`hasOneThrough` đảo chiều** trên `Screen::network()`: `hasOneThrough(Network, Site, 'id', 'id', 'site_id', 'network_id')`. Nó chạy đúng trong test (bao gồm `whereHas`), nhưng đây là cách dùng ngược với ý định của Laravel. Có trường hợp nào — eager load lồng nhau, `withCount`, `has()` — mà nó cho kết quả sai không? Nếu có, thay bằng accessor `site.network` có phải là lựa chọn an toàn hơn?
+2. **Lượt hai của reconciler** (`screens.network_code`) chạy sau lượt một trong chế độ ghi, nhưng khi `--dry-run` thì hai lượt được tính độc lập rồi loại trùng. Hai chế độ có thể cho con số khác nhau không?
+3. **Chưa xóa hai cột cũ.** Nên xóa ngay hay để một đợt riêng sau khi chạy production?
+4. Trình nhập kho vẫn ghi `screen_inventory.network_id`. Nên bỏ hẳn hay giữ như bản sao?

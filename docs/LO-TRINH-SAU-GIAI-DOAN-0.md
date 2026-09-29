@@ -15,9 +15,9 @@ Nguyên tắc xuyên suốt: **đóng đường tiền trước, đổi giao di�
 | ~~1~~ | ~~Đóng đường tiền~~ **XONG 29/09** | XL | — |
 | ~~1b~~ | ~~Vá nốt phân quyền~~ **XONG 29/09** | M | — |
 | ~~2~~ | ~~Sửa đường ghi bằng chứng phát sóng~~ **XONG 29/09** | L | — |
-| **3** | Hợp nhất quan hệ Màn hình ↔ Mạng lưới, gỡ nhãn khỏi CI | M | Duyệt migration |
+| ~~3~~ | ~~Hợp nhất quan hệ Màn hình ↔ Mạng lưới~~ **XONG 29/09** | M | Còn: chạy `networks:reconcile --dry-run` trên dữ liệu thật |
 | **4** | Dọn số liệu bịa trên trang công khai | S | Quyết định của anh |
-| **5** | API v2 + OpenAPI, Blade tự đọc qua API | M | Xong 1–3 |
+| **5** | API v2 + OpenAPI, Blade tự đọc qua API | M | 1–3 đã xong — sẵn sàng bắt đầu |
 | **6** | Next.js cho trang công khai | L | Xong 5 |
 | **7** | Dọn Blade công khai | S | Xong 6 |
 | **8** | *(hoãn)* Next.js cho khu người mua | L | Có thêm người |
@@ -96,7 +96,7 @@ Cần: sửa schema và model, xác thực thiết bị player, chống trùng (
 
 ---
 
-## Giai đoạn 3 — Hợp nhất quan hệ Màn hình ↔ Mạng lưới (F-12)
+## Giai đoạn 3 — Hợp nhất quan hệ Màn hình ↔ Mạng lưới (F-12) — **ĐÃ XONG 29/09/2026**
 
 Hai đường quan hệ song song, nên đếm và lọc theo mạng lưới ra kết quả khác nhau tuỳ đi đường nào. Đây là nguyên nhân **7 ca test đang bị loại khỏi CI**.
 

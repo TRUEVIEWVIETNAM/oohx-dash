@@ -34,7 +34,7 @@ Baseline: `112e2aa`. **Giai đoạn 0 đã push** lên `feat/tmdt-review-1107` (
 
 Chi tiết và những gì giai đoạn 1 **không** đóng: `REVIEW-REQUEST-GIAI-DOAN-1-CLAUDE.md`.
 
-## 1d. Giai đoạn 2 — đường ghi bằng chứng phát sóng (xong 29/09)
+## 1c. Giai đoạn 2 — đường ghi bằng chứng phát sóng (xong 29/09)
 
 Bốn lỗi trên cùng một đường, nên "bằng chứng phát sóng" của sàn cho tới nay **không tồn tại**:
 
@@ -50,6 +50,15 @@ Kèm theo: chặn biên đồng hồ thiết bị (muộn tối đa 7 ngày, tư
 **Bốn quyết định nghiệp vụ chốt 29/09:** giữ chỗ 30 phút · hoàn tiền bậc thang 14/7 ngày · chiến dịch chạy theo từng dòng · gói được gồm nhiều owner, chia theo giá từng dòng.
 
 ---
+
+## 1d. Giai đoạn 3 — hợp nhất quan hệ Màn hình ↔ Mạng lưới (xong 29/09)
+
+Không phải hai mà **ba** đường cùng trả lời "màn hình thuộc mạng lưới nào": `sites.network_id` (trang công khai), `screen_inventory.network_id` (sáu chỗ trong Filament), `screens.network_code` (quan hệ trên model, không code nào ghi). Cùng một mạng lưới, trang quản trị và trang công khai báo hai con số khác nhau.
+
+Chốt `sites.network_id` là nguồn sự thật duy nhất. Phần đối chiếu dữ liệu tách thành `NetworkRelationReconciler` + lệnh `networks:reconcile --dry-run` để chạy thử được trước khi chạy thật; chỉ điền ô trống, không ghi đè, mâu thuẫn thì báo cáo chứ không đoán.
+
+**CI nay chạy toàn bộ** — đã gỡ `--exclude-group f12-network-relation` và bảy nhãn `#[Group]`. 13 ca test mới, cộng 7 ca cũ nay chạy lại.
+
 
 ## 1e. Lỗi do test bắt được, không nhìn ra khi đọc code
 
@@ -68,7 +77,7 @@ Kèm theo: chặn biên đồng hồ thiết bị (muộn tối đa 7 ngày, tư
 | Việc | Vì sao chờ |
 |---|---|
 | **Gỡ số liệu bịa trên trang công khai** (F-15): "30M+", bộ đếm impression chạy bằng `Math.random()`, "AI Match 94%", "fill rate 40%", nút CTA không hành vi, badge "Còn trống" in vô điều kiện | Đụng giao diện khách hàng nhìn thấy; cần chốt thay bằng số thật hay gỡ hẳn |
-| **Hợp nhất quan hệ Màn hình ↔ Mạng lưới** (F-12) | Migration trên dữ liệu production, cần dry-run và đối chiếu trước/sau. Đây cũng là nguyên nhân 7/10 ca hỏng baseline |
+| **Chạy đối chiếu mạng lưới trên production** (F-12) | Code đã xong ở giai đoạn 3 và CI xanh. Việc còn lại là chạy `php artisan networks:reconcile --dry-run` trên bản sao dữ liệu thật, xem sẽ đụng bao nhiêu địa điểm và còn bao nhiêu chỗ mâu thuẫn, rồi mới deploy |
 | **Xoay khóa deploy** đang nằm trong git (F-07) | Việc quản trị, cần thao tác trên VPS |
 
 ---
@@ -111,8 +120,9 @@ Chưa bắt đầu — xem `PLAN-API-FIRST-NEXTJS.md` và `LO-TRINH-SAU-GIAI-DOA
 | Sau T3 + T4 + việc nhỏ | 307 | 297 | 10 |
 | Sau khi sửa 3 ca baseline | 307 | 300 | 7 |
 | **Sau giai đoạn 1** (CI, run 36535168463) | 390 | 383 | 0 ngoài 7 ca F-12 bị loại |
-| **Sau giai đoạn 2** (CI, run 36544802797) | **413** | **406** | **0** ngoài 7 ca F-12 bị loại |
+| **Sau giai đoạn 2** (CI, run 36544802797) | 413 | 406 | 0 ngoài 7 ca F-12 bị loại |
+| **Sau giai đoạn 3** (CI, run 36548265693) | **426** | **426** | **0 — không loại nhóm nào** |
 
 Trong 10 ca hỏng baseline, **3 ca đã sửa ngày 27/09**: 2 ca `InvitationFlowTest` — trong đó có một lỗi sản phẩm thật, `InvitationController::show` dùng sai tham số thứ ba của `view()` nên link mời hết hạn trả 500 thay vì 410 — và 1 ca `PanelAccessTest` (test dùng `status = inactive`, enum chỉ có `pending/active/suspended`).
 
-**7 ca còn lại là F-12** (hai đường quan hệ Màn hình ↔ Mạng lưới). Đã gắn `#[Group('f12-network-relation')]` và CI chạy `--exclude-group` để cổng chắn deploy dùng được. Đây là **nợ có hẹn**: gỡ nhãn ngay khi migration hợp nhất quan hệ xong. Chừng nào nhãn còn đó, CI **không** bảo vệ đường lọc và đếm theo mạng lưới.
+**Bảy ca F-12 đã được thả ra ở giai đoạn 3** (29/09): quan hệ Màn hình ↔ Mạng lưới đã hợp nhất về `sites.network_id`, nhãn `#[Group]` và cờ `--exclude-group` đã gỡ. CI nay chạy **toàn bộ**, không loại nhóm nào.
