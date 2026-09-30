@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V2\CatalogController as V2CatalogController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OohxEstimateController;
 use App\Http\Controllers\Api\V1\OwnerController;
@@ -62,4 +63,19 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'ability:manage'])->group(funct
     Route::get ('screens/{screen}/multipliers',    [ScreenController::class, 'multipliers']);
     Route::put ('screens/{screen}/multipliers',    [ScreenController::class, 'updateMultipliers']);
     Route::post('screens/{screen}/toggle-programmatic', [ScreenController::class, 'toggleProgrammatic']);
+});
+
+// ── /api/v2 — danh mục công khai cho trang công khai và Next.js ────────────
+//
+// Không đụng gì tới /api/v1: đó là hợp đồng đang chạy với đối tác. Tính năng
+// mới cho ứng dụng nội bộ đi vào v2 (CLAUDE.md mục 1).
+//
+// Dữ liệu ở đây là dữ liệu công khai nên không đòi đăng nhập, nhưng vẫn có
+// giới hạn tần suất và giới hạn cứng số bản ghi mỗi trang. Các nhóm cần quyền
+// (giỏ hàng, đặt chỗ, thanh toán) sẽ vào nhóm riêng dùng Sanctum dạng SPA.
+Route::prefix('v2')->middleware('throttle:api')->group(function () {
+    Route::get('stats',           [V2CatalogController::class, 'stats']);
+    Route::get('screens',         [V2CatalogController::class, 'screens']);
+    Route::get('screens/{slug}',  [V2CatalogController::class, 'screen']);
+    Route::get('owners',          [V2CatalogController::class, 'owners']);
 });

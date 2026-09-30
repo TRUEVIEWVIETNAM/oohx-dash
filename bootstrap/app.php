@@ -5,6 +5,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -37,5 +39,56 @@ return Application::configure(basePath: dirname(__DIR__))
                     'message' => 'Token không hợp lệ hoặc đã hết hạn',
                 ], 401);
             }
+        });
+
+        // ── Định dạng lỗi thống nhất cho /api/v2 ─────────────────────────────
+        //
+        // `{error, message, code, details[]}` ở MỌI lỗi, không chỉ lỗi validate.
+        // Lý do đặt ở đây chứ không trong từng controller: bên tiêu thụ viết
+        // một hàm xử lý lỗi duy nhất, còn một endpoint quên định dạng là một
+        // nhánh xử lý đặc biệt phải viết mãi mãi.
+        //
+        // KHÔNG áp cho /api/v1: đó là hợp đồng đang chạy với đối tác, đổi hình
+        // dạng lỗi là làm hỏng code của họ mà không báo trước.
+        $exceptions->render(function (ValidationException $e, Request $request) {
+            if (! $request->is('api/v2/*')) {
+                return null;
+            }
+
+            return response()->json([
+                'error'   => 'validation_failed',
+                'message' => 'Dữ liệu gửi lên không hợp lệ.',
+                'code'    => 422,
+                'details' => collect($e->errors())
+                    ->map(fn (array $messages, string $field) => [
+                        'field'   => $field,
+                        'message' => $messages[0] ?? '',
+                    ])
+                    ->values()
+                    ->all(),
+            ], 422);
+        });
+
+        $exceptions->render(function (HttpExceptionInterface $e, Request $request) {
+            if (! $request->is('api/v2/*')) {
+                return null;
+            }
+
+            $status = $e->getStatusCode();
+
+            return response()->json([
+                'error'   => match ($status) {
+                    401     => 'unauthorized',
+                    403     => 'forbidden',
+                    404     => 'not_found',
+                    409     => 'conflict',
+                    422     => 'unprocessable',
+                    429     => 'too_many_requests',
+                    default => 'error',
+                },
+                'message' => $e->getMessage() ?: 'Yêu cầu không thực hiện được.',
+                'code'    => $status,
+                'details' => [],
+            ], $status);
         });
     })->create();
