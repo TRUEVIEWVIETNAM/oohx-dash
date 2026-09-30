@@ -39,6 +39,14 @@ class ImpressionRollupService
                 COALESCE(SUM(revenue_gross), 0) as revenue_gross
             ")
             ->whereBetween('played_at', [$start, $end])
+            // Lượt phát có mốc thời gian bị kẹp KHÔNG vào báo cáo.
+            //
+            // Mốc của nó đã bị dịch để không rơi vào phân vùng tùy ý, nên đưa
+            // vào tổng hợp là cộng nó vào một ngày mà nó không thuộc về — số
+            // liệu ngày đó tăng lên không có thật (Codex R26). Bằng chứng vẫn
+            // được giữ trong `impression_logs` kèm `reported_played_at`, chờ
+            // chính sách đối soát.
+            ->where('played_at_clamped', false)
             ->groupBy('day', 'screen_id', 'owner_id', 'campaign_id', 'booking_line_id')
             ->get();
 

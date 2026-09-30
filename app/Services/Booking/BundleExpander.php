@@ -67,6 +67,29 @@ class BundleExpander
     }
 
     /**
+     * Tổng tiền của một dòng giỏ thuộc sản phẩm. **Nguồn duy nhất.**
+     *
+     * Thêm giỏ, sửa giỏ và chốt đơn phải dùng đúng hàm này. Trước đây ba nơi
+     * tính ba kiểu: `addProduct` lấy giá sản phẩm, `updateItem` lại tính theo
+     * giá kho của màn hình đầu tiên, còn guard lúc chốt đơn so với giá sản
+     * phẩm. Hệ quả: chỉ cần sửa một dòng giỏ dạng sản phẩm là chốt đơn báo
+     * "giá vừa thay đổi" dù không ai đổi giá — chính guard tôi thêm ở R06 lại
+     * chặn đường mua hàng bình thường (Codex R28).
+     *
+     * @param  Collection<int, Screen>  $screens
+     */
+    public function productTotal(Product $product, string $buyMode, Collection $screens): int
+    {
+        if ($buyMode === 'package') {
+            return (int) round((float) $product->floor_price);
+        }
+
+        $unitPrice = (int) round((float) ($product->individual_price ?: $product->floor_price));
+
+        return $unitPrice * $screens->count();
+    }
+
+    /**
      * Chia số tiền của gói cho từng màn hình.
      *
      * @param  Collection<int, Screen>  $screens

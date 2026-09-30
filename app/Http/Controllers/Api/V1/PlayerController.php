@@ -120,13 +120,29 @@ class PlayerController extends Controller
         // hai yêu cầu song song cùng vượt qua nó. Bảng `impression_events` có
         // khóa duy nhất thật trên `(screen_id, event_id)` và là thứ quyết định
         // ai được ghi (Codex R15).
+        // Giành chỗ và ghi bản ghi chính trong CÙNG một transaction.
+        //
+        // Bản trước chèn vào sổ nhận rồi mới ghi bản ghi chính, không có
+        // transaction bao quanh. Phép ghi chính hỏng — ví dụ `proof_url` dài
+        // hơn cột — để lại một dòng mồ côi trong sổ nhận, và mọi lần thiết bị
+        // gửi lại đều nhận "trùng" nên **lượt phát mất vĩnh viễn** dù thiết bị
+        // làm đúng giao thức (Codex R22).
+        //
+        // Bọc transaction không làm mất tính loại trừ: phép chèn vào khóa duy
+        // nhất giữ khóa tới lúc kết thúc transaction, nên yêu cầu song song vẫn
+        // phải chờ. Nếu transaction này hủy, yêu cầu kia được đi tiếp — đúng
+        // như mong muốn, vì lúc đó chưa có bản ghi nào.
         try {
-            $eventRowId = DB::table('impression_events')->insertGetId([
-                'screen_id'  => $screen->id,
-                'event_id'   => $data['event_id'],
-                'played_at'  => $playedAt,
-                'created_at' => now(),
-            ]);
+            return DB::transaction(function () use ($screen, $data, $playedAt) {
+                $eventRowId = DB::table('impression_events')->insertGetId([
+                    'screen_id'  => $screen->id,
+                    'event_id'   => $data['event_id'],
+                    'played_at'  => $playedAt,
+                    'created_at' => now(),
+                ]);
+
+                return $this->writeLog($screen, $data, $playedAt, $eventRowId);
+            });
         } catch (UniqueConstraintViolationException) {
             $already = ImpressionLog::where('screen_id', $screen->id)
                 ->where('event_id', $data['event_id'])
@@ -139,7 +155,26 @@ class PlayerController extends Controller
                 : response()->json(['duplicate' => true, 'message' => 'Sự kiện đang được xử lý.'], 202);
         }
 
-        $line = $this->resolveBookingLine($screen, $data, $playedAt);
+    }
+
+    /**
+     * Ghi bản ghi bằng chứng và nối nó với chỗ đã giành trong sổ nhận.
+     *
+     * Chạy trong transaction của `impression()`: hỏng ở đây thì chỗ đã giành
+     * cũng bị nhả, để thiết bị gửi lại là đi tiếp được.
+     */
+    private function writeLog(Screen $screen, array $data, Carbon $playedAt, int $eventRowId): JsonResponse
+    {
+        $reported = Carbon::parse($data['played_at']);
+        $clamped  = ! $playedAt->equalTo($reported);
+
+        // Mốc thời gian đã bị kẹp thì KHÔNG quy thuộc vào dòng đặt chỗ nào.
+        //
+        // Kẹp là để lượt phát không rơi vào phân vùng tùy ý, nhưng dùng mốc đã
+        // kẹp để tìm hợp đồng thì có thể gắn nó vào một dòng chưa tồn tại lúc
+        // phát thật (Codex R26). Bằng chứng vẫn được lưu — chỉ là chưa xác
+        // minh, chờ chính sách đối soát.
+        $line = $clamped ? null : $this->resolveBookingLine($screen, $data, $playedAt);
 
         $multiplier = $screen->getCurrentMultiplier();
 
@@ -152,8 +187,8 @@ class PlayerController extends Controller
             'event_id'           => $data['event_id'],
             'played_at'          => $playedAt,
             // Mốc gốc thiết bị báo, giữ nguyên kể cả khi đã bị kẹp về biên.
-            'reported_played_at' => Carbon::parse($data['played_at']),
-            'played_at_clamped'  => ! $playedAt->equalTo(Carbon::parse($data['played_at'])),
+            'reported_played_at' => $reported,
+            'played_at_clamped'  => $clamped,
             'duration_sec'       => $data['duration_sec'],
             'multiplier_applied' => $multiplier,
             'imp_count'          => max(1, $screen->inventory?->effective_screen_count ?? 1) * $multiplier,
@@ -169,6 +204,7 @@ class PlayerController extends Controller
             'imp_count'  => $log->imp_count,
             'multiplier' => $log->multiplier_applied,
             'duplicate'  => false,
+            'clamped'    => $clamped,
         ], 201);
     }
 
@@ -187,11 +223,19 @@ class PlayerController extends Controller
             return null;
         }
 
-        $belongs = Creative::where('id', $data['creative_id'])
-            ->where('campaign_id', $line->campaign_id)
+        // Nội dung phải được gắn với CHÍNH dòng đặt chỗ này, không chỉ thuộc
+        // cùng chiến dịch.
+        //
+        // Một chiến dịch nhiều dòng không có nghĩa mọi mẫu quảng cáo đều được
+        // phát trên mọi màn hình: mẫu C2 chỉ gắn cho dòng L2 thì bằng chứng của
+        // dòng L1 không được mang C2 (Codex R27). Kiểm theo chiến dịch là chưa
+        // đóng hết chuỗi tham chiếu.
+        $linked = $line->creatives()
+            ->where('creatives.id', $data['creative_id'])
+            ->where('creatives.status', 'approved')
             ->exists();
 
-        return $belongs ? $data['creative_id'] : null;
+        return $linked ? $data['creative_id'] : null;
     }
 
     private function duplicateResponse(ImpressionLog $log): JsonResponse

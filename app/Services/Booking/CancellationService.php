@@ -222,21 +222,47 @@ class CancellationService
     {
         $campaign = $line->campaign;
 
-        $ownerTotal = (float) $campaign->bookingLines()
+        // Chỉ phân bổ phần tiền CÒN LẠI cho các dòng CÒN MỞ.
+        //
+        // Cách cũ chia tổng tiền gộp theo tỉ lệ trên **tất cả** dòng, kể cả
+        // dòng đã hủy và đã hoàn. Nên sau khi hủy A rồi trả thêm cho B, tiền
+        // mới vẫn bị chia một phần vào A — và lúc hủy B thì nghĩa vụ hoàn tính
+        // thiếu (Codex R24: trả 1.620.000, hai lần hủy đều trong kỳ hoàn 100%,
+        // nhưng tổng hoàn chỉ ra 1.350.000).
+        //
+        // Phần đã hoàn cho những dòng hủy trước đó bị trừ khỏi tiền còn lại;
+        // phần đó đã chốt xong, không được đem chia lại.
+        $ownerPaid = (int) round((float) $campaign->payments()
             ->where('owner_id', $line->owner_id)
-            ->whereIn('status', ['approved', 'active', 'completed', 'cancelled'])
-            ->sum('estimated_cost');
+            ->where('status', 'completed')
+            ->sum('amount'));
 
-        if ($ownerTotal <= 0) {
+        $alreadyRefunded = (int) round((float) Refund::where('campaign_id', $campaign->id)
+            ->where('owner_id', $line->owner_id)
+            ->whereIn('status', [Refund::STATUS_PENDING, Refund::STATUS_SETTLED])
+            ->sum('amount'));
+
+        $availableToAllocate = max(0, $ownerPaid - $alreadyRefunded);
+
+        if ($availableToAllocate <= 0) {
             return 0;
         }
 
-        $ownerPaid = (float) $campaign->payments()
+        // Dòng còn mở gồm cả chính dòng đang hủy — lúc gọi hàm này nó chưa
+        // chuyển trạng thái.
+        $openCost = (float) $campaign->bookingLines()
             ->where('owner_id', $line->owner_id)
-            ->where('status', 'completed')
-            ->sum('amount');
+            ->whereIn('status', ['approved', 'active', 'completed'])
+            ->sum('estimated_cost');
 
-        return (int) round($ownerPaid * ((float) $line->estimated_cost) / $ownerTotal);
+        if ($openCost <= 0) {
+            return 0;
+        }
+
+        $share = (int) round($availableToAllocate * ((float) $line->estimated_cost) / $openCost);
+
+        // Không phân bổ nhiều hơn số thực còn lại.
+        return min($share, $availableToAllocate);
     }
 
     /**

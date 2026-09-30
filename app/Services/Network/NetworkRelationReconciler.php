@@ -139,20 +139,44 @@ class NetworkRelationReconciler
      */
     private function ambiguousSites(): array
     {
-        if (! Schema::hasTable('screen_inventory')) {
-            return [];
+        // Xét mâu thuẫn TRONG TỪNG NGUỒN, không chỉ nguồn kho.
+        //
+        // Bản trước chỉ đếm `DISTINCT screen_inventory.network_id`. Xung đột
+        // bên trong nguồn `network_code` thì bị chính điều kiện
+        // `HAVING COUNT(DISTINCT networks.id) = 1` của hàm ứng viên **loại âm
+        // thầm** — nên nó không trở thành ứng viên, cũng không được báo là mâu
+        // thuẫn, và kế hoạch vẫn lấy đáp án từ nguồn còn lại (Codex R25).
+        $ids = [];
+
+        if (Schema::hasTable('screen_inventory')) {
+            $ids = DB::table('sites')
+                ->join('screens', 'screens.site_id', '=', 'sites.id')
+                ->join('screen_inventory', 'screen_inventory.screen_id', '=', 'screens.id')
+                ->whereNull('sites.network_id')
+                ->whereNotNull('screen_inventory.network_id')
+                ->groupBy('sites.id')
+                ->havingRaw('COUNT(DISTINCT screen_inventory.network_id) > 1')
+                ->pluck('sites.id')
+                ->map(fn ($id) => (string) $id)
+                ->all();
         }
 
-        return DB::table('sites')
-            ->join('screens', 'screens.site_id', '=', 'sites.id')
-            ->join('screen_inventory', 'screen_inventory.screen_id', '=', 'screens.id')
-            ->whereNull('sites.network_id')
-            ->whereNotNull('screen_inventory.network_id')
-            ->groupBy('sites.id')
-            ->havingRaw('COUNT(DISTINCT screen_inventory.network_id) > 1')
-            ->pluck('sites.id')
-            ->map(fn ($id) => (string) $id)
-            ->all();
+        if (Schema::hasColumn('screens', 'network_code')) {
+            $byCode = DB::table('sites')
+                ->join('screens', 'screens.site_id', '=', 'sites.id')
+                ->join('networks', 'networks.code', '=', 'screens.network_code')
+                ->whereNull('sites.network_id')
+                ->whereNotNull('screens.network_code')
+                ->groupBy('sites.id')
+                ->havingRaw('COUNT(DISTINCT networks.id) > 1')
+                ->pluck('sites.id')
+                ->map(fn ($id) => (string) $id)
+                ->all();
+
+            $ids = array_merge($ids, $byCode);
+        }
+
+        return array_values(array_unique($ids));
     }
 
     private function sitesWithNetwork(): int

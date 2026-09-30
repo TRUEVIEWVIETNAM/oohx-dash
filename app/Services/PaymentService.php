@@ -280,22 +280,45 @@ class PaymentService
             ->whereIn('status', ['approved', 'active', 'completed'])
             ->sum('estimated_cost');
 
-        $totalPaid = $campaign->payments()
-            ->where('status', 'completed')
-            ->sum('amount');
+        // Tổng kết phải cộng lại từ CHÍNH các dòng của breakdownByOwner.
+        //
+        // Trước đây hàm này tự tính lại: nhân VAT dạng số thực và cộng toàn bộ
+        // payment `completed` mà không trừ nghĩa vụ hoàn tiền. Hai hệ quả thật,
+        // vì giao diện dùng `is_fully_paid` để quyết định có hiện biểu mẫu
+        // thanh toán hay không (Codex R23):
+        //
+        //  - Sau khi hoàn tiền, tổng kết vẫn thấy "đã trả đủ" nên **ẩn** biểu
+        //    mẫu, và người mua không còn đường trả phần còn thiếu.
+        //  - Giá lẻ 1.000.001 đồng: trả đúng 1.080.001 mà tổng kết vẫn thấy
+        //    thiếu 0,08 đồng — đúng lỗi R09 mà tôi mới chỉ sửa một nửa.
+        $rows = $this->breakdownByOwner($campaign);
 
-        $pending = $campaign->payments()
-            ->whereIn('status', ['pending', 'processing'])
-            ->sum('amount');
+        $due     = (int) $rows->sum('total');
+        $paid    = (int) $rows->sum('paid');
+        $pending = (int) $rows->sum('pending');
+        $cost    = (int) $rows->sum('cost');
+
+        // Dòng chưa gắn owner (dữ liệu cũ, trước khi thanh toán theo owner) vẫn
+        // phải hiện trong tổng chi phí.
+        $unassignedCost = (int) round((float) $campaign->bookingLines()
+            ->whereIn('status', ['approved', 'active', 'completed'])
+            ->whereNull('owner_id')
+            ->sum('estimated_cost'));
+
+        if ($unassignedCost > 0) {
+            $cost += $unassignedCost;
+            $due  += $this->withVat($unassignedCost);
+        }
 
         return [
-            'total_cost'     => (float) $totalCost,
-            'total_cost_vat' => (float) ($totalCost * (1 + $this->vatRate())),
-            'vat'            => (float) ($totalCost * $this->vatRate()),
-            'total_paid'     => (float) $totalPaid,
+            'total_cost'     => (float) $cost,
+            'total_cost_vat' => (float) $due,
+            'vat'            => (float) ($due - $cost),
+            'total_paid'     => (float) $paid,
+            'refunded'       => (float) $rows->sum('refunded'),
             'pending'        => (float) $pending,
-            'remaining'      => (float) max(0, $totalCost * (1 + $this->vatRate()) - $totalPaid - $pending),
-            'is_fully_paid'  => $totalPaid >= ($totalCost * (1 + $this->vatRate())),
+            'remaining'      => (float) max(0, $due - $paid - $pending),
+            'is_fully_paid'  => $due > 0 && $paid >= $due,
         ];
     }
 

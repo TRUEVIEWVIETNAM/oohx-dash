@@ -185,12 +185,15 @@ class CampaignService
 
         // Giá sản phẩm đổi giữa lúc thêm giỏ và lúc chốt đơn thì DỪNG LẠI.
         //
-        // Nhánh mua lẻ nhân đơn giá HIỆN TẠI với số màn hình, nên owner đổi
-        // giá là tổng tiền đơn hàng đổi theo mà khách không hề xác nhận — và
-        // bản chụp gói vẫn ghi con số cũ, tức hai con số mâu thuẫn trong cùng
-        // một đơn (Codex R06). `assertCartRatesUnchanged` không bắt được vì nó
-        // chỉ so giá kho của màn hình, không so giá sản phẩm.
-        $expected = $buyMode === 'individual' ? $unitPrice * $screens->count() : $totalVnd;
+        // Owner đổi giá là tổng tiền đơn hàng đổi theo mà khách không hề xác
+        // nhận, và bản chụp gói vẫn ghi con số cũ — hai con số mâu thuẫn trong
+        // cùng một đơn (Codex R06). `assertCartRatesUnchanged` không bắt được
+        // vì nó chỉ so giá kho của màn hình, không so giá sản phẩm.
+        //
+        // Dùng CHUNG `productTotal` với lúc thêm giỏ và sửa giỏ: ba nơi tính
+        // ba kiểu là lý do guard này từng báo đổi giá khi không ai đổi gì
+        // (Codex R28).
+        $expected = $expander->productTotal($product, $buyMode, $screens);
 
         if ($expected !== $totalVnd) {
             throw new HttpException(409, sprintf(

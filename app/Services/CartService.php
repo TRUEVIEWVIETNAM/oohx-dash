@@ -61,15 +61,16 @@ class CartService
             is_array($selectedScreenIds) ? $selectedScreenIds : null
         );
 
+        // Giá sản phẩm đi qua BundleExpander — nguồn duy nhất cho cả thêm giỏ,
+        // sửa giỏ và chốt đơn. Xem chú thích ở `productTotal`.
+        $cost = app(BundleExpander::class)->productTotal($product, $buyMode, $screens);
+
         if ($buyMode === 'package') {
             $quantity = 1;
-            $cost = (float) $product->floor_price;
             $impressions = 0;
             $selectedScreenIds = null;
         } else {
             $quantity = $screens->count();
-            $unitPrice = (float) ($product->individual_price ?: $product->floor_price);
-            $cost = $unitPrice * $quantity;
             $impressions = (int) $screens->sum(fn ($s) => $s->inventory?->weekly_impressions ?? 0);
             // Ghi lại đúng tập đã được kiểm, không phải mảng thô từ request.
             $selectedScreenIds = $screens->pluck('id')->all();
@@ -295,6 +296,27 @@ class CartService
         ], array_filter($data, fn ($v) => $v !== null));
 
         $estimated = $this->estimateCost($screen, $mergedData);
+
+        // Dòng giỏ thuộc SẢN PHẨM thì tiền theo giá sản phẩm, không theo giá
+        // kho của màn hình đầu tiên.
+        //
+        // Trước đây `updateItem` ghi đè `estimated_cost` bằng giá kho ngay cả
+        // với dòng sản phẩm, nên sửa một dòng giỏ dạng sản phẩm là làm lệch
+        // con số mà guard lúc chốt đơn đang canh — và chính guard tôi thêm ở
+        // R06 chặn đường mua hàng bình thường (Codex R28).
+        if ($item->product_id) {
+            $expander = app(BundleExpander::class);
+            $product  = $this->eligibility->findPurchasableProduct($item->product_id);
+            $buyMode  = $expander->buyModeOf($item);
+            $screens  = $expander->resolveScreens($item, $product);
+
+            $estimated['cost']         = $expander->productTotal($product, $buyMode, $screens);
+            $estimated['unit_price']   = $estimated['cost'];
+            $estimated['screen_count'] = $buyMode === 'package' ? 1 : $screens->count();
+            $estimated['impressions']  = $buyMode === 'package'
+                ? 0
+                : (int) $screens->sum(fn ($s) => $s->inventory?->weekly_impressions ?? 0);
+        }
 
         // Sửa dòng giỏ và đổi suất đang giữ phải cùng thành hoặc cùng không:
         // nếu khoảng ngày mới đã có người lấy, dòng giỏ không được đổi theo.
