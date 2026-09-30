@@ -6,6 +6,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Screen;
 use App\Models\User;
+use App\Services\Booking\BundleExpander;
 use App\Services\Pricing\BillablePeriodCalculator;
 use App\Services\Pricing\DurationDiscount;
 use Illuminate\Support\Facades\DB;
