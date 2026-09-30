@@ -96,6 +96,17 @@ class CancellationService
 
             $quote = $this->quote($line);
 
+            // Chụp căn cứ đối soát **TRƯỚC** khi đổi trạng thái.
+            //
+            // `openCostFor()` chỉ đếm các dòng còn mở. Gọi nó sau `update()`
+            // thì chính dòng đang hủy đã ra khỏi tập, nên mẫu số thiếu đúng
+            // phần của nó: với chiến dịch một dòng thì mẫu số bằng 0 và việc
+            // đối soát im lặng không làm gì, với hai dòng thì tỉ lệ thành gấp
+            // đôi. Tôi đã viết đúng lỗi này và CI bắt được — thêm một phép
+            // tính mà không kiểm nó đọc trạng thái nào ở đúng thời điểm đó.
+            $allocationBasis     = $this->openCostFor($line);
+            $committedPaymentIds = $this->committedPaymentIdsFor($line);
+
             $line->update([
                 'status'          => 'cancelled',
                 'rejected_reason' => $reason,
@@ -135,8 +146,8 @@ class CancellationService
                     // còn sống. Lưu id thay vì so mốc thời gian vì
                     // `created_at` chỉ tới giây — hai sự kiện trong cùng một
                     // giây sẽ cho kết quả tùy lúc chạy.
-                    'allocation_basis'      => $this->openCostFor($line),
-                    'committed_payment_ids' => $this->committedPaymentIdsFor($line),
+                    'allocation_basis'      => $allocationBasis,
+                    'committed_payment_ids' => $committedPaymentIds,
                 ],
                 'reason'       => $reason,
                 'status'       => $quote['refundable'] > 0 ? Refund::STATUS_PENDING : Refund::STATUS_WAIVED,
