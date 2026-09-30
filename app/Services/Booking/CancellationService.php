@@ -41,15 +41,20 @@ class CancellationService
     /**
      * Tính trước số tiền hoàn mà không thay đổi gì.
      *
+     * `$locking` bật khi con số này sắp dùng để **ghi** (lúc hủy thật): các
+     * phép cộng tiền phải là đọc-có-khóa, không phải đọc thường. Xem
+     * `paidForLine()`. Trang xem gọi không khóa, đúng như `remainingSov()` đã
+     * làm cho suất phát sóng.
+     *
      * @return array{days_before: int, refund_pct: int, paid: int, refundable: int, tier: array}
      */
-    public function quote(BookingLine $line, ?Carbon $at = null): array
+    public function quote(BookingLine $line, ?Carbon $at = null, bool $locking = false): array
     {
         $at   = $at ?: now();
         $days = $this->daysBeforeStart($line, $at);
         $tier = $this->tierFor($days);
 
-        $paid = $this->paidForLine($line);
+        $paid = $this->paidForLine($line, $locking);
         $pct  = (int) $tier['refund_pct'];
 
         return [
@@ -75,7 +80,30 @@ class CancellationService
         }
 
         return DB::transaction(function () use ($line, $actor, $reason) {
-            // Khóa và ĐỌC LẠI trong transaction trước khi quyết định.
+            // Khóa HÀNG CHIẾN DỊCH trước, cùng một hàng mốc mà
+            // `PaymentService::createPayment()` và `reconcileAfterPayment()`
+            // khóa.
+            //
+            // Vì sao cần, và vì sao khóa dòng đặt chỗ là không đủ:
+            // `paidForLine()` phân bổ tiền theo tổng `payments.amount` và tổng
+            // `refunds.paid_amount` của **cả owner**, đọc bằng đọc thường. Dưới
+            // REPEATABLE READ, đọc thường thấy ảnh chụp lúc mở transaction —
+            // đúng cơ chế đã đo ở `SnapshotReadTest`. Nên:
+            //
+            // - Hủy hai dòng KHÁC NHAU của cùng owner song song: cả hai khóa
+            //   hai hàng khác nhau, cả hai đọc cùng con số "đã phân bổ", và cả
+            //   hai phân bổ tiếp. Tổng phân bổ vượt số tiền owner thực nhận,
+            //   tức hoàn quá. R13 chỉ chặn hủy trùng CÙNG MỘT dòng.
+            // - Hủy trùng lúc đối soát thanh toán: cùng một cơ chế.
+            //
+            // Khóa chung một hàng mốc cũng cho cả đường tiền **một thứ tự khóa
+            // duy nhất**, nên không sinh deadlock do khóa ngược thứ tự.
+            Campaign::withoutGlobalScopes()
+                ->whereKey($line->campaign_id)
+                ->lockForUpdate()
+                ->first();
+
+            // Rồi khóa và ĐỌC LẠI dòng đặt chỗ trước khi quyết định.
             //
             // Phép kiểm trạng thái ở trên chạy trên đối tượng người gọi truyền
             // vào, có thể đã cũ. Hai yêu cầu hủy song song — hoặc hai lần bấm
@@ -94,7 +122,8 @@ class CancellationService
                 throw new HttpException(422, 'Dòng đặt chỗ đã được xử lý bởi một yêu cầu khác.');
             }
 
-            $quote = $this->quote($line);
+            // `locking: true` — con số này sắp được ghi vào bản ghi hoàn tiền.
+            $quote = $this->quote($line, null, locking: true);
 
             // Chụp căn cứ đối soát **TRƯỚC** khi đổi trạng thái.
             //
@@ -262,9 +291,12 @@ class CancellationService
 
             // Số tiền từng khoản đã `completed`, tra được theo id — vì mỗi dòng
             // đã hủy chỉ được tính các khoản có trong ảnh chụp của nó.
+            // Đọc-có-khóa, cùng lý do như `paidForLine($locking)`: khóa hàng
+            // mốc xếp hàng transaction lại, nhưng đọc thường vẫn trả ảnh chụp.
             $completedById = $campaign->payments()
                 ->where('owner_id', $ownerId)
                 ->where('status', 'completed')
+                ->lockForUpdate()
                 ->pluck('amount', 'id')
                 ->map(fn ($amount) => (int) round((float) $amount));
 
@@ -450,7 +482,7 @@ class CancellationService
      * trong tổng của owner đó. Chỉ tính khoản đã xác nhận: khoản còn chờ thì
      * chưa có đồng nào chuyển đi, không có gì để hoàn.
      */
-    private function paidForLine(BookingLine $line): int
+    private function paidForLine(BookingLine $line, bool $locking = false): int
     {
         $campaign = $line->campaign;
 
@@ -475,14 +507,28 @@ class CancellationService
         // `refunds.paid_amount` chính là phần đã phân bổ cho dòng đó, gồm cả
         // phần hoàn và phần giữ lại. Bản ghi `waived` (hoàn 0%) cũng có
         // `paid_amount`, nên trừ theo cột này xử lý luôn trường hợp đó.
+        // Hai phép cộng này quyết định số tiền, nên khi sắp ghi thì phải là
+        // **đọc-có-khóa**.
+        //
+        // Khóa hàng chiến dịch ở `cancelLine()` xếp hàng các transaction lại,
+        // nhưng dưới REPEATABLE READ một **đọc thường** vẫn trả ảnh chụp của
+        // transaction chứ không phải bản mới nhất đã commit — đúng cơ chế
+        // `SnapshotReadTest` đã đo. Nên chỉ khóa hàng mốc là chưa đủ: hai lần
+        // hủy trên hai dòng khác nhau của cùng owner vẫn có thể cùng đọc một
+        // con số "đã phân bổ" và cùng phân bổ tiếp.
+        //
+        // Cùng cách xử lý `InventoryHoldService::remainingSov($locking)` đã
+        // dùng cho suất phát sóng.
         $ownerPaid = (int) round((float) $campaign->payments()
             ->where('owner_id', $line->owner_id)
             ->where('status', 'completed')
+            ->when($locking, fn ($q) => $q->lockForUpdate())
             ->sum('amount'));
 
         $alreadyAllocated = (int) round((float) Refund::where('campaign_id', $campaign->id)
             ->where('owner_id', $line->owner_id)
             ->whereIn('status', [Refund::STATUS_PENDING, Refund::STATUS_SETTLED, Refund::STATUS_WAIVED])
+            ->when($locking, fn ($q) => $q->lockForUpdate())
             ->sum('paid_amount'));
 
         $availableToAllocate = max(0, $ownerPaid - $alreadyAllocated);
