@@ -692,10 +692,22 @@ class FrontpageService
 
     // ── Phase 5: Map ──────────────────────────────────────
 
-    public function getMapPins(Request $request): Collection
+    /**
+     * Pin bản đồ.
+     *
+     * `$viewport` là khung nhìn `['north','south','east','west']`. Trang Blade
+     * gọi không kèm khung nhìn nên **hành vi cũ giữ nguyên**; `/api/v2` bắt
+     * buộc phải có, và chỗ bắt buộc nằm ở tầng request chứ không ở đây — như
+     * vậy một đường gọi quên khung nhìn là lỗi 422 nhìn thấy được, không phải
+     * một truy vấn âm thầm trả cả kho.
+     *
+     * `$limit` là giới hạn cứng số pin. Khi bị cắt thì phải có thứ tự xác
+     * định, nếu không mỗi lần kéo bản đồ lại ra một tập pin khác nhau mà
+     * không vì lý do gì.
+     */
+    public function getMapPins(Request $request, ?array $viewport = null, ?int $limit = null): Collection
     {
-        return $this->buildScreenQuery($request)
-            ->whereHas('site', fn ($q) => $q->whereNotNull('lat')->whereNotNull('lon')->where('lat', '!=', 0)->where('lon', '!=', 0))
+        $query = $this->mapPinQuery($request, $viewport)
             ->with([
                 'spec:screen_id,photo_url,photos,width_cm,height_cm',
                 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day',
@@ -704,8 +716,54 @@ class FrontpageService
                 'site:id,network_id,name,lat,lon,city,address,banner',
                 'site.network:id,name,code,banner',
                 'products:id,slug,name,total_units,listing_mode',
-            ])
-            ->get();
+            ]);
+
+        if ($limit !== null) {
+            $query->orderBy('screens.id')->limit($limit);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Đếm pin khớp bộ lọc và khung nhìn — để client biết mình đang bị cắt bao
+     * nhiêu và cần thu nhỏ khung nhìn tới đâu. Dùng chung đúng một builder với
+     * `getMapPins()`, nên con số đếm không thể lệch khỏi tập trả về.
+     */
+    public function countMapPins(Request $request, ?array $viewport = null): int
+    {
+        return $this->mapPinQuery($request, $viewport)->count();
+    }
+
+    /**
+     * Builder dùng chung cho pin bản đồ: cùng bộ lọc với danh sách, thêm điều
+     * kiện có toạ độ và (nếu có) khung nhìn.
+     */
+    private function mapPinQuery(Request $request, ?array $viewport = null)
+    {
+        return $this->buildScreenQuery($request)
+            ->whereHas('site', function ($q) use ($viewport) {
+                $q->whereNotNull('lat')->whereNotNull('lon')
+                    ->where('lat', '!=', 0)->where('lon', '!=', 0);
+
+                if ($viewport === null) {
+                    return;
+                }
+
+                $q->whereBetween('lat', [$viewport['south'], $viewport['north']]);
+
+                // Khung nhìn vắt qua kinh tuyến 180 thì `west` lớn hơn `east`
+                // và `whereBetween` trả rỗng. Dữ liệu hiện chỉ có Việt Nam nên
+                // ca này không xảy ra, nhưng để `whereBetween` trần ở đây là
+                // để lại một cái bẫy im lặng cho người dùng bản đồ thế giới.
+                if ($viewport['west'] <= $viewport['east']) {
+                    $q->whereBetween('lon', [$viewport['west'], $viewport['east']]);
+                } else {
+                    $q->where(fn ($or) => $or
+                        ->where('lon', '>=', $viewport['west'])
+                        ->orWhere('lon', '<=', $viewport['east']));
+                }
+            });
     }
 
     /**

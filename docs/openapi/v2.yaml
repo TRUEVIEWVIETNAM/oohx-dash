@@ -54,6 +54,106 @@ paths:
                       total_owners:  { type: integer }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /api/v2/filters:
+    get:
+      tags: [catalog]
+      summary: Bộ lọc tổng hợp cho trang khám phá
+      description: |
+        Dùng chung nguồn với bộ lọc trên trang công khai, nên hai nơi không
+        thể hiện ra danh sách khác nhau. Khoảng giá lấy từ `floor_cpm` —
+        chính con số trang công khai đang hiển thị.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [cities, venue_types, networks, owners, price_range_vnd]
+                    properties:
+                      cities:      { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
+                      venue_types: { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
+                      networks:    { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
+                      owners:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            slug:  { type: [string, 'null'] }
+                            name:  { type: [string, 'null'] }
+                            count: { type: integer }
+                      price_range_vnd:
+                        type: object
+                        required: [min, max]
+                        properties:
+                          min: { type: integer }
+                          max: { type: integer }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/screens/map:
+    get:
+      tags: [catalog]
+      summary: Pin bản đồ trong một khung nhìn
+      description: |
+        **Khung nhìn bắt buộc.** Thiếu `north`/`south`/`east`/`west` là 422,
+        không phải "mặc định cả thế giới": không có khung nhìn thì endpoint
+        này là một lần xuất toàn bộ kho dưới cái tên vô hại.
+
+        Trên khung nhìn vẫn còn **giới hạn cứng** số pin, vì khung nhìn rộng
+        vẫn có thể trùm cả kho. Khi bị cắt, `meta.truncated` là `true` và
+        `meta.total` cho biết còn bao nhiêu — client thu nhỏ khung nhìn lại.
+        Pin bị cắt được sắp thứ tự xác định, nên kéo bản đồ qua lại không ra
+        tập pin khác nhau một cách vô cớ.
+
+        Bộ lọc giống hệt `/api/v2/screens`.
+      parameters:
+        - { name: north, in: query, required: true, schema: { type: number, minimum: -90,  maximum: 90 } }
+        - { name: south, in: query, required: true, schema: { type: number, minimum: -90,  maximum: 90 } }
+        - { name: east,  in: query, required: true, schema: { type: number, minimum: -180, maximum: 180 } }
+        - { name: west,  in: query, required: true, schema: { type: number, minimum: -180, maximum: 180 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 300 } }
+        - { name: q,           in: query, schema: { type: string, maxLength: 100 } }
+        - { name: city,        in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: venue_type,  in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: screen_type, in: query, style: form, explode: true, schema: { type: array, maxItems: 5,  items: { type: string, enum: [billboard, led, lcd] } } }
+        - { name: network,     in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: owner,       in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/MapPin' }
+                  meta:
+                    type: object
+                    required: [returned, total, limit, max_limit, truncated, viewport]
+                    properties:
+                      returned:  { type: integer }
+                      total:     { type: integer, description: 'Tổng số pin khớp bộ lọc và khung nhìn, trước khi cắt.' }
+                      limit:     { type: integer }
+                      max_limit: { type: integer }
+                      truncated: { type: boolean }
+                      viewport:
+                        type: object
+                        required: [north, south, east, west]
+                        properties:
+                          north: { type: number }
+                          south: { type: number }
+                          east:  { type: number }
+                          west:  { type: number }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /api/v2/screens:
     get:
       tags: [catalog]
@@ -146,6 +246,41 @@ paths:
                   meta: { $ref: '#/components/schemas/PageMeta' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /api/v2/owners/{slug}:
+    get:
+      tags: [catalog]
+      summary: Chi tiết media owner kèm màn hình của họ
+      description: |
+        Màn hình đi kèm dùng đúng `ScreenSummary` như `/api/v2/screens`, nên
+        bên tiêu thụ chỉ cần một kiểu dữ liệu cho màn hình.
+      parameters:
+        - { name: slug,     in: path,  required: true, schema: { type: string } }
+        - { name: page,     in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+        - { name: city,     in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: network,  in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, screens]
+                properties:
+                  data: { $ref: '#/components/schemas/OwnerDetail' }
+                  screens:
+                    type: object
+                    required: [data, meta]
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/ScreenSummary' }
+                      meta: { $ref: '#/components/schemas/PageMeta' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
 components:
   schemas:
     ScreenSummary:
@@ -202,6 +337,79 @@ components:
         type:         { type: [string, 'null'] }
         cover_url:    { type: [string, 'null'] }
         screen_count: { type: [integer, 'null'] }
+
+    OwnerDetail:
+      type: object
+      required: [slug, name, stats]
+      description: |
+        Bộ trường lấy đúng bằng những gì trang owner công khai đang hiển thị,
+        không thêm. Không bao giờ chứa `revenue_share_pct`, `billing_info`,
+        `bank_*`, `tax_code`, `business_license_path` hay `legal_*`.
+      properties:
+        slug:      { type: string }
+        name:      { type: string }
+        type:      { type: [string, 'null'] }
+        tagline:   { type: [string, 'null'] }
+        about:     { type: [string, 'null'] }
+        logo_url:  { type: [string, 'null'] }
+        cover_url: { type: [string, 'null'] }
+        contact:
+          type: object
+          description: Thông tin liên hệ doanh nghiệp, đã công khai trên trang owner.
+          properties:
+            website: { type: [string, 'null'] }
+            email:   { type: [string, 'null'] }
+            phone:   { type: [string, 'null'] }
+            address: { type: [string, 'null'] }
+        location:
+          type: object
+          properties:
+            province: { type: [string, 'null'] }
+            commune:  { type: [string, 'null'] }
+        founded: { type: [string, integer, 'null'] }
+        stats:
+          type: object
+          required: [screen_count, city_count, venue_types]
+          properties:
+            screen_count: { type: integer }
+            city_count:   { type: integer }
+            venue_types:  { type: array, items: { type: string } }
+
+    MapPin:
+      type: object
+      required: [slug, name, lat, lng]
+      description: |
+        Cố tình gọn: bản đồ trả hàng trăm bản ghi một lúc nên mỗi trường thừa
+        nhân lên hàng trăm lần. Cần đầy đủ thì gọi `/api/v2/screens/{slug}`.
+      properties:
+        slug:    { type: string }
+        name:    { type: string }
+        lat:     { type: number }
+        lng:     { type: number }
+        city:    { type: [string, 'null'] }
+        address: { type: [string, 'null'] }
+        owner:
+          type: object
+          properties:
+            slug: { type: [string, 'null'] }
+            name: { type: [string, 'null'] }
+        price:
+          type: object
+          description: |
+            Giá hiển thị kèm đơn vị. `io_rate` nếu bán theo kỳ, ngược lại là
+            giá CPM — hai thang đo khác nhau, nên thiếu đơn vị là mời so nhầm.
+          properties:
+            amount_vnd: { type: [integer, 'null'] }
+            unit:       { type: [string, 'null'] }
+        photo_url: { type: [string, 'null'] }
+
+    FilterFacet:
+      type: object
+      required: [code, name, count]
+      properties:
+        code:  { type: [string, 'null'] }
+        name:  { type: [string, 'null'] }
+        count: { type: integer }
 
     Availability:
       type: object

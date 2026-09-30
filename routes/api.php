@@ -75,7 +75,14 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'ability:manage'])->group(funct
 // (giỏ hàng, đặt chỗ, thanh toán) sẽ vào nhóm riêng dùng Sanctum dạng SPA.
 Route::prefix('v2')->middleware('throttle:api')->group(function () {
     Route::get('stats',           [V2CatalogController::class, 'stats']);
+    Route::get('filters',         [V2CatalogController::class, 'filters']);
+
+    // `screens/map` phải đứng TRƯỚC `screens/{slug}`, nếu không Laravel khớp
+    // "map" vào {slug} và endpoint bản đồ biến thành một lần tra slug hỏng.
+    Route::get('screens/map',     [V2CatalogController::class, 'map']);
     Route::get('screens',         [V2CatalogController::class, 'screens']);
     Route::get('screens/{slug}',  [V2CatalogController::class, 'screen']);
+
     Route::get('owners',          [V2CatalogController::class, 'owners']);
+    Route::get('owners/{slug}',   [V2CatalogController::class, 'owner']);
 });
