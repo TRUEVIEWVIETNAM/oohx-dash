@@ -126,24 +126,41 @@ class PaymentService
      */
     public function outstandingForOwner(Campaign $campaign, ?string $ownerId): int
     {
-        $cost = (float) $campaign->bookingLines()
-            ->whereIn('status', ['approved', 'active', 'completed'])
-            ->when($ownerId, fn ($q) => $q->where('owner_id', $ownerId))
-            ->sum('estimated_cost');
+        // ĐỌC THẲNG từ breakdownByOwner, không tự tính lại.
+        //
+        // Vòng trước tôi đổi `CancellationService` và `breakdownByOwner` sang
+        // `refunds.paid_amount` rồi viết trong phản hồi là "ba nơi cùng một
+        // nguồn". Sai: hàm này vẫn cộng `refunds.amount` và bỏ qua bản ghi
+        // `waived` — mà nó chính là hàm `createPayment` gọi để cho phép hay từ
+        // chối trả thêm (Codex R34).
+        //
+        // Hệ quả cụ thể: trả một nửa rồi hủy một dòng ở mức 50% thì công nợ
+        // báo 270.000 trong khi dòng còn sống thiếu 540.000 — biểu mẫu gửi
+        // đúng con số 540.000 và bị 422 "vượt quá phần còn nợ". Hủy ở mức 0%
+        // còn tệ hơn: công nợ về 0 ngay, không trả nốt được.
+        //
+        // Nên nay không còn "ba nơi cùng một nguồn" như một lời hứa; chỉ còn
+        // MỘT phép tính, hai nơi kia gọi vào nó.
+        if ($ownerId !== null) {
+            $row = $this->breakdownByOwner($campaign)
+                ->first(fn ($r) => $r['owner']?->id === $ownerId);
 
-        $due = $this->withVat((int) round($cost));
+            return $row ? (int) $row['remaining'] : 0;
+        }
+
+        // Phần chưa gắn owner (dữ liệu trước khi thanh toán theo owner) không
+        // có trong breakdown, nên tính riêng — cùng công thức.
+        $cost = (int) round((float) $campaign->bookingLines()
+            ->whereIn('status', ['approved', 'active', 'completed'])
+            ->whereNull('owner_id')
+            ->sum('estimated_cost'));
 
         $counted = (int) round((float) $campaign->payments()
-            ->where('owner_id', $ownerId)
+            ->whereNull('owner_id')
             ->whereIn('status', ['completed', 'pending', 'processing'])
             ->sum('amount'));
 
-        $refunded = (int) round((float) Refund::where('campaign_id', $campaign->id)
-            ->where('owner_id', $ownerId)
-            ->whereIn('status', [Refund::STATUS_PENDING, Refund::STATUS_SETTLED])
-            ->sum('amount'));
-
-        return max(0, $due - $counted + $refunded);
+        return max(0, $this->withVat($cost) - $counted);
     }
 
     /**
