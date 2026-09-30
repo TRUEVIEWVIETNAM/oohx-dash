@@ -9,8 +9,17 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Đo thật mối nguy R05: khóa ngoại giữ shared lock khi chèn, rồi mới xin
- * exclusive lock.
+ * Ghi lại hành vi khóa của MySQL khi chèn dòng có khóa ngoại.
+ *
+ * ⚠ GIỚI HẠN CỦA LỚP NÀY, ghi sau review vòng hai của Codex (R29): fixture
+ * nằm trong transaction của RefreshDatabase nên CHƯA COMMIT, và tiến trình con
+ * nối bằng PDO riêng không thấy được. Vì vậy hai ca dưới đây **không đủ** làm
+ * bằng chứng cho R05: một tiến trình con chết vì thiếu dữ liệu cũng cho cùng
+ * kết quả. Phép đo nghiêm túc ở `ServiceRaceTest`, nơi fixture được commit
+ * thật và tiến trình con gọi chính service.
+ *
+ * Giữ lớp này lại vì phần lập luận về thứ tự khóa vẫn đúng và hữu ích khi đọc,
+ * nhưng không được dẫn nó làm bằng chứng.
  *
  * Codex chỉ ra rằng sắp thứ tự khóa tường minh **sau khi chèn** không giải
  * quyết được chuyện này: hai transaction cùng chèn một dòng tham chiếu tới
