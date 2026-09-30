@@ -32,7 +32,17 @@ Luật này chỉ tăng, không giảm, và là phép không làm gì khi tiền
 
 **Một lỗ tiền tôi tự tìm ra trong lúc sửa.** Bản đầu tôi cho `reconcileAfterPayment` bỏ qua khoản đã `settled`, lý do là "không ghi đè một giao dịch đã hoàn tất". Lý do đó đúng nhưng hệ quả thì sai: phần tiền vào muộn **mất luôn**, người mua trả thêm mà không được hoàn thêm. Sửa lại: khi mọi bản ghi của dòng đó đã `settled`, ghi một **nghĩa vụ mới** cho cùng dòng. Hai lần chuyển khoản, hai bản ghi, lịch sử không bị sửa. Có test cho chính ca đó.
 
-**Đã đo:** `tests/Feature/Buyer/CancelWithPendingPaymentTest.php`, 8 ca, đi qua đúng route người mua bấm — gồm ca tỉ lệ giữ theo ngày hủy, ca trần không cho phân bổ quá, ca chạy lại không cộng dồn, ca thứ tự cũ không đổi, và ca khoản không gắn owner.
+### R36 phải sửa hai lần nữa mới đúng — ghi lại cả hai
+
+**Lần một sai vì mâu thuẫn với một quyết định cũ.** Bản sửa đầu phân bổ *mọi* tiền chưa phân bổ cho các dòng đã hủy. CI đỏ hai ca chống hồi quy R24 và R34. Không phải test sai: R24 đã quyết định có chủ ý rằng **tiền trả thêm cho dòng còn sống không được chia lại vào dòng đã hủy**. Tổng hoàn vẫn đúng (1.620.000) nhưng chia sai giữa hai dòng, và R34 đỏ vì công nợ không về 0 được nữa.
+
+Ranh giới đúng không phải "tiền vào lúc nào" mà là **khoản chuyển đó đã tồn tại chưa khi hủy**. Khoản đã tồn tại lúc hủy — kể cả còn `pending` — là tiền người mua cam kết cho tình trạng đơn *lúc đó*, nên thuộc cả dòng bị hủy (R36). Khoản tạo **sau** khi hủy là tiền cho các dòng còn sống, không chạm tới dòng đã hủy (R24). `cancelLine()` chụp `committed_payment_ids` và `allocation_basis` vào `policy_snapshot`; lưu id thay vì so `created_at` vì cột đó chỉ tới giây.
+
+**Lần hai sai vì thứ tự.** Tôi gọi `openCostFor()` **sau** `$line->update(['status' => 'cancelled'])`, nên chính dòng đang hủy đã ra khỏi tập các dòng còn mở: chiến dịch một dòng cho mẫu số 0 (đối soát im lặng không làm gì), hai dòng cho tỉ lệ gấp đôi. Bảy ca đỏ, một nguyên nhân.
+
+Đây là lần thứ ba trong bốn vòng tôi mắc đúng hình dạng này: **thêm một phép tính hoặc một guard mà không kiểm nó đọc trạng thái nào ở đúng thời điểm đó.** R06/R28 là guard so giá sai nguồn; R28 là `updateItem` ghi lại giá trước khi guard đọc; lần này là mẫu số đọc sau khi trạng thái đã đổi. Không phải lỗi thiếu kiến thức mà lỗi không dựng ra trình tự trước khi viết.
+
+**Đã đo:** `tests/Feature/Buyer/CancelWithPendingPaymentTest.php`, 9 ca, đi qua đúng route người mua bấm — gồm ca tỉ lệ giữ theo ngày hủy, ca trần không cho phân bổ quá, ca chạy lại không cộng dồn, ca thứ tự cũ không đổi, ca khoản đã settled sinh nghĩa vụ mới, ca khoản không gắn owner, và **ca chốt ranh giới R24** đặt ngay trong file của code mới để ai đọc `reconcileAfterPayment()` thấy luôn giới hạn của nó.
 
 **Chưa làm:** đối soát chưa được thử dưới tranh chấp đồng thời (hai lần xác nhận song song, hoặc xác nhận trùng lúc hủy). Đã khóa dòng chiến dịch và `lockForUpdate()` trên các bản ghi hoàn tiền, nhưng **khóa đúng chỗ không phải bằng chứng không có tranh chấp** — đúng như tôi đã phải ghi ở `SerializationPointsTest`.
 
@@ -108,6 +118,18 @@ Không tự quy đổi: tỷ giá cần một chính sách có người chốt, 
 - **Test Livewire end-to-end cho action Filament** — vẫn chưa có. Báo cáo đã tự kiểm vendor và không kết luận sai về chuỗi `isDisabled()`; tôi cũng không dựa vào đó để nhận là an toàn. Đây vẫn là khoảng trống.
 - **Xác nhận/hoàn tiền đồng thời, hủy hai dòng đồng thời** — chưa đo.
 
+## Kết quả CI
+
+Run `36726396151` trên `1cebd95`: **571 test, 0 failure, 0 error**. Trước vòng này là 550.
+
+Ba lần chạy trước đó đỏ, và tôi ghi lại vì chúng là phần thông tin đáng giá nhất của vòng này:
+
+| Run | Kết quả | Nguyên nhân |
+|---|---|---|
+| `36723782414` | 2 đỏ | Bản sửa R36 lần một mâu thuẫn quyết định R24 |
+| `36725036801` | 7 đỏ | `openCostFor()` gọi sau khi đã đổi trạng thái dòng |
+| `36726396151` | xanh | — |
+
 ## Điều kiện để chốt
 
-Tôi **không** dùng số ca CI để thay cho các phép kiểm còn thiếu. Ba khối này nên coi là đã sửa sáu finding, không phải đã hoàn tất. Những chỗ tôi tự ghi là chưa đo ở trên là những chỗ vòng sau nên nhắm vào trước.
+Tôi **không** dùng số ca CI để thay cho các phép kiểm còn thiếu. Ba khối này nên coi là đã sửa sáu finding, không phải đã hoàn tất. Những chỗ tôi tự ghi là chưa đo ở trên là những chỗ vòng sau nên nhắm vào trước — và với R36 thì nên nhắm vào **tranh chấp đồng thời giữa xác nhận thanh toán và hủy**, vì đó là chỗ tôi chỉ đặt khóa chứ chưa đo.
