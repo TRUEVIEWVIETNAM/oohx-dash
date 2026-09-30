@@ -384,9 +384,13 @@
 </script>
 <script>
 (function(){
-  // ĐÃ GỠ: bộ đếm impression chạy bằng Math.random().
-  // Thẻ hiển thị nó cũng đã gỡ; để lại đoạn script này thì lần sau ai đó thêm
-  // lại phần tử #imp-n là con số bịa quay về ngay.
+  {{-- ĐÃ GỠ: bộ đếm impression sinh số ngẫu nhiên phía trình duyệt. Thẻ hiển
+       thị nó cũng đã gỡ; để lại script thì lần sau ai thêm lại phần tử #imp-n
+       là con số bịa quay về ngay.
+
+       Chú thích này dùng cú pháp Blade, KHÔNG dùng `//` của JavaScript: chú
+       thích JS nằm trong <script> sẽ đi thẳng ra trang, và test canh "không
+       còn tên hàm sinh số ngẫu nhiên trong HTML" bắt đúng chuyện đó. --}}
 
   // Save toggle
   document.querySelectorAll('.inv-save').forEach(b=>b.addEventListener('click',e=>{

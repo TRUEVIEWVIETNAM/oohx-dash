@@ -17,11 +17,21 @@
     $detailUrl = route('fp.detail', $screen->slug ?? $screen->uuid ?? $screen->id);
     // Product badge: lấy product đầu tiên nếu screen thuộc product
     $product = $screen->relationLoaded('products') ? $screen->products->first() : null;
+
+    // Suất còn lại, do người gọi truyền vào theo lô (2 truy vấn cho cả trang).
+    //
+    // FAIL-CLOSED: người gọi không truyền thì KHÔNG hiện badge. Badge này trước
+    // đây in vô điều kiện trên mọi thẻ ở trang chủ, trang danh sách, trang chi
+    // tiết và trang owner — tức mời người mua vào cả những suất đã bán kín
+    // (audit F-15). Thà không nói gì còn hơn nói một điều chưa kiểm được.
+    $cardAvailability = ($availability ?? [])[$screen->id] ?? null;
 @endphp
 <a href="{{ $detailUrl }}" class="sc-card {{ $compact ? 'sc-compact' : '' }}">
     <div class="sc-photo">
         <img src="{{ $photo }}" loading="lazy" alt="{{ $screen->name }}">
+        @if($cardAvailability !== null && $cardAvailability > 0)
         <div class="sc-badge">Còn trống</div>
+        @endif
         @if($product)
         <div class="sc-product-badge">
             @if($product->total_units > 1)

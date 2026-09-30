@@ -141,8 +141,13 @@ class NoFabricatedMetricsTest extends TestCase
 
         $response = $this->get($this->url('/explore/' . $screen->slug))->assertOk();
 
-        $response->assertDontSee('Còn trống', false);
         $response->assertSee('Đã đầy 30 ngày tới', false);
+
+        // KHÔNG assert vắng hẳn chuỗi "Còn trống": phần chú giải màu của lịch
+        // dùng đúng chữ đó làm nhãn ("ô xanh = còn trống"), và đó là nhãn hợp
+        // lệ chứ không phải lời hứa về màn hình này. Canh đúng lời hứa: dòng
+        // nói còn bao nhiêu phần trăm thời lượng.
+        $response->assertDontSee('% thời lượng trong 30 ngày tới', false);
     }
 
     public function test_ban_mot_nua_thi_noi_dung_con_mot_nua(): void
@@ -184,8 +189,46 @@ class NoFabricatedMetricsTest extends TestCase
         $screen = $this->sellableScreen();
         $this->sellOut($screen);
 
-        $this->get($this->url('/map'))
-            ->assertOk()
-            ->assertDontSee('Còn trống', false);
+        $response = $this->get($this->url('/map'))->assertOk();
+
+        // Cả thẻ trong panel danh sách lẫn popup trên bản đồ đều từng in badge
+        // viết cứng. Dữ liệu pin gửi xuống trình duyệt không mang thông tin
+        // suất, nên không có gì để kiểm — đã gỡ cả hai.
+        $response->assertDontSee('mpop-avail', false);
+        $response->assertDontSee('Còn trống', false);
+    }
+
+    public function test_the_man_hinh_ban_kin_khong_hien_badge_tren_trang_danh_sach(): void
+    {
+        $available = $this->sellableScreen();
+        $soldOut   = $this->sellableScreen();
+        $this->sellOut($soldOut);
+
+        $response = $this->get($this->url('/explore'))->assertOk();
+
+        // Badge là một lời hứa theo từng thẻ, nên đếm số badge phải khớp số
+        // màn hình còn suất — không phải cứ có thẻ là có badge.
+        $this->assertSame(
+            1,
+            substr_count($response->getContent(), 'sc-badge'),
+            'Chỉ màn hình còn suất mới được gắn badge "Còn trống".'
+        );
+    }
+
+    public function test_the_man_hinh_khong_hien_badge_khi_nguoi_goi_khong_truyen_du_lieu_suat(): void
+    {
+        $screen = $this->sellableScreen();
+
+        // Partial được render mà không có mảng suất — fail-closed.
+        $html = view('frontpage.partials.screen-card', [
+            'screen'      => $screen->load(['spec', 'inventory', 'owner', 'site']),
+            'vnCatLabels' => [],
+        ])->render();
+
+        $this->assertStringNotContainsString(
+            'sc-badge',
+            $html,
+            'Thiếu dữ liệu thì không nói gì, chứ không mặc định là còn trống.'
+        );
     }
 }

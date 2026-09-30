@@ -6,6 +6,7 @@ use App\Models\BookingLine;
 use App\Models\CartItem;
 use App\Models\InventoryHold;
 use App\Models\Screen;
+use App\Models\ScreenInventory;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -219,6 +220,55 @@ class InventoryHoldService
      * Đây là dòng code khiến hai người mua phải xếp hàng. Bỏ `lockForUpdate()`
      * thì mọi thứ còn lại vẫn "chạy đúng" trong test một luồng và sai trong thực tế.
      */
+    /**
+     * SOV còn lại của NHIỀU màn hình trong cùng một khoảng ngày.
+     *
+     * Hai truy vấn tổng hợp, bất kể bao nhiêu màn hình. Cần thiết vì badge
+     * "Còn trống" xuất hiện trên mọi thẻ màn hình ở trang chủ và trang danh
+     * sách: gọi `remainingSov` cho từng thẻ là một truy vấn mỗi thẻ, còn in vô
+     * điều kiện thì mời người mua vào một suất đã bán (audit F-15).
+     *
+     * @param  array<int, string>  $screenIds
+     * @return array<string, int>  screen_id => SOV còn lại
+     */
+    public function remainingSovForScreens(array $screenIds, string $startDate, string $endDate): array
+    {
+        if ($screenIds === []) {
+            return [];
+        }
+
+        $max = ScreenInventory::whereIn('screen_id', $screenIds)
+            ->pluck('share_of_voice_max_pct', 'screen_id');
+
+        $bookedByLines = BookingLine::withoutGlobalScopes()
+            ->whereIn('screen_id', $screenIds)
+            ->whereIn('status', self::LIVE_LINE_STATUSES)
+            ->where('start_date', '<=', $endDate)
+            ->where('end_date', '>=', $startDate)
+            ->selectRaw('screen_id, SUM(share_of_voice_pct) as used')
+            ->groupBy('screen_id')
+            ->pluck('used', 'screen_id');
+
+        $heldInCarts = InventoryHold::effective()
+            ->whereIn('screen_id', $screenIds)
+            ->whereNull('booking_line_id')
+            ->overlapping($startDate, $endDate)
+            ->selectRaw('screen_id, SUM(sov_pct) as used')
+            ->groupBy('screen_id')
+            ->pluck('used', 'screen_id');
+
+        $result = [];
+
+        foreach ($screenIds as $screenId) {
+            $limit = (int) ($max[$screenId] ?? 100);
+            $used  = (int) ($bookedByLines[$screenId] ?? 0) + (int) ($heldInCarts[$screenId] ?? 0);
+
+            $result[$screenId] = max(0, $limit - $used);
+        }
+
+        return $result;
+    }
+
     /**
      * Khóa hàng màn hình. **Gọi trước mọi lần chèn tham chiếu tới màn hình đó.**
      *
