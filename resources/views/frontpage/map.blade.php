@@ -90,7 +90,10 @@
                             @else
                             <div class="mp-card-pr mp-card-pr-quote">Liên hệ báo giá</div>
                             @endif
-                            <span class="badge b-grn" style="font-size:11px;padding:3px 8px">Còn trống</span>
+                            {{-- ĐÃ GỠ badge "Còn trống": nó in vô điều kiện cho mọi pin,
+                                 kể cả màn hình đã bán kín (audit F-15). Tính suất thật cho
+                                 từng pin là một truy vấn mỗi pin, quá đắt cho khung nhìn bản
+                                 đồ — nên để trang chi tiết trả lời, nơi con số là thật. --}}
                         </div>
                     </div>
                 </div>

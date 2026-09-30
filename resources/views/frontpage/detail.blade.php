@@ -146,7 +146,13 @@
   <div class="gal-main">
     <img src="{{ $mainPhoto }}" id="gal-main-img" alt="{{ $screen->name }}">
     <div class="gal-actions"><button class="gal-btn" id="savebtn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="var(--t3)" style="width:17px;height:17px;flex-shrink:0"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg></button><button class="gal-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="var(--t3)" style="width:17px;height:17px;flex-shrink:0"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg></button><button class="gal-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="var(--t3)" style="width:17px;height:17px;flex-shrink:0"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg></button></div>
+    {{-- Badge chỉ hiện khi CÒN suất thật trong 30 ngày tới. Trước đây in vô
+         điều kiện, nên một màn hình đã bán kín vẫn mời người mua (audit F-15). --}}
+    @if($availableSov > 0)
     <div class="gal-badge"><span class="badge b-grn"><span style="width:7px;height:7px;border-radius:50%;background:var(--grn);display:inline-block"></span> Còn trống</span></div>
+    @else
+    <div class="gal-badge"><span class="badge" style="background:rgba(120,120,128,.16);color:var(--t2)">Đã đầy 30 ngày tới</span></div>
+    @endif
     <div class="gal-count"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" style="width:13px;height:13px;flex-shrink:0"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg> {{ count($photos) }} ảnh</div>
   </div>
   @if(count($photos) > 1)
@@ -265,7 +271,7 @@
 </div>
 <div class="bp-quote-title">Liên hệ báo giá</div>
 <div class="bp-quote-sub">Vị trí này chưa công khai giá. Liên hệ Media Owner để nhận báo giá chi tiết.</div>
-<div class="bp-avail" style="margin-top:10px"><div class="bp-dot"></div>Còn trống</div>
+@if($availableSov > 0)<div class="bp-avail" style="margin-top:10px"><div class="bp-dot"></div>Còn {{ $availableSov }}% thời lượng trong 30 ngày tới</div>@endif
 </div>
 </div>
 @else
@@ -288,7 +294,7 @@
 @if($allowsIo && $kpiSpots)
 <div style="font-size:12px;color:var(--bl);font-weight:600;margin:4px 0 8px">KPI: {{ number_format($kpiSpots) }} spots/màn hình/ngày</div>
 @endif
-<div class="bp-avail"><div class="bp-dot"></div>Còn trống</div>
+@if($availableSov > 0)<div class="bp-avail"><div class="bp-dot"></div>Còn {{ $availableSov }}% thời lượng trong 30 ngày tới</div>@endif
 </div>
 <div class="bp-body">
 @if($isBoth)

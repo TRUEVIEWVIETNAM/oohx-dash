@@ -72,6 +72,18 @@ class FrontpageController extends Controller
                 return $dates;
             })->toArray();
 
+        // Còn suất trong 30 ngày tới hay không — tính thật, không in vô điều kiện.
+        //
+        // Badge "Còn trống" trước đây được in ở ba chỗ trên trang này mà không
+        // hề kiểm gì: một màn hình đã bán kín vẫn hiện "Còn trống" cho người
+        // mua (audit F-15). Từ giai đoạn 1 đã có nguồn thật để tính, gồm cả
+        // suất người khác đang giữ trong giỏ.
+        $availableSovNext30Days = app(\App\Services\AvailabilityService::class)->getRemainingSOV(
+            $screenModel->id,
+            now()->toDateString(),
+            now()->addDays(30)->toDateString(),
+        );
+
         $isSaved = auth()->check()
             ? \App\Models\SavedItem::where('user_id', auth()->id())->where('screen_id', $screenModel->id)->exists()
             : false;
@@ -84,6 +96,7 @@ class FrontpageController extends Controller
             'similarScreens' => $this->fp->getSimilarScreens($screenModel),
             'vnCatLabels'    => $this->fp->getVnCategoryLabels(),
             'bookedDates'    => $bookedDates,
+            'availableSov'   => $availableSovNext30Days,
             'isSaved'        => $isSaved,
             'nearbyPois'     => $nearbyPois,
         ]);
