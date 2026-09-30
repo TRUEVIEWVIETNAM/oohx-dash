@@ -289,37 +289,29 @@ class CancelWithPendingPaymentTest extends TestCase
         $campaign = $this->campaign([['screen' => $screen, 'cost' => 1_000_000]]);
         $line     = $campaign->bookingLines->first();
 
-        // Trả một nửa, hủy, hoàn xong nửa đó.
-        $half    = (float) round($this->vat(1_000_000) / 2);
-        $payment = app(PaymentService::class)->createPayment($campaign, 'bank_transfer', $half, $screen->owner_id);
-        app(PaymentService::class)->confirmBankTransfer($payment);
+        $half = (float) round($this->vat(1_000_000) / 2);
+
+        // Trả nửa đầu và xác nhận.
+        $first = app(PaymentService::class)->createPayment($campaign, 'bank_transfer', $half, $screen->owner_id);
+        app(PaymentService::class)->confirmBankTransfer($first);
+
+        // Nửa sau: người mua đã chuyển, sàn chưa đối chiếu. Khoản này **tồn
+        // tại trước khi hủy**, nên nó thuộc dòng bị hủy.
+        $second = app(PaymentService::class)->createPayment($campaign->fresh(), 'bank_transfer', null, $screen->owner_id);
+        $this->assertSame('pending', $second->status);
 
         $this->actingAs($this->buyer)
             ->post(route('buyer.campaigns.lines.cancel', [$campaign, $line]));
 
+        // Owner hoàn xong phần đã xác nhận được tới lúc đó.
         $refund = Refund::where('booking_line_id', $line->id)->firstOrFail();
         app(CancellationService::class)->settle($refund, $this->buyer);
 
         $settledAmount = (int) round((float) $refund->fresh()->amount);
+        $this->assertSame((int) $half, $settledAmount);
 
-        // Nửa còn lại vào sau.
-        //
-        // Tạo dòng payment trực tiếp thay vì qua `createPayment()`: dòng đã bị
-        // hủy nên công nợ của owner đã về 0 và `createPayment()` từ chối đúng
-        // như nó phải từ chối. Đây là dàn cảnh "tiền vào muộn", không phải một
-        // đường người dùng bấm được.
-        Payment::create([
-            'campaign_id'     => $campaign->id,
-            'organization_id' => $this->org->id,
-            'owner_id'        => $screen->owner_id,
-            'amount'          => $this->vat(1_000_000) - $half,
-            'method'          => 'bank_transfer',
-            'status'          => 'completed',
-            'currency'        => 'VND',
-            'paid_at'         => now(),
-        ]);
-
-        app(CancellationService::class)->reconcileAfterPayment($campaign->fresh(), $screen->owner_id);
+        // Giờ sàn xác nhận nửa sau.
+        app(PaymentService::class)->confirmBankTransfer($second->fresh());
 
         $refund->refresh();
 
@@ -342,6 +334,55 @@ class CancelWithPendingPaymentTest extends TestCase
         $this->assertSame(
             $this->vat(1_000_000),
             (int) round((float) $refund->amount) + (int) round((float) $extra->first()->amount),
+        );
+    }
+
+    /**
+     * Ranh giới với R24 — chỗ bản sửa đầu của tôi sai.
+     *
+     * Bản đầu phân bổ mọi tiền chưa phân bổ cho dòng đã hủy, nên nó kéo cả
+     * tiền trả thêm cho dòng **còn sống** về dòng đã hủy. Điều đó mâu thuẫn
+     * với quyết định có chủ ý ở R24 và làm đỏ đúng hai ca chống hồi quy R24,
+     * R34. Ca này chốt ranh giới ngay tại chỗ code mới nằm, để lần sau ai đọc
+     * `reconcileAfterPayment()` thấy luôn giới hạn của nó.
+     */
+    public function test_tien_tao_sau_khi_huy_khong_duoc_chia_vao_dong_da_huy(): void
+    {
+        $owner    = Owner::factory()->create(['status' => 'active']);
+        $screenA  = $this->screen($owner);
+        $screenB  = $this->screen($owner);
+        $campaign = $this->campaign([
+            ['screen' => $screenA, 'cost' => 1_000_000],
+            ['screen' => $screenB, 'cost' => 1_000_000],
+        ]);
+
+        $lineA = $campaign->bookingLines->firstWhere('screen_id', $screenA->id);
+
+        // Trả một nửa tổng (1.080.000 trong 2.160.000) và xác nhận.
+        $paid = app(PaymentService::class)->createPayment($campaign, 'bank_transfer', 1_080_000.0, $owner->id);
+        app(PaymentService::class)->confirmBankTransfer($paid);
+
+        // Hủy A: chia đôi theo tỉ lệ hai dòng còn mở → 540.000.
+        $this->actingAs($this->buyer)
+            ->post(route('buyer.campaigns.lines.cancel', [$campaign, $lineA]));
+
+        $refundA = Refund::where('booking_line_id', $lineA->id)->firstOrFail();
+        $this->assertSame(540_000, (int) round((float) $refundA->amount));
+
+        // Trả thêm 540.000 — khoản này tạo SAU khi hủy, tức tiền cho dòng B
+        // còn sống. Không được chia lại vào A.
+        $topUp = app(PaymentService::class)->createPayment($campaign->fresh(), 'bank_transfer', 540_000.0, $owner->id, 'top-up');
+        app(PaymentService::class)->confirmBankTransfer($topUp);
+
+        $this->assertSame(
+            540_000,
+            (int) round((float) $refundA->fresh()->amount),
+            'Tiền trả thêm cho dòng còn sống bị kéo về dòng đã hủy — mâu thuẫn R24.'
+        );
+        $this->assertSame(
+            1,
+            Refund::where('booking_line_id', $lineA->id)->count(),
+            'Đối soát tạo thêm một nghĩa vụ từ tiền không thuộc dòng này.'
         );
     }
 
