@@ -7,6 +7,7 @@ use App\Models\CampaignActivity;
 use App\Models\Owner;
 use App\Models\Payment;
 use App\Models\Refund;
+use App\Services\Booking\CancellationService;
 use App\Services\Booking\CreativeGate;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
@@ -182,6 +183,16 @@ class PaymentService
             "Thanh toán " . number_format($payment->amount, 0, ',', '.') . " ₫ đã được xác nhận",
             auth()->id()
         );
+
+        // Tiền vào muộn hơn lệnh hủy thì nghĩa vụ hoàn tiền phải được tính
+        // lại (Codex R36).
+        //
+        // Người mua hủy được trong khi khoản chuyển của họ còn `pending`. Lúc
+        // đó chưa có đồng nào `completed` nên nghĩa vụ hoàn ghi bằng 0. Nếu
+        // không đối soát ở đây thì sau khi xác nhận, tiền thật đã vào mà
+        // không có nghĩa vụ hoàn nào — và người mua không hủy lại được để
+        // tính lại.
+        app(CancellationService::class)->reconcileAfterPayment($payment->campaign, $payment->owner_id);
 
         // Auto-activate campaign if fully paid
         $this->checkAndActivate($payment->campaign);

@@ -4,16 +4,15 @@ namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V2\MapViewportRequest;
+use App\Http\Requests\Api\V2\OwnerListingRequest;
 use App\Http\Requests\FrontpageListingRequest;
 use App\Http\Resources\V2\MapPinResource;
 use App\Http\Resources\V2\OwnerDetailResource;
 use App\Http\Resources\V2\OwnerSummaryResource;
 use App\Http\Resources\V2\ScreenSummaryResource;
-use App\Models\Screen;
 use App\Services\FrontpageService;
 use App\Services\InventoryHoldService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Danh mục công khai cho `/api/v2` — nguồn dữ liệu cho trang công khai.
@@ -91,10 +90,15 @@ class CatalogController extends Controller
      */
     public function screen(string $slug): JsonResponse
     {
-        $screen = Screen::publiclyVisible()
-            ->with(['spec', 'inventory', 'owner:id,name,slug,cover_url', 'site', 'site.network'])
-            ->where('slug', $slug)
-            ->first();
+        // Dùng `getScreenDetail()` — đúng đường truy vấn trang chi tiết Blade
+        // đang dùng.
+        //
+        // Bản trước tôi viết truy vấn riêng ngay trong controller, rồi vẫn
+        // tuyên bố "mọi endpoint chỉ có một đường truy vấn". Codex chỉ ra là
+        // không đúng, và hệ quả đã hiện ra ở R38: truy vấn riêng nạp đủ cột
+        // network trong khi đường dùng chung thiếu `code`, nên cùng một màn
+        // hình trả dữ liệu khác nhau tùy endpoint.
+        $screen = $this->catalog->getScreenDetail($slug);
 
         if (! $screen) {
             return $this->notFound('Không tìm thấy màn hình với slug này.');
@@ -196,15 +200,22 @@ class CatalogController extends Controller
 
                 // Khoảng giá lấy từ `floor_cpm` — chính con số trang công khai
                 // đang hiển thị, không phải giá sàn nội bộ của gói sản phẩm.
-                'price_range_vnd' => [
-                    'min' => (int) round((float) ($aggregates['min_price'] ?? 0)),
-                    'max' => (int) round((float) ($aggregates['max_price'] ?? 0)),
+                //
+                // Có `currency` và chỉ tính hàng VND. Bản trước gọi nó là
+                // `price_range_vnd` trong khi `getFilterAggregates()` lấy
+                // MIN/MAX trên toàn bộ `floor_cpm` bất kể `floor_cpm_currency`,
+                // nên một hàng USD kéo `min` xuống vài đơn vị và khoảng lọc
+                // thành vô nghĩa (Codex R39).
+                'price_range' => [
+                    'currency' => $aggregates['price_currency'] ?? 'VND',
+                    'min'      => (int) round((float) ($aggregates['min_price'] ?? 0)),
+                    'max'      => (int) round((float) ($aggregates['max_price'] ?? 0)),
                 ],
             ],
         ]);
     }
 
-    public function owners(Request $request): JsonResponse
+    public function owners(OwnerListingRequest $request): JsonResponse
     {
         $perPage = min(
             max(1, (int) $request->integer('per_page', self::DEFAULT_PER_PAGE)),

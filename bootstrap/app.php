@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Throwable;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -89,6 +90,44 @@ return Application::configure(basePath: dirname(__DIR__))
                 'message' => $e->getMessage() ?: 'Yêu cầu không thực hiện được.',
                 'code'    => $status,
                 'details' => [],
-            ], $status);
+                // Giữ header của HttpException (Codex R41).
+                //
+                // `ThrottleRequests` gắn `Retry-After` và `X-RateLimit-*` vào
+                // exception, còn 405 mang `Allow`. Bản trước tạo JsonResponse
+                // chỉ với body và status nên các header đó biến mất: client
+                // gặp 429 mà không biết chờ bao lâu. Đổi định dạng **body**
+                // không được phá thông tin điều khiển của giao thức.
+            ], $status, $e->getHeaders());
+        });
+
+        // Lỗi hệ thống của /api/v2 cũng phải có envelope (Codex R40).
+        //
+        // Hai renderer trên chỉ bắt `ValidationException` và
+        // `HttpExceptionInterface`. Một `ErrorException` — ví dụ "Array to
+        // string conversion" khi client gửi `?q[]=x` — đi ngoài cả hai, nên
+        // tuyên bố "mọi lỗi v2 có định dạng thống nhất" của tôi là sai.
+        //
+        // Renderer này **không** dùng để che lỗi: khi `app.debug` bật thì
+        // thông điệp thật vẫn ra để còn gỡ được, còn ở production chỉ có câu
+        // chung và không bao giờ có stack trace.
+        $exceptions->render(function (Throwable $e, Request $request) {
+            if (! $request->is('api/v2/*')) {
+                return null;
+            }
+
+            if ($e instanceof ValidationException || $e instanceof HttpExceptionInterface) {
+                return null;
+            }
+
+            // Không gọi `report()` ở đây: Laravel đã báo lỗi trước khi
+            // render, thêm nữa chỉ làm log đôi.
+            return response()->json([
+                'error'   => 'server_error',
+                'message' => config('app.debug')
+                    ? $e::class . ': ' . $e->getMessage()
+                    : 'Đã có lỗi phía máy chủ. Vui lòng thử lại sau.',
+                'code'    => 500,
+                'details' => [],
+            ], 500);
         });
     })->create();

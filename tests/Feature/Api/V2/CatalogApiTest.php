@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V2;
 
+use App\Models\Network;
 use App\Models\Owner;
 use App\Models\Screen;
 use App\Models\ScreenInventory;
@@ -137,12 +138,17 @@ class CatalogApiTest extends TestCase
 
         $this->getJson('/api/v2/screens/' . $screen->slug)
             ->assertOk()
-            ->assertJsonPath('data.pricing.io_rate_vnd', 1_000_000)
-            ->assertJsonPath('data.pricing.io_rate_unit', 'month')
-            ->assertJsonPath('data.pricing.floor_cpm_vnd', 50_000)
+            ->assertJsonPath('data.pricing.io_rate.amount', 1_000_000)
+            ->assertJsonPath('data.pricing.io_rate.currency', 'VND')
+            ->assertJsonPath('data.pricing.io_rate.unit', 'month')
+            ->assertJsonPath('data.pricing.floor_cpm.amount', 50_000)
+            ->assertJsonPath('data.pricing.floor_cpm.currency', 'VND')
             // v1 gọi giá CPM là "giá một slot" và không sửa được nữa vì đối tác
             // đang đọc (F09). v2 không lặp lại cái tên đó.
-            ->assertJsonMissingPath('data.pricing.price_per_slot_vnd');
+            ->assertJsonMissingPath('data.pricing.price_per_slot_vnd')
+            // Và không lặp lại cái nhãn `_vnd` gắn cho số có thể không phải
+            // VND (Codex R39).
+            ->assertJsonMissingPath('data.pricing.floor_cpm_vnd');
     }
 
     // ── Giới hạn cứng phân trang ────────────────────────────────────────────
@@ -208,6 +214,169 @@ class CatalogApiTest extends TestCase
         $response->assertJsonStructure(['error', 'message']);
         $response->assertJsonMissingPath('code');
         $response->assertJsonMissingPath('details');
+    }
+
+    // ── Codex R38: network.code phải có ở MỌI endpoint ──────────────────────
+
+    public function test_network_code_co_mat_o_danh_sach_va_chi_tiet(): void
+    {
+        $owner   = Owner::factory()->create(['status' => 'active']);
+        $network = Network::factory()->create(['owner_id' => $owner->id, 'code' => 'net-a', 'name' => 'Mạng A', 'status' => 'active']);
+
+        $site   = Site::factory()->create(['owner_id' => $owner->id, 'network_id' => $network->id, 'city' => 'Hà Nội', 'status' => 'active']);
+        $screen = Screen::factory()->create(['owner_id' => $owner->id, 'site_id' => $site->id, 'active' => true]);
+        ScreenSpec::factory()->create(['screen_id' => $screen->id, 'width_cm' => 400, 'height_cm' => 200]);
+        ScreenInventory::create([
+            'screen_id' => $screen->id, 'pricing_model' => 'io', 'io_rate' => 1_000_000,
+            'io_rate_unit' => 'month', 'floor_cpm' => 50_000, 'spot_length' => 15,
+            'share_of_voice_max_pct' => 100,
+        ]);
+
+        // Danh sách: eager load từng thiếu cột `code`, nên `code` về null
+        // trong khi `name` có — cùng một màn hình trả dữ liệu khác nhau tùy
+        // endpoint, và client mất khóa để nối với facet network.
+        $this->getJson('/api/v2/screens')
+            ->assertOk()
+            ->assertJsonPath('data.0.network.code', 'net-a')
+            ->assertJsonPath('data.0.network.name', 'Mạng A');
+
+        $this->getJson('/api/v2/screens/' . $screen->slug)
+            ->assertOk()
+            ->assertJsonPath('data.network.code', 'net-a');
+
+        $this->getJson('/api/v2/owners/' . $owner->slug)
+            ->assertOk()
+            ->assertJsonPath('screens.data.0.network.code', 'net-a');
+    }
+
+    // ── Codex R37: cách gửi tham số nhiều giá trị ───────────────────────────
+
+    public function test_bo_loc_nhan_mot_gia_tri_dang_scalar(): void
+    {
+        $this->screen();
+
+        // Đặc tả từng khai `explode: true`, tức client sinh `city=hanoi`. PHP
+        // đọc đó là scalar, và luật `array` trả 422 — bộ lọc khai trong tài
+        // liệu không dùng được. Phép kiểm route hai chiều vẫn xanh vì nó không
+        // kiểm cách serialize.
+        $this->getJson('/api/v2/screens?city=' . urlencode('Hà Nội'))
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
+    public function test_bo_loc_nhan_nhieu_gia_tri_phan_tach_bang_dau_phay(): void
+    {
+        $ownerA = Owner::factory()->create(['status' => 'active', 'slug' => 'owner-a']);
+        $ownerB = Owner::factory()->create(['status' => 'active', 'slug' => 'owner-b']);
+        $ownerC = Owner::factory()->create(['status' => 'active', 'slug' => 'owner-c']);
+
+        $this->screen($ownerA);
+        $this->screen($ownerB);
+        $this->screen($ownerC);
+
+        // Dạng OpenAPI chuẩn `explode: false`: một khóa, không mất phần tử.
+        $slugs = collect(
+            $this->getJson('/api/v2/screens?owner=owner-a,owner-b')->assertOk()->json('data')
+        )->pluck('owner.slug')->sort()->values()->all();
+
+        $this->assertSame(['owner-a', 'owner-b'], $slugs);
+    }
+
+    public function test_bo_loc_van_nhan_dang_mang_cu(): void
+    {
+        $ownerA = Owner::factory()->create(['status' => 'active', 'slug' => 'owner-a']);
+        $this->screen($ownerA);
+        $this->screen();
+
+        // Trang Blade đang gửi dạng này; đổi hợp đồng không được làm nó vỡ.
+        $this->getJson('/api/v2/screens?owner[]=owner-a')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.owner.slug', 'owner-a');
+    }
+
+    public function test_ban_do_cung_nhan_dang_dau_phay(): void
+    {
+        $ownerA = Owner::factory()->create(['status' => 'active', 'slug' => 'owner-a']);
+        $ownerB = Owner::factory()->create(['status' => 'active', 'slug' => 'owner-b']);
+
+        foreach ([$ownerA, $ownerB] as $owner) {
+            $site   = Site::factory()->create(['owner_id' => $owner->id, 'city' => 'Hà Nội', 'status' => 'active', 'lat' => 21.02, 'lon' => 105.80]);
+            $screen = Screen::factory()->create(['owner_id' => $owner->id, 'site_id' => $site->id, 'active' => true]);
+            ScreenSpec::factory()->create(['screen_id' => $screen->id, 'width_cm' => 400, 'height_cm' => 200]);
+            ScreenInventory::create([
+                'screen_id' => $screen->id, 'pricing_model' => 'io', 'io_rate' => 1_000_000,
+                'io_rate_unit' => 'month', 'floor_cpm' => 50_000, 'spot_length' => 15,
+                'share_of_voice_max_pct' => 100,
+            ]);
+        }
+
+        $this->getJson('/api/v2/screens/map?north=21.2&south=20.9&east=105.9&west=105.6&owner=owner-a')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.owner.slug', 'owner-a');
+    }
+
+    // ── Codex R39: đơn vị tiền đi cùng số tiền ──────────────────────────────
+
+    public function test_gia_cpm_bang_usd_khong_bi_gan_nhan_vnd(): void
+    {
+        $screen = $this->screen();
+
+        ScreenInventory::where('screen_id', $screen->id)->update([
+            'pricing_model'      => 'cpm',
+            'io_rate'            => null,
+            'floor_cpm'          => 2.50,
+            'floor_cpm_currency' => 'USD',
+        ]);
+        Cache::flush();
+
+        // 2,50 USD từng ra ngoài thành `floor_cpm_vnd: 3`: sai đơn vị, lệch
+        // nhiều bậc, và client mất currency gốc nên không tự sửa được.
+        $this->getJson('/api/v2/screens/' . $screen->slug)
+            ->assertOk()
+            ->assertJsonPath('data.pricing.floor_cpm.amount', 2.5)
+            ->assertJsonPath('data.pricing.floor_cpm.currency', 'USD');
+
+        $this->getJson('/api/v2/screens')
+            ->assertOk()
+            ->assertJsonPath('data.0.pricing.floor_cpm.currency', 'USD');
+    }
+
+    public function test_pin_ban_do_mang_dung_don_vi_tien(): void
+    {
+        $owner  = Owner::factory()->create(['status' => 'active']);
+        $site   = Site::factory()->create(['owner_id' => $owner->id, 'city' => 'Hà Nội', 'status' => 'active', 'lat' => 21.02, 'lon' => 105.80]);
+        $screen = Screen::factory()->create(['owner_id' => $owner->id, 'site_id' => $site->id, 'active' => true]);
+        ScreenSpec::factory()->create(['screen_id' => $screen->id, 'width_cm' => 400, 'height_cm' => 200]);
+        ScreenInventory::create([
+            'screen_id' => $screen->id, 'pricing_model' => 'cpm', 'floor_cpm' => 2.50,
+            'floor_cpm_currency' => 'USD', 'spot_length' => 15, 'share_of_voice_max_pct' => 100,
+        ]);
+
+        $this->getJson('/api/v2/screens/map?north=21.2&south=20.9&east=105.9&west=105.6')
+            ->assertOk()
+            ->assertJsonPath('data.0.price.amount', 2.5)
+            ->assertJsonPath('data.0.price.currency', 'USD')
+            ->assertJsonMissingPath('data.0.price.amount_vnd');
+    }
+
+    // ── Codex R41: đổi body không được phá header giao thức ─────────────────
+
+    public function test_loi_405_van_giu_header_allow(): void
+    {
+        // `MethodNotAllowedHttpException` mang `Allow`. Renderer tạo
+        // JsonResponse mới chỉ với body và status đã làm nó biến mất.
+        $response = $this->postJson('/api/v2/stats');
+
+        $response->assertStatus(405)
+            ->assertJsonPath('error', 'error')
+            ->assertJsonStructure(['error', 'message', 'code', 'details']);
+
+        $this->assertNotEmpty(
+            $response->headers->get('Allow'),
+            'Lỗi 405 của v2 mất header Allow.'
+        );
     }
 
     // ── Suất còn lại là con số thật ─────────────────────────────────────────

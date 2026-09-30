@@ -73,7 +73,7 @@ paths:
                 properties:
                   data:
                     type: object
-                    required: [cities, venue_types, networks, owners, price_range_vnd]
+                    required: [cities, venue_types, networks, owners, price_range]
                     properties:
                       cities:      { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
                       venue_types: { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
@@ -86,12 +86,18 @@ paths:
                             slug:  { type: [string, 'null'] }
                             name:  { type: [string, 'null'] }
                             count: { type: integer }
-                      price_range_vnd:
+                      price_range:
                         type: object
-                        required: [min, max]
+                        description: |
+                          Khoảng giá CPM, **chỉ tính hàng VND**. Bản đầu gọi
+                          nó là `price_range_vnd` trong khi MIN/MAX chạy trên
+                          toàn bộ `floor_cpm` bất kể `floor_cpm_currency`, nên
+                          một hàng USD kéo `min` xuống vài đơn vị (Codex R39).
+                        required: [currency, min, max]
                         properties:
-                          min: { type: integer }
-                          max: { type: integer }
+                          currency: { type: string, enum: [VND] }
+                          min:      { type: integer }
+                          max:      { type: integer }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /api/v2/screens/map:
@@ -117,11 +123,11 @@ paths:
         - { name: west,  in: query, required: true, schema: { type: number, minimum: -180, maximum: 180 } }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 300 } }
         - { name: q,           in: query, schema: { type: string, maxLength: 100 } }
-        - { name: city,        in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
-        - { name: venue_type,  in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
-        - { name: screen_type, in: query, style: form, explode: true, schema: { type: array, maxItems: 5,  items: { type: string, enum: [billboard, led, lcd] } } }
-        - { name: network,     in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
-        - { name: owner,       in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: city,        in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: venue_type,  in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: screen_type, in: query, style: form, explode: false, schema: { type: array, maxItems: 5,  items: { type: string, enum: [billboard, led, lcd] } } }
+        - { name: network,     in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: owner,       in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
       responses:
         '200':
           description: OK
@@ -164,19 +170,26 @@ paths:
       # Bộ lọc dưới đây do `FrontpageListingRequest` kiểm — CÙNG một bộ luật
       # với trang công khai. Sửa luật ở đó thì sửa cả ở đây, nếu không đặc tả
       # nói một đằng máy chủ nhận một nẻo.
+      #
+      # Tham số nhiều giá trị dùng `style: form, explode: false`, tức MỘT khóa
+      # phân tách bằng dấu phẩy: `city=hanoi,hcm`. Bản đầu tôi khai
+      # `explode: true` (`city=hanoi&city=hcm`) — sai, vì PHP không ghép khóa
+      # lặp thành mảng, nó lấy giá trị cuối và bỏ phần còn lại, rồi luật
+      # `array` trả 422. Dạng `city[]=` cũng được nhận nhưng không phải hợp
+      # đồng khai ở đây (Codex R37).
       parameters:
         - { name: page,        in: query, schema: { type: integer, minimum: 1 } }
         - { name: per_page,    in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
         - { name: q,           in: query, schema: { type: string, maxLength: 100 } }
-        - { name: city,        in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
-        - { name: province,    in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
-        - { name: district,    in: query, style: form, explode: true, schema: { type: array, maxItems: 20, items: { type: string } } }
-        - { name: region,      in: query, style: form, explode: true, schema: { type: array, maxItems: 3,  items: { type: string, enum: [north, central, south] } } }
-        - { name: venue_type,  in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
-        - { name: screen_type, in: query, style: form, explode: true, schema: { type: array, maxItems: 5,  items: { type: string, enum: [billboard, led, lcd] } } }
-        - { name: orientation, in: query, style: form, explode: true, schema: { type: array, maxItems: 3,  items: { type: string, enum: [landscape, portrait, square] } } }
-        - { name: network,     in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
-        - { name: owner,       in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: city,        in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: province,    in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: district,    in: query, style: form, explode: false, schema: { type: array, maxItems: 20, items: { type: string } } }
+        - { name: region,      in: query, style: form, explode: false, schema: { type: array, maxItems: 3,  items: { type: string, enum: [north, central, south] } } }
+        - { name: venue_type,  in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: screen_type, in: query, style: form, explode: false, schema: { type: array, maxItems: 5,  items: { type: string, enum: [billboard, led, lcd] } } }
+        - { name: orientation, in: query, style: form, explode: false, schema: { type: array, maxItems: 3,  items: { type: string, enum: [landscape, portrait, square] } } }
+        - { name: network,     in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: owner,       in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
         - { name: site,        in: query, schema: { type: string, maxLength: 50 } }
         - { name: min_price,   in: query, schema: { type: number, minimum: 0 } }
         - { name: max_price,   in: query, schema: { type: number, minimum: 0 } }
@@ -229,8 +242,8 @@ paths:
       parameters:
         - { name: page,     in: query, schema: { type: integer, minimum: 1 } }
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
-        - { name: q,        in: query, schema: { type: string } }
-        - { name: type,     in: query, description: Lọc theo loại điểm đặt của màn hình thuộc owner., schema: { type: string } }
+        - { name: q,        in: query, schema: { type: string, maxLength: 100 } }
+        - { name: type,     in: query, description: Lọc theo loại điểm đặt của màn hình thuộc owner., schema: { type: string, maxLength: 100 } }
       responses:
         '200':
           description: OK
@@ -244,7 +257,9 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/OwnerSummary' }
                   meta: { $ref: '#/components/schemas/PageMeta' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
 
   /api/v2/owners/{slug}:
     get:
@@ -257,8 +272,8 @@ paths:
         - { name: slug,     in: path,  required: true, schema: { type: string } }
         - { name: page,     in: query, schema: { type: integer, minimum: 1 } }
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
-        - { name: city,     in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
-        - { name: network,  in: query, style: form, explode: true, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: city,     in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: network,  in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
       responses:
         '200':
           description: OK
@@ -314,15 +329,36 @@ components:
         pricing:
           type: object
           description: |
-            Tên trường nói đúng nó là gì. `floor_cpm_vnd` là giá cho 1.000 lượt
-            hiển thị; `io_rate_vnd` là giá thuê một kỳ, kỳ nói ở `io_rate_unit`.
+            Tên trường nói đúng nó là gì, và **mỗi số tiền đi kèm đơn vị**.
+            `floor_cpm` là giá cho 1.000 lượt hiển thị; `io_rate` là giá thuê
+            một kỳ, kỳ nói ở `io_rate.unit`.
+
+            Bản đầu trả `floor_cpm_vnd` bằng cách làm tròn `floor_cpm` và bỏ
+            qua `floor_cpm_currency` — cột đó nhận VND hoặc USD, nên một hàng
+            USD 2,50 ra ngoài thành "3 VND" (Codex R39). API **không** tự quy
+            đổi: quy đổi cần một chính sách tỷ giá có người chốt.
+
+            `io_rate` không có cột currency trong CSDL nên luôn là VND; trường
+            `currency` vẫn có mặt để giả định đó nhìn thấy được.
+
             v1 có `price_per_slot_vnd` trả giá CPM dưới cái tên "giá một slot" —
             v2 không lặp lại.
+          required: [model, floor_cpm, io_rate]
           properties:
-            model:         { type: [string, 'null'], enum: [cpm, io, both, null] }
-            floor_cpm_vnd: { type: [integer, 'null'] }
-            io_rate_vnd:   { type: [integer, 'null'] }
-            io_rate_unit:  { type: [string, 'null'], enum: [week, month, null] }
+            model: { type: [string, 'null'], enum: [cpm, io, both, null] }
+            floor_cpm:
+              type: object
+              required: [amount, currency]
+              properties:
+                amount:   { type: [number, 'null'], description: 'Có thể là số lẻ khi currency không phải VND.' }
+                currency: { type: string, enum: [VND, USD] }
+            io_rate:
+              type: object
+              required: [amount, currency]
+              properties:
+                amount:   { type: [integer, 'null'] }
+                currency: { type: string, enum: [VND] }
+                unit:     { type: [string, 'null'], enum: [week, month, null] }
         photo_url: { type: [string, 'null'] }
 
     OwnerSummary:
@@ -396,11 +432,16 @@ components:
         price:
           type: object
           description: |
-            Giá hiển thị kèm đơn vị. `io_rate` nếu bán theo kỳ, ngược lại là
-            giá CPM — hai thang đo khác nhau, nên thiếu đơn vị là mời so nhầm.
+            Giá hiển thị kèm **đơn vị đo** (`unit`) và **đơn vị tiền**
+            (`currency`). `io_rate` nếu bán theo kỳ, ngược lại là giá CPM —
+            hai thang đo khác nhau, nên thiếu `unit` là mời so nhầm, và giá
+            CPM có thể lưu bằng USD nên thiếu `currency` là gắn nhãn sai
+            (Codex R39).
+          required: [amount, currency]
           properties:
-            amount_vnd: { type: [integer, 'null'] }
-            unit:       { type: [string, 'null'] }
+            amount:   { type: [number, 'null'] }
+            currency: { type: string, enum: [VND, USD] }
+            unit:     { type: [string, 'null'] }
         photo_url: { type: [string, 'null'] }
 
     FilterFacet:
@@ -459,7 +500,22 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
     TooManyRequests:
-      description: Vượt giới hạn tần suất
+      description: |
+        Vượt giới hạn tần suất. Phản hồi giữ nguyên `Retry-After` và các
+        header hạn mức của `ThrottleRequests` — đổi định dạng body không được
+        phá thông tin điều khiển của giao thức (Codex R41).
+      headers:
+        Retry-After:
+          description: Số giây nên chờ trước khi gọi lại.
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ServerError:
+      description: |
+        Lỗi phía máy chủ, vẫn theo định dạng lỗi thống nhất. Thông điệp chi
+        tiết chỉ xuất hiện khi `app.debug` bật; production trả câu chung và
+        không bao giờ có stack trace.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }

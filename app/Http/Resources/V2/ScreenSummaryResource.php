@@ -53,16 +53,53 @@ class ScreenSummaryResource extends JsonResource
                 'height_m' => $spec?->height_cm ? round($spec->height_cm / 100, 2) : null,
             ],
 
-            // Giá công khai, tên nói đúng nó là gì.
+            // Giá công khai, **kèm đơn vị tiền**.
+            //
+            // Bản trước trả `floor_cpm_vnd` bằng cách làm tròn `floor_cpm` và
+            // bỏ qua `floor_cpm_currency` — cột đó nhận VND hoặc USD (xem
+            // `ScreenImport\FieldCatalog`, và Filament có
+            // `default_floor_cpm_currency`). Một hàng USD 2,50 ra ngoài thành
+            // "3 VND": sai đơn vị, lệch nhiều bậc, và client không còn cách
+            // nào tự sửa vì đã mất currency gốc (Codex R39).
+            //
+            // Không tự quy đổi ở đây: quy đổi cần một chính sách tỷ giá có
+            // người chốt, không phải một hằng số lẻn vào DTO.
             'pricing' => [
-                'model'         => $inventory?->pricing_model,
-                'floor_cpm_vnd' => $inventory?->floor_cpm !== null ? (int) round((float) $inventory->floor_cpm) : null,
-                'io_rate_vnd'   => $inventory?->io_rate !== null ? (int) round((float) $inventory->io_rate) : null,
-                'io_rate_unit'  => $inventory?->io_rate_unit,
+                'model'     => $inventory?->pricing_model,
+                'floor_cpm' => [
+                    'amount'   => $this->decimalOrNull($inventory?->floor_cpm),
+                    'currency' => $inventory?->floor_cpm_currency ?: 'VND',
+                ],
+                'io_rate' => [
+                    'amount' => $inventory?->io_rate !== null ? (int) round((float) $inventory->io_rate) : null,
+                    // `io_rate` không có cột currency trong CSDL, nên nó là
+                    // VND theo định nghĩa. Nói ra ở đây để giả định đó nhìn
+                    // thấy được trong phản hồi, chứ không nằm im trong đầu ai.
+                    'currency' => 'VND',
+                    'unit'     => $inventory?->io_rate_unit,
+                ],
             ],
 
             'photo_url' => $this->display_photo,
         ];
+    }
+
+    /**
+     * Số tiền giữ đúng độ chính xác của dữ liệu.
+     *
+     * Không làm tròn về số nguyên: `floor_cpm` có thể là 2,50 USD, và làm
+     * tròn thành 3 là làm sai dữ liệu chứ không phải làm gọn. Với VND thì
+     * giá trị vốn đã nguyên nên trả về số nguyên.
+     */
+    private function decimalOrNull($value): int|float|null
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $number = round((float) $value, 4);
+
+        return $number === floor($number) ? (int) $number : $number;
     }
 
     private function resolveScreenType(): string

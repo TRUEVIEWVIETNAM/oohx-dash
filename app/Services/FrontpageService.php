@@ -280,7 +280,7 @@ class FrontpageService
                     'inventory.vnCategory:id,thumb',
                     'owner:id,name,slug,cover_url',
                     'site:id,network_id,name,city,address,banner',
-                    'site.network:id,name,banner',
+                    'site.network:id,name,code,banner',
                     'products:id,slug,name,total_units,listing_mode',
                 ])
                 ->inRandomOrder()
@@ -446,7 +446,7 @@ class FrontpageService
                 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day',
                 'owner:id,name,slug,cover_url',
                 'site:id,network_id,name,city,address,banner',
-                'site.network:id,name,banner',
+                'site.network:id,name,code,banner',
                 'products:id,slug,name,total_units,listing_mode',
             ])
             ->orderByDesc('created_at')
@@ -578,7 +578,7 @@ class FrontpageService
                 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day',
                 'owner:id,name,slug,cover_url',
                 'site:id,network_id,name,city,address,banner',
-                'site.network:id,name,banner',
+                'site.network:id,name,code,banner',
                 'products:id,slug,name,total_units,listing_mode',
             ]);
 
@@ -593,11 +593,22 @@ class FrontpageService
             $formats = $this->getVenueTypesWithCounts();
             $cities = $this->getTopCities(20);
 
+            // Chỉ tính hàng VND.
+            //
+            // `floor_cpm_currency` nhận VND hoặc USD (xem
+            // `ScreenImport\FieldCatalog` và `default_floor_cpm_currency` ở
+            // Filament). Trước đây MIN/MAX chạy trên toàn bộ `floor_cpm` bất
+            // kể đơn vị, nên một hàng USD 2,50 kéo `min_price` xuống 2,50 và
+            // thanh lọc giá thành vô nghĩa — cả trên trang Blade lẫn ở
+            // `/api/v2/filters` (Codex R39). Hàng NULL coi là VND vì cột này
+            // mặc định VND.
             $priceRange = DB::table('screen_inventory')
                 ->join('screens', 'screen_inventory.screen_id', '=', 'screens.id')
                 ->where('screens.active', true)
                 ->whereNull('screens.deleted_at')
                 ->where('screen_inventory.floor_cpm', '>', 0)
+                ->where(fn ($q) => $q->where('screen_inventory.floor_cpm_currency', 'VND')
+                    ->orWhereNull('screen_inventory.floor_cpm_currency'))
                 ->tap(fn ($q) => Owner::gateActive($q))
                 ->selectRaw('MIN(screen_inventory.floor_cpm) as min_price, MAX(screen_inventory.floor_cpm) as max_price')
                 ->first();
@@ -639,6 +650,8 @@ class FrontpageService
                 'owners'               => $owners,
                 'min_price'            => (float) ($priceRange->min_price ?? 0),
                 'max_price'            => (float) ($priceRange->max_price ?? 0),
+                // Nói ra đơn vị thay vì để người đọc tự đoán.
+                'price_currency'       => 'VND',
             ];
         });
     }
@@ -682,7 +695,7 @@ class FrontpageService
                     'inventory.vnCategory:id,thumb',
                     'owner:id,name,slug,cover_url',
                     'site:id,network_id,name,city,address,banner',
-                    'site.network:id,name,banner',
+                    'site.network:id,name,code,banner',
                 ])
                 ->inRandomOrder()
                 ->limit($limit)
@@ -783,7 +796,7 @@ class FrontpageService
         }
 
         $screens = $query
-            ->with(['spec:screen_id,photo_url,photos,width_cm,height_cm', 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day', 'inventory.vnCategory:id,thumb', 'owner:id,name,slug,logo_url,cover_url', 'site:id,network_id,name,lat,lon,city,address,banner', 'site.network:id,name,banner'])
+            ->with(['spec:screen_id,photo_url,photos,width_cm,height_cm', 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day', 'inventory.vnCategory:id,thumb', 'owner:id,name,slug,logo_url,cover_url', 'site:id,network_id,name,lat,lon,city,address,banner', 'site.network:id,name,code,banner'])
             ->inRandomOrder()
             ->limit($limit)
             ->get();

@@ -99,7 +99,7 @@ class CatalogFiltersAndOwnerApiTest extends TestCase
             ->assertJsonStructure([
                 'data' => [
                     'cities', 'venue_types', 'networks', 'owners',
-                    'price_range_vnd' => ['min', 'max'],
+                    'price_range' => ['currency', 'min', 'max'],
                 ],
             ]);
     }
@@ -136,8 +136,32 @@ class CatalogFiltersAndOwnerApiTest extends TestCase
 
         $response = $this->getJson('/api/v2/filters')->assertOk();
 
-        $this->assertIsInt($response->json('data.price_range_vnd.min'));
-        $this->assertIsInt($response->json('data.price_range_vnd.max'));
+        $this->assertIsInt($response->json('data.price_range.min'));
+        $this->assertIsInt($response->json('data.price_range.max'));
+        $this->assertSame('VND', $response->json('data.price_range.currency'));
+    }
+
+    public function test_khoang_gia_khong_bi_hang_usd_keo_lech(): void
+    {
+        $this->screen();   // floor_cpm 50.000 VND
+
+        // Một màn hình niêm yết CPM bằng USD. Trước đây MIN/MAX chạy trên toàn
+        // bộ `floor_cpm` bất kể đơn vị, nên 2,50 USD kéo `min` xuống 2 và
+        // thanh lọc giá thành vô nghĩa (Codex R39).
+        $usdScreen = $this->screen();
+        ScreenInventory::where('screen_id', $usdScreen->id)->update([
+            'floor_cpm'          => 2.50,
+            'floor_cpm_currency' => 'USD',
+        ]);
+        Cache::flush();
+
+        $response = $this->getJson('/api/v2/filters')->assertOk();
+
+        $this->assertSame(
+            50_000,
+            $response->json('data.price_range.min'),
+            'Hàng USD đang bị trộn vào khoảng giá VND.'
+        );
     }
 
     // ── /api/v2/owners/{slug} ───────────────────────────────────────────────
@@ -226,6 +250,44 @@ class CatalogFiltersAndOwnerApiTest extends TestCase
             ->assertJsonStructure([
                 'screens' => ['data' => [['slug', 'name', 'screen_type', 'owner', 'location', 'size', 'pricing']]],
             ])
-            ->assertJsonPath('screens.data.0.pricing.io_rate_vnd', 1_000_000);
+            ->assertJsonPath('screens.data.0.pricing.io_rate.amount', 1_000_000);
+    }
+
+    // ── Codex R40: endpoint owners phải có bộ luật kiểm ─────────────────────
+
+    public function test_owners_tu_choi_input_sai_kieu_thay_vi_tra_500(): void
+    {
+        $this->screen();
+
+        // `?q[]=x` từng làm phép nối chuỗi trong service báo "Array to string
+        // conversion" → ErrorException → 500 trên một endpoint công khai.
+        $this->getJson('/api/v2/owners?q[]=x')
+            ->assertStatus(422)
+            ->assertJsonPath('error', 'validation_failed')
+            ->assertJsonPath('code', 422)
+            ->assertJsonStructure(['error', 'message', 'code', 'details' => [['field', 'message']]]);
+    }
+
+    public function test_owners_tu_choi_type_sai_kieu(): void
+    {
+        $this->screen();
+
+        $this->getJson('/api/v2/owners?type[]=x')
+            ->assertStatus(422)
+            ->assertJsonPath('error', 'validation_failed');
+    }
+
+    public function test_owners_van_nhan_q_dang_chuoi(): void
+    {
+        $owner = Owner::factory()->create(['status' => 'active', 'name' => 'Kim Ngân ADV', 'slug' => 'kim-ngan-adv']);
+        $this->screen($owner);
+        $this->screen();
+
+        $response = $this->getJson('/api/v2/owners?q=Kim')->assertOk();
+
+        $this->assertSame(
+            ['kim-ngan-adv'],
+            collect($response->json('data'))->pluck('slug')->all()
+        );
     }
 }

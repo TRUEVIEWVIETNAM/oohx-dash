@@ -8,6 +8,7 @@ use App\Models\CampaignActivity;
 use App\Models\Refund;
 use App\Models\User;
 use App\Services\InventoryHoldService;
+use App\Services\PaymentService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -159,6 +160,160 @@ class CancellationService
         }
 
         return DB::transaction(fn () => $lines->map(fn (BookingLine $line) => $this->cancelLine($line, $actor, $reason)));
+    }
+
+    /**
+     * Đối soát lại nghĩa vụ hoàn tiền sau khi một khoản thanh toán được xác
+     * nhận muộn (Codex R36).
+     *
+     * **Lỗ hổng bản trước.** `quote()` chỉ tính khoản đã `completed`, đúng —
+     * khoản còn chờ thì chưa có đồng nào chuyển đi. Nhưng đường hủy mới cho
+     * người mua hủy **trong khi** khoản chuyển của họ còn `pending`: lúc đó
+     * hệ thống ghi `paid_amount = 0`, `amount = 0`, `status = waived`. Sau đó
+     * sàn đối chiếu ngân hàng và xác nhận đúng khoản ấy — tiền thật đã vào,
+     * nhưng nghĩa vụ hoàn vẫn là 0, và người mua không hủy lại được để tính
+     * lại. Người mua hủy trong kỳ hoàn 100% mà mất trắng.
+     *
+     * Toàn bộ test hoàn tiền cũ đều xác nhận tiền **trước** rồi mới hủy, nên
+     * không ca nào đi qua đường này.
+     *
+     * **Cách đối soát.** Không dựng lại mẫu số tại thời điểm hủy — thông tin
+     * đó không được lưu, và đoán lại là cách sinh ra lỗi tiền khó thấy. Thay
+     * vào đó dùng một luật đơn giản và không bao giờ hoàn quá:
+     *
+     * - Mỗi dòng đã hủy có **trần** bằng `withVat(estimated_cost)` của chính
+     *   nó: tiền đã trả được phân bổ theo tỉ lệ `estimated_cost`, nên một dòng
+     *   không bao giờ được nhận nhiều hơn phần chính nó bị tính.
+     * - Tiền còn chưa phân bổ của owner được chia cho các dòng đã hủy chưa
+     *   xử lý, **theo thứ tự hủy**, mỗi dòng tới trần của nó.
+     * - `refund_pct` giữ nguyên theo ảnh chụp lúc hủy: chính sách áp theo
+     *   ngày hủy, không theo ngày tiền vào.
+     *
+     * Luật này chỉ tăng, không giảm, và khi tiền đã được phân bổ đủ thì nó là
+     * phép không làm gì — nên các ca "xác nhận tiền trước rồi hủy" không đổi.
+     *
+     * @return int số khoản hoàn tiền được điều chỉnh
+     */
+    public function reconcileAfterPayment(Campaign $campaign, ?string $ownerId): int
+    {
+        // Khoản không gắn owner không được `paidForLine()` tính cho dòng nào,
+        // nên cũng không có gì để đối soát. Đây là dữ liệu trước khi thanh
+        // toán tách theo owner.
+        if (empty($ownerId)) {
+            return 0;
+        }
+
+        return DB::transaction(function () use ($campaign, $ownerId) {
+            // Khóa chiến dịch: hai lần xác nhận song song, hoặc một lần xác
+            // nhận trùng với một lần hủy, đều đọc cùng con số "đã phân bổ" và
+            // đều phân bổ tiếp — tức hoàn quá.
+            Campaign::withoutGlobalScopes()->whereKey($campaign->getKey())->lockForUpdate()->first();
+
+            $ownerPaid = (int) round((float) $campaign->payments()
+                ->where('owner_id', $ownerId)
+                ->where('status', 'completed')
+                ->sum('amount'));
+
+            $refunds = Refund::where('campaign_id', $campaign->id)
+                ->where('owner_id', $ownerId)
+                ->whereIn('status', [Refund::STATUS_PENDING, Refund::STATUS_SETTLED, Refund::STATUS_WAIVED])
+                ->orderBy('created_at')
+                ->lockForUpdate()
+                ->get();
+
+            $allocated = (int) round((float) $refunds->sum('paid_amount'));
+            $available = max(0, $ownerPaid - $allocated);
+
+            if ($available <= 0) {
+                return 0;
+            }
+
+            $payments = app(PaymentService::class);
+            $adjusted = 0;
+
+            // Gom theo dòng, vì trần là trần của **dòng**, không của từng bản
+            // ghi hoàn tiền: một dòng có thể có nhiều bản ghi khi tiền vào
+            // nhiều lần.
+            foreach ($refunds->groupBy('booking_line_id') as $lineRefunds) {
+                if ($available <= 0) {
+                    break;
+                }
+
+                $template = $lineRefunds->sortByDesc('created_at')->first();
+                $lineCost = (int) round((float) ($template->bookingLine?->estimated_cost ?? 0));
+
+                if ($lineCost <= 0) {
+                    continue;
+                }
+
+                $cap  = $payments->withVat($lineCost);
+                $room = $cap - (int) round((float) $lineRefunds->sum('paid_amount'));
+
+                if ($room <= 0) {
+                    continue;
+                }
+
+                $take = min($room, $available);
+
+                $open = $lineRefunds
+                    ->whereIn('status', [Refund::STATUS_PENDING, Refund::STATUS_WAIVED])
+                    ->sortBy('created_at')
+                    ->first();
+
+                if ($open) {
+                    $newPaid   = (int) round((float) $open->paid_amount) + $take;
+                    $newAmount = (int) round($newPaid * (int) $open->refund_pct / 100);
+
+                    $open->update([
+                        'paid_amount' => $newPaid,
+                        'amount'      => $newAmount,
+                        'status'      => $newAmount > 0 ? Refund::STATUS_PENDING : Refund::STATUS_WAIVED,
+                    ]);
+                } else {
+                    // Mọi bản ghi của dòng này đã `settled`: tiền đã chuyển
+                    // xong ở ngoài hệ thống, ghi đè là sửa một giao dịch đã
+                    // hoàn tất. Nhưng bỏ qua thì phần tiền vào muộn **mất
+                    // luôn** — người mua trả thêm mà không được hoàn thêm.
+                    //
+                    // Nên ghi một **nghĩa vụ mới** cho cùng dòng đó: hai lần
+                    // chuyển khoản, hai bản ghi, lịch sử không bị sửa.
+                    // `refund_pct` và ảnh chụp chính sách lấy từ bản ghi cũ vì
+                    // chính sách áp theo ngày hủy, không theo ngày tiền vào.
+                    $newAmount = (int) round($take * (int) $template->refund_pct / 100);
+
+                    Refund::create([
+                        'campaign_id'       => $template->campaign_id,
+                        'booking_line_id'   => $template->booking_line_id,
+                        'owner_id'          => $template->owner_id,
+                        'organization_id'   => $template->organization_id,
+                        'paid_amount'       => $take,
+                        'amount'            => $newAmount,
+                        'refund_pct'        => $template->refund_pct,
+                        'days_before_start' => $template->days_before_start,
+                        'policy_snapshot'   => $template->policy_snapshot,
+                        'reason'            => 'Đối soát bổ sung: thanh toán được xác nhận sau khi dòng đã bị hủy và khoản hoàn trước đó đã chuyển xong.',
+                        'status'            => $newAmount > 0 ? Refund::STATUS_PENDING : Refund::STATUS_WAIVED,
+                    ]);
+                }
+
+                $available -= $take;
+                $adjusted++;
+
+                CampaignActivity::log(
+                    $campaign,
+                    'refund_reconciled',
+                    sprintf(
+                        'Đối soát hoàn tiền sau khi xác nhận thanh toán: dòng đã hủy trên "%s" được phân bổ thêm %s ₫, nghĩa vụ hoàn thêm %s ₫ (%d%%)',
+                        $template->bookingLine?->screen?->name ?? $template->booking_line_id,
+                        number_format($take, 0, ',', '.'),
+                        number_format($newAmount, 0, ',', '.'),
+                        (int) $template->refund_pct,
+                    ),
+                );
+            }
+
+            return $adjusted;
+        });
     }
 
     /** Đánh dấu nghĩa vụ hoàn tiền đã xử lý xong ngoài hệ thống. */

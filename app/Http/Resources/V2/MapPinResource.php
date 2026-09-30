@@ -38,16 +38,54 @@ class MapPinResource extends JsonResource
             ],
 
             // Giá hiển thị: `io_rate` nếu bán theo kỳ, ngược lại là giá CPM.
-            // Trả kèm đơn vị vì hai con số này không cùng thang đo — thiếu
-            // đơn vị là mời người đọc so sánh nhầm.
-            'price' => [
-                'amount_vnd' => $this->inventory
-                    ? (int) round((float) $this->inventory->display_price)
-                    : null,
-                'unit' => $this->inventory?->display_price_unit,
-            ],
+            //
+            // Trả kèm `unit` vì hai con số này không cùng thang đo, và kèm
+            // `currency` vì `floor_cpm` có thể lưu bằng USD. Bản trước gọi nó
+            // là `amount_vnd` cho cả hai nhánh, nên một màn hình CPM tính
+            // bằng USD ra ngoài với nhãn VND (Codex R39).
+            'price' => $this->priceOf(),
 
             'photo_url' => $this->display_photo,
         ];
+    }
+
+    /**
+     * Giá hiển thị kèm đơn vị tiền đúng của nhánh đang dùng.
+     *
+     * `io_rate` không có cột currency nên là VND theo định nghĩa; `floor_cpm`
+     * có `floor_cpm_currency` và phải đi theo cột đó.
+     *
+     * @return array{amount: int|float|null, currency: string, unit: string|null}
+     */
+    private function priceOf(): array
+    {
+        $inventory = $this->inventory;
+
+        if (! $inventory) {
+            return ['amount' => null, 'currency' => 'VND', 'unit' => null];
+        }
+
+        $usesIoRate = $inventory->allowsIo() && $inventory->io_rate > 0;
+
+        $amount = (float) $inventory->display_price;
+
+        return [
+            // Giá CPM có thể là số lẻ (2,50 USD) nên không làm tròn về nguyên
+            // ở nhánh đó — làm tròn là làm sai dữ liệu, không phải làm gọn.
+            'amount'   => $usesIoRate ? (int) round($amount) : $this->decimalOrNull($amount),
+            'currency' => $usesIoRate ? 'VND' : ($inventory->floor_cpm_currency ?: 'VND'),
+            'unit'     => $inventory->display_price_unit,
+        ];
+    }
+
+    private function decimalOrNull($value): int|float|null
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $number = round((float) $value, 4);
+
+        return $number === floor($number) ? (int) $number : $number;
     }
 }
