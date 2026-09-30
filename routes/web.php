@@ -6,6 +6,7 @@ use App\Http\Controllers\Buyer\BuyerCampaignController;
 use App\Http\Controllers\Buyer\BuyerDashboardController;
 use App\Http\Controllers\Buyer\BuyerReportController;
 use App\Http\Controllers\Buyer\BuyerSettingsController;
+use App\Http\Controllers\Buyer\CancellationController as BuyerCancellationController;
 use App\Http\Controllers\Buyer\CartController;
 use App\Http\Controllers\Buyer\OwnerReviewController;
 use App\Http\Controllers\Buyer\PaymentController;
@@ -110,6 +111,10 @@ Route::domain($fpDomain)->group(function () {
         Route::get('/campaigns',                       [BuyerCampaignController::class, 'index'])->name('campaigns');
         Route::get('/campaigns/{campaign}',            [BuyerCampaignController::class, 'show'])->name('campaigns.show');
         Route::get('/campaigns/{campaign}/report',   [BuyerReportController::class, 'show'])->name('campaigns.report');
+        // Hủy đặt chỗ — kéo theo nghĩa vụ hoàn tiền, nên đi qua policy `cancel`
+        // (xếp cùng `manage_payments`), không phải quyền xem.
+        Route::post('/campaigns/{campaign}/lines/{line}/cancel', [BuyerCancellationController::class, 'store'])
+            ->name('campaigns.lines.cancel');
         Route::post('/campaigns/{campaign}/reviews', [OwnerReviewController::class, 'store'])->name('campaigns.reviews.store');
         Route::get('/settings',                        [BuyerSettingsController::class, 'index'])->name('settings');
         Route::put('/settings/profile',                [BuyerSettingsController::class, 'updateProfile'])->name('settings.profile');

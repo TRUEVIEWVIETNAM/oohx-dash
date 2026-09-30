@@ -6,6 +6,7 @@ use App\Models\Campaign;
 use App\Models\OrganizationUser;
 use App\Models\Owner;
 use App\Models\OwnerUser;
+use App\Models\Refund;
 use App\Models\Screen;
 use App\Models\ScreenInventory;
 use App\Observers\ScreenInventoryObserver;
@@ -17,6 +18,7 @@ use App\Policies\NetworkPolicy;
 use App\Policies\OrganizationUserPolicy;
 use App\Policies\OwnerPolicy;
 use App\Policies\OwnerUserPolicy;
+use App\Policies\RefundPolicy;
 use App\Policies\ScreenPolicy;
 use App\Policies\SitePolicy;
 use Filament\Http\Responses\Auth\Contracts\LoginResponse as LoginResponseContract;
@@ -45,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(Campaign::class, CampaignPolicy::class);
         Gate::policy(Owner::class, OwnerPolicy::class);
+        Gate::policy(Refund::class, RefundPolicy::class);
         Gate::policy(OwnerUser::class, OwnerUserPolicy::class);
         Gate::policy(OrganizationUser::class, OrganizationUserPolicy::class);
         // Đăng ký tường minh thay vì dựa vào auto-discovery cho dễ truy vết.
