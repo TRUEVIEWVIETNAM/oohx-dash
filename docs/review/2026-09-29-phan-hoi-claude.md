@@ -51,7 +51,7 @@ Hai mục này ban đầu tôi ghi "đúng lập luận nhưng chưa đo", rồi
 
 **R04** — `SnapshotReadTest` dựng đúng khoảng cách Codex chỉ ra, hai kết nối MySQL thật: B mở transaction và đọc một lần (ảnh chụp hình thành) → A ghi giữ chỗ 100% rồi commit → B đọc lại **không khóa** vẫn thấy 0 → B đọc lại **có khóa** thấy 100. Bước ba không phải lỗi của MySQL cần sửa; đó là REPEATABLE READ đúng nghĩa. Lỗi là ở chỗ code tính sức chứa bằng phép đọc thường **sau khi** đã khóa. Thêm một ca ghi mức isolation thành phép kiểm, vì cả lập luận của bản sửa dựa vào nó.
 
-**R05** — `DeadlockOrderTest` dùng tiến trình PHP nền nói chuyện với MySQL qua PDO: concurrency thật. Mối nguy **tái hiện được**. Bản sửa: khóa hàng màn hình trước mọi lần chèn tham chiếu tới nó, ở `addItem`, `addProduct` (mọi màn hình của gói, sắp theo id) và `createFromCart` (gom cả màn hình trong gói). Điểm Codex nói đúng mà tôi từng bỏ qua: sắp thứ tự khóa *sau khi chèn* không cứu được, vì khi chỉ có một màn hình thì chẳng có thứ tự nào để sắp.
+**R05** — bản sửa (khóa màn hình trước mọi lần chèn) là đúng, nhưng **bằng chứng thì tôi đã tuyên bố quá**. Xem mục "Rút lại tuyên bố về phép đo R05" bên dưới. Bản sửa: khóa hàng màn hình trước mọi lần chèn tham chiếu tới nó, ở `addItem`, `addProduct` (mọi màn hình của gói, sắp theo id) và `createFromCart` (gom cả màn hình trong gói). Điểm Codex nói đúng mà tôi từng bỏ qua: sắp thứ tự khóa *sau khi chèn* không cứu được, vì khi chỉ có một màn hình thì chẳng có thứ tự nào để sắp.
 
 **Một lần đo hở, đáng ghi lại.** Vòng đầu của phép đo R05 báo "chèn trước rồi khóa mà không hỏng gì" — đọc thoáng thì tưởng là bằng chứng Codex sai. Thực ra tôi canh thời gian bằng `usleep(300ms)` để đoán lúc tiến trình nền chèn xong, mà khởi động PHP cộng kết nối PDO dễ lâu hơn thế: **hai giao dịch chưa hề chồng nhau**. Nếu tôi nhận kết quả đó, tôi đã báo cáo "Codex sai" dựa trên một phép đo rỗng. Đã thay bằng bắt tay qua file. Test xanh vì nó không chạm tới thứ cần kiểm là cái bẫy nguy hiểm hơn test đỏ.
 
@@ -85,3 +85,19 @@ Trong phần "Trả lời các câu hỏi còn lại", Codex ghi: *"Luồng hủ
 - `networks:reconcile --dry-run` chưa chạy trên bản sao production — con số địa điểm bị đụng và số chỗ mâu thuẫn chưa ai biết.
 - Migration `impression_logs` sẽ **dừng deploy** nếu bảng có bản ghi, dựa trên xác nhận "chưa có thiết bị nào gửi dữ liệu thật".
 - Migration số hóa đơn vẫn **bỏ qua ràng buộc duy nhất** nếu dữ liệu hiện có đã trùng, chỉ ghi cảnh báo. Codex nói không nên coi là đã bảo vệ xong — tôi đồng ý, và nó vẫn nằm ở mục rủi ro.
+
+---
+
+## Rút lại tuyên bố về phép đo R05 (ghi thêm 30/09/2026)
+
+Ngày 29/09 tôi viết: *"Mối nguy R05 tái hiện được"* và báo với chủ dự án rằng bản sửa "giờ có phép đo chứng minh". **Tuyên bố đó không có căn cứ.** Review vòng hai của Codex (R29) chỉ ra ba lỗi trong chính phép đo:
+
+1. `DeadlockOrderTest` dùng `RefreshDatabase`, nên fixture nằm trong transaction **chưa commit**. Tiến trình con nối bằng PDO riêng **không thể thấy** dữ liệu đó — nó có thể chết vì thiếu fixture chứ không vì deadlock.
+2. Ở ca "khóa trước rồi chèn", tôi đo `waited` **sau** `proc_close`, tức tính cả thời gian chờ tiến trình con kết thúc. Con số vượt 0,5 giây kể cả khi không có khóa nào chặn gì.
+3. Exit code và stderr của tiến trình con không được assert, nên một tiến trình con chết vì lỗi khác vẫn để test xanh.
+
+Nói cách khác: **test xanh vì nó không chạm tới thứ cần kiểm** — đúng cái bẫy mà tôi vừa tự viết vào tài liệu này ở mục trên, rồi mắc lại ngay trong cùng một file. Đây là lần thứ hai trong hai ngày tôi dựng một phép đo và tin vào nó mà không kiểm xem nó có đo được gì.
+
+Bản sửa thứ tự khóa ở `addItem`, `addProduct`, `createFromCart` vẫn giữ: thứ tự "khóa trước, chèn sau" là đúng về nguyên tắc và Codex cũng xác nhận là phù hợp ở mức đọc source. Nhưng trạng thái bằng chứng của R05 phải ghi là **chưa đo được**, không phải "đã đo".
+
+Việc cần làm, tách riêng: dựng lại bộ đo tranh chấp với fixture commit thật và teardown rõ ràng, đo đúng thời gian câu lệnh CSDL, assert exit code cùng SQLSTATE của tiến trình con, và **gọi đường service cần bảo vệ** thay vì một bản sao SQL.
