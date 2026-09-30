@@ -50,10 +50,32 @@ class ImpressionRollupService
             ->groupBy('day', 'screen_id', 'owner_id', 'campaign_id', 'booking_line_id')
             ->get();
 
-        if ($rows->isEmpty()) {
-            return 0;
-        }
+        // Đồng bộ TRỌN ngày: xóa nhóm cũ rồi ghi lại nhóm hợp lệ.
+        //
+        // Chỉ `upsert` thì nhóm đã tồn tại mà nay không còn nguồn hợp lệ vẫn ở
+        // lại vĩnh viễn. Cụ thể: một ngày từng được tổng hợp trước khi có bộ
+        // lọc lượt-bị-kẹp sẽ giữ nguyên dòng báo cáo sai, và chạy lại bao nhiêu
+        // lần cũng không dọn — kể cả khi truy vấn trả về rỗng thì hàm cũ
+        // `return` ngay (Codex R32).
+        //
+        // Xóa rồi ghi trong cùng một transaction để không có khoảnh khắc báo
+        // cáo trống giữa hai bước.
+        return DB::transaction(function () use ($rows, $day) {
+            DB::table('impression_daily_rollups')->where('day', $day->toDateString())->delete();
 
+            if ($rows->isEmpty()) {
+                return 0;
+            }
+
+            return $this->writeRollups($rows);
+        });
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, object>  $rows
+     */
+    private function writeRollups($rows): int
+    {
         $now = now();
 
         $payload = $rows->map(fn ($r) => [

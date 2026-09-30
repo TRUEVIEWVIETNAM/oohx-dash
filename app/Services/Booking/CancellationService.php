@@ -230,19 +230,30 @@ class CancellationService
         // thiếu (Codex R24: trả 1.620.000, hai lần hủy đều trong kỳ hoàn 100%,
         // nhưng tổng hoàn chỉ ra 1.350.000).
         //
-        // Phần đã hoàn cho những dòng hủy trước đó bị trừ khỏi tiền còn lại;
-        // phần đó đã chốt xong, không được đem chia lại.
+        // Trừ TOÀN BỘ phần đã phân bổ cho các dòng đã hủy, không chỉ phần đã
+        // hoàn.
+        //
+        // Bản trước chỉ trừ `refunds.amount`. Phần **giữ lại theo chính sách**
+        // (phí hủy) vẫn nằm trong pool, mà dòng đã hủy thì ra khỏi mẫu số — nên
+        // số tiền đó biến thành "đã trả" cho các dòng khác (Codex R30). Với
+        // hai dòng 1 triệu, trả đủ 2.160.000: hủy A ở mức 50% rồi hủy B ở mức
+        // 100% cho ra tổng hoàn 2.160.000, tức **mất sạch phí hủy 540.000 của
+        // A** — và đổi thứ tự hủy lại ra tổng khác.
+        //
+        // `refunds.paid_amount` chính là phần đã phân bổ cho dòng đó, gồm cả
+        // phần hoàn và phần giữ lại. Bản ghi `waived` (hoàn 0%) cũng có
+        // `paid_amount`, nên trừ theo cột này xử lý luôn trường hợp đó.
         $ownerPaid = (int) round((float) $campaign->payments()
             ->where('owner_id', $line->owner_id)
             ->where('status', 'completed')
             ->sum('amount'));
 
-        $alreadyRefunded = (int) round((float) Refund::where('campaign_id', $campaign->id)
+        $alreadyAllocated = (int) round((float) Refund::where('campaign_id', $campaign->id)
             ->where('owner_id', $line->owner_id)
-            ->whereIn('status', [Refund::STATUS_PENDING, Refund::STATUS_SETTLED])
-            ->sum('amount'));
+            ->whereIn('status', [Refund::STATUS_PENDING, Refund::STATUS_SETTLED, Refund::STATUS_WAIVED])
+            ->sum('paid_amount'));
 
-        $availableToAllocate = max(0, $ownerPaid - $alreadyRefunded);
+        $availableToAllocate = max(0, $ownerPaid - $alreadyAllocated);
 
         if ($availableToAllocate <= 0) {
             return 0;

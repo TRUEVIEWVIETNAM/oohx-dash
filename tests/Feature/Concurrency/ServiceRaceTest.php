@@ -164,8 +164,12 @@ class ServiceRaceTest extends TestCase
                 ['start_date' => '{$dates['start_date']}', 'end_date' => '{$dates['end_date']}', 'share_of_voice_pct' => 100],
             );
             file_put_contents('{$result}', 'ok');
+        } catch (Symfony\\Component\\HttpKernel\\Exception\\HttpException \$e) {
+            // Ghi RIÊNG mã trạng thái: bên thua phải thua vì HẾT SUẤT (422),
+            // không phải vì một lỗi bất kỳ nào khác.
+            file_put_contents('{$result}', 'refused:' . \$e->getStatusCode() . ':' . \$e->getMessage());
         } catch (Throwable \$e) {
-            file_put_contents('{$result}', 'fail:' . get_class(\$e) . ':' . \$e->getMessage());
+            file_put_contents('{$result}', 'error:' . get_class(\$e) . ':' . \$e->getMessage());
         }
         PHP;
 
@@ -196,9 +200,9 @@ class ServiceRaceTest extends TestCase
             $this->actingAs($buyerA);
             app(CartService::class)->addItem($cartA, $screen->id, $dates + ['share_of_voice_pct' => 100]);
         } catch (HttpException $e) {
-            $parentOutcome = 'fail:' . $e->getStatusCode();
+            $parentOutcome = 'refused:' . $e->getStatusCode() . ':' . $e->getMessage();
         } catch (\Throwable $e) {
-            $parentOutcome = 'fail:' . get_class($e);
+            $parentOutcome = 'error:' . get_class($e) . ':' . $e->getMessage();
         }
 
         // Chờ con xong và đọc kết quả của nó — không đoán theo exit code suông.
@@ -227,12 +231,50 @@ class ServiceRaceTest extends TestCase
         $this->assertNotSame('khong-co-ket-qua', $childOutcome, 'Tiến trình con không ghi kết quả.');
 
         $outcomes = [$parentOutcome, $childOutcome];
-        $wins     = count(array_filter($outcomes, fn ($o) => $o === 'ok'));
+        $shown    = json_encode($outcomes, JSON_UNESCAPED_UNICODE);
 
+        // KHÔNG chấp nhận lỗi bất kỳ ở bên thua.
+        //
+        // Bản trước chỉ đếm "đúng một chuỗi ok" và tổng SOV ≤ 100. Nếu tiến
+        // trình con ném một ngoại lệ nào khác — deadlock, lỗi tenancy, lỗi lập
+        // trình — nó vẫn ghi "fail" và exit 0, nên test vẫn xanh **dù nó chưa
+        // hề tranh chấp service** (Codex R33). Một phép đo chấp nhận mọi kiểu
+        // hỏng thì không phân biệt được "chặn đúng" với "hỏng".
+        foreach ($outcomes as $outcome) {
+            $this->assertStringStartsNotWith(
+                'error:',
+                $outcome,
+                "Một bên hỏng vì lý do khác chứ không phải hết suất, nên phép đo không nói lên điều gì. Kết quả: {$shown}"
+            );
+        }
+
+        $wins    = array_values(array_filter($outcomes, fn ($o) => $o === 'ok'));
+        $refused = array_values(array_filter($outcomes, fn ($o) => str_starts_with($o, 'refused:')));
+
+        $this->assertCount(1, $wins, "Đúng MỘT bên được suất 100%. Kết quả: {$shown}");
+        $this->assertCount(1, $refused, "Bên còn lại phải bị TỪ CHỐI, không phải hỏng. Kết quả: {$shown}");
+
+        $this->assertStringStartsWith(
+            'refused:422:',
+            $refused[0],
+            "Bên thua phải nhận 422 vì hết suất. Kết quả: {$shown}"
+        );
+        $this->assertStringContainsString(
+            'SOV',
+            $refused[0],
+            "Thông báo phải là lý do hết suất, không phải một lỗi 422 khác. Kết quả: {$shown}"
+        );
+
+        // Bên thắng phải có đủ dấu vết: một dòng giỏ VÀ một giữ chỗ.
         $this->assertSame(
             1,
-            $wins,
-            "Đúng MỘT bên được suất 100%. Kết quả thực tế: " . json_encode($outcomes, JSON_UNESCAPED_UNICODE)
+            \App\Models\CartItem::whereIn('cart_id', $this->cleanupCartIds)->where('screen_id', $screen->id)->count(),
+            "Đúng một dòng giỏ được ghi. Kết quả: {$shown}"
+        );
+        $this->assertSame(
+            1,
+            InventoryHold::effective()->where('screen_id', $screen->id)->count(),
+            "Đúng một giữ chỗ còn hiệu lực. Kết quả: {$shown}"
         );
 
         // Và quan trọng hơn con số thắng/thua: kho không được bán vượt.
@@ -240,10 +282,10 @@ class ServiceRaceTest extends TestCase
             ->where('screen_id', $screen->id)
             ->sum('sov_pct');
 
-        $this->assertLessThanOrEqual(
+        $this->assertSame(
             100,
             $held,
-            'Tổng SOV đang giữ vượt 100% nghĩa là đã bán vượt suất — đúng lỗ hổng F-02 mà giai đoạn 1 phải đóng.'
+            'Tổng SOV đang giữ phải đúng 100%: hơn là bán vượt suất, kém là bên thắng không giữ được gì.'
         );
     }
 }

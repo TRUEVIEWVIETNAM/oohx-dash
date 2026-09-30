@@ -298,6 +298,18 @@ class PaymentService
         $pending = (int) $rows->sum('pending');
         $cost    = (int) $rows->sum('cost');
 
+        // Còn thiếu = CỘNG phần thiếu của TỪNG owner, không phải hiệu của hai
+        // tổng.
+        //
+        // Sàn không thu hộ: người mua chuyển thẳng cho từng media owner, nên
+        // tiền dư của owner X không trả nợ cho owner Y được. So hai tổng thì
+        // `sum(max(0, due−paid))` bị thay bằng `max(0, sum(due)−sum(paid))`, và
+        // hai biểu thức đó khác nhau ngay khi có một owner dư tiền: owner Y
+        // chưa nhận đồng nào vẫn hiện ra "đã trả đủ", trang thanh toán ẩn hết
+        // biểu mẫu, và người mua không trả được cho Y (Codex R31).
+        $remainingPerOwner = (int) $rows->sum(fn ($r) => (int) $r['remaining']);
+        $allOwnersPaid     = $rows->every(fn ($r) => (bool) $r['is_paid']);
+
         // Dòng chưa gắn owner (dữ liệu cũ, trước khi thanh toán theo owner) vẫn
         // phải hiện trong tổng chi phí.
         $unassignedCost = (int) round((float) $campaign->bookingLines()
@@ -306,8 +318,20 @@ class PaymentService
             ->sum('estimated_cost'));
 
         if ($unassignedCost > 0) {
+            $unassignedDue = $this->withVat($unassignedCost);
+
             $cost += $unassignedCost;
-            $due  += $this->withVat($unassignedCost);
+            $due  += $unassignedDue;
+
+            // Phần chưa gắn owner (dữ liệu trước khi thanh toán theo owner)
+            // cũng là một nghĩa vụ riêng, cộng vào phần còn thiếu.
+            $unassignedPaid = (int) round((float) $campaign->payments()
+                ->whereNull('owner_id')
+                ->where('status', 'completed')
+                ->sum('amount'));
+
+            $remainingPerOwner += max(0, $unassignedDue - $unassignedPaid);
+            $allOwnersPaid = $allOwnersPaid && $unassignedPaid >= $unassignedDue;
         }
 
         return [
@@ -317,8 +341,10 @@ class PaymentService
             'total_paid'     => (float) $paid,
             'refunded'       => (float) $rows->sum('refunded'),
             'pending'        => (float) $pending,
-            'remaining'      => (float) max(0, $due - $paid - $pending),
-            'is_fully_paid'  => $due > 0 && $paid >= $due,
+            'remaining'      => (float) $remainingPerOwner,
+            // Đủ tiền nghĩa là MỌI nghĩa vụ theo owner đều đủ, không phải tổng
+            // thu bằng tổng phải thu.
+            'is_fully_paid'  => $due > 0 && $remainingPerOwner === 0 && $allOwnersPaid,
         ];
     }
 
@@ -361,18 +387,26 @@ class PaymentService
             ->groupBy('owner_id')
             ->pluck('pending', 'owner_id');
 
-        // Tiền đã hoàn trả lại cho người mua thì không còn là tiền owner đã
-        // nhận. Trước đây mọi payment `completed` đều được cộng vào phần "đã
-        // trả" kể cả khi dòng tương ứng đã hủy và tiền đã hoàn — nên dòng còn
-        // lại hiện ra đã trả đủ trong khi người mua chỉ thực giữ lại một nửa
-        // (Codex R12).
-        $refundedByOwner = Refund::where('campaign_id', $campaign->id)
-            ->whereIn('status', [Refund::STATUS_PENDING, Refund::STATUS_SETTLED])
-            ->selectRaw('owner_id, SUM(amount) as refunded')
+        // Tiền đã phân bổ cho các dòng ĐÃ HỦY không còn là tiền trả cho các
+        // dòng còn lại.
+        //
+        // Trước đây mọi payment `completed` đều được cộng vào phần "đã trả" kể
+        // cả khi dòng tương ứng đã hủy (Codex R12). Sửa lần đầu trừ
+        // `refunds.amount`, nhưng như vậy vẫn để phần **giữ lại theo chính
+        // sách** (phí hủy) tính là tiền trả cho dòng khác — đúng nguồn nuôi lỗi
+        // bù chéo ở R30/R31. Nay trừ `paid_amount`: toàn bộ phần đã phân bổ
+        // cho dòng đã hủy, gồm cả phần hoàn và phần giữ lại.
+        //
+        // `CancellationService` dùng đúng cột này, nên ba nơi — phân bổ khi
+        // hủy, công nợ, và tổng kết — cùng một nguồn.
+        $allocatedToCancelled = Refund::where('campaign_id', $campaign->id)
+            ->whereIn('status', [Refund::STATUS_PENDING, Refund::STATUS_SETTLED, Refund::STATUS_WAIVED])
+            ->selectRaw('owner_id, SUM(paid_amount) as allocated, SUM(amount) as refunded')
             ->groupBy('owner_id')
-            ->pluck('refunded', 'owner_id');
+            ->get()
+            ->keyBy('owner_id');
 
-        return $costs->map(function ($cost, $ownerId) use ($owners, $paidByOwner, $pendingByOwner, $refundedByOwner) {
+        return $costs->map(function ($cost, $ownerId) use ($owners, $paidByOwner, $pendingByOwner, $allocatedToCancelled) {
             // Tiền tính bằng VND nguyên ở MỌI phép so sánh.
             //
             // Trước đây `outstandingForOwner` làm tròn về số nguyên còn chỗ này
@@ -384,9 +418,12 @@ class PaymentService
             $vat      = $total - $cost;
             $paid     = (int) round((float) ($paidByOwner[$ownerId] ?? 0));
             $pending  = (int) round((float) ($pendingByOwner[$ownerId] ?? 0));
-            $refunded = (int) round((float) ($refundedByOwner[$ownerId] ?? 0));
 
-            $netPaid = max(0, $paid - $refunded);
+            $row       = $allocatedToCancelled[$ownerId] ?? null;
+            $allocated = (int) round((float) ($row->allocated ?? 0));
+            $refunded  = (int) round((float) ($row->refunded ?? 0));
+
+            $netPaid = max(0, $paid - $allocated);
 
             return [
                 'owner'     => $owners[$ownerId] ?? null,
