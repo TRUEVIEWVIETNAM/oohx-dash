@@ -78,7 +78,7 @@ Chốt `sites.network_id` là nguồn sự thật duy nhất. Phần đối chi�
 |---|---|
 | **Gỡ số liệu bịa trên trang công khai** (F-15): "30M+", bộ đếm impression chạy bằng `Math.random()`, "AI Match 94%", "fill rate 40%", nút CTA không hành vi, badge "Còn trống" in vô điều kiện | Đụng giao diện khách hàng nhìn thấy; cần chốt thay bằng số thật hay gỡ hẳn |
 | **Chạy đối chiếu mạng lưới trên production** (F-12) | Code đã xong ở giai đoạn 3 và CI xanh. Việc còn lại là chạy `php artisan networks:reconcile --dry-run` trên bản sao dữ liệu thật, xem sẽ đụng bao nhiêu địa điểm và còn bao nhiêu chỗ mâu thuẫn, rồi mới deploy |
-| **Xoay khóa deploy** đang nằm trong git (F-07) | Việc quản trị, cần thao tác trên VPS |
+| ~~**Xoay khóa deploy** đang nằm trong git~~ **XONG 01/10/2026** | Nhãn "F-07" ở đây **sai**: F07 trong `FINDINGS.md` là chuyện tổng tiền che khuất công nợ theo owner. Việc khóa deploy là **mục 0.2** của `IMPLEMENTATION-P0-CLAUDE.md`. Trình tự đã chạy ghi ở `docs/LO-TRINH-SAU-GIAI-DOAN-0.md`. |
 
 ---
 

@@ -197,11 +197,30 @@ Không có giai đoạn nào cho `/admin` và `/publisher`. Nếu sau này vẫn
 
 ---
 
-## Việc quản trị, làm lúc nào cũng được
+## Việc quản trị
 
-- **Xoay khóa deploy** đang nằm trong git (F-07) — thao tác trên VPS.
+- ~~**Xoay khóa deploy** đang nằm trong git — thao tác trên VPS.~~ **XONG 01/10/2026.** Chi tiết ở mục dưới. Lưu ý nhãn: `STATUS.md` ghi việc này là "F-07", nhưng **F07 trong `FINDINGS.md` là chuyện khác** (tổng tiền che khuất công nợ theo owner, đã sửa). Việc khóa deploy là **mục 0.2** của `IMPLEMENTATION-P0-CLAUDE.md`. Tôi đã lặp lại nhãn sai đó trong nhiều báo cáo trước.
 - **Đổi remote git** sang địa chỉ mới: `git remote set-url origin https://github.com/TRUEVIEWVIETNAM/oohx-dash.git`.
-- **Dọn cảnh báo PHPUnit** (299 cảnh báo metadata viết trong doc-comment) — không phải lỗi, nhưng nhiều cảnh báo thì cảnh báo thật sẽ chìm.
+- ~~**Dọn cảnh báo PHPUnit**~~ — một nửa xong 01/10/2026: cảnh báo `file_get_contents(.env)` làm 610/619 test thành WARN đã hết (xem `.env.testing`). **Còn lại** lớp metadata viết trong doc-comment (`@dataProvider`…), PHPUnit 12 sẽ bỏ — cần chuyển sang attribute.
+
+### Xoay khóa deploy — đã làm, 01/10/2026
+
+Khóa riêng SSH `github_actions_deploy` bị commit từ 26/03/2026, và **repo này là public**, nên nó công khai khoảng sáu tháng. Đã coi là **đã lộ**, không phải "có nguy cơ".
+
+Trình tự đã chạy, và thứ tự này quan trọng: **đổi GitHub Secret không thu hồi gì cả** — khóa cũ vẫn vào được tới khi bị xóa khỏi `authorized_keys` trên máy chủ.
+
+1. Tạo khóa mới `github-actions-deploy-2026-10-01` (`SHA256:Xcww8f/OG4g…`).
+2. Thêm vào `/home/deploy/.ssh/authorized_keys` — **user `deploy`**, không phải `root`. Lần đầu khóa vào sai user và điều đó suýt làm đứt deploy.
+3. Nạp khóa riêng vào secret `VPS_SSH_KEY`.
+4. Kiểm **xuôi** từ ngoài vào: khóa mới đăng nhập được.
+5. Thu hồi `SHA256:RPtyXaKydiJxA0XUnGQX59e3v3YXgDA2QL2Kggy5/t0` khỏi `authorized_keys`.
+6. Kiểm **ngược**: khóa cũ bị từ chối. Đây là bằng chứng duy nhất của việc thu hồi; "đã xóa dòng đó" không phải bằng chứng.
+
+Khóa vẫn nằm trong lịch sử git tại `ed6665a`. Viết lại lịch sử **không** làm nó hết lộ (repo public sáu tháng, có thể đã bị clone hoặc index) — nên xoay khóa là bắt buộc, dọn lịch sử là tùy chọn và nên làm sau khi merge.
+
+`deploy.yml` nay có `workflow_dispatch`: lần xoay khóa sau kiểm được mà không phải đẩy commit vào `main`.
+
+**Còn mở, không thuộc dự án này nên chủ dự án tự xử lý:** `/home/deploy/.ssh/authorized_keys` của cùng máy chủ còn khóa `SHA256:LoR24cxb/wZt0E/…`, mà khóa riêng của nó nằm trong repo public `tuanna0703/att_dashboard`. Đó là một đường vào còn mở tới đúng user mà oohx deploy bằng. Ghi lại một lần ở đây để không mất dấu.
 
 ---
 
