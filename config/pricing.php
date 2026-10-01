@@ -73,4 +73,25 @@ return [
         ['min_days_before' => 0,  'refund_pct' => 0],
     ],
 
+    /**
+     * Tỷ giá USD → VND, **chỉ dùng để so sánh và sắp xếp**, không bao giờ để
+     * hiển thị giá.
+     *
+     * Vì sao cần: `screen_inventory.floor_cpm_currency` nhận VND hoặc USD, và
+     * dữ liệu thật **có** hàng USD (chốt 01/10/2026). Lọc theo khoảng giá hay
+     * sắp xếp theo giá mà so trực tiếp hai đơn vị khác nhau thì kết quả vô
+     * nghĩa: 2,50 USD xếp dưới 1.000 ₫.
+     *
+     * Vì sao chỉ cho so sánh: quy đổi là một phép xấp xỉ, còn giá niêm yết là
+     * một cam kết. Giá hiển thị và giá tính tiền luôn giữ nguyên đơn vị gốc —
+     * xem `ScreenInventory::display_currency`. Đổi con số dưới đây làm thay đổi
+     * **thứ tự và bộ kết quả** của trang danh sách, không làm thay đổi một đồng
+     * nào trong hóa đơn.
+     *
+     * Con số 25.000 trước đây nằm ẩn trong chữ ký
+     * `ScreenInventory::computeFloorCpmUsd(float $rate = 25000)` — một tham số
+     * mặc định, tức một chính sách giá không ai duyệt. Đưa ra đây để nhìn thấy.
+     */
+    'usd_vnd_rate' => env('PRICING_USD_VND_RATE', 25000),
+
 ];

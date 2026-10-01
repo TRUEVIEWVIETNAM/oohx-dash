@@ -593,24 +593,33 @@ class FrontpageService
             $formats = $this->getVenueTypesWithCounts();
             $cities = $this->getTopCities(20);
 
-            // Chỉ tính hàng VND.
+            // Khoảng giá tính trên giá **quy đổi về VND**, không phải số thô.
             //
-            // `floor_cpm_currency` nhận VND hoặc USD (xem
-            // `ScreenImport\FieldCatalog` và `default_floor_cpm_currency` ở
-            // Filament). Trước đây MIN/MAX chạy trên toàn bộ `floor_cpm` bất
-            // kể đơn vị, nên một hàng USD 2,50 kéo `min_price` xuống 2,50 và
-            // thanh lọc giá thành vô nghĩa — cả trên trang Blade lẫn ở
-            // `/api/v2/filters` (Codex R39). Hàng NULL coi là VND vì cột này
-            // mặc định VND.
+            // Hai bước, ghi lại cả hai vì bước đầu của tôi cũng sai:
+            //
+            // 1. Ban đầu MIN/MAX chạy trên toàn bộ `floor_cpm` bất kể đơn vị,
+            //    nên một hàng USD 2,50 kéo `min_price` xuống 2,50 và thanh lọc
+            //    giá thành vô nghĩa (Codex R39).
+            // 2. Tôi sửa bằng cách **loại hàng USD** ra khỏi phép tính. Sai
+            //    hướng khác: dữ liệu thật CÓ hàng USD (chốt 01/10/2026), nên
+            //    loại chúng là làm chúng vô hình với thanh lọc — người mua kéo
+            //    thanh giá rồi không bao giờ thấy những màn hình đó.
+            //
+            // Nay dùng đúng biểu thức quy đổi mà bộ lọc và phép sắp xếp dùng,
+            // nên khoảng giá và kết quả lọc không thể lệch nhau.
             $priceRange = DB::table('screen_inventory')
                 ->join('screens', 'screen_inventory.screen_id', '=', 'screens.id')
                 ->where('screens.active', true)
                 ->whereNull('screens.deleted_at')
                 ->where('screen_inventory.floor_cpm', '>', 0)
-                ->where(fn ($q) => $q->where('screen_inventory.floor_cpm_currency', 'VND')
-                    ->orWhereNull('screen_inventory.floor_cpm_currency'))
                 ->tap(fn ($q) => Owner::gateActive($q))
-                ->selectRaw('MIN(screen_inventory.floor_cpm) as min_price, MAX(screen_inventory.floor_cpm) as max_price')
+                ->selectRaw(
+                    'MIN(' . self::vndEquivalentSql() . ') as min_price, MAX(' . self::vndEquivalentSql() . ') as max_price',
+                    [
+                        (float) config('pricing.usd_vnd_rate', 25000),
+                        (float) config('pricing.usd_vnd_rate', 25000),
+                    ],
+                )
                 ->first();
 
             // Networks with screen counts
@@ -650,7 +659,8 @@ class FrontpageService
                 'owners'               => $owners,
                 'min_price'            => (float) ($priceRange->min_price ?? 0),
                 'max_price'            => (float) ($priceRange->max_price ?? 0),
-                // Nói ra đơn vị thay vì để người đọc tự đoán.
+                // Nói ra đơn vị thay vì để người đọc tự đoán. Đây là VND **quy
+                // đổi**, gồm cả hàng niêm yết bằng USD — xem `vndEquivalentSql()`.
                 'price_currency'       => 'VND',
             ];
         });
@@ -1013,11 +1023,20 @@ class FrontpageService
             ->when(! empty($ownerSlugs = $this->resolveArrayParam($request, 'owner')),
                 fn ($q) => $q->whereHas('owner', fn ($oq) => $oq->whereIn('slug', $ownerSlugs))
             )
+            // Lọc theo giá **quy đổi về VND**: khoảng giá người dùng gõ là VND,
+            // nhưng `floor_cpm` có hàng USD, nên so trực tiếp thì một màn hình
+            // 2,50 USD lọt vào khoảng "dưới 1.000 ₫" (Codex R39).
             ->when($request->filled('min_price'),
-                fn ($q) => $q->whereHas('inventory', fn ($iq) => $iq->where('floor_cpm', '>=', $request->input('min_price')))
+                fn ($q) => $q->whereHas('inventory', fn ($iq) => $iq->whereRaw(
+                    self::vndEquivalentSql() . ' >= ?',
+                    [(float) config('pricing.usd_vnd_rate', 25000), (float) $request->input('min_price')],
+                ))
             )
             ->when($request->filled('max_price'),
-                fn ($q) => $q->whereHas('inventory', fn ($iq) => $iq->where('floor_cpm', '<=', $request->input('max_price')))
+                fn ($q) => $q->whereHas('inventory', fn ($iq) => $iq->whereRaw(
+                    self::vndEquivalentSql() . ' <= ?',
+                    [(float) config('pricing.usd_vnd_rate', 25000), (float) $request->input('max_price')],
+                ))
             )
             ->when($request->filled('site'),
                 fn ($q) => $q->where('site_id', $request->input('site'))
@@ -1133,13 +1152,36 @@ class FrontpageService
         });
     }
 
+    /**
+     * Biểu thức SQL quy đổi `floor_cpm` về VND, **chỉ để so sánh và sắp xếp**.
+     *
+     * Một định nghĩa duy nhất cho lọc giá, sắp xếp giá và khoảng giá của bộ
+     * lọc — ba chỗ dùng ba công thức là ba kết quả khác nhau cho cùng một câu
+     * hỏi. Tỷ giá truyền vào dưới dạng binding, không nhúng vào chuỗi SQL.
+     *
+     * Hàng `NULL` currency coi là VND vì cột đó mặc định VND.
+     */
+    private static function vndEquivalentSql(string $table = 'screen_inventory'): string
+    {
+        return "(CASE WHEN {$table}.floor_cpm_currency = 'USD' THEN {$table}.floor_cpm * ? ELSE {$table}.floor_cpm END)";
+    }
+
     private function applySort($query, Request $request)
     {
         $sort = $request->input('sort');
 
         if ($sort === 'price_asc' || $sort === 'price_desc') {
+            // Sắp xếp theo giá **quy đổi về VND**, không theo số thô.
+            //
+            // `floor_cpm_currency` có hàng USD trong dữ liệu thật, nên so trực
+            // tiếp hai đơn vị cho ra thứ tự vô nghĩa: 2,50 USD xếp dưới
+            // 1.000 ₫ (Codex R39). Quy đổi chỉ để so sánh; giá hiển thị vẫn
+            // giữ nguyên đơn vị gốc.
             $query->leftJoin('screen_inventory as sort_inv', 'screens.id', '=', 'sort_inv.screen_id')
-                  ->orderBy('sort_inv.floor_cpm', $sort === 'price_asc' ? 'asc' : 'desc')
+                  ->orderByRaw(
+                      self::vndEquivalentSql('sort_inv') . ' ' . ($sort === 'price_asc' ? 'asc' : 'desc'),
+                      [(float) config('pricing.usd_vnd_rate', 25000)],
+                  )
                   ->select('screens.*');
 
             return $query;

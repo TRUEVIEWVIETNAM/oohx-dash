@@ -253,6 +253,13 @@
     $isBoth = $pricingModel === 'both';
     $ioRate = (float)($inv?->io_rate ?? 0);
     $cpmRate = (float)($inv?->floor_cpm ?? 0);
+    // `io_rate` không có cột currency nên là VND; `floor_cpm` đi theo
+    // `floor_cpm_currency`, và cột đó có hàng USD trong dữ liệu thật. In "₫"
+    // cạnh một số USD là nói sai với người mua (Codex R39).
+    $cpmCurrency = $inv?->floor_cpm_currency ?: 'VND';
+    $cpmLabel = $cpmCurrency === 'VND'
+        ? number_format($cpmRate, 0, ',', '.') . ' ₫'
+        : number_format($cpmRate, 2, ',', '.') . ' ' . $cpmCurrency;
     $ioRateUnit = $inv?->io_rate_unit ?? 'month';
     $kpiSpots = $inv?->io_kpi_spots_per_day;
     $defIoUnits = $ioRateUnit === 'week' ? 4 : 3;
@@ -283,9 +290,9 @@
 <div class="bp-price">{{ number_format($ioRate, 0, ',', '.') }} ₫</div>
 <div style="font-size:13px;color:var(--t4)">/ {{ $ioRateUnit === 'week' ? 'mh/tuần' : 'mh/tháng' }}</div>
 </div>
-<div style="font-size:12px;color:var(--t3);margin:4px 0 2px">hoặc <strong>{{ number_format($cpmRate, 0, ',', '.') }} ₫/CPM</strong></div>
+<div style="font-size:12px;color:var(--t3);margin:4px 0 2px">hoặc <strong>{{ $cpmLabel }}/CPM</strong></div>
 @elseif($allowsCpm && !$allowsIo)
-<div class="bp-price">{{ number_format($cpmRate, 0, ',', '.') }} ₫</div>
+<div class="bp-price">{{ $cpmLabel }}</div>
 <div style="font-size:13px;color:var(--t4);margin:4px 0 10px">/ CPM · Chưa bao gồm VAT</div>
 @else
 <div class="bp-price">{{ number_format($ioRate, 0, ',', '.') }} ₫</div>
@@ -326,7 +333,8 @@
 <div class="bp-field"><div class="bp-lbl">Brand / Campaign</div><input class="bp-inp" type="text" placeholder="VD: Honda Civic Launch Q2"></div>
 <div class="bp-sum">
 <div class="bp-row"><span class="bp-rl" id="bp-calc-label">—</span><span class="bp-rv" id="bp-calc-sub">{{ number_format($defSub, 0, ',', '.') }} ₫</span></div>
-<div class="bp-row"><span class="bp-rl">VAT ({{ rtrim(rtrim(number_format(config('pricing.vat_rate') * 100, 2, '.', ''), '0'), '.') }}%)</span><span class="bp-rv" id="bp-calc-vat">{{ number_format($defSub * 0.1, 0, ',', '.') }} ₫</span></div>
+{{-- Nhãn và con số phải cùng một nguồn. Trước đây nhãn đọc config (8%) còn con số nhân cứng 0.1 (10%), nên trang nói một đằng tính một nẻo. --}}
+<div class="bp-row"><span class="bp-rl">VAT ({{ rtrim(rtrim(number_format(config('pricing.vat_rate') * 100, 2, '.', ''), '0'), '.') }}%)</span><span class="bp-rv" id="bp-calc-vat">{{ number_format($defSub * config('pricing.vat_rate'), 0, ',', '.') }} ₫</span></div>
 <div class="bp-row bp-total"><span class="bp-rl">Tổng cộng</span><span class="bp-rv" id="bp-calc-total">{{ number_format($defSub * (1 + config('pricing.vat_rate')), 0, ',', '.') }} ₫</span></div>
 </div>
 <div class="bp-ctas">@auth<form method="POST" action="{{ route('buyer.cart.add') }}" class="cart-add-form"><input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="screen_id" value="{{ $screen->id }}"><input type="hidden" name="start_date" id="bp-h-start" value="{{ now()->addDays(7)->format('Y-m-d') }}"><input type="hidden" name="end_date" id="bp-h-end" value="{{ now()->addDays(7)->addMonths(3)->format('Y-m-d') }}"><input type="hidden" name="pricing_model" id="bp-h-mode" value="{{ $defMode }}"><input type="hidden" name="booked_cpms" id="bp-h-cpms" value="1000"><input type="hidden" name="screen_count" id="bp-h-screens" value="1"><input type="hidden" name="duration_units" id="bp-h-dunits" value="{{ $defIoUnits }}">

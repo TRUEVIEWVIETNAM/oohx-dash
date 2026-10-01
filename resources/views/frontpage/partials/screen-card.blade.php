@@ -5,7 +5,12 @@
 @php
     $photo = $screen->display_photo ?? 'https://placehold.co/600x400/F5F5F7/6E6E73?text=No+Photo';
     $price = $screen->inventory?->display_price ?? 0;
-    $priceDisplay = number_format($price, 0, ',', '.');
+    // Đơn vị tiền lấy từ kho, không dán cứng: `floor_cpm_currency` có hàng USD
+    // trong dữ liệu thật, và một màn hình 2,50 USD hiện ra là "2 đ" (Codex R39).
+    $priceCurrency = $screen->inventory?->display_currency ?? 'VND';
+    $priceDisplay = $priceCurrency === 'VND'
+        ? number_format($price, 0, ',', '.')
+        : number_format($price, 2, ',', '.');
     $priceUnit = $screen->inventory?->display_price_unit ?? (($screen->inventory?->io_rate_unit ?? 'month') === 'week' ? 'màn hình/tuần' : 'màn hình/tháng');
     $vnCatId = $screen->inventory?->vn_category_id;
     $venueLabel = ($vnCatLabels ?? [])[$vnCatId] ?? '—';
@@ -79,7 +84,7 @@
     <div class="sc-foot">
         @if($price > 0)
         <div>
-            <div class="sc-price">{{ $priceDisplay }}<sup>đ</sup></div>
+            <div class="sc-price">{{ $priceDisplay }}<sup>{{ $priceCurrency === 'VND' ? 'đ' : $priceCurrency }}</sup></div>
             <div class="sc-price-sub">/ {{ $priceUnit }}</div>
         </div>
         <span class="btn btn-p btn-sm sc-btn">Chi tiết</span>
