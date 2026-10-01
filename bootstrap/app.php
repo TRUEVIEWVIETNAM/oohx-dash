@@ -7,7 +7,8 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
-use Throwable;
+// Không `use Throwable;`: file này ở namespace toàn cục nên câu đó vô tác dụng
+// và PHP in cảnh báo ở MỌI lần boot.
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(

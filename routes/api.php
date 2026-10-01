@@ -85,4 +85,7 @@ Route::prefix('v2')->middleware('throttle:api')->group(function () {
 
     Route::get('owners',          [V2CatalogController::class, 'owners']);
     Route::get('owners/{slug}',   [V2CatalogController::class, 'owner']);
+
+    Route::get('products',        [V2CatalogController::class, 'products']);
+    Route::get('products/{slug}', [V2CatalogController::class, 'product']);
 });

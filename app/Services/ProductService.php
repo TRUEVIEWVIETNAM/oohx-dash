@@ -89,7 +89,11 @@ class ProductService
                 'site:id,name,city,address,lat,lon',
                 'screens.spec',
                 'screens.inventory',
-                'screens.site:id,name,city,address',
+                // `network_id` phải có trong select, nếu không quan hệ
+                // `site->network` luôn trả null và DTO màn hình mất `network` —
+                // đúng lớp lỗi Codex R38 đã bắt ở `getScreensPaginated()`.
+                'screens.site:id,network_id,name,city,address',
+                'screens.site.network:id,name,code,banner',
             ])
             ->first();
     }

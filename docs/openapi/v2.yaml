@@ -296,6 +296,66 @@ paths:
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /api/v2/products:
+    get:
+      tags: [catalog]
+      summary: Danh sách sản phẩm (gói và vị trí lẻ)
+      description: |
+        Dùng chung `ProductService` với trang `/products`, nên bộ lọc và thứ
+        tự không thể khác nhau giữa hai nơi.
+
+        `owner` nhận **slug**, không nhận id nội bộ. Slug không tồn tại thì
+        kết quả rỗng, không phải "bỏ qua bộ lọc và trả cả kho".
+
+        Tham số nhiều giá trị dùng `explode: false` (`category=led,lcd`) —
+        xem ghi chú ở `/api/v2/screens` về vì sao không dùng `explode: true`.
+      parameters:
+        - { name: page,      in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page,  in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+        - { name: q,         in: query, schema: { type: string, maxLength: 100 } }
+        - { name: category,  in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string, enum: [billboard, led, lcd, posm, standee, escalator_wrap, ceiling_hang, lightbox] } } }
+        - { name: type,      in: query, schema: { type: string, enum: [single, package, custom] } }
+        - { name: city,      in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: owner,     in: query, schema: { type: string, maxLength: 100 } }
+        - { name: min_price, in: query, schema: { type: number, minimum: 0 } }
+        - { name: max_price, in: query, schema: { type: number, minimum: 0 } }
+        - { name: sort,      in: query, schema: { type: string, enum: [price_asc, price_desc, newest] } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ProductSummary' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v2/products/{slug}:
+    get:
+      tags: [catalog]
+      summary: Chi tiết một sản phẩm
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/ProductDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
 components:
   schemas:
     ScreenSummary:
@@ -410,6 +470,105 @@ components:
             screen_count: { type: integer }
             city_count:   { type: integer }
             venue_types:  { type: array, items: { type: string } }
+
+    ProductSummary:
+      type: object
+      required: [slug, name, type, category, listing_mode, pricing]
+      description: |
+        Danh sách trắng. **Không có `id`** — trang Blade dùng `$product->id`
+        cho form giỏ hàng, API dùng `slug`; khóa nội bộ không ra ngoài.
+
+        Về tên trường giá: cột trong CSDL tên `floor_price`, nhưng với sản phẩm
+        dạng gói đó chính là **giá người mua trả cho cả gói**, không phải giá
+        sàn nội bộ — `BundleExpander::productTotal()` lấy đúng cột này và trang
+        sản phẩm đã hiển thị nó công khai. Ở đây đặt tên nói đúng nó là gì
+        (`package`, `per_screen`) thay vì chép lại một cái tên gây hiểu sai.
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [single, package, custom] }
+        category:
+          type: object
+          properties:
+            code:  { type: [string, 'null'] }
+            label: { type: [string, 'null'] }
+        listing_mode:
+          type: object
+          description: Cách bán — chỉ gói, chỉ lẻ, hay cả hai.
+          properties:
+            code:               { type: [string, 'null'], enum: [package_only, individual_only, both, null] }
+            label:              { type: [string, 'null'] }
+            allows_package:     { type: boolean }
+            allows_individual:  { type: boolean }
+        owner:
+          type: object
+          properties:
+            slug: { type: [string, 'null'] }
+            name: { type: [string, 'null'] }
+        location:
+          type: object
+          properties:
+            city:   { type: [string, 'null'] }
+            region: { type: [string, 'null'] }
+            site:   { type: [string, 'null'] }
+        network:
+          type: [object, 'null']
+          properties:
+            name: { type: string }
+        quantity:
+          type: object
+          properties:
+            total_units:  { type: [integer, 'null'] }
+            min:          { type: [integer, 'null'] }
+            max:          { type: [integer, 'null'] }
+            screen_count: { type: [integer, 'null'] }
+        pricing:
+          type: object
+          description: |
+            Mỗi số tiền đi kèm `currency`, lấy từ cột `products.currency`.
+            Không giả định VND — đó đúng là lỗi R39 đã bắt ở màn hình.
+          required: [currency]
+          properties:
+            currency:             { type: string }
+            unit:                 { type: [string, 'null'], enum: [month, week, day, campaign, null] }
+            package:              { type: [number, 'null'], description: Giá cả gói. }
+            per_screen:           { type: [number, 'null'], description: 'Giá một màn hình khi mua lẻ; rỗng nghĩa là không bán lẻ.' }
+            package_discount_pct: { type: [integer, 'null'] }
+        short_description: { type: [string, 'null'] }
+        cover_url:         { type: [string, 'null'] }
+        featured:          { type: boolean }
+
+    ProductDetail:
+      allOf:
+        - $ref: '#/components/schemas/ProductSummary'
+        - type: object
+          properties:
+            description: { type: [string, 'null'] }
+            photo_urls:  { type: array, items: { type: string } }
+            specs:
+              type: [object, 'null']
+              description: |
+                JSON tự do do quản trị nhập, đã hiển thị công khai trên trang
+                sản phẩm. Không whitelist được theo khóa vì bộ khóa đổi theo
+                từng loại sản phẩm, nên **bất cứ gì nhập vào đây đều là công
+                khai** — chỗ phải chặn là lúc nhập, không phải lúc trả.
+            package_options:
+              type: array
+              description: Whitelist theo khóa, không trả nguyên blob JSON.
+              items:
+                type: object
+                properties:
+                  name:     { type: [string, 'null'] }
+                  quantity: { type: [integer, 'null'] }
+                  price:    { type: [number, 'null'] }
+            screens:
+              type: array
+              items: { $ref: '#/components/schemas/ScreenSummary' }
+            seo:
+              type: object
+              properties:
+                meta_title:       { type: [string, 'null'] }
+                meta_description: { type: [string, 'null'] }
 
     MapPin:
       type: object

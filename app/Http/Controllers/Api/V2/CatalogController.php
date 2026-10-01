@@ -6,12 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V2\MapViewportRequest;
 use App\Http\Requests\Api\V2\OwnerListingRequest;
 use App\Http\Requests\FrontpageListingRequest;
+use App\Http\Requests\ProductListingRequest;
 use App\Http\Resources\V2\MapPinResource;
 use App\Http\Resources\V2\OwnerDetailResource;
 use App\Http\Resources\V2\OwnerSummaryResource;
+use App\Http\Resources\V2\ProductDetailResource;
+use App\Http\Resources\V2\ProductSummaryResource;
 use App\Http\Resources\V2\ScreenSummaryResource;
 use App\Services\FrontpageService;
 use App\Services\InventoryHoldService;
+use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -40,7 +44,10 @@ class CatalogController extends Controller
 
     private const DEFAULT_MAP_PINS = 300;
 
-    public function __construct(private readonly FrontpageService $catalog) {}
+    public function __construct(
+        private readonly FrontpageService $catalog,
+        private readonly ProductService $products,
+    ) {}
 
     public function stats(): JsonResponse
     {
@@ -270,6 +277,46 @@ class CatalogController extends Controller
                     'max_per_page' => self::MAX_PER_PAGE,
                 ],
             ],
+        ]);
+    }
+
+    /**
+     * Danh sách sản phẩm (gói và vị trí lẻ), phân trang có giới hạn cứng.
+     *
+     * Dùng chung `ProductService` với trang `/products`, nên bộ lọc và thứ tự
+     * không thể khác nhau giữa hai nơi.
+     */
+    public function products(ProductListingRequest $request): JsonResponse
+    {
+        $perPage = min(
+            max(1, (int) $request->integer('per_page', self::DEFAULT_PER_PAGE)),
+            self::MAX_PER_PAGE,
+        );
+
+        $page = $this->products->getProductsPaginated($request->forService(), $perPage);
+
+        return response()->json([
+            'data' => ProductSummaryResource::collection($page->getCollection())->resolve(),
+            'meta' => [
+                'page'         => $page->currentPage(),
+                'per_page'     => $page->perPage(),
+                'total'        => $page->total(),
+                'last_page'    => $page->lastPage(),
+                'max_per_page' => self::MAX_PER_PAGE,
+            ],
+        ]);
+    }
+
+    public function product(string $slug): JsonResponse
+    {
+        $product = $this->products->getProductBySlug($slug);
+
+        if (! $product) {
+            return $this->notFound('Không tìm thấy sản phẩm với slug này.');
+        }
+
+        return response()->json([
+            'data' => (new ProductDetailResource($product))->resolve(),
         ]);
     }
 
