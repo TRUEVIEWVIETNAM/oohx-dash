@@ -218,24 +218,33 @@ class CartApiTest extends TestCase
         $this->assertSame($before, (int) round((float) $item->fresh()->estimated_cost));
     }
 
-    public function test_rut_ngan_ky_thi_may_chu_tinh_lai_tien(): void
+    public function test_keo_dai_ky_thi_may_chu_tinh_lai_tien(): void
     {
         $screen = $this->screen();
         $item   = $this->addViaService($screen);
         $before = (int) round((float) $item->estimated_cost);
 
+        $this->assertSame(1_000_000, $before, 'Một kỳ tháng = io_rate.');
+
         // Với giá theo kỳ (`io`), tiền = io_rate × số kỳ, **không** phụ thuộc
-        // tỷ lệ thời lượng. Nên muốn chứng minh máy chủ tính lại thì phải đổi
-        // thứ thật sự vào công thức: khoảng ngày.
+        // tỷ lệ thời lượng, và một kỳ dở dang vẫn tính tròn một kỳ. Nên muốn
+        // chứng minh máy chủ tính lại thì phải vượt qua mốc kỳ, không phải
+        // rút ngắn trong cùng một kỳ.
+        //
+        // Lần đầu tôi viết ca này là rút từ một tháng xuống bảy ngày và tưởng
+        // tiền phải giảm. CI đỏ, và nó đỏ đúng: giả định của tôi sai, không
+        // phải code sai.
+        $start = now()->addYear()->startOfYear();
+
         $response = $this->actingAs($this->buyer)
             ->patchJson('/api/v2/cart/items/' . $item->id, [
-                'end_date' => now()->addYear()->startOfYear()->addDays(6)->toDateString(),
+                'end_date' => $start->copy()->addMonthsNoOverflow(2)->subDay()->toDateString(),
             ])
             ->assertOk();
 
         $after = $response->json('data.items.0.estimate.cost');
 
-        $this->assertNotSame($before, $after, 'Rút ngắn kỳ mà tiền không đổi — máy chủ không tính lại.');
+        $this->assertSame(2_000_000, $after, 'Hai kỳ tháng phải là hai lần io_rate.');
         $this->assertSame($after, (int) round((float) $item->fresh()->estimated_cost));
     }
 
