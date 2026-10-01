@@ -4,6 +4,16 @@ on:
   push:
     branches:
       - main
+  # Cho chạy tay từ tab Actions.
+  #
+  # Lý do thêm: sau khi xoay khóa deploy (01/10/2026) không có cách nào kiểm
+  # khóa mới có chạy được hay không mà không đẩy một commit vào `main` — tức
+  # lần đầu đường deploy được thử lại chính là lần deploy thật. Lần xoay khóa
+  # sau không nên như vậy.
+  #
+  # GitHub chỉ hiện `workflow_dispatch` khi file này đã nằm trên nhánh mặc
+  # định, nên nó chỉ dùng được SAU khi merge.
+  workflow_dispatch:
 
 concurrency:
   group: production-deploy
