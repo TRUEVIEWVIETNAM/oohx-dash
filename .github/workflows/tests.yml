@@ -75,7 +75,14 @@ jobs:
       # f12-network-relation đã được gỡ ở giai đoạn 3 cùng lúc với việc hợp
       # nhất quan hệ Màn hình ↔ Mạng lưới.
       - name: Chạy test
-        run: php artisan test --log-junit storage/logs/junit.xml
+        # `--display-warnings` và `--display-deprecations`: in NGUYÊN VĂN cảnh
+        # báo thay vì chỉ một dòng bị cắt theo bề rộng terminal.
+        #
+        # Lý do thêm: 610/619 test đang ở trạng thái WARN với cùng một cảnh báo
+        # `file_get_contents(…)` bị cắt ngắn, nên không truy được nguồn. Một bộ
+        # test mà 98% là WARN thì cảnh báo mới nào cũng chìm — và chìm thì nó
+        # không còn là cảnh báo.
+        run: php artisan test --log-junit storage/logs/junit.xml --display-warnings --display-deprecations --display-notices
         env:
           APP_ENV: testing
           APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
