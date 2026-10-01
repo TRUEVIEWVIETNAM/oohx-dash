@@ -35,6 +35,20 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         // API routes luôn trả JSON 401 thay vì redirect về route('login')
         $exceptions->render(function (AuthenticationException $e, Request $request) {
+            // v2 dùng ĐÚNG envelope thống nhất, kể cả ở 401.
+            //
+            // Trước đây mọi `api/*` dùng chung nhánh dưới, nên 401 của v2
+            // thiếu `code` và `details` — bên tiêu thụ viết một hàm xử lý lỗi
+            // rồi vẫn phải thêm một nhánh đặc biệt cho đúng mã này.
+            if ($request->is('api/v2/*')) {
+                return response()->json([
+                    'error'   => 'unauthorized',
+                    'message' => 'Bạn cần đăng nhập để dùng chức năng này.',
+                    'code'    => 401,
+                    'details' => [],
+                ], 401);
+            }
+
             if ($request->is('api/*')) {
                 return response()->json([
                     'error'   => 'unauthorized',

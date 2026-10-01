@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V2\CartController as V2CartController;
 use App\Http\Controllers\Api\V2\CatalogController as V2CatalogController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OohxEstimateController;
@@ -89,3 +90,30 @@ Route::prefix('v2')->middleware('throttle:api')->group(function () {
     Route::get('products',        [V2CatalogController::class, 'products']);
     Route::get('products/{slug}', [V2CatalogController::class, 'product']);
 });
+
+// ── /api/v2 — nhóm cần quyền (khu người mua) ──────────────────────────────
+//
+// Xác thực **Sanctum dạng SPA**: cookie phiên, cho người dùng trình duyệt
+// (CLAUDE.md mục 2). Không dùng token đối tác ở đây.
+//
+// `EnsureFrontendRequestsAreStateful` gắn ở ĐÚNG NHÓM NÀY, không gọi
+// `$middleware->statefulApi()` ở bootstrap/app.php. Gọi ở đó là thêm middleware
+// phiên và CSRF cho **toàn bộ** `/api/*`, tức đụng vào `/api/v1` — hợp đồng
+// đang chạy với đối tác, và CLAUDE.md mục 1 cấm đổi hành vi của nó. Phạm vi
+// hẹp thì rủi ro hẹp.
+//
+// `buyer` kiểm người dùng có tổ chức; mỗi action vẫn tự gọi policy — middleware
+// chỉ là lớp chặn đầu tiên, không thay cho phân quyền theo bản ghi.
+Route::prefix('v2')
+    ->middleware([
+        \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        'auth:sanctum',
+        'buyer',
+        'throttle:api',
+    ])
+    ->group(function () {
+        Route::get   ('cart',              [V2CartController::class, 'show']);
+        Route::post  ('cart/items',        [V2CartController::class, 'store']);
+        Route::patch ('cart/items/{item}', [V2CartController::class, 'update']);
+        Route::delete('cart/items/{item}', [V2CartController::class, 'destroy']);
+    });

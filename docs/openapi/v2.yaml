@@ -27,6 +27,11 @@ servers:
 tags:
   - name: catalog
     description: Dữ liệu công khai — không cần đăng nhập, có giới hạn tần suất.
+  - name: cart
+    description: |
+      Khu người mua — **cần đăng nhập** (Sanctum dạng SPA, cookie phiên).
+      Số tiền ở nhóm này luôn do máy chủ tính; không endpoint nào nhận số tiền
+      từ client.
 
 paths:
   /api/v2/stats:
@@ -356,7 +361,138 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /api/v2/cart:
+    get:
+      tags: [cart]
+      security: [{ sessionCookie: [] }]
+      summary: Giỏ hàng hiện tại của người đang đăng nhập
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Cart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/cart/items:
+    post:
+      tags: [cart]
+      security: [{ sessionCookie: [] }]
+      summary: Thêm một màn hình hoặc một sản phẩm vào giỏ
+      description: |
+        Gửi `screen_slug` để thêm một màn hình lẻ, hoặc `product_slug` để thêm
+        một sản phẩm. API **không** nhận khóa nội bộ: trang Blade gửi
+        `screen_id`/`product_id` vì nó dựng form từ model sẵn trong tay, còn
+        client ngoài thì dùng slug và máy chủ quy đổi.
+
+        **Không nhận số tiền.** `estimated_cost` do `CartService` tính lại từ
+        cấu hình kho; trường nào client gửi lên cũng bị bỏ qua.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                screen_slug:  { type: string, description: Bắt buộc khi thêm một màn hình lẻ. }
+                product_slug: { type: string, description: Bắt buộc khi thêm một sản phẩm. }
+                selected_screen_slugs: { type: array, items: { type: string } }
+                buy_mode:     { type: string, enum: [package, individual] }
+                start_date:   { type: string, format: date }
+                end_date:     { type: string, format: date }
+                quantity:     { type: integer, minimum: 1 }
+                pricing_model: { type: string, enum: [cpm, io] }
+                booked_cpms:   { type: integer, minimum: 1 }
+                duration_units: { type: integer, minimum: 1 }
+      responses:
+        '201':
+          description: Đã thêm
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/Cart'
+                      - type: object
+                        properties:
+                          added_item_id: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/cart/items/{item}:
+    parameters:
+      - { name: item, in: path, required: true, schema: { type: string } }
+    patch:
+      tags: [cart]
+      security: [{ sessionCookie: [] }]
+      summary: Sửa một dòng giỏ
+      description: |
+        Không có trường tiền nào. `estimated_cost` được tính lại từ cấu hình
+        kho sau mỗi lần sửa — số tiền do máy chủ tính.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                start_date:         { type: string, format: date }
+                end_date:           { type: string, format: date }
+                share_of_voice_pct: { type: integer, minimum: 1, maximum: 100 }
+                spot_length:        { type: integer, minimum: 5, maximum: 60 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Cart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      tags: [cart]
+      security: [{ sessionCookie: [] }]
+      summary: Xóa một dòng giỏ
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Cart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: laravel_session
+      description: |
+        Sanctum dạng SPA. Client gọi `GET /sanctum/csrf-cookie` trước, rồi gửi
+        kèm cookie phiên và header `X-XSRF-TOKEN` cho mọi yêu cầu ghi. Nhóm
+        này **không** dùng token đối tác; token đối tác chỉ dùng cho `/api/v1`.
+
   schemas:
     ScreenSummary:
       type: object
@@ -570,6 +706,75 @@ components:
                 meta_title:       { type: [string, 'null'] }
                 meta_description: { type: [string, 'null'] }
 
+    Cart:
+      type: object
+      required: [items, summary]
+      description: |
+        `rate_snapshot` **không** có trong DTO này. Đó là ảnh chụp cấu hình giá
+        của media owner lúc thêm giỏ, dùng để phát hiện giá đổi trước khi chốt
+        đơn — nó mang nguyên cấu hình kho, không phải thứ người mua cần thấy.
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CartItem' }
+        summary:
+          type: object
+          required: [currency, item_count, subtotal]
+          properties:
+            currency:    { type: string, enum: [VND] }
+            item_count:  { type: integer }
+            subtotal:
+              type: integer
+              description: |
+                **Chưa gồm VAT.** VAT tính một chỗ duy nhất ở
+                `PaymentService::withVat()`, lúc chốt đơn — cộng VAT ở đây là
+                một phép làm tròn thứ hai, và hai chỗ làm tròn khác nhau là
+                cách sinh ra "công nợ bằng 0 nhưng chưa trả đủ".
+            impressions: { type: integer }
+
+    CartItem:
+      type: object
+      required: [id, period, estimate]
+      properties:
+        id:
+          type: string
+          description: |
+            Dòng giỏ **có** `id` trong khi các DTO công khai thì không. Cố ý:
+            client phải gọi được PATCH/DELETE lên đúng dòng này, và nó là dữ
+            liệu riêng của chính người đang đăng nhập chứ không phải khóa của
+            tài nguyên dùng chung.
+        screen:  { oneOf: [{ $ref: '#/components/schemas/ScreenSummary' }, { type: 'null' }] }
+        product:
+          type: [object, 'null']
+          properties:
+            slug: { type: string }
+            name: { type: string }
+        buy_mode: { type: [string, 'null'], enum: [package, individual, null] }
+        period:
+          type: object
+          properties:
+            start_date: { type: [string, 'null'], format: date }
+            end_date:   { type: [string, 'null'], format: date }
+        delivery:
+          type: object
+          properties:
+            pricing_model:      { type: [string, 'null'], enum: [cpm, io, null] }
+            share_of_voice_pct: { type: [integer, 'null'] }
+            spot_length:        { type: [integer, 'null'] }
+            booked_cpms:        { type: [integer, 'null'] }
+            duration_units:     { type: [integer, 'null'] }
+            duration_unit:      { type: [string, 'null'] }
+        estimate:
+          type: object
+          description: Do máy chủ tính. Không nhận chiều ngược lại.
+          required: [currency]
+          properties:
+            currency:              { type: string, enum: [VND] }
+            cost:                  { type: [integer, 'null'] }
+            impressions:           { type: [integer, 'null'] }
+            duration_discount_pct: { type: [integer, 'null'] }
+        notes: { type: [string, 'null'] }
+
     MapPin:
       type: object
       required: [slug, name, lat, lng]
@@ -667,6 +872,20 @@ components:
         Retry-After:
           description: Số giây nên chờ trước khi gọi lại.
           schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: |
+        Chưa đăng nhập. Dùng **đúng** định dạng lỗi thống nhất, kể cả ở mã
+        này — bên tiêu thụ không phải viết một nhánh đặc biệt cho 401.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: |
+        Yêu cầu hợp lệ nhưng trạng thái hiện tại không cho phép — ví dụ suất
+        phát sóng đã hết, hoặc giá của media owner đã đổi kể từ lúc thêm giỏ.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }

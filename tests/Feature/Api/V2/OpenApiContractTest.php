@@ -72,8 +72,18 @@ class OpenApiContractTest extends TestCase
     {
         $found = [];
 
+        // Theo OpenAPI, một path item có thể mang các khóa KHÔNG phải method:
+        // `parameters` (tham số dùng chung cho mọi method), `summary`,
+        // `description`, `servers`, `$ref`. Đếm chúng như method thì phép kiểm
+        // hai chiều báo thiếu một "endpoint" không hề tồn tại.
+        $nonMethodKeys = ['parameters', 'summary', 'description', 'servers', '$ref'];
+
         foreach ($this->spec()['paths'] ?? [] as $path => $operations) {
             foreach (array_keys($operations) as $method) {
+                if (in_array($method, $nonMethodKeys, true)) {
+                    continue;
+                }
+
                 $found[] = strtolower($method) . ' ' . $path;
             }
         }
