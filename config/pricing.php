@@ -31,11 +31,14 @@ return [
     'week_days' => 7,
 
     /**
-     * Khoảng ngày tối đa cho MỘT dòng đặt chỗ.
+     * Khoảng ngày tối đa cho MỘT dòng đặt chỗ. **CHỐT 01/10/2026: giữ 365.**
      *
      * Đây là chặn đầu vào, không phải chính sách bán hàng: nó bắt các trường hợp
      * gõ nhầm năm (2027 thành 2072) hoặc script gửi khoảng ngày vô lý. Người mua
      * muốn thuê dài hơn thì tách thành nhiều dòng hoặc liên hệ.
+     *
+     * Câu hỏi "nới lên 730 hay bỏ hẳn" treo từ giai đoạn 0 và nay đã có trả
+     * lời: giữ 365. Một hợp đồng OOH dài hơn một năm thường ký ngoài hệ thống.
      */
     'max_range_days' => env('PRICING_MAX_RANGE_DAYS', 365),
 
