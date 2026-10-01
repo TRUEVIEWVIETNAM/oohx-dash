@@ -99,24 +99,50 @@ class RefundContentionTest extends TestCase
             BookingLine::whereIn('campaign_id', $this->cleanupCampaignIds)->delete();
             Campaign::whereIn('id', $this->cleanupCampaignIds)->delete();
 
+            // Xóa theo ĐÚNG thứ tự khóa ngoại: mọi màn hình trước, rồi mọi
+            // site, rồi mới tới owner.
+            //
+            // Bản đầu xóa owner ngay trong vòng lặp từng màn hình. Owner ở đây
+            // có HAI màn hình, nên lần lặp đầu xóa owner trong khi màn hình
+            // thứ hai còn tham chiếu → vi phạm khóa ngoại → ngoại lệ bị `catch`
+            // bên dưới nuốt → màn hình thứ hai ở lại trong CSDL. Lớp này không
+            // dùng `RefreshDatabase` nên dữ liệu đó commit thật và **mọi test
+            // chạy sau đều thấy**: năm ca đếm màn hình đã đỏ vì đúng chuyện
+            // này.
+            $siteIds  = [];
+            $ownerIds = [];
+
             foreach ($this->cleanupScreenIds as $screenId) {
-                ScreenInventory::where('screen_id', $screenId)->delete();
                 $screen = Screen::withoutGlobalScopes()->find($screenId);
+
                 if ($screen) {
-                    $siteId  = $screen->site_id;
-                    $ownerId = $screen->owner_id;
-                    Screen::withoutGlobalScopes()->whereKey($screenId)->forceDelete();
-                    Site::withoutGlobalScopes()->whereKey($siteId)->forceDelete();
-                    Owner::whereKey($ownerId)->forceDelete();
+                    $siteIds[]  = $screen->site_id;
+                    $ownerIds[] = $screen->owner_id;
                 }
+
+                ScreenInventory::where('screen_id', $screenId)->delete();
+                Screen::withoutGlobalScopes()->whereKey($screenId)->forceDelete();
             }
+
+            Site::withoutGlobalScopes()->whereIn('id', array_unique($siteIds))->forceDelete();
+            Owner::whereIn('id', array_unique($ownerIds))->forceDelete();
 
             OrganizationUser::whereIn('organization_id', $this->cleanupOrgIds)->delete();
             User::whereIn('id', $this->cleanupUserIds)->delete();
             Organization::whereIn('id', $this->cleanupOrgIds)->delete();
-        } catch (\Throwable) {
-            // Dọn hết sức; không che lỗi thật của test.
+        } catch (\Throwable $e) {
+            // Không nuốt im lặng: lớp này commit thật, nên dọn sót là làm đỏ
+            // những test chẳng liên quan và người đọc sẽ đi tìm sai chỗ.
+            fwrite(STDERR, "\n[RefundContentionTest] DỌN KHÔNG XONG: {$e->getMessage()}\n");
         }
+
+        // Chốt lại TRƯỚC `parent::tearDown()`: không còn màn hình nào của lớp
+        // này sót lại. Lỗi ở đây là lỗi thật — nó nói rằng bộ test vừa bị
+        // nhiễm dữ liệu, và nói ngay tại nguồn thay vì để năm test khác đỏ ở
+        // chỗ khác.
+        $conLai = Screen::withoutGlobalScopes()->whereIn('id', $this->cleanupScreenIds)->count();
+
+        $this->assertSame(0, $conLai, 'Dọn sót màn hình — các test chạy sau sẽ đếm sai.');
 
         parent::tearDown();
     }
