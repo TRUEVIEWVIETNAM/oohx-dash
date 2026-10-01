@@ -220,6 +220,85 @@ class CurrencyHonestyTest extends TestCase
         $this->assertSame(2.5, (float) $screen->inventory->display_price);
     }
 
+    // ── Đường tiền: chặn thay vì tự quy đổi ─────────────────────────────────
+
+    public function test_khong_dat_duoc_man_hinh_cpm_niem_yet_bang_usd(): void
+    {
+        $screen = $this->cpmScreen(2.50, 'USD');
+
+        $org   = \App\Models\Organization::factory()->create(['status' => 'active']);
+        $buyer = \App\Models\User::factory()->create(['current_organization_id' => $org->id]);
+        \App\Models\OrganizationUser::create([
+            'organization_id' => $org->id,
+            'user_id'         => $buyer->id,
+            'role'            => \App\Models\OrganizationUser::ROLE_ADMIN,
+        ]);
+
+        $cart = \App\Models\Cart::create([
+            'user_id'         => $buyer->id,
+            'organization_id' => $org->id,
+            'status'          => 'active',
+            'name'            => 'Giỏ thử',
+        ]);
+
+        // Đường tiền KHÔNG mang đơn vị: `cart_items.estimated_cost` và
+        // `booking_lines.estimated_cost` không có cột currency. Nhánh CPM tính
+        // `floor_cpm × booked_cpms` trên số thô, nên 2,50 USD × 1.000 CPM ra
+        // `2.500` và mọi bước sau coi là **2.500 ₫** — thấp hơn giá thật
+        // khoảng 25.000 lần.
+        //
+        // Chặn làm mất một lượt bán; tự quy đổi sai làm mất tiền và tạo một
+        // hóa đơn sai mà không ai thấy.
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectExceptionMessage('USD');
+
+        app(\App\Services\CartService::class)->addItem($cart, $screen->id, [
+            'start_date'     => now()->addMonth()->toDateString(),
+            'end_date'       => now()->addMonths(2)->toDateString(),
+            'pricing_model'  => 'cpm',
+        ]);
+    }
+
+    public function test_van_dat_duoc_man_hinh_ban_theo_ky_du_cot_cpm_la_usd(): void
+    {
+        $owner  = Owner::factory()->create(['status' => 'active']);
+        $site   = Site::factory()->create(['owner_id' => $owner->id, 'status' => 'active']);
+        $screen = Screen::factory()->create(['owner_id' => $owner->id, 'site_id' => $site->id, 'active' => true]);
+        ScreenInventory::create([
+            'screen_id'              => $screen->id,
+            'pricing_model'          => 'io',
+            'io_rate'                => 1_000_000,
+            'io_rate_unit'           => 'month',
+            'floor_cpm'              => 2.50,
+            'floor_cpm_currency'     => 'USD',
+            'spot_length'            => 15,
+            'share_of_voice_max_pct' => 100,
+        ]);
+
+        $org   = \App\Models\Organization::factory()->create(['status' => 'active']);
+        $buyer = \App\Models\User::factory()->create(['current_organization_id' => $org->id]);
+        \App\Models\OrganizationUser::create([
+            'organization_id' => $org->id,
+            'user_id'         => $buyer->id,
+            'role'            => \App\Models\OrganizationUser::ROLE_ADMIN,
+        ]);
+        $cart = \App\Models\Cart::create([
+            'user_id'         => $buyer->id,
+            'organization_id' => $org->id,
+            'status'          => 'active',
+            'name'            => 'Giỏ thử',
+        ]);
+
+        // Không chặn quá tay: `io_rate` không có cột currency nên là VND theo
+        // định nghĩa, và việc cột CPM là USD không liên quan tới lượt mua này.
+        $item = app(\App\Services\CartService::class)->addItem($cart, $screen->id, [
+            'start_date' => now()->addYear()->startOfYear()->toDateString(),
+            'end_date'   => now()->addYear()->startOfYear()->addMonthNoOverflow()->subDay()->toDateString(),
+        ]);
+
+        $this->assertSame(1_000_000, (int) round((float) $item->estimated_cost));
+    }
+
     /** @return array<int, string> id màn hình theo đúng thứ tự trả về */
     private function paginate(array $params): array
     {

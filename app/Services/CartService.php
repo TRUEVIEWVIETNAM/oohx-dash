@@ -48,6 +48,16 @@ class CartService
         // vẫn có thể bị đặt nếu biết ID (audit F10).
         $product = $this->eligibility->findPurchasableProduct($productId);
 
+        // Cùng lý do như `refuseNonVndPricing()`: `products.currency` có thể
+        // không phải VND, nhưng `cart_items.estimated_cost` không mang đơn vị,
+        // nên giá sản phẩm USD sẽ bị mọi bước sau coi là VND.
+        if (($product->currency ?: 'VND') !== 'VND') {
+            throw new HttpException(422, sprintf(
+                'Sản phẩm này niêm yết giá bằng %s. Hệ thống chưa có chính sách tỷ giá để xuất hóa đơn ngoài VND, nên chưa đặt trực tuyến được — vui lòng liên hệ để được báo giá.',
+                $product->currency,
+            ));
+        }
+
         $selectedScreenIds = $data['selected_screen_ids'] ?? null;
         $buyMode = $data['buy_mode'] ?? ($product->listing_mode === 'package_only' ? 'package' : 'individual');
         $startDate = $data['start_date'] ?? now()->addDays(7)->toDateString();
@@ -161,6 +171,8 @@ class CartService
             $pricingModel = $invModel;
         }
         $data['_resolved_pricing_model'] = $pricingModel;
+
+        $this->refuseNonVndPricing($screen, $pricingModel);
 
         $startDate = $data['start_date'] ?? now()->addDays(7)->toDateString();
         $endDate = $data['end_date'] ?? now()->addDays(37)->toDateString();
@@ -365,6 +377,48 @@ class CartService
      * CPM model:  cost = floor_cpm × booked_cpms
      * I/O model:  cost = io_rate × screen_count × duration_units
      */
+    /**
+     * Chặn mua một màn hình niêm yết CPM bằng đơn vị tiền khác VND.
+     *
+     * **Lý do, và nó là chuyện tiền thật.** Đường tiền không mang đơn vị:
+     * `cart_items.estimated_cost` và `booking_lines.estimated_cost` **không có
+     * cột currency** (chỉ `campaigns.currency` có, và mặc định VND). Nhánh CPM
+     * của `estimateCost()` tính `floor_cpm × booked_cpms` trên **số thô**, nên
+     * một màn hình niêm yết 2,50 USD/CPM mua 1.000 CPM sẽ ra `2.500` rồi được
+     * mọi bước sau coi là **2.500 ₫** — hóa đơn thấp hơn giá thật khoảng
+     * 25.000 lần.
+     *
+     * **Vì sao chặn chứ không tự quy đổi.** Quy đổi ở đây là đặt ra một chính
+     * sách giá: tỷ giá nào, chụp lại lúc nào, ai chịu rủi ro khi tỷ giá đổi
+     * giữa lúc thêm giỏ và lúc xuất hóa đơn. Đó là quyết định của nghiệp vụ,
+     * không phải của một dòng code. Tỷ giá ở `config('pricing.usd_vnd_rate')`
+     * chỉ dùng để **so sánh và sắp xếp**, cố ý không dùng để tính tiền.
+     *
+     * Chặn làm mất một lượt bán; tự quy đổi sai làm mất tiền và tạo một hóa
+     * đơn sai mà không ai thấy. Đây là cùng lựa chọn mà `tierFor()` đã ghi:
+     * "thà chặt tay còn hơn tự ý hứa hoàn tiền thay media owner".
+     *
+     * Màn hình bán theo kỳ (`io`) không bị chặn: `io_rate` không có cột
+     * currency nên nó là VND theo định nghĩa.
+     */
+    private function refuseNonVndPricing(Screen $screen, string $pricingModel): void
+    {
+        if ($pricingModel !== 'cpm') {
+            return;
+        }
+
+        $currency = $screen->inventory?->floor_cpm_currency ?: 'VND';
+
+        if ($currency === 'VND') {
+            return;
+        }
+
+        throw new HttpException(422, sprintf(
+            'Màn hình này niêm yết giá CPM bằng %s. Hệ thống chưa có chính sách tỷ giá để xuất hóa đơn ngoài VND, nên chưa đặt trực tuyến được — vui lòng liên hệ để được báo giá.',
+            $currency,
+        ));
+    }
+
     public function estimateCost(Screen $screen, array $data = []): array
     {
         $inv = $screen->inventory;
