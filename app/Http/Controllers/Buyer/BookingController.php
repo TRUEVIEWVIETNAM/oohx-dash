@@ -93,7 +93,7 @@ class BookingController extends Controller
      */
     public function uploadCreative(Request $request, Campaign $campaign): RedirectResponse
     {
-        $this->authorizeCampaign($request, $campaign);
+        $this->authorizeCampaign($request, $campaign, 'uploadCreative');
 
         $request->validate([
             'file' => ['required', 'file', 'mimes:jpg,jpeg,png,mp4,webm', 'max:51200'], // 50MB
@@ -144,7 +144,7 @@ class BookingController extends Controller
      */
     public function submit(Request $request, Campaign $campaign): RedirectResponse
     {
-        $this->authorizeCampaign($request, $campaign);
+        $this->authorizeCampaign($request, $campaign, 'submit');
 
         $request->validate([
             'confirm_accuracy' => ['accepted'],
@@ -174,12 +174,19 @@ class BookingController extends Controller
     /**
      * Ensure user owns the campaign.
      */
-    private function authorizeCampaign(Request $request, Campaign $campaign): void
+    /**
+     * Quyền đi qua CampaignPolicy, không so `organization_id` bằng tay.
+     *
+     * Phép so cũ chỉ trả lời "có cùng tổ chức không", nên một thành viên vai trò
+     * `viewer` — người được mời chỉ để xem — vẫn gửi được booking và xác nhận
+     * được thanh toán, dù `OrganizationUser::PERMISSIONS` đã nói rõ là không.
+     */
+    private function authorizeCampaign(Request $request, Campaign $campaign, string $ability = 'view'): void
     {
         abort_unless(
-            $campaign->organization_id === $request->user()->current_organization_id,
+            $request->user()?->can($ability, $campaign) ?? false,
             403,
-            'Bạn không có quyền truy cập campaign này'
+            'Bạn không có quyền thực hiện việc này trên campaign.'
         );
     }
 }

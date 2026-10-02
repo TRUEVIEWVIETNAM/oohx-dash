@@ -23,7 +23,7 @@ class PaymentController extends Controller
      */
     public function show(Request $request, Campaign $campaign): View
     {
-        $this->authorize($request, $campaign);
+        $this->authorize($request, $campaign, 'view');
 
         abort_unless(
             in_array($campaign->status, ['approved', 'active']),
@@ -57,6 +57,10 @@ class PaymentController extends Controller
             // owner thật sự có màn hình trong campaign này.
             'owner_id' => ['required', 'string', 'exists:owners,id'],
 
+            // Mã chống trùng của chính lần gửi biểu mẫu này — xem chú thích
+            // ở chỗ gọi createPayment.
+            'payment_nonce' => ['nullable', 'string', 'max:64'],
+
             'accept_terms' => ['accepted'],
         ], [
             'accept_terms.accepted' => 'Bạn cần đồng ý với Quy chế hoạt động để xác nhận thanh toán.',
@@ -80,12 +84,28 @@ class PaymentController extends Controller
             return back()->withErrors(['method' => 'MoMo chưa được hỗ trợ. Vui lòng chọn chuyển khoản.']);
         }
 
-        // Bank transfer — create pending payment
+        // Bank transfer — create pending payment.
+        //
+        // Khóa chống trùng dựng từ mã riêng của LẦN gửi biểu mẫu này, không
+        // phải token CSRF của phiên. Token phiên không đổi giữa các lần trả,
+        // nên trả một phần rồi quay lại trả nốt sẽ nhận lại đúng khoản cũ đã
+        // hoàn tất và không tạo được khoản mới (Codex R07).
+        //
+        // Không có mã (gọi bằng script, hoặc biểu mẫu cũ còn mở) thì vẫn chạy:
+        // tầng service đã có phép dùng lại khoản đang chờ của cùng owner.
         $payment = $this->paymentService->createPayment(
             $campaign,
             'bank_transfer',
             $data['amount'] ?? null,
             $data['owner_id'],
+            idempotencyKey: $data['payment_nonce'] ?? null
+                ? hash('sha256', implode('|', [
+                    $campaign->id,
+                    $data['owner_id'],
+                    (string) $request->user()?->id,
+                    (string) $data['payment_nonce'],
+                ]))
+                : null,
         );
 
         $this->consents->record(
@@ -106,7 +126,7 @@ class PaymentController extends Controller
      */
     public function success(Request $request, Campaign $campaign): View
     {
-        $this->authorize($request, $campaign);
+        $this->authorize($request, $campaign, 'view');
 
         $payment = $campaign->payments()->latest()->first();
 
@@ -116,11 +136,16 @@ class PaymentController extends Controller
         ]);
     }
 
-    private function authorize(Request $request, Campaign $campaign): void
+    /**
+     * Xác nhận thanh toán là quyền riêng (`manage_payments`), không phải quyền
+     * xem. Phép so `organization_id` cũ cho cả vai trò `viewer` làm việc này.
+     */
+    private function authorize(Request $request, Campaign $campaign, string $ability = 'pay'): void
     {
         abort_unless(
-            $campaign->organization_id === $request->user()->current_organization_id,
-            403
+            $request->user()?->can($ability, $campaign) ?? false,
+            403,
+            'Bạn không có quyền xác nhận thanh toán cho campaign này.'
         );
     }
 }

@@ -145,7 +145,16 @@ class Product extends Model
 
     public function getPriceDisplayAttribute(): string
     {
-        $price = number_format($this->floor_price, 0, ',', '.');
+        // Đơn vị tiền lấy từ cột `currency`, không dán "₫" cứng. Bảng
+        // `products` có cột đó và dữ liệu thật có hàng không phải VND, nên in
+        // "₫" cạnh một số USD là nói sai với người mua (Codex R39).
+        $currency = $this->currency ?: 'VND';
+        $symbol   = $currency === 'VND' ? ' ₫' : ' ' . $currency;
+
+        $price = $currency === 'VND'
+            ? number_format($this->floor_price, 0, ',', '.')
+            : number_format($this->floor_price, 2, ',', '.');
+
         $unit = match ($this->price_unit) {
             'month'    => '/tháng',
             'week'     => '/tuần',
@@ -155,10 +164,10 @@ class Product extends Model
         };
 
         if ($this->type === self::TYPE_PACKAGE && $this->min_quantity > 1) {
-            return $price . ' ₫' . $unit . '/' . $this->min_quantity . ' vị trí';
+            return $price . $symbol . $unit . '/' . $this->min_quantity . ' vị trí';
         }
 
-        return $price . ' ₫' . $unit;
+        return $price . $symbol . $unit;
     }
 
     public function getScreenCountAttribute(): int

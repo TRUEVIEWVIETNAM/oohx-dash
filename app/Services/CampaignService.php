@@ -3,14 +3,23 @@
 namespace App\Services;
 
 use App\Models\BookingLine;
+use App\Models\BookingLineBundle;
 use App\Models\Campaign;
 use App\Models\CampaignActivity;
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Organization;
+use App\Models\Owner;
+use App\Models\Screen;
 use App\Models\User;
+use App\Services\Booking\BundleExpander;
+use App\Services\InventoryHoldService;
+use App\Services\PurchaseEligibilityService;
 use App\Notifications\BookingResolvedNotification;
 use App\Notifications\BookingSubmittedNotification;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class CampaignService
 {
@@ -21,6 +30,19 @@ class CampaignService
     {
         return DB::transaction(function () use ($org, $user, $cart, $data) {
             $items = $cart->items()->with(['screen.inventory', 'screen.owner'])->get();
+
+            // Giá trong giỏ phải còn khớp giá hiện hành. Nếu media owner vừa đổi giá,
+            // dừng lại để người mua xem con số mới rồi tự quyết — không im lặng lấy
+            // giá mới, cũng không giữ giá cũ đã hết hiệu lực (audit F-01, Codex R03).
+            $this->assertCartRatesUnchanged($items);
+
+            // Owner có thể bị tạm ngưng trong lúc giỏ nằm đó — kiểm lại trước khi ghi.
+            $eligibility = app(PurchaseEligibilityService::class);
+            foreach ($items as $cartItem) {
+                if ($cartItem->screen) {
+                    $eligibility->assertScreenPurchasable($cartItem->screen);
+                }
+            }
 
             $campaign = Campaign::create([
                 'organization_id'             => $org->id,
@@ -34,46 +56,246 @@ class CampaignService
                 'end_date'                    => $items->max('end_date'),
                 'total_budget'                => $data['total_budget'] ?? null,
                 'currency'                    => 'VND',
-                'total_screens'               => $items->count(),
-                'total_impressions_estimated' => $items->sum('estimated_impressions'),
+                // Điền lại sau khi mở gói: một dòng giỏ thuộc gói sinh ra nhiều
+                // dòng đặt chỗ, nên đếm số dòng giỏ là đếm sai số màn hình.
+                'total_screens'               => 0,
+                'total_impressions_estimated' => 0,
                 'status'                      => Campaign::STATUS_DRAFT,
                 'notes'                       => $data['notes'] ?? null,
             ]);
 
-            // Convert cart items → booking lines (freeze pricing at booking time)
-            foreach ($items as $item) {
-                $inv = $item->screen->inventory;
-                $pricingModel = $item->pricing_model ?? $inv?->pricing_model ?? 'io';
+            // Khóa mọi màn hình liên quan TRƯỚC khi ghi dòng nào.
+            //
+            // `booking_lines` có khóa ngoại tới `screens`: chèn trước là nhận
+            // shared lock, xin exclusive sau là nâng cấp khóa, và hai đơn có
+            // màn hình chung sẽ khóa chéo nhau (Codex R05). Sắp theo id để mọi
+            // giao dịch trong hệ thống luôn khóa cùng một thứ tự.
+            $holdService = app(InventoryHoldService::class);
 
-                BookingLine::create([
-                    'campaign_id'          => $campaign->id,
-                    'screen_id'            => $item->screen_id,
-                    'owner_id'             => $item->screen->owner_id,
-                    'start_date'           => $item->start_date,
-                    'end_date'             => $item->end_date,
-                    'spot_length'          => $item->spot_length,
-                    'share_of_voice_pct'   => $item->share_of_voice_pct,
-                    'floor_cpm_at_booking' => $inv?->floor_cpm ?? 0,
-                    'estimated_impressions'=> $item->estimated_impressions,
-                    'estimated_cost'       => $item->estimated_cost,
-                    'status'               => 'pending',
-                    // Pricing model freeze
-                    'pricing_model'        => $pricingModel,
-                    'io_rate_at_booking'   => $pricingModel === 'io' ? ($inv?->io_rate ?? 0) : null,
-                    'io_rate_unit'         => $pricingModel === 'io' ? ($inv?->io_rate_unit ?? 'month') : null,
-                    'kpi_spots_per_day'    => $pricingModel === 'io' ? $inv?->io_kpi_spots_per_day : null,
-                    'booked_cpms'          => $pricingModel === 'cpm' ? $item->booked_cpms : null,
-                    'screen_count'         => $item->screen_count ?? 1,
-                ]);
+            foreach ($this->screenIdsInCart($items)->sort()->values() as $screenId) {
+                $holdService->lockScreen($screenId);
             }
+
+            // Convert cart items → booking lines (freeze pricing at booking time)
+            //
+            // Hai bước tách rời có lý do: tạo dòng trước, giành suất sau. Giành
+            // suất phải KHÓA hàng màn hình, và một đơn nhiều màn hình sẽ khóa
+            // nhiều hàng. Khóa theo thứ tự tùy ý thì hai đơn có màn hình chung
+            // nhưng thứ tự khác nhau sẽ khóa chéo và MySQL hủy một trong hai vì
+            // deadlock. Gom lại rồi khóa theo thứ tự id là cách rẻ nhất để mọi
+            // giao dịch trong hệ thống luôn khóa cùng một thứ tự.
+            /** @var array<int, array{line: BookingLine, item: CartItem}> $pairs */
+            $pairs = [];
+
+            foreach ($items as $item) {
+                $lines = $item->product_id
+                    ? $this->createBundleLines($campaign, $item)
+                    : array_filter([$this->createScreenLine($campaign, $item)]);
+
+                foreach ($lines as $line) {
+                    $pairs[] = ['line' => $line, 'item' => $item];
+                }
+            }
+
+            $holds = app(InventoryHoldService::class);
+
+            foreach (collect($pairs)->sortBy(fn ($p) => $p['line']->screen_id)->values() as $pair) {
+                $holds->consumeForBookingLine($pair['line'], $pair['item']);
+            }
+
+            $lineCount = count($pairs);
+
+            $campaign->update([
+                'total_screens'               => $lineCount,
+                'total_impressions_estimated' => (int) $campaign->bookingLines()->sum('estimated_impressions'),
+            ]);
 
             // Mark cart as converted
             $cart->update(['status' => 'converted']);
 
-            CampaignActivity::log($campaign, 'created', 'Campaign được tạo từ plan với ' . $items->count() . ' màn hình', $user->id);
+            CampaignActivity::log($campaign, 'created', 'Campaign được tạo từ plan với ' . $lineCount . ' màn hình', $user->id);
 
             return $campaign;
         });
+    }
+
+    /**
+     * Mọi màn hình mà các dòng giỏ này sẽ chạm tới, kể cả màn hình trong gói.
+     *
+     * @param  Collection<int, CartItem>  $items
+     * @return Collection<int, string>
+     */
+    private function screenIdsInCart(Collection $items): Collection
+    {
+        $expander    = app(BundleExpander::class);
+        $eligibility = app(PurchaseEligibilityService::class);
+
+        return $items->flatMap(function (CartItem $item) use ($expander, $eligibility) {
+            if (! $item->product_id) {
+                return $item->screen_id ? [$item->screen_id] : [];
+            }
+
+            $product = $eligibility->findPurchasableProduct($item->product_id);
+
+            return $expander->resolveScreens($item, $product)->pluck('id')->all();
+        })->unique()->values();
+    }
+
+    /**
+     * Một dòng giỏ mua màn hình lẻ → một dòng đặt chỗ.
+     */
+    private function createScreenLine(Campaign $campaign, CartItem $item): ?BookingLine
+    {
+        if (! $item->screen) {
+            return null;
+        }
+
+        // Giữ chỗ được giành ở bước sau, trong `createFromCart`, theo thứ tự id
+        // màn hình — xem chú thích ở đó về deadlock.
+        return BookingLine::create($this->linePayload($campaign, $item, $item->screen, [
+            'estimated_cost'        => (int) round((float) $item->estimated_cost),
+            'estimated_impressions' => (int) $item->estimated_impressions,
+            'booked_cpms'           => $item->booked_cpms,
+            'screen_count'          => $item->screen_count ?? 1,
+        ]));
+    }
+
+    /**
+     * Một dòng giỏ thuộc sản phẩm → N dòng đặt chỗ, mỗi màn hình một dòng.
+     *
+     * Trước đây gói thu về **một** dòng trỏ vào màn hình đầu tiên: SOV chỉ bị
+     * trừ ở một chỗ nên các màn hình còn lại vẫn bán tiếp, và toàn bộ tiền ghi
+     * cho owner của màn hình đầu. Xem `BundleExpander` để biết cách chia tiền.
+     *
+     * @return array<int, BookingLine>
+     */
+    private function createBundleLines(Campaign $campaign, CartItem $item): array
+    {
+        $expander = app(BundleExpander::class);
+
+        // Đọc lại thành phần gói từ sản phẩm, không tin danh sách đã lưu trong
+        // giỏ: owner có thể đã gỡ một màn hình khỏi gói từ lúc khách thêm giỏ.
+        // Màn hình không còn bán được thì cổng bán hàng ném 422 ở đây.
+        $product = app(PurchaseEligibilityService::class)->findPurchasableProduct($item->product_id);
+        $screens = $expander->resolveScreens($item, $product);
+        $buyMode = $expander->buyModeOf($item);
+
+        $totalVnd  = (int) round((float) $item->estimated_cost);
+        $unitPrice = (int) round((float) ($product->individual_price ?: $product->floor_price));
+
+        // Giá sản phẩm đổi giữa lúc thêm giỏ và lúc chốt đơn thì DỪNG LẠI.
+        //
+        // Owner đổi giá là tổng tiền đơn hàng đổi theo mà khách không hề xác
+        // nhận, và bản chụp gói vẫn ghi con số cũ — hai con số mâu thuẫn trong
+        // cùng một đơn (Codex R06). `assertCartRatesUnchanged` không bắt được
+        // vì nó chỉ so giá kho của màn hình, không so giá sản phẩm.
+        //
+        // Dùng CHUNG `productTotal` với lúc thêm giỏ và sửa giỏ: ba nơi tính
+        // ba kiểu là lý do guard này từng báo đổi giá khi không ai đổi gì
+        // (Codex R28).
+        $expected = $expander->productTotal($product, $buyMode, $screens);
+
+        if ($expected !== $totalVnd) {
+            throw new HttpException(409, sprintf(
+                'Giá của "%s" vừa thay đổi (%s ₫ → %s ₫). Vui lòng xem lại giỏ hàng trước khi gửi booking.',
+                $product->name,
+                number_format($totalVnd, 0, ',', '.'),
+                number_format($expected, 0, ',', '.'),
+            ));
+        }
+
+        $split = $expander->splitCost($totalVnd, $screens, $buyMode, $unitPrice);
+
+        $snapshotScreens = [];
+        $lines = [];
+
+        foreach ($screens->values() as $i => $screen) {
+            $amount      = (int) ($split['amounts'][$i] ?? 0);
+            $impressions = (int) ($screen->inventory?->weekly_impressions ?? 0);
+
+            $snapshotScreens[] = [
+                'screen_id'   => $screen->id,
+                'screen_name' => $screen->name,
+                'owner_id'    => $screen->owner_id,
+                'weight'      => (int) ($split['weights'][$i] ?? 0),
+                'amount_vnd'  => $amount,
+            ];
+
+            $lines[] = [
+                'screen'      => $screen,
+                'amount'      => $amount,
+                'impressions' => $impressions,
+            ];
+        }
+
+        $bundle = BookingLineBundle::create([
+            'campaign_id' => $campaign->id,
+            'product_id'  => $product->id,
+            'buy_mode'    => $buyMode,
+            'price_total' => $totalVnd,
+            'snapshot'    => [
+                'product_id'      => $product->id,
+                'product_name'    => $product->name,
+                'listing_mode'    => $product->listing_mode,
+                'buy_mode'        => $buyMode,
+                'price_total_vnd' => $totalVnd,
+                'split_method'    => $split['method'],
+                'screens'         => $snapshotScreens,
+                'captured_at'     => now()->toIso8601String(),
+            ],
+        ]);
+
+        $created = [];
+        foreach ($lines as $line) {
+            $bookingLine = BookingLine::create($this->linePayload($campaign, $item, $line['screen'], [
+                'product_id'            => $product->id,
+                'bundle_id'             => $bundle->id,
+                'estimated_cost'        => $line['amount'],
+                'estimated_impressions' => $line['impressions'],
+                // Gói tính theo giá gói, không theo số CPM của từng màn hình.
+                'booked_cpms'           => null,
+                'screen_count'          => 1,
+            ]));
+
+            $created[] = $bookingLine;
+        }
+
+        return $created;
+    }
+
+    /**
+     * Phần chung của một dòng đặt chỗ: ngày, SOV, và ảnh chụp giá lúc đặt.
+     *
+     * Giá được đóng băng ở đây theo kho của **chính màn hình đó**, không phải
+     * màn hình đầu tiên của gói.
+     */
+    private function linePayload(Campaign $campaign, CartItem $item, Screen $screen, array $overrides): array
+    {
+        $inv = $screen->inventory;
+        $pricingModel = $item->pricing_model ?? $inv?->pricing_model ?? 'io';
+
+        if ($pricingModel === 'both') {
+            $pricingModel = 'io';
+        }
+
+        return array_merge([
+            'campaign_id'           => $campaign->id,
+            'screen_id'             => $screen->id,
+            'owner_id'              => $screen->owner_id,
+            'start_date'            => $item->start_date,
+            'end_date'              => $item->end_date,
+            'spot_length'           => $item->spot_length,
+            'share_of_voice_pct'    => $item->share_of_voice_pct,
+            'floor_cpm_at_booking'  => $inv?->floor_cpm ?? 0,
+            'status'                => 'pending',
+            'pricing_model'         => $pricingModel,
+            // Mức chiết khấu đã áp đi theo đơn: hóa đơn phải giải thích được vì
+            // sao tiền không bằng đơn giá nhân số kỳ.
+            'duration_discount_pct' => (int) ($item->duration_discount_pct ?? 0),
+            'io_rate_at_booking'    => $pricingModel === 'io' ? ($inv?->io_rate ?? 0) : null,
+            'io_rate_unit'          => $pricingModel === 'io' ? ($inv?->io_rate_unit ?? 'month') : null,
+            'kpi_spots_per_day'     => $pricingModel === 'io' ? $inv?->io_kpi_spots_per_day : null,
+        ], $overrides);
     }
 
     /**
@@ -82,6 +304,10 @@ class CampaignService
     public function submit(Campaign $campaign, User $user): Campaign
     {
         abort_unless($campaign->isDraft(), 422, 'Campaign không ở trạng thái nháp');
+
+        // Kiểm lại lần cuối trước khi gửi cho media owner: giữa lúc tạo nháp và
+        // lúc gửi, owner có thể đã bị tạm ngưng hoặc màn hình đã bị gỡ bán.
+        $this->assertLinesStillPurchasable($campaign);
 
         $campaign->update([
             'status'       => Campaign::STATUS_PENDING,
@@ -105,12 +331,128 @@ class CampaignService
     }
 
     /**
+     * Mọi màn hình trong chiến dịch còn bán được không.
+     *
+     * Cổng bán hàng trước đây chỉ chặn ở bước thêm giỏ. Giữa thêm giỏ và gửi
+     * booking có thể cách nhau nhiều ngày — đủ để owner bị tạm ngưng hoặc màn
+     * hình bị tắt (audit F10, Codex R05: eligibility phải kiểm ở mọi chuyển
+     * trạng thái, không chỉ lúc thêm).
+     */
+    private function assertLinesStillPurchasable(Campaign $campaign): void
+    {
+        $eligibility = app(PurchaseEligibilityService::class);
+
+        $lines = $campaign->bookingLines()->with('screen')->get();
+
+        foreach ($lines as $line) {
+            if ($line->screen) {
+                $eligibility->assertScreenPurchasable($line->screen);
+            }
+        }
+    }
+
+    /**
+     * Giá đã chụp lúc thêm vào giỏ phải còn khớp giá hiện hành của kho.
+     *
+     * Dòng giỏ cũ chưa có ảnh chụp (tạo trước đợt này) thì bỏ qua kiểm — không
+     * hợp thức hoá chúng bằng cách coi như đã khớp, mà chỉ không chặn; chúng sẽ
+     * có ảnh chụp ngay lần cập nhật kế tiếp.
+     */
+    private function assertCartRatesUnchanged(Collection $items): void
+    {
+        $cart = app(CartService::class);
+        $changed = [];
+
+        foreach ($items as $item) {
+            if (empty($item->rate_snapshot)) {
+                continue;
+            }
+
+            // So sánh không phụ thuộc thứ tự khóa: MySQL lưu cột JSON dưới dạng đã
+            // chuẩn hoá và trả về với thứ tự khóa khác lúc ghi. Dùng === trực tiếp
+            // sẽ báo "giá đã đổi" cho mọi đơn hàng.
+            // Sắp khóa ở MỌI tầng, không chỉ tầng ngoài: ảnh chụp giá nay có
+            // `duration_discounts` là một mảng lồng, và MySQL chuẩn hoá thứ tự
+            // khóa cả bên trong. Chỉ ksort tầng ngoài thì mọi giỏ hàng có khai
+            // chiết khấu đều bị báo "giá đã đổi" — đúng lỗi đã mắc một lần với
+            // tầng ngoài.
+            $current  = self::normalizeKeys($cart->rateSnapshot($item->screen?->inventory));
+            $snapshot = self::normalizeKeys($item->rate_snapshot);
+
+            if ($current !== $snapshot) {
+                $changed[] = $item->screen?->name ?? $item->screen_id;
+            }
+        }
+
+        if ($changed !== []) {
+            throw new HttpException(409, sprintf(
+                'Giá của %s vừa thay đổi. Vui lòng xem lại giỏ hàng trước khi gửi booking.',
+                implode(', ', array_map(fn ($n) => "\"{$n}\"", $changed))
+            ));
+        }
+    }
+
+    /**
+     * Các owner mà người này được thay mặt quyết định duyệt / từ chối.
+     *
+     * Quyền đọc từ cùng một bảng với Filament và API (`OwnerUser::PERMISSIONS`
+     * qua `TenantPermission`) — không viết bộ luật thứ hai ở đây.
+     *
+     * @return array<int, string>
+     */
+    private function ownerIdsUserCanDecideFor(User $user): array
+    {
+        if ($user->hasRole('super_admin')) {
+            return Owner::query()->pluck('id')->all();
+        }
+
+        return $user->owners()
+            ->get()
+            ->filter(fn ($owner) => TenantPermission::for($user, $owner->id)->can('manage_bookings'))
+            ->pluck('id')
+            ->all();
+    }
+
+    private function assertCanDecideForOwner(User $user, string $ownerId): void
+    {
+        if (! in_array($ownerId, $this->ownerIdsUserCanDecideFor($user), true)) {
+            throw new HttpException(403, 'Bạn không có quyền duyệt hoặc từ chối đặt chỗ cho media owner này.');
+        }
+    }
+
+    /**
+     * Sắp thứ tự khóa của mảng ở mọi tầng, để so sánh không phụ thuộc thứ tự.
+     *
+     * Danh sách (khóa 0,1,2…) giữ nguyên thứ tự vì với bậc chiết khấu thì thứ
+     * tự phần tử là dữ liệu, không phải chuyện trình bày.
+     */
+    private static function normalizeKeys(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        $value = array_map(fn ($v) => self::normalizeKeys($v), $value);
+
+        if (! array_is_list($value)) {
+            ksort($value);
+        }
+
+        return $value;
+    }
+
+    /**
      * Approve specific booking lines by owner.
      */
     public function approveLines(Campaign $campaign, array $lineIds, User $user): void
     {
-        BookingLine::where('campaign_id', $campaign->id)
+        // Lọc theo owner mà người này thực sự được duyệt thay. Trước đây chỉ lọc
+        // theo id dòng trong cùng chiến dịch, nên thành viên của owner A duyệt
+        // được dòng của owner B miễn là biết id — một chiến dịch gồm màn hình
+        // của nhiều owner thì id của họ nằm ngay trên cùng một trang.
+        $affected = BookingLine::where('campaign_id', $campaign->id)
             ->whereIn('id', $lineIds)
+            ->whereIn('owner_id', $this->ownerIdsUserCanDecideFor($user))
             ->where('status', 'pending')
             ->update([
                 'status'      => 'approved',
@@ -118,8 +460,11 @@ class CampaignService
                 'approved_at' => now(),
             ]);
 
-        $approvedCount = count($lineIds);
-        CampaignActivity::log($campaign, 'approved', "$approvedCount màn hình được duyệt bởi " . $user->name, $user->id);
+        if ($affected === 0) {
+            throw new HttpException(403, 'Bạn không có quyền duyệt các dòng đặt chỗ này.');
+        }
+
+        CampaignActivity::log($campaign, 'approved', "$affected màn hình được duyệt bởi " . $user->name, $user->id);
 
         $this->checkAllLinesResolved($campaign);
     }
@@ -129,16 +474,20 @@ class CampaignService
      */
     public function rejectLines(Campaign $campaign, array $lineIds, string $reason, User $user): void
     {
-        BookingLine::where('campaign_id', $campaign->id)
+        $affected = BookingLine::where('campaign_id', $campaign->id)
             ->whereIn('id', $lineIds)
+            ->whereIn('owner_id', $this->ownerIdsUserCanDecideFor($user))
             ->where('status', 'pending')
             ->update([
                 'status'          => 'rejected',
                 'rejected_reason' => $reason,
             ]);
 
-        $rejectedCount = count($lineIds);
-        CampaignActivity::log($campaign, 'rejected', "$rejectedCount màn hình bị từ chối: $reason", $user->id);
+        if ($affected === 0) {
+            throw new HttpException(403, 'Bạn không có quyền từ chối các dòng đặt chỗ này.');
+        }
+
+        CampaignActivity::log($campaign, 'rejected', "$affected màn hình bị từ chối: $reason", $user->id);
 
         $this->checkAllLinesResolved($campaign);
     }
@@ -148,6 +497,8 @@ class CampaignService
      */
     public function approveAllForOwner(Campaign $campaign, string $ownerId, User $user): int
     {
+        $this->assertCanDecideForOwner($user, $ownerId);
+
         $lines = BookingLine::where('campaign_id', $campaign->id)
             ->where('owner_id', $ownerId)
             ->where('status', 'pending')
@@ -174,6 +525,8 @@ class CampaignService
      */
     public function rejectAllForOwner(Campaign $campaign, string $ownerId, string $reason, User $user): int
     {
+        $this->assertCanDecideForOwner($user, $ownerId);
+
         $lines = BookingLine::where('campaign_id', $campaign->id)
             ->where('owner_id', $ownerId)
             ->where('status', 'pending')

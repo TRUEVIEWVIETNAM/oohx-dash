@@ -75,6 +75,12 @@ class Campaign extends Model
         return $this->hasMany(Payment::class);
     }
 
+    /** Nghĩa vụ hoàn tiền sinh ra từ các dòng đặt chỗ bị hủy. */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class)->orderByDesc('created_at');
+    }
+
     public function activities(): HasMany
     {
         return $this->hasMany(CampaignActivity::class)->orderByDesc('created_at');

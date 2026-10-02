@@ -14,7 +14,7 @@ class WebhookController extends Controller
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'url'    => ['required', 'url', 'max:500'],
+            'url'    => ['required', 'url', 'max:500', new \App\Rules\SafePublicUrl()],
             'events' => ['required', 'array', 'min:1'],
             'events.*' => [Rule::in(['screen.created', 'screen.updated', 'screen.deactivated'])],
             'secret' => ['required', 'string', 'min:16'],

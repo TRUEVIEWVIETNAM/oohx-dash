@@ -1,0 +1,285 @@
+﻿diff --git a/app/Http/Controllers/Buyer/CartController.php b/app/Http/Controllers/Buyer/CartController.php
+index 7b6eb12..40faafa 100644
+--- a/app/Http/Controllers/Buyer/CartController.php
++++ b/app/Http/Controllers/Buyer/CartController.php
+@@ -14,6 +14,17 @@ class CartController extends Controller
+ {
+     public function __construct(private CartService $cartService) {}
+ 
++    /**
++     * Chặn khoảng ngày quá dài. Ngưỡng nằm ở config/pricing.php để nhìn thấy được,
++     * thay vì là một con số viết cứng trong validate.
++     */
++    private function maxRangeRule(): string
++    {
++        $max = (int) config('pricing.max_range_days', 365);
++
++        return 'before_or_equal:' . now()->addDays($max)->toDateString();
++    }
++
+     /**
+      * GET /cart — cart page
+      */
+@@ -54,13 +65,16 @@ public function add(Request $request): JsonResponse|RedirectResponse
+             $data = $request->validate([
+                 'screen_id'      => ['required', 'string', 'exists:screens,id'],
+                 'product_id'     => ['nullable', 'string', 'exists:products,id'],
+-                'start_date'     => ['nullable', 'date', 'after_or_equal:today'],
+-                'end_date'       => ['nullable', 'date', 'after:start_date'],
++                'start_date'     => ['required', 'date', 'after_or_equal:today'],
++                'end_date'       => ['required', 'date', 'after_or_equal:start_date', $this->maxRangeRule()],
+                 'quantity'       => ['nullable', 'integer', 'min:1'],
+                 'pricing_model'  => ['nullable', 'in:cpm,io'],
++                // Hai trường dưới chỉ là "mua thêm": máy chủ tự suy mức tối thiểu từ
++                // ngày, gửi thấp hơn sẽ bị từ chối chứ không bị âm thầm nâng lên.
+                 'booked_cpms'    => ['nullable', 'integer', 'min:1'],
+-                'screen_count'   => ['nullable', 'integer', 'min:1'],
+                 'duration_units' => ['nullable', 'integer', 'min:1'],
++                // screen_count đã bỏ: một dòng giỏ ứng với một màn hình, số thiết bị
++                // lấy từ cấu hình kho chứ không nhận từ client.
+             ]);
+ 
+             $item = $this->cartService->addItem($cart, $data['screen_id'], $data);
+@@ -89,8 +103,8 @@ public function update(Request $request, CartItem $item): JsonResponse|RedirectR
+         abort_unless($item->cart->user_id === $request->user()->id, 403);
+ 
+         $data = $request->validate([
+-            'start_date' => ['nullable', 'date'],
+-            'end_date' => ['nullable', 'date'],
++            'start_date' => ['nullable', 'date', 'after_or_equal:today'],
++            'end_date' => ['nullable', 'date', 'after_or_equal:start_date', $this->maxRangeRule()],
+             'share_of_voice_pct' => ['nullable', 'integer', 'min:1', 'max:100'],
+             'spot_length' => ['nullable', 'integer', 'min:5', 'max:60'],
+         ]);
+diff --git a/app/Models/CartItem.php b/app/Models/CartItem.php
+index 1524c8b..5959576 100644
+--- a/app/Models/CartItem.php
++++ b/app/Models/CartItem.php
+@@ -16,9 +16,13 @@ class CartItem extends Model
+         // Pricing model fields
+         'pricing_model', 'booked_cpms', 'screen_count',
+         'duration_units', 'duration_unit', 'unit_price',
++        // Giá đã chụp lúc thêm vào giỏ, để phát hiện giá đổi trước khi chốt đơn.
++        'rate_captured_at', 'rate_snapshot',
+     ];
+ 
+     protected $casts = [
++        'rate_captured_at' => 'datetime',
++        'rate_snapshot' => 'array',
+         'start_date' => 'date',
+         'end_date' => 'date',
+         'spot_length' => 'integer',
+diff --git a/app/Services/CampaignService.php b/app/Services/CampaignService.php
+index 7265ba7..6c217d0 100644
+--- a/app/Services/CampaignService.php
++++ b/app/Services/CampaignService.php
+@@ -10,7 +10,9 @@
+ use App\Models\User;
+ use App\Notifications\BookingResolvedNotification;
+ use App\Notifications\BookingSubmittedNotification;
++use Illuminate\Support\Collection;
+ use Illuminate\Support\Facades\DB;
++use Symfony\Component\HttpKernel\Exception\HttpException;
+ 
+ class CampaignService
+ {
+@@ -22,6 +24,11 @@ public function createFromCart(Organization $org, User $user, Cart $cart, array
+         return DB::transaction(function () use ($org, $user, $cart, $data) {
+             $items = $cart->items()->with(['screen.inventory', 'screen.owner'])->get();
+ 
++            // Giá trong giỏ phải còn khớp giá hiện hành. Nếu media owner vừa đổi giá,
++            // dừng lại để người mua xem con số mới rồi tự quyết — không im lặng lấy
++            // giá mới, cũng không giữ giá cũ đã hết hiệu lực (audit F-01, Codex R03).
++            $this->assertCartRatesUnchanged($items);
++
+             $campaign = Campaign::create([
+                 'organization_id'             => $org->id,
+                 'created_by'                  => $user->id,
+@@ -104,6 +111,44 @@ public function submit(Campaign $campaign, User $user): Campaign
+         return $campaign->fresh();
+     }
+ 
++    /**
++     * Giá đã chụp lúc thêm vào giỏ phải còn khớp giá hiện hành của kho.
++     *
++     * Dòng giỏ cũ chưa có ảnh chụp (tạo trước đợt này) thì bỏ qua kiểm — không
++     * hợp thức hoá chúng bằng cách coi như đã khớp, mà chỉ không chặn; chúng sẽ
++     * có ảnh chụp ngay lần cập nhật kế tiếp.
++     */
++    private function assertCartRatesUnchanged(Collection $items): void
++    {
++        $cart = app(CartService::class);
++        $changed = [];
++
++        foreach ($items as $item) {
++            if (empty($item->rate_snapshot)) {
++                continue;
++            }
++
++            // So sánh không phụ thuộc thứ tự khóa: MySQL lưu cột JSON dưới dạng đã
++            // chuẩn hoá và trả về với thứ tự khóa khác lúc ghi. Dùng === trực tiếp
++            // sẽ báo "giá đã đổi" cho mọi đơn hàng.
++            $current  = $cart->rateSnapshot($item->screen?->inventory);
++            $snapshot = $item->rate_snapshot;
++            ksort($current);
++            ksort($snapshot);
++
++            if ($current !== $snapshot) {
++                $changed[] = $item->screen?->name ?? $item->screen_id;
++            }
++        }
++
++        if ($changed !== []) {
++            throw new HttpException(409, sprintf(
++                'Giá của %s vừa thay đổi. Vui lòng xem lại giỏ hàng trước khi gửi booking.',
++                implode(', ', array_map(fn ($n) => "\"{$n}\"", $changed))
++            ));
++        }
++    }
++
+     /**
+      * Approve specific booking lines by owner.
+      */
+diff --git a/app/Services/CartService.php b/app/Services/CartService.php
+index 742206b..e962973 100644
+--- a/app/Services/CartService.php
++++ b/app/Services/CartService.php
+@@ -6,11 +6,14 @@
+ use App\Models\CartItem;
+ use App\Models\Screen;
+ use App\Models\User;
++use App\Services\Pricing\BillablePeriodCalculator;
++use Symfony\Component\HttpKernel\Exception\HttpException;
+ 
+ class CartService
+ {
+     public function __construct(
+         private readonly PurchaseEligibilityService $eligibility = new PurchaseEligibilityService(),
++        private readonly BillablePeriodCalculator $periods = new BillablePeriodCalculator(),
+     ) {
+     }
+ 
+@@ -152,10 +155,26 @@ public function addItem(Cart $cart, string $screenId, array $data = []): CartIte
+                 'duration_units' => $estimated['duration_units'] ?? 1,
+                 'duration_unit' => $estimated['duration_unit'] ?? ($inv?->io_rate_unit ?? 'month'),
+                 'unit_price' => $estimated['unit_price'] ?? 0,
++                'rate_captured_at' => now(),
++                'rate_snapshot' => $this->rateSnapshot($inv),
+             ]
+         );
+     }
+ 
++    /**
++     * Ảnh chụp giá của kho tại thời điểm tính. Dùng để phát hiện media owner đổi
++     * giá trong lúc giỏ hàng còn nằm đó.
++     */
++    public function rateSnapshot(?\App\Models\ScreenInventory $inv): array
++    {
++        return [
++            'pricing_model' => $inv?->pricing_model,
++            'floor_cpm'     => $inv?->floor_cpm !== null ? (string) $inv->floor_cpm : null,
++            'io_rate'       => $inv?->io_rate !== null ? (string) $inv->io_rate : null,
++            'io_rate_unit'  => $inv?->io_rate_unit,
++        ];
++    }
++
+     /**
+      * Remove item from cart.
+      */
+@@ -173,14 +192,14 @@ public function updateItem(CartItem $item, array $data): CartItem
+ 
+         // Preserve pricing_model from item (already resolved on addItem)
+         $pricingModel = $item->pricing_model ?? 'io';
++        // KHÔNG mang theo booked_cpms / duration_units / screen_count cũ.
++        // Trước đây đổi ngày dài thêm vẫn giữ số kỳ cũ, nên tiền không đổi trong khi
++        // chỗ giữ vẫn kéo dài (audit F-01). Ngày đổi thì giá phải tính lại từ ngày.
+         $mergedData = array_merge([
+             '_resolved_pricing_model' => $pricingModel,
+             'start_date' => $item->start_date->toDateString(),
+             'end_date' => $item->end_date->toDateString(),
+             'share_of_voice_pct' => $item->share_of_voice_pct,
+-            'booked_cpms' => $item->booked_cpms,
+-            'screen_count' => $item->screen_count,
+-            'duration_units' => $item->duration_units,
+         ], array_filter($data, fn ($v) => $v !== null));
+ 
+         $estimated = $this->estimateCost($screen, $mergedData);
+@@ -199,6 +218,8 @@ public function updateItem(CartItem $item, array $data): CartItem
+             'duration_unit' => $estimated['duration_unit'] ?? $item->duration_unit,
+             'unit_price' => $estimated['unit_price'] ?? $item->unit_price,
+             'notes' => $data['notes'] ?? $item->notes,
++            'rate_captured_at' => now(),
++            'rate_snapshot' => $this->rateSnapshot($screen?->inventory),
+         ]);
+ 
+         return $item->fresh();
+@@ -235,10 +256,26 @@ public function estimateCost(Screen $screen, array $data = []): array
+             // ── CPM: buyer mua số CPM, cost = đơn giá CPM × số CPM ──
+             $floorCpm = (float) ($inv?->floor_cpm ?? 0);
+ 
+-            // Buyer có thể chỉ định số CPM, hoặc tự tính từ impressions
+-            $bookedCpms = isset($data['booked_cpms'])
+-                ? (int) $data['booked_cpms']
+-                : (int) ceil($totalImpressions / 1000);
++            // Số CPM tối thiểu do MÁY CHỦ suy từ khoảng ngày và SOV.
++            // Client được phép mua THÊM, không được mua ít hơn mức đó.
++            $minimumCpms = $this->periods->minimumCpms($totalImpressions);
++            $bookedCpms  = $minimumCpms;
++
++            if (isset($data['booked_cpms'])) {
++                $requested = (int) $data['booked_cpms'];
++
++                // Không tự nâng lên rồi tính tiền: báo lỗi để người mua thấy con số
++                // thật và xác nhận lại (Codex R03).
++                if ($requested < $minimumCpms) {
++                    throw new HttpException(422, sprintf(
++                        'Khoảng ngày và tỷ lệ thời lượng đã chọn tương ứng tối thiểu %s CPM, không thể đặt %s CPM.',
++                        number_format($minimumCpms),
++                        number_format($requested)
++                    ));
++                }
++
++                $bookedCpms = $requested;
++            }
+ 
+             $cost = round($floorCpm * $bookedCpms, 2);
+ 
+@@ -255,16 +292,31 @@ public function estimateCost(Screen $screen, array $data = []): array
+         }
+ 
+         // ── I/O: cost = io_rate × screen_count × duration_units ──
+-        $ioRate = (float) ($inv?->io_rate ?? 0);
++        $ioRate   = (float) ($inv?->io_rate ?? 0);
+         $rateUnit = $inv?->io_rate_unit ?? 'month';
+-        $screenCount = (int) ($data['screen_count'] ?? 1);
+ 
+-        // Tính duration_units từ ngày hoặc từ input
++        // screen_count KHÔNG nhận từ client. Một dòng giỏ ứng với một màn hình;
++        // màn hình là cụm nhiều thiết bị thì lấy từ cấu hình kho, không phải từ request.
++        $screenCount = max(1, (int) ($inv?->effective_screen_count ?? 1));
++
++        // Số kỳ do MÁY CHỦ suy từ ngày. Client gửi ít hơn thì báo lỗi, không âm thầm sửa.
++        $derivedUnits  = $this->periods->ioUnits($start, $end, $rateUnit);
++        $durationUnits = $derivedUnits;
++
+         if (isset($data['duration_units'])) {
+-            $durationUnits = (int) $data['duration_units'];
+-        } else {
+-            $divisor = $rateUnit === 'week' ? 7 : 30;
+-            $durationUnits = max(1, (int) ceil($days / $divisor));
++            $requested = (int) $data['duration_units'];
++
++            if ($requested < $derivedUnits) {
++                throw new HttpException(422, sprintf(
++                    'Khoảng ngày %s – %s tương ứng %d kỳ, không thể đặt %d kỳ.',
++                    $start->format('d/m/Y'),
++                    $end->format('d/m/Y'),
++                    $derivedUnits,
++                    $requested
++                ));
++            }
++
++            $durationUnits = $requested;
+         }
+ 
+         $cost = round($ioRate * $screenCount * $durationUnits, 2);

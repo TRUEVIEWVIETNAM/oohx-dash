@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -28,7 +29,7 @@ class PolicyPagesTest extends TestCase
 
     // ── Mục 3: các trang chính sách tải được ─────────────────────────────────
 
-    /** @dataProvider policySlugs */
+    #[DataProvider('policySlugs')]
     public function test_trang_chinh_sach_tai_duoc(string $slug, string $title): void
     {
         $response = $this->get_('/' . $slug);

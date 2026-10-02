@@ -280,7 +280,7 @@ class FrontpageService
                     'inventory.vnCategory:id,thumb',
                     'owner:id,name,slug,cover_url',
                     'site:id,network_id,name,city,address,banner',
-                    'site.network:id,name,banner',
+                    'site.network:id,name,code,banner',
                     'products:id,slug,name,total_units,listing_mode',
                 ])
                 ->inRandomOrder()
@@ -446,7 +446,7 @@ class FrontpageService
                 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day',
                 'owner:id,name,slug,cover_url',
                 'site:id,network_id,name,city,address,banner',
-                'site.network:id,name,banner',
+                'site.network:id,name,code,banner',
                 'products:id,slug,name,total_units,listing_mode',
             ])
             ->orderByDesc('created_at')
@@ -578,7 +578,7 @@ class FrontpageService
                 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day',
                 'owner:id,name,slug,cover_url',
                 'site:id,network_id,name,city,address,banner',
-                'site.network:id,name,banner',
+                'site.network:id,name,code,banner',
                 'products:id,slug,name,total_units,listing_mode',
             ]);
 
@@ -593,13 +593,33 @@ class FrontpageService
             $formats = $this->getVenueTypesWithCounts();
             $cities = $this->getTopCities(20);
 
+            // Khoảng giá tính trên giá **quy đổi về VND**, không phải số thô.
+            //
+            // Hai bước, ghi lại cả hai vì bước đầu của tôi cũng sai:
+            //
+            // 1. Ban đầu MIN/MAX chạy trên toàn bộ `floor_cpm` bất kể đơn vị,
+            //    nên một hàng USD 2,50 kéo `min_price` xuống 2,50 và thanh lọc
+            //    giá thành vô nghĩa (Codex R39).
+            // 2. Tôi sửa bằng cách **loại hàng USD** ra khỏi phép tính. Sai
+            //    hướng khác: dữ liệu thật CÓ hàng USD (chốt 01/10/2026), nên
+            //    loại chúng là làm chúng vô hình với thanh lọc — người mua kéo
+            //    thanh giá rồi không bao giờ thấy những màn hình đó.
+            //
+            // Nay dùng đúng biểu thức quy đổi mà bộ lọc và phép sắp xếp dùng,
+            // nên khoảng giá và kết quả lọc không thể lệch nhau.
             $priceRange = DB::table('screen_inventory')
                 ->join('screens', 'screen_inventory.screen_id', '=', 'screens.id')
                 ->where('screens.active', true)
                 ->whereNull('screens.deleted_at')
                 ->where('screen_inventory.floor_cpm', '>', 0)
                 ->tap(fn ($q) => Owner::gateActive($q))
-                ->selectRaw('MIN(screen_inventory.floor_cpm) as min_price, MAX(screen_inventory.floor_cpm) as max_price')
+                ->selectRaw(
+                    'MIN(' . self::vndEquivalentSql() . ') as min_price, MAX(' . self::vndEquivalentSql() . ') as max_price',
+                    [
+                        (float) config('pricing.usd_vnd_rate', 25000),
+                        (float) config('pricing.usd_vnd_rate', 25000),
+                    ],
+                )
                 ->first();
 
             // Networks with screen counts
@@ -639,6 +659,9 @@ class FrontpageService
                 'owners'               => $owners,
                 'min_price'            => (float) ($priceRange->min_price ?? 0),
                 'max_price'            => (float) ($priceRange->max_price ?? 0),
+                // Nói ra đơn vị thay vì để người đọc tự đoán. Đây là VND **quy
+                // đổi**, gồm cả hàng niêm yết bằng USD — xem `vndEquivalentSql()`.
+                'price_currency'       => 'VND',
             ];
         });
     }
@@ -682,7 +705,7 @@ class FrontpageService
                     'inventory.vnCategory:id,thumb',
                     'owner:id,name,slug,cover_url',
                     'site:id,network_id,name,city,address,banner',
-                    'site.network:id,name,banner',
+                    'site.network:id,name,code,banner',
                 ])
                 ->inRandomOrder()
                 ->limit($limit)
@@ -692,10 +715,22 @@ class FrontpageService
 
     // ── Phase 5: Map ──────────────────────────────────────
 
-    public function getMapPins(Request $request): Collection
+    /**
+     * Pin bản đồ.
+     *
+     * `$viewport` là khung nhìn `['north','south','east','west']`. Trang Blade
+     * gọi không kèm khung nhìn nên **hành vi cũ giữ nguyên**; `/api/v2` bắt
+     * buộc phải có, và chỗ bắt buộc nằm ở tầng request chứ không ở đây — như
+     * vậy một đường gọi quên khung nhìn là lỗi 422 nhìn thấy được, không phải
+     * một truy vấn âm thầm trả cả kho.
+     *
+     * `$limit` là giới hạn cứng số pin. Khi bị cắt thì phải có thứ tự xác
+     * định, nếu không mỗi lần kéo bản đồ lại ra một tập pin khác nhau mà
+     * không vì lý do gì.
+     */
+    public function getMapPins(Request $request, ?array $viewport = null, ?int $limit = null): Collection
     {
-        return $this->buildScreenQuery($request)
-            ->whereHas('site', fn ($q) => $q->whereNotNull('lat')->whereNotNull('lon')->where('lat', '!=', 0)->where('lon', '!=', 0))
+        $query = $this->mapPinQuery($request, $viewport)
             ->with([
                 'spec:screen_id,photo_url,photos,width_cm,height_cm',
                 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day',
@@ -704,8 +739,54 @@ class FrontpageService
                 'site:id,network_id,name,lat,lon,city,address,banner',
                 'site.network:id,name,code,banner',
                 'products:id,slug,name,total_units,listing_mode',
-            ])
-            ->get();
+            ]);
+
+        if ($limit !== null) {
+            $query->orderBy('screens.id')->limit($limit);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Đếm pin khớp bộ lọc và khung nhìn — để client biết mình đang bị cắt bao
+     * nhiêu và cần thu nhỏ khung nhìn tới đâu. Dùng chung đúng một builder với
+     * `getMapPins()`, nên con số đếm không thể lệch khỏi tập trả về.
+     */
+    public function countMapPins(Request $request, ?array $viewport = null): int
+    {
+        return $this->mapPinQuery($request, $viewport)->count();
+    }
+
+    /**
+     * Builder dùng chung cho pin bản đồ: cùng bộ lọc với danh sách, thêm điều
+     * kiện có toạ độ và (nếu có) khung nhìn.
+     */
+    private function mapPinQuery(Request $request, ?array $viewport = null)
+    {
+        return $this->buildScreenQuery($request)
+            ->whereHas('site', function ($q) use ($viewport) {
+                $q->whereNotNull('lat')->whereNotNull('lon')
+                    ->where('lat', '!=', 0)->where('lon', '!=', 0);
+
+                if ($viewport === null) {
+                    return;
+                }
+
+                $q->whereBetween('lat', [$viewport['south'], $viewport['north']]);
+
+                // Khung nhìn vắt qua kinh tuyến 180 thì `west` lớn hơn `east`
+                // và `whereBetween` trả rỗng. Dữ liệu hiện chỉ có Việt Nam nên
+                // ca này không xảy ra, nhưng để `whereBetween` trần ở đây là
+                // để lại một cái bẫy im lặng cho người dùng bản đồ thế giới.
+                if ($viewport['west'] <= $viewport['east']) {
+                    $q->whereBetween('lon', [$viewport['west'], $viewport['east']]);
+                } else {
+                    $q->where(fn ($or) => $or
+                        ->where('lon', '>=', $viewport['west'])
+                        ->orWhere('lon', '<=', $viewport['east']));
+                }
+            });
     }
 
     /**
@@ -725,7 +806,7 @@ class FrontpageService
         }
 
         $screens = $query
-            ->with(['spec:screen_id,photo_url,photos,width_cm,height_cm', 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day', 'inventory.vnCategory:id,thumb', 'owner:id,name,slug,logo_url,cover_url', 'site:id,network_id,name,lat,lon,city,address,banner', 'site.network:id,name,banner'])
+            ->with(['spec:screen_id,photo_url,photos,width_cm,height_cm', 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day', 'inventory.vnCategory:id,thumb', 'owner:id,name,slug,logo_url,cover_url', 'site:id,network_id,name,lat,lon,city,address,banner', 'site.network:id,name,code,banner'])
             ->inRandomOrder()
             ->limit($limit)
             ->get();
@@ -942,11 +1023,20 @@ class FrontpageService
             ->when(! empty($ownerSlugs = $this->resolveArrayParam($request, 'owner')),
                 fn ($q) => $q->whereHas('owner', fn ($oq) => $oq->whereIn('slug', $ownerSlugs))
             )
+            // Lọc theo giá **quy đổi về VND**: khoảng giá người dùng gõ là VND,
+            // nhưng `floor_cpm` có hàng USD, nên so trực tiếp thì một màn hình
+            // 2,50 USD lọt vào khoảng "dưới 1.000 ₫" (Codex R39).
             ->when($request->filled('min_price'),
-                fn ($q) => $q->whereHas('inventory', fn ($iq) => $iq->where('floor_cpm', '>=', $request->input('min_price')))
+                fn ($q) => $q->whereHas('inventory', fn ($iq) => $iq->whereRaw(
+                    self::vndEquivalentSql() . ' >= ?',
+                    [(float) config('pricing.usd_vnd_rate', 25000), (float) $request->input('min_price')],
+                ))
             )
             ->when($request->filled('max_price'),
-                fn ($q) => $q->whereHas('inventory', fn ($iq) => $iq->where('floor_cpm', '<=', $request->input('max_price')))
+                fn ($q) => $q->whereHas('inventory', fn ($iq) => $iq->whereRaw(
+                    self::vndEquivalentSql() . ' <= ?',
+                    [(float) config('pricing.usd_vnd_rate', 25000), (float) $request->input('max_price')],
+                ))
             )
             ->when($request->filled('site'),
                 fn ($q) => $q->where('site_id', $request->input('site'))
@@ -1062,13 +1152,36 @@ class FrontpageService
         });
     }
 
+    /**
+     * Biểu thức SQL quy đổi `floor_cpm` về VND, **chỉ để so sánh và sắp xếp**.
+     *
+     * Một định nghĩa duy nhất cho lọc giá, sắp xếp giá và khoảng giá của bộ
+     * lọc — ba chỗ dùng ba công thức là ba kết quả khác nhau cho cùng một câu
+     * hỏi. Tỷ giá truyền vào dưới dạng binding, không nhúng vào chuỗi SQL.
+     *
+     * Hàng `NULL` currency coi là VND vì cột đó mặc định VND.
+     */
+    private static function vndEquivalentSql(string $table = 'screen_inventory'): string
+    {
+        return "(CASE WHEN {$table}.floor_cpm_currency = 'USD' THEN {$table}.floor_cpm * ? ELSE {$table}.floor_cpm END)";
+    }
+
     private function applySort($query, Request $request)
     {
         $sort = $request->input('sort');
 
         if ($sort === 'price_asc' || $sort === 'price_desc') {
+            // Sắp xếp theo giá **quy đổi về VND**, không theo số thô.
+            //
+            // `floor_cpm_currency` có hàng USD trong dữ liệu thật, nên so trực
+            // tiếp hai đơn vị cho ra thứ tự vô nghĩa: 2,50 USD xếp dưới
+            // 1.000 ₫ (Codex R39). Quy đổi chỉ để so sánh; giá hiển thị vẫn
+            // giữ nguyên đơn vị gốc.
             $query->leftJoin('screen_inventory as sort_inv', 'screens.id', '=', 'sort_inv.screen_id')
-                  ->orderBy('sort_inv.floor_cpm', $sort === 'price_asc' ? 'asc' : 'desc')
+                  ->orderByRaw(
+                      self::vndEquivalentSql('sort_inv') . ' ' . ($sort === 'price_asc' ? 'asc' : 'desc'),
+                      [(float) config('pricing.usd_vnd_rate', 25000)],
+                  )
                   ->select('screens.*');
 
             return $query;

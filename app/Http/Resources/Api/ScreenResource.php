@@ -36,6 +36,17 @@ class ScreenResource extends JsonResource
                 'width_m'   => $spec?->width_cm ? round($spec->width_cm / 100, 2) : null,
                 'height_m'  => $spec?->height_cm ? round($spec->height_cm / 100, 2) : null,
             ],
+            // F09 — CỐ Ý KHÔNG SỬA Ở ĐÂY.
+            //
+            // Tên trường nói "giá một slot" nhưng giá trị là `floor_cpm`, tức
+            // giá cho 1.000 lượt hiển thị. Đối tác đang đọc trường này, và
+            // /api/v1 là hợp đồng: đổi giá trị hoặc bỏ trường đi là làm sai số
+            // tiền trong hệ thống của họ mà họ không được báo trước.
+            //
+            // Cách đúng là đặt tên đúng ở /api/v2 (`floor_cpm_vnd` cho phần
+            // được phép thấy) rồi thông báo cho đối tác chuyển sang, và giữ
+            // trường này cho tới khi không còn ai đọc. Đang chờ trả lời câu hỏi
+            // "đối tác nào đang dùng API" — xem STATUS.md.
             'price_per_slot_vnd' => $inventory?->floor_cpm ? (int) $inventory->floor_cpm : 0,
             'operating_hours'    => $this->resolveOperatingHours($inventory),
             'min_booking_days'   => 7,

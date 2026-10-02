@@ -57,7 +57,8 @@
                         <div class="mp-card-info">
                             <div class="mp-card-nm">{{ $pin->name }}</div>
                             @if($pinPrice > 0)
-                            <div class="mp-card-pr">{{ number_format($pinPrice, 0, ',', '.') }} ₫<span>/{{ $pin->inventory?->display_price_unit ?? 'tháng' }}</span></div>
+                            {{-- `display_price_formatted` mang sẵn đúng đơn vị tiền: `floor_cpm_currency` có hàng USD trong dữ liệu thật, dán "₫" cứng là in sai (Codex R39). --}}
+                            <div class="mp-card-pr">{{ $pin->inventory?->display_price_formatted }}<span>/{{ $pin->inventory?->display_price_unit ?? 'tháng' }}</span></div>
                             @else
                             <div class="mp-card-pr mp-card-pr-quote">Liên hệ báo giá</div>
                             @endif
@@ -86,11 +87,15 @@
                         </div>
                         <div style="display:flex;align-items:center;gap:8px">
                             @if($pinPrice > 0)
-                            <div class="mp-card-pr">{{ number_format($pinPrice, 0, ',', '.') }} ₫<span>/{{ $pin->inventory?->display_price_unit ?? 'tháng' }}</span></div>
+                            {{-- `display_price_formatted` mang sẵn đúng đơn vị tiền: `floor_cpm_currency` có hàng USD trong dữ liệu thật, dán "₫" cứng là in sai (Codex R39). --}}
+                            <div class="mp-card-pr">{{ $pin->inventory?->display_price_formatted }}<span>/{{ $pin->inventory?->display_price_unit ?? 'tháng' }}</span></div>
                             @else
                             <div class="mp-card-pr mp-card-pr-quote">Liên hệ báo giá</div>
                             @endif
-                            <span class="badge b-grn" style="font-size:11px;padding:3px 8px">Còn trống</span>
+                            {{-- ĐÃ GỠ badge "Còn trống": nó in vô điều kiện cho mọi pin,
+                                 kể cả màn hình đã bán kín (audit F-15). Tính suất thật cho
+                                 từng pin là một truy vấn mỗi pin, quá đắt cho khung nhìn bản
+                                 đồ — nên để trang chi tiết trả lời, nơi con số là thật. --}}
                         </div>
                     </div>
                 </div>

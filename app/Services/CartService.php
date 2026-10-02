@@ -6,9 +6,22 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Screen;
 use App\Models\User;
+use App\Services\Booking\BundleExpander;
+use App\Services\Pricing\BillablePeriodCalculator;
+use App\Services\Pricing\DurationDiscount;
+use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class CartService
 {
+    public function __construct(
+        private readonly PurchaseEligibilityService $eligibility = new PurchaseEligibilityService(),
+        private readonly BillablePeriodCalculator $periods = new BillablePeriodCalculator(),
+        private readonly InventoryHoldService $holds = new InventoryHoldService(),
+        private readonly DurationDiscount $discounts = new DurationDiscount(),
+    ) {
+    }
+
     /**
      * Get or create active cart for user.
      */
@@ -31,7 +44,19 @@ class CartService
      */
     public function addProduct(Cart $cart, string $productId, array $data = []): CartItem
     {
-        $product = \App\Models\Product::with('screens.inventory')->findOrFail($productId);
+        // Qua cổng bán hàng, không findOrFail trần: sản phẩm bị gỡ/owner tạm ngưng
+        // vẫn có thể bị đặt nếu biết ID (audit F10).
+        $product = $this->eligibility->findPurchasableProduct($productId);
+
+        // Cùng lý do như `refuseNonVndPricing()`: `products.currency` có thể
+        // không phải VND, nhưng `cart_items.estimated_cost` không mang đơn vị,
+        // nên giá sản phẩm USD sẽ bị mọi bước sau coi là VND.
+        if (($product->currency ?: 'VND') !== 'VND') {
+            throw new HttpException(422, sprintf(
+                'Sản phẩm này niêm yết giá bằng %s. Hệ thống chưa có chính sách tỷ giá để xuất hóa đơn ngoài VND, nên chưa đặt trực tuyến được — vui lòng liên hệ để được báo giá.',
+                $product->currency,
+            ));
+        }
 
         $selectedScreenIds = $data['selected_screen_ids'] ?? null;
         $buyMode = $data['buy_mode'] ?? ($product->listing_mode === 'package_only' ? 'package' : 'individual');
@@ -39,37 +64,52 @@ class CartService
         $endDate = $data['end_date'] ?? now()->addDays(37)->toDateString();
         $sovPct = $data['share_of_voice_pct'] ?? 100;
 
+        // Cổng bán hàng chốt tập màn hình: kiểm thuộc sản phẩm, kiểm từng màn hình
+        // còn bán được, kiểm min/max. Không tin danh sách client gửi.
+        $screens = $this->eligibility->resolveProductScreens(
+            $product,
+            $buyMode,
+            is_array($selectedScreenIds) ? $selectedScreenIds : null
+        );
+
+        // Giá sản phẩm đi qua BundleExpander — nguồn duy nhất cho cả thêm giỏ,
+        // sửa giỏ và chốt đơn. Xem chú thích ở `productTotal`.
+        $cost = app(BundleExpander::class)->productTotal($product, $buyMode, $screens);
+
         if ($buyMode === 'package') {
             $quantity = 1;
-            $cost = (float) $product->floor_price;
             $impressions = 0;
             $selectedScreenIds = null;
         } else {
-            $screenIds = is_array($selectedScreenIds) ? $selectedScreenIds : [];
-            $quantity = max(1, count($screenIds));
-            $unitPrice = (float) ($product->individual_price ?: $product->floor_price);
-            $cost = $unitPrice * $quantity;
-            $impressions = 0;
-
-            foreach ($product->screens as $screen) {
-                if (in_array($screen->id, $screenIds)) {
-                    $impressions += $screen->inventory?->weekly_impressions ?? 0;
-                }
-            }
+            $quantity = $screens->count();
+            $impressions = (int) $screens->sum(fn ($s) => $s->inventory?->weekly_impressions ?? 0);
+            // Ghi lại đúng tập đã được kiểm, không phải mảng thô từ request.
+            $selectedScreenIds = $screens->pluck('id')->all();
         }
 
         // Determine pricing model from first screen's inventory
-        $firstScreen = $product->screens->first();
+        $firstScreen = $screens->first();
         $inv = $firstScreen?->inventory;
         $pricingModel = $inv?->pricing_model ?? 'io';
         if ($pricingModel === 'both') {
             $pricingModel = 'io'; // Products default to I/O
         }
 
-        return CartItem::updateOrCreate(
+        return DB::transaction(function () use ($cart, $productId, $firstScreen, $screens, $buyMode, $startDate, $endDate, $data, $quantity, $selectedScreenIds, $sovPct, $impressions, $cost, $pricingModel, $inv) {
+            // Khóa mọi màn hình của gói TRƯỚC khi chèn, theo thứ tự id — xem
+            // chú thích ở `addItem` và `InventoryHoldService::lockScreen`.
+            foreach ($screens->sortBy('id') as $screenToLock) {
+                $this->holds->lockScreen($screenToLock->id);
+            }
+
+            $item = CartItem::updateOrCreate(
             ['cart_id' => $cart->id, 'product_id' => $productId],
             [
                 'screen_id' => $firstScreen?->id,
+                // Ghi thẳng kiểu mua: lúc chốt đơn phải mở gói ra thành nhiều
+                // dòng, và việc đó cần biết chắc khách mua cả gói hay mua lẻ,
+                // không suy đoán từ danh sách màn hình đã chọn.
+                'buy_mode' => $buyMode,
                 'start_date' => $startDate,
                 'end_date' => $endDate,
                 'spot_length' => $data['spot_length'] ?? 15,
@@ -87,7 +127,25 @@ class CartService
                 'duration_units' => 1,
                 'duration_unit' => $inv?->io_rate_unit ?? 'month',
             ]
-        );
+            );
+
+            // Nhả hết giữ chỗ cũ trước: khách có thể vừa đổi tập màn hình đã
+            // chọn, và những màn hình bị bỏ ra phải trả suất về kho ngay.
+            $this->holds->releaseForCartItem($item->fresh());
+
+            // Một gói chiếm suất trên TẤT CẢ màn hình của nó, không chỉ màn hình
+            // đầu tiên. Thiếu vòng lặp này thì các màn hình còn lại vẫn báo
+            // trống và bán tiếp cho người khác.
+            //
+            // Sắp theo id trước khi giành: mỗi lần giành là một lần khóa hàng
+            // màn hình, và hai gói có màn hình chung nhưng thứ tự khác nhau sẽ
+            // khóa chéo rồi deadlock. Thứ tự id là thứ tự chung của toàn hệ thống.
+            foreach ($screens->sortBy('id') as $screen) {
+                $this->holds->acquireForCartItem($item->fresh(), $screen, (int) $sovPct);
+            }
+
+            return $item->fresh();
+        });
     }
 
     /**
@@ -99,7 +157,7 @@ class CartService
      */
     public function addItem(Cart $cart, string $screenId, array $data = []): CartItem
     {
-        $screen = Screen::with('inventory')->findOrFail($screenId);
+        $screen = $this->eligibility->findPurchasableScreen($screenId);
         $inv = $screen->inventory;
         $invModel = $inv?->pricing_model ?? 'io';
 
@@ -114,6 +172,8 @@ class CartService
         }
         $data['_resolved_pricing_model'] = $pricingModel;
 
+        $this->refuseNonVndPricing($screen, $pricingModel);
+
         $startDate = $data['start_date'] ?? now()->addDays(7)->toDateString();
         $endDate = $data['end_date'] ?? now()->addDays(37)->toDateString();
         $spotLength = $data['spot_length'] ?? $inv?->spot_length ?? 15;
@@ -121,7 +181,19 @@ class CartService
 
         $estimated = $this->estimateCost($screen, $data);
 
-        return CartItem::updateOrCreate(
+        // Trong transaction: nếu suất đã hết thì dòng giỏ không được nằm lại.
+        // Không có transaction thì updateOrCreate đã ghi xong trước khi giữ chỗ
+        // báo 422, và khách thấy một dòng giỏ không có suất nào đứng sau.
+        return DB::transaction(function () use ($cart, $screenId, $screen, $data, $estimated, $startDate, $endDate, $spotLength, $sovPct, $pricingModel, $inv) {
+            // Khóa màn hình TRƯỚC khi chèn dòng giỏ.
+            //
+            // `cart_items` có khóa ngoại tới `screens`, nên chèn trước là nhận
+            // shared lock trên hàng màn hình; xin exclusive sau đó là nâng cấp
+            // khóa, và hai người cùng thêm một màn hình vào giỏ sẽ khóa chéo
+            // nhau (Codex R05). Thứ tự này là thứ duy nhất tránh được.
+            $this->holds->lockScreen($screenId);
+
+            $item = CartItem::updateOrCreate(
             ['cart_id' => $cart->id, 'screen_id' => $screenId],
             [
                 'product_id' => $data['product_id'] ?? null,
@@ -142,8 +214,59 @@ class CartService
                 'duration_units' => $estimated['duration_units'] ?? 1,
                 'duration_unit' => $estimated['duration_unit'] ?? ($inv?->io_rate_unit ?? 'month'),
                 'unit_price' => $estimated['unit_price'] ?? 0,
+                'duration_discount_pct' => $estimated['duration_discount_pct'] ?? 0,
+                'rate_captured_at' => now(),
+                'rate_snapshot' => $this->rateSnapshot($inv),
             ]
-        );
+            );
+
+            // Giành suất ngay khi bỏ vào giỏ. Đây là chỗ duy nhất quyết định
+            // "suất này của ai" — trước đây không có chỗ nào cả.
+            $this->holds->acquireForCartItem($item->fresh(), $screen, (int) $sovPct);
+
+            return $item->fresh();
+        });
+    }
+
+    /**
+     * Tập màn hình mà một dòng giỏ đang chiếm suất.
+     *
+     * Dòng mua lẻ: đúng một màn hình. Dòng thuộc gói: **toàn bộ** màn hình của
+     * gói, đọc lại từ sản phẩm chứ không tin danh sách đã lưu.
+     *
+     * @return \Illuminate\Support\Collection<int, Screen>
+     */
+    private function screensToHold(CartItem $item, ?Screen $fallback): \Illuminate\Support\Collection
+    {
+        if (! $item->product_id) {
+            return collect(array_filter([$fallback]));
+        }
+
+        $expander = app(\App\Services\Booking\BundleExpander::class);
+        $product  = $this->eligibility->findPurchasableProduct($item->product_id);
+
+        // Sắp theo id: nhiều hàng bị khóa trong cùng một transaction thì thứ
+        // tự khóa phải cố định, nếu không hai đơn có màn hình chung sẽ khóa
+        // chéo nhau.
+        return $expander->resolveScreens($item, $product)->sortBy('id')->values();
+    }
+
+    /**
+     * Ảnh chụp giá của kho tại thời điểm tính. Dùng để phát hiện media owner đổi
+     * giá trong lúc giỏ hàng còn nằm đó.
+     */
+    public function rateSnapshot(?\App\Models\ScreenInventory $inv): array
+    {
+        return [
+            'pricing_model' => $inv?->pricing_model,
+            'floor_cpm'     => $inv?->floor_cpm !== null ? (string) $inv->floor_cpm : null,
+            'io_rate'       => $inv?->io_rate !== null ? (string) $inv->io_rate : null,
+            'io_rate_unit'  => $inv?->io_rate_unit,
+            // Bậc chiết khấu cũng là giá: owner sửa bậc trong lúc giỏ còn nằm đó
+            // thì tiền đổi, nên nó phải nằm trong ảnh chụp để bước chốt đơn phát
+            // hiện được.
+            'duration_discounts' => $inv?->duration_discounts,
+        ];
     }
 
     /**
@@ -151,7 +274,13 @@ class CartService
      */
     public function removeItem(CartItem $item): void
     {
-        $item->delete();
+        DB::transaction(function () use ($item) {
+            // Nhả suất về kho ngay, không chờ hết hạn. Khóa ngoại có cascade nên
+            // giữ chỗ cũng biến mất theo, nhưng ghi 'released' tường minh để lịch
+            // sử đọc được: suất này đã được nhả vì khách bỏ khỏi giỏ.
+            $this->holds->releaseForCartItem($item);
+            $item->delete();
+        });
     }
 
     /**
@@ -161,21 +290,51 @@ class CartService
     {
         $screen = $item->screen()->with('inventory')->first();
 
+        // Sửa dòng giỏ cũng phải qua cổng: màn hình có thể đã bị gỡ bán kể từ lúc
+        // thêm vào (audit F10 / Codex R05).
+        if ($screen) {
+            $this->eligibility->assertScreenPurchasable($screen);
+        }
+
         // Preserve pricing_model from item (already resolved on addItem)
         $pricingModel = $item->pricing_model ?? 'io';
+        // KHÔNG mang theo booked_cpms / duration_units / screen_count cũ.
+        // Trước đây đổi ngày dài thêm vẫn giữ số kỳ cũ, nên tiền không đổi trong khi
+        // chỗ giữ vẫn kéo dài (audit F-01). Ngày đổi thì giá phải tính lại từ ngày.
         $mergedData = array_merge([
             '_resolved_pricing_model' => $pricingModel,
             'start_date' => $item->start_date->toDateString(),
             'end_date' => $item->end_date->toDateString(),
             'share_of_voice_pct' => $item->share_of_voice_pct,
-            'booked_cpms' => $item->booked_cpms,
-            'screen_count' => $item->screen_count,
-            'duration_units' => $item->duration_units,
         ], array_filter($data, fn ($v) => $v !== null));
 
         $estimated = $this->estimateCost($screen, $mergedData);
 
-        $item->update([
+        // Dòng giỏ thuộc SẢN PHẨM thì tiền theo giá sản phẩm, không theo giá
+        // kho của màn hình đầu tiên.
+        //
+        // Trước đây `updateItem` ghi đè `estimated_cost` bằng giá kho ngay cả
+        // với dòng sản phẩm, nên sửa một dòng giỏ dạng sản phẩm là làm lệch
+        // con số mà guard lúc chốt đơn đang canh — và chính guard tôi thêm ở
+        // R06 chặn đường mua hàng bình thường (Codex R28).
+        if ($item->product_id) {
+            $expander = app(BundleExpander::class);
+            $product  = $this->eligibility->findPurchasableProduct($item->product_id);
+            $buyMode  = $expander->buyModeOf($item);
+            $screens  = $expander->resolveScreens($item, $product);
+
+            $estimated['cost']         = $expander->productTotal($product, $buyMode, $screens);
+            $estimated['unit_price']   = $estimated['cost'];
+            $estimated['screen_count'] = $buyMode === 'package' ? 1 : $screens->count();
+            $estimated['impressions']  = $buyMode === 'package'
+                ? 0
+                : (int) $screens->sum(fn ($s) => $s->inventory?->weekly_impressions ?? 0);
+        }
+
+        // Sửa dòng giỏ và đổi suất đang giữ phải cùng thành hoặc cùng không:
+        // nếu khoảng ngày mới đã có người lấy, dòng giỏ không được đổi theo.
+        return DB::transaction(function () use ($item, $mergedData, $data, $estimated, $pricingModel, $screen) {
+            $item->update([
             'start_date' => $mergedData['start_date'],
             'end_date' => $mergedData['end_date'],
             'spot_length' => $data['spot_length'] ?? $item->spot_length,
@@ -188,10 +347,28 @@ class CartService
             'duration_units' => $estimated['duration_units'] ?? $item->duration_units,
             'duration_unit' => $estimated['duration_unit'] ?? $item->duration_unit,
             'unit_price' => $estimated['unit_price'] ?? $item->unit_price,
+            'duration_discount_pct' => $estimated['duration_discount_pct'] ?? 0,
             'notes' => $data['notes'] ?? $item->notes,
-        ]);
+            'rate_captured_at' => now(),
+            'rate_snapshot' => $this->rateSnapshot($screen?->inventory),
+            ]);
 
-        return $item->fresh();
+            // Ngày hoặc SOV đổi thì suất đang giữ cũng phải đổi theo. Giành lại
+            // ở khoảng ngày mới: khoảng mới đã có người lấy thì 422 ở đây và
+            // toàn bộ thay đổi phía trên bị hủy.
+            //
+            // Với dòng giỏ thuộc GÓI thì phải giành lại cho **mọi** màn hình
+            // của gói, không chỉ màn hình đầu. Trước đây chỉ đổi hold của
+            // `item->screen_id`, nên các màn hình còn lại giữ nguyên ngày cũ:
+            // khách sửa ngày sang tháng sau vẫn "giữ" tháng trước, rồi lúc
+            // chốt đơn nhánh chuyển hold chỉ đòi hai khoảng GIAO NHAU nên nó
+            // nhận luôn hold cũ và bỏ qua phép kiểm sức chứa (Codex R03).
+            foreach ($this->screensToHold($item->fresh(), $screen) as $target) {
+                $this->holds->acquireForCartItem($item->fresh(), $target);
+            }
+
+            return $item->fresh();
+        });
     }
 
     /**
@@ -200,6 +377,48 @@ class CartService
      * CPM model:  cost = floor_cpm × booked_cpms
      * I/O model:  cost = io_rate × screen_count × duration_units
      */
+    /**
+     * Chặn mua một màn hình niêm yết CPM bằng đơn vị tiền khác VND.
+     *
+     * **Lý do, và nó là chuyện tiền thật.** Đường tiền không mang đơn vị:
+     * `cart_items.estimated_cost` và `booking_lines.estimated_cost` **không có
+     * cột currency** (chỉ `campaigns.currency` có, và mặc định VND). Nhánh CPM
+     * của `estimateCost()` tính `floor_cpm × booked_cpms` trên **số thô**, nên
+     * một màn hình niêm yết 2,50 USD/CPM mua 1.000 CPM sẽ ra `2.500` rồi được
+     * mọi bước sau coi là **2.500 ₫** — hóa đơn thấp hơn giá thật khoảng
+     * 25.000 lần.
+     *
+     * **Vì sao chặn chứ không tự quy đổi.** Quy đổi ở đây là đặt ra một chính
+     * sách giá: tỷ giá nào, chụp lại lúc nào, ai chịu rủi ro khi tỷ giá đổi
+     * giữa lúc thêm giỏ và lúc xuất hóa đơn. Đó là quyết định của nghiệp vụ,
+     * không phải của một dòng code. Tỷ giá ở `config('pricing.usd_vnd_rate')`
+     * chỉ dùng để **so sánh và sắp xếp**, cố ý không dùng để tính tiền.
+     *
+     * Chặn làm mất một lượt bán; tự quy đổi sai làm mất tiền và tạo một hóa
+     * đơn sai mà không ai thấy. Đây là cùng lựa chọn mà `tierFor()` đã ghi:
+     * "thà chặt tay còn hơn tự ý hứa hoàn tiền thay media owner".
+     *
+     * Màn hình bán theo kỳ (`io`) không bị chặn: `io_rate` không có cột
+     * currency nên nó là VND theo định nghĩa.
+     */
+    private function refuseNonVndPricing(Screen $screen, string $pricingModel): void
+    {
+        if ($pricingModel !== 'cpm') {
+            return;
+        }
+
+        $currency = $screen->inventory?->floor_cpm_currency ?: 'VND';
+
+        if ($currency === 'VND') {
+            return;
+        }
+
+        throw new HttpException(422, sprintf(
+            'Màn hình này niêm yết giá CPM bằng %s. Hệ thống chưa có chính sách tỷ giá để xuất hóa đơn ngoài VND, nên chưa đặt trực tuyến được — vui lòng liên hệ để được báo giá.',
+            $currency,
+        ));
+    }
+
     public function estimateCost(Screen $screen, array $data = []): array
     {
         $inv = $screen->inventory;
@@ -225,10 +444,26 @@ class CartService
             // ── CPM: buyer mua số CPM, cost = đơn giá CPM × số CPM ──
             $floorCpm = (float) ($inv?->floor_cpm ?? 0);
 
-            // Buyer có thể chỉ định số CPM, hoặc tự tính từ impressions
-            $bookedCpms = isset($data['booked_cpms'])
-                ? (int) $data['booked_cpms']
-                : (int) ceil($totalImpressions / 1000);
+            // Số CPM tối thiểu do MÁY CHỦ suy từ khoảng ngày và SOV.
+            // Client được phép mua THÊM, không được mua ít hơn mức đó.
+            $minimumCpms = $this->periods->minimumCpms($totalImpressions);
+            $bookedCpms  = $minimumCpms;
+
+            if (isset($data['booked_cpms'])) {
+                $requested = (int) $data['booked_cpms'];
+
+                // Không tự nâng lên rồi tính tiền: báo lỗi để người mua thấy con số
+                // thật và xác nhận lại (Codex R03).
+                if ($requested < $minimumCpms) {
+                    throw new HttpException(422, sprintf(
+                        'Khoảng ngày và tỷ lệ thời lượng đã chọn tương ứng tối thiểu %s CPM, không thể đặt %s CPM.',
+                        number_format($minimumCpms),
+                        number_format($requested)
+                    ));
+                }
+
+                $bookedCpms = $requested;
+            }
 
             $cost = round($floorCpm * $bookedCpms, 2);
 
@@ -245,19 +480,38 @@ class CartService
         }
 
         // ── I/O: cost = io_rate × screen_count × duration_units ──
-        $ioRate = (float) ($inv?->io_rate ?? 0);
+        $ioRate   = (float) ($inv?->io_rate ?? 0);
         $rateUnit = $inv?->io_rate_unit ?? 'month';
-        $screenCount = (int) ($data['screen_count'] ?? 1);
 
-        // Tính duration_units từ ngày hoặc từ input
+        // screen_count KHÔNG nhận từ client. Một dòng giỏ ứng với một màn hình;
+        // màn hình là cụm nhiều thiết bị thì lấy từ cấu hình kho, không phải từ request.
+        $screenCount = max(1, (int) ($inv?->effective_screen_count ?? 1));
+
+        // Số kỳ do MÁY CHỦ suy từ ngày. Client gửi ít hơn thì báo lỗi, không âm thầm sửa.
+        $derivedUnits  = $this->periods->ioUnits($start, $end, $rateUnit);
+        $durationUnits = $derivedUnits;
+
         if (isset($data['duration_units'])) {
-            $durationUnits = (int) $data['duration_units'];
-        } else {
-            $divisor = $rateUnit === 'week' ? 7 : 30;
-            $durationUnits = max(1, (int) ceil($days / $divisor));
+            $requested = (int) $data['duration_units'];
+
+            if ($requested < $derivedUnits) {
+                throw new HttpException(422, sprintf(
+                    'Khoảng ngày %s – %s tương ứng %d kỳ, không thể đặt %d kỳ.',
+                    $start->format('d/m/Y'),
+                    $end->format('d/m/Y'),
+                    $derivedUnits,
+                    $requested
+                ));
+            }
+
+            $durationUnits = $requested;
         }
 
-        $cost = round($ioRate * $screenCount * $durationUnits, 2);
+        // Chiết khấu theo số kỳ: thuê dài được giảm, và mức giảm nằm trong kho
+        // chứ không nằm trong tin nhắn của người bán. Trước đây 12 kỳ đúng bằng
+        // 12 lần một kỳ, nên mọi thỏa thuận giảm giá đều ở ngoài hệ thống.
+        $discountPct = $this->discounts->pctFor($inv?->duration_discounts, $durationUnits);
+        $cost = $this->discounts->apply($ioRate * $screenCount * $durationUnits, $discountPct);
 
         return [
             'impressions' => $totalImpressions,
@@ -268,6 +522,7 @@ class CartService
             'screen_count' => $screenCount,
             'duration_units' => $durationUnits,
             'duration_unit' => $rateUnit,
+            'duration_discount_pct' => $discountPct,
         ];
     }
 

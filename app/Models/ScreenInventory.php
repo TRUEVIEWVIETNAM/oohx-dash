@@ -48,6 +48,7 @@ class ScreenInventory extends Model
         'programmatic_enabled',
         // Pricing model
         'pricing_model', 'io_rate', 'io_rate_unit', 'io_kpi_spots_per_day',
+        'duration_discounts',
 
         // AdOps (Phase 2)
         'max_spot_length', 'min_spot_length', 'loop_length',
@@ -69,6 +70,7 @@ class ScreenInventory extends Model
         'floor_cpm_usd'            => 'decimal:4',
         'io_rate'                  => 'decimal:2',
         'io_kpi_spots_per_day'     => 'integer',
+        'duration_discounts'       => 'array',
     ];
 
     // ── Relationships ───────────────────────────────────────
@@ -90,8 +92,18 @@ class ScreenInventory extends Model
 
     // ── Helpers ─────────────────────────────────────────────
 
-    public function computeFloorCpmUsd(float $rate = 25000): float
+    /**
+     * Tỷ giá lấy từ `config('pricing.usd_vnd_rate')`.
+     *
+     * Trước đây nó là tham số mặc định `float $rate = 25000` trong chữ ký hàm
+     * này — tức một chính sách giá không ai duyệt, nằm ẩn ở nơi không ai đọc.
+     * Người gọi vẫn truyền được tỷ giá riêng, nhưng mặc định nay là một con số
+     * nhìn thấy được.
+     */
+    public function computeFloorCpmUsd(?float $rate = null): float
     {
+        $rate = $rate ?: (float) config('pricing.usd_vnd_rate', 25000);
+
         if (! $this->floor_cpm) {
             return 0;
         }
@@ -144,6 +156,63 @@ class ScreenInventory extends Model
             return $this->io_rate_unit === 'week' ? 'màn hình/tuần' : 'màn hình/tháng';
         }
         return 'CPM';
+    }
+
+    /**
+     * Đơn vị tiền của `display_price`.
+     *
+     * `io_rate` **không có** cột currency trong CSDL nên là VND theo định
+     * nghĩa; `floor_cpm` thì đi theo `floor_cpm_currency`, và cột đó có hàng
+     * USD trong dữ liệu thật.
+     *
+     * Thiếu accessor này thì mọi chỗ in giá đều dán "₫" cứng, và một màn hình
+     * niêm yết 2,50 USD hiện ra là "2 ₫" (Codex R39).
+     */
+    public function getDisplayCurrencyAttribute(): string
+    {
+        if ($this->allowsIo() && $this->io_rate > 0) {
+            return 'VND';
+        }
+
+        return $this->floor_cpm_currency ?: 'VND';
+    }
+
+    /**
+     * Giá hiển thị kèm đơn vị tiền, đã định dạng.
+     *
+     * Một chỗ duy nhất quyết định cách in, để ba view không in ba kiểu. Số
+     * thập phân chỉ hiện khi đơn vị không phải VND: 2,50 USD làm tròn thành 3
+     * là làm sai dữ liệu, còn 50.000,00 ₫ thì chỉ là rườm rà.
+     */
+    public function getDisplayPriceFormattedAttribute(): string
+    {
+        $amount   = (float) $this->display_price;
+        $currency = $this->display_currency;
+
+        if ($currency === 'VND') {
+            return number_format($amount, 0, ',', '.') . ' ₫';
+        }
+
+        return number_format($amount, 2, ',', '.') . ' ' . $currency;
+    }
+
+    /**
+     * Giá CPM quy đổi về VND, **chỉ để so sánh và sắp xếp**.
+     *
+     * Không dùng để hiển thị hay tính tiền: quy đổi là một phép xấp xỉ, giá
+     * niêm yết là một cam kết. Xem `config('pricing.usd_vnd_rate')`.
+     */
+    public function getFloorCpmVndEquivalentAttribute(): float
+    {
+        $amount = (float) ($this->floor_cpm ?? 0);
+
+        if ($amount <= 0) {
+            return 0;
+        }
+
+        return ($this->floor_cpm_currency === 'USD')
+            ? $amount * (float) config('pricing.usd_vnd_rate', 25000)
+            : $amount;
     }
 
     /** @internal AdOps — số màn hình thực tế (override hoặc mặc định 1) */

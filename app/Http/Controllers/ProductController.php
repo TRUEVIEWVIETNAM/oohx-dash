@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ProductListingRequest;
 use App\Services\ProductService;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ProductController extends Controller
@@ -12,8 +12,13 @@ class ProductController extends Controller
 
     /**
      * GET /products — product listing (new explore)
+     *
+     * Dùng `ProductListingRequest` thay cho `Request` trần: trang này từng
+     * nhận `?q[]=x` rồi nối thẳng vào `"%{$q}%"` trong service, cho "Array to
+     * string conversion" và một trang công khai trả 500. Đúng lỗi Codex R40
+     * nêu ở `/api/v2/owners`, chỉ khác chỗ.
      */
-    public function index(Request $request): View
+    public function index(ProductListingRequest $request): View
     {
         $products = $this->productService->getProductsPaginated($request);
         $filters = $this->productService->getFilterAggregates();

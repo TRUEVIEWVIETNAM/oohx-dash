@@ -101,10 +101,10 @@
                 <div class="cart-summary-title">Tổng kết Booking</div>
                 <div class="cart-summary-row"><span>Số màn hình</span><span style="font-weight:700">{{ $lines->count() }}</span></div>
                 <div class="cart-summary-row"><span>Tổng ước tính</span><span style="font-weight:700">{{ number_format($lines->sum('estimated_cost'), 0, ',', '.') }} ₫</span></div>
-                <div class="cart-summary-row"><span>VAT (10%)</span><span>{{ number_format($lines->sum('estimated_cost') * 0.1, 0, ',', '.') }} ₫</span></div>
+                <div class="cart-summary-row"><span>VAT ({{ rtrim(rtrim(number_format(config('pricing.vat_rate') * 100, 2, '.', ''), '0'), '.') }}%)</span><span>{{ number_format($lines->sum('estimated_cost') * config('pricing.vat_rate'), 0, ',', '.') }} ₫</span></div>
                 <div class="cart-summary-total">
                     <span>Tổng cộng</span>
-                    <span>{{ number_format($lines->sum('estimated_cost') * 1.1, 0, ',', '.') }} ₫</span>
+                    <span>{{ number_format($lines->sum('estimated_cost') * (1 + config('pricing.vat_rate')), 0, ',', '.') }} ₫</span>
                 </div>
 
                 @if(empty($conflicts))

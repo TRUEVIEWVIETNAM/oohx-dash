@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="/app/phpunit.xml" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="178.059424">
+    <testsuite name="Feature" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="178.059424">
+      <testsuite name="Tests\Feature\Buyer\ZzDebugSnapshotTest" file="/app/tests/Feature/Buyer/ZzDebugSnapshotTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="178.059424">
+        <testcase name="test_dump" file="/app/tests/Feature/Buyer/ZzDebugSnapshotTest.php" line="10" class="Tests\Feature\Buyer\ZzDebugSnapshotTest" classname="Tests.Feature.Buyer.ZzDebugSnapshotTest" assertions="1" time="178.059424"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

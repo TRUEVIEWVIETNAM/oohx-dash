@@ -65,12 +65,20 @@ class TenantPermission
         return $role ? (OwnerUser::ROLES[$role] ?? $role) : '—';
     }
 
+    /**
+     * Membership phải còn tồn tại VÀ owner phải đang hoạt động.
+     *
+     * Trước đây chỉ kiểm pivot: owner bị tạm ngưng nhưng thành viên vẫn ghi được
+     * inventory qua API (Codex review T1, F2). Tạm ngưng một media owner phải có
+     * hiệu lực ngay ở mọi cửa, không chỉ ở chỗ hiển thị công khai.
+     */
     private function getOwnerUser(): ?OwnerUser
     {
         if (empty($this->ownerId)) return null;
 
         return OwnerUser::where('owner_id', $this->ownerId)
             ->where('user_id', $this->user->id)
+            ->whereHas('owner', fn ($q) => $q->where('status', 'active'))
             ->first();
     }
 }

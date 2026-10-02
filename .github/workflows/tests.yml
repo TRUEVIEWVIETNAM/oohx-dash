@@ -1,0 +1,109 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, 'feat/**', 'fix/**']
+  pull_request:
+  # Cho deploy.yml gọi lại đúng workflow này, để deploy chỉ chạy sau khi test xanh
+  # TRÊN ĐÚNG SHA sắp deploy. `needs:` không nối được hai workflow khác file.
+  workflow_call:
+
+# Chạy trên MySQL, KHÔNG dùng SQLite: nhiều migration của dự án dùng cú pháp
+# riêng của MySQL (SHOW INDEX, UPDATE ... JOIN, ALTER TABLE ... PARTITION BY),
+# nên bộ test không dựng nổi schema trên SQLite.
+jobs:
+  phpunit:
+    name: PHPUnit (MySQL 8)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci-secret
+          MYSQL_DATABASE: oohx_ci
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -uroot -pci-secret"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cài PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, bcmath, gd, intl, zip
+          coverage: none
+
+      - name: Cache composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      # Tài nguyên frontend phải build trước khi chạy test: public/build không
+      # theo repo, mà mọi trang Blade đều gọi @vite() — thiếu manifest thì hàng
+      # chục test render trang hỏng vì lý do không liên quan gì tới nội dung test.
+      - name: Cài Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      # Bước chặn: dừng ngay nếu biến CSDL không trỏ tới DB test dùng một lần.
+      # .env của dự án trỏ vào production, nên một cấu hình sai ở đây là mất dữ liệu thật.
+      - name: Kiểm tra an toàn trước khi chạy test
+        run: |
+          test "${DB_DATABASE}" = "oohx_ci" || { echo "DB_DATABASE phải là oohx_ci"; exit 1; }
+          test "${DB_HOST}" = "127.0.0.1"  || { echo "DB_HOST phải là 127.0.0.1"; exit 1; }
+          test ! -f bootstrap/cache/config.php || { echo "Tồn tại config cache"; exit 1; }
+          test ! -f .env || { echo ".env không được có mặt trong CI"; exit 1; }
+        env:
+          DB_DATABASE: oohx_ci
+          DB_HOST: 127.0.0.1
+
+      # Chạy TOÀN BỘ, không loại nhóm nào. Cờ --exclude-group
+      # f12-network-relation đã được gỡ ở giai đoạn 3 cùng lúc với việc hợp
+      # nhất quan hệ Màn hình ↔ Mạng lưới.
+      - name: Chạy test
+        # `--display-warnings` và `--display-deprecations`: in NGUYÊN VĂN cảnh
+        # báo thay vì chỉ một dòng bị cắt theo bề rộng terminal.
+        #
+        # Lý do thêm: 610/619 test đang ở trạng thái WARN với cùng một cảnh báo
+        # `file_get_contents(…)` bị cắt ngắn, nên không truy được nguồn. Một bộ
+        # test mà 98% là WARN thì cảnh báo mới nào cũng chìm — và chìm thì nó
+        # không còn là cảnh báo.
+        run: php artisan test --log-junit storage/logs/junit.xml --display-warnings --display-deprecations --display-notices
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          APP_URL: http://oohx.test
+          FRONTPAGE_DOMAIN: oohx.test
+          DASH_DOMAIN: dash.oohx.test
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: oohx_ci
+          DB_USERNAME: root
+          DB_PASSWORD: ci-secret
+          DB_URL: ''
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+          MAIL_MAILER: array
+
+      - name: Lưu kết quả test
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-${{ github.sha }}
+          path: storage/logs/junit.xml

@@ -1,87 +1,83 @@
-# Project Rules
+# OOHX — Quy tắc dự án
 
-## Architecture
-- Controller chỉ nhận request và trả response
-- Business logic nằm ở Service/Action
-- Không query DB trực tiếp trong controller nếu không cần
-- Multi-tenant: mọi query phải scope theo tenant
+Cập nhật 26/09/2026: chuyển sang **kiến trúc API-first**. Kế hoạch đầy đủ ở `docs/PLAN-API-FIRST-NEXTJS.md`; các lỗi nền tảng phải sửa trước ở `docs/audit-5-vung-2026-09-23/`.
 
-## Security
-- Mọi input phải validate
-- Không dùng raw SQL nếu không thực sự cần
-- Không commit secret
-- Upload file phải check mime/type/size
-- Permission phải kiểm tra qua policy/gate/service
+## 1. Kiến trúc
 
-## Testing
-- Mọi thay đổi logic phải kèm test
-- Bug fix phải có regression test
-- Không kết thúc task nếu test liên quan chưa pass
+```
+Laravel  = miền nghiệp vụ + API (nguồn sự thật duy nhất)
+Next.js  = trang công khai + khu người mua (khách hàng nhìn thấy)
+Filament = khu quản trị nội bộ /admin và /publisher
+```
 
-## Change Rules
-- Không đổi API public nếu không có yêu cầu
-- Không refactor lan man ngoài phạm vi task
-- Khi xong phải output:
+- **Mọi nghiệp vụ nằm ở Service/Action.** Filament, API, lệnh artisan, job đều gọi **cùng một** service. Không nhân đôi logic truy vấn — `InventoryController` và `FrontpageService` từng trôi khỏi nhau và gây rò rỉ dữ liệu chưa duyệt; đừng lặp lại.
+- **Controller chỉ nhận request, gọi service, trả response.** Không viết truy vấn phức tạp trong controller.
+- **Multi-tenant:** mọi truy vấn phải scope theo tenant. `HasOwnerScope` **chặn mặc định** khi không xác định được tenant, không được mở toang.
+- **Không đổi hành vi `/api/v1`** — đó là hợp đồng với đối tác. Tính năng mới cho ứng dụng nội bộ đi vào `/api/v2`.
+
+## 2. Viết API (v2)
+
+- Mỗi action **phải** gọi policy/gate. Không dựa vào việc giao diện ẩn nút.
+- **DTO danh sách trắng**, không trả thẳng model. Không bao giờ lộ: `revenue_share_pct`, `billing_info`, `bank_*`, `tax_code`, `business_license_path`, `device_token`, giá sàn nội bộ.
+- Định dạng lỗi thống nhất: `{error, message, code, details[]}`.
+- Danh sách phải phân trang và có giới hạn cứng. Endpoint bản đồ bắt buộc có khung nhìn.
+- Mọi endpoint có giới hạn tần suất. Endpoint đăng nhập, cấp token và player có giới hạn riêng.
+- **OpenAPI là nguồn sự thật** cho kiểu dữ liệu; Next.js sinh TypeScript từ đó, không chép tay.
+- Xác thực: người dùng trình duyệt dùng Sanctum dạng SPA (cookie phiên); đối tác dùng token; Next.js phía máy chủ dùng token dịch vụ.
+
+## 3. Viết Next.js
+
+- App Router + TypeScript. Kiểu dữ liệu sinh từ OpenAPI.
+- **Không truy cập CSDL trực tiếp.** Mọi dữ liệu qua API.
+- Server Component gọi API; phần cần bí mật đi qua Route Handler, không lộ token ra trình duyệt.
+- **Giữ nguyên đường dẫn cũ** khi thay trang Blade: `/explore/{slug}`, `/owners/{slug}`, `/products/{slug}`, các trang chính sách. Chuyển hướng 301 nếu buộc phải đổi.
+- Giữ nguyên `sitemap.xml`, `robots.txt`, thẻ canonical và dữ liệu có cấu trúc JSON-LD đang có.
+- Tiếng Việt là mặc định trên toàn bộ trang công khai.
+- **Không thêm tính năng mới vào Blade** trong giai đoạn chuyển đổi; Blade chỉ được sửa lỗi.
+
+## 4. Viết Filament (vẫn áp dụng cho /admin và /publisher)
+
+- Dùng thành phần gốc: Resource, Page, Form, Table, Action, Infolist, Widget, RelationManager. Không viết Livewire component rời cho CRUD quản trị.
+- Logic dùng chung giữa hai panel đặt ở `app/Filament/Shared/Resources/Base*Resource`; panel con chỉ override phần khác biệt (quyền, scope, route).
+- Dùng `getRelations()`, không dùng `getRelationManagers()`.
+- Tham số closure của filter phải đặt tên `$query`, nếu đặt tên khác Filament tạo Builder rỗng và filter mất tác dụng.
+- Quyền trong panel publisher kiểm qua `TenantPermission::check()`. **Quyền phải được định nghĩa một chỗ** và dùng chung cho cả Filament lẫn API — không viết hai bộ luật.
+
+## 5. Bảo mật
+
+- Mọi input phải validate. Số lượng và số tiền **do máy chủ tính**, không nhận từ client.
+- Không dùng raw SQL nếu không thực sự cần.
+- Không commit secret. Khóa riêng, token, mật khẩu không được nằm trong repo.
+- Upload: kiểm mime, phần mở rộng và dung lượng. Tệp nhạy cảm (giấy phép kinh doanh, nội dung quảng cáo) để disk riêng, truy cập qua URL ký hạn — không để trên disk công khai.
+- URL do người dùng cung cấp (webhook) phải chặn địa chỉ nội bộ, loopback và link-local; kiểm lại ngay trước mỗi lần gửi.
+- Hành động quan trọng phải ghi nhật ký: ai, lúc nào, trước sau, lý do.
+
+## 6. Cơ sở dữ liệu
+
+- Migration phải chạy lại được an toàn: kiểm `Schema::hasTable` / `hasColumn` trước khi tạo.
+- Khóa ngoại đúng kiểu: Owner/Site/Screen/Campaign dùng `char(26)` (ULID); Network dùng `unsignedBigInteger`.
+- Model có khóa chính ULID phải dùng trait `HasUlids` — thiếu trait thì insert hỏng.
+- Bảng `impression_logs` đang phân vùng theo `played_at`: mọi khóa unique phải chứa cột phân vùng, nếu không MySQL từ chối.
+- Tiền tính bằng VND số nguyên, làm tròn ở bước cuối.
+- Không sửa dữ liệu lịch sử. Booking đã xác nhận giữ nguyên giá và điều khoản.
+
+## 7. Kiểm thử
+
+- Mọi thay đổi logic phải kèm test. Sửa lỗi phải có test chống hồi quy đúng lỗi đó.
+- **Chạy test trên MySQL**, không dùng SQLite: migration của dự án dùng cú pháp riêng của MySQL. Công thức chạy an toàn ở `docs/audit-5-vung-2026-09-23/REPRODUCE-CLAUDE.md`.
+- **`.env` đang trỏ vào CSDL production.** Không bao giờ chạy test mà chưa ghi đè toàn bộ biến CSDL. Kiểm tra `bootstrap/cache/config.php` không tồn tại trước khi chạy.
+- Test tranh chấp đồng thời phải dùng nhiều kết nối thật, không chạy trên SQLite.
+- Không kết thúc task khi test liên quan chưa pass.
+
+## 8. Quy tắc thay đổi
+
+- Không refactor lan man ngoài phạm vi task.
+- Không gọi một tính năng là hoàn chỉnh chỉ vì có route, menu, enum hay model. Phải có đường chạy thật từ giao diện tới CSDL.
+- Khi xong phải báo cáo:
   - files changed
   - tests added/updated
   - risks remaining
 
-# Filament Implementation Rules
+## 9. Thứ tự ưu tiên hiện tại
 
-## Core rule
-This project uses Filament as the admin UI system.
-All admin dashboard pages must use Filament-native architecture and UI primitives.
-
-## Mandatory requirements
-- Use Filament Resource, Page, Form, Table, Action, Infolist, Widget, RelationManager where appropriate.
-- Reuse Filament layout, form schema, table schema, header actions, bulk actions, filters, tabs, sections, grids, fieldsets, placeholders, stats widgets.
-- Follow existing Filament folder conventions and naming conventions already present in the repo.
-- Prefer:
-  - Resource pages for CRUD flows
-  - ManageRelatedRecords / RelationManagers for child data
-  - Form Actions / Table Actions / Header Actions for operations
-  - Infolists for view/detail screens
-  - Widgets for dashboard summaries
-- When a page belongs to an entity, implement it inside that entity’s Filament Resource if possible.
-
-## Strict prohibitions
-- Do NOT generate standalone custom Livewire components for admin CRUD pages.
-- Do NOT generate custom Blade admin pages unless there is no Filament-native way.
-- Do NOT create a separate Livewire page just to render forms/tables that Filament already supports.
-- Do NOT introduce custom Tailwind admin UI when Filament components already solve the problem.
-- Do NOT bypass Filament forms/tables with hand-written HTML forms.
-- Do NOT use custom page layouts for admin unless explicitly approved.
-
-## Decision policy
-Before writing code, evaluate in this order:
-1. Can this be solved with existing Resource pages?
-2. Can this be solved with a custom page inside a Filament Resource?
-3. Can this be solved with Actions, RelationManagers, Widgets, or Infolists?
-4. Only if all above fail, propose a minimal custom Filament page.
-5. Standalone custom Livewire page is last resort and must be explicitly justified.
-
-## Output format required from Claude
-For every admin feature request, respond with:
-1. Recommended Filament-native structure
-2. Files to create/update
-3. Why this should be Resource/Page/Form/Table based
-4. Full code changes
-
-## Refactor policy
-If existing code uses custom Livewire pages for admin flows, refactor them into:
-- Resource pages
-- Resource custom pages
-- Form schemas
-- Table schemas
-- Infolists
-- Actions
-while preserving business logic.
-
-## Review checklist
-Before finishing, verify:
-- Is this page rendered through Filament?
-- Are forms built with Filament Forms?
-- Are listings built with Filament Tables?
-- Are actions implemented with Filament Actions?
-- Does the file live in the correct Filament folder?
-- Did we avoid custom Livewire unless absolutely necessary?  
+Sửa lõi trước, đổi giao diện sau. Cụ thể: phân quyền API, giá do máy chủ quyết định, cổng bán hàng, giới hạn tần suất, CI chạy test — xong nhóm này mới bắt đầu Next.js. Chi tiết ở `docs/audit-5-vung-2026-09-23/IMPLEMENTATION-P0-CLAUDE.md`.

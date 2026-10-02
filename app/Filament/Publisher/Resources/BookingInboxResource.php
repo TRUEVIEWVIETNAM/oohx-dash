@@ -8,6 +8,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class BookingInboxResource extends Resource
 {
@@ -127,6 +128,22 @@ class BookingInboxResource extends Resource
                 Tables\Actions\ViewAction::make(),
             ])
             ->poll('30s');
+    }
+
+    /**
+     * Hộp thư đặt chỗ dùng quyền RIÊNG của phía media owner.
+     *
+     * Không dùng chung `view` với khu người mua: quyền đó cho đọc trang thanh
+     * toán chứa công nợ của mọi owner trong chiến dịch (Codex R01).
+     */
+    public static function canView(Model $record): bool
+    {
+        return auth()->user()?->can('viewAsOwner', $record) ?? false;
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasRole(['publisher', 'super_admin']) ?? false;
     }
 
     public static function getEloquentQuery(): Builder

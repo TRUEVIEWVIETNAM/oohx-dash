@@ -22,10 +22,19 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
-CLAUDE.md
 .CLAUDE/agents/*
-/public/oohx-frontpage
-/docs/*
+# Tài liệu đi theo repo để Codex và team đọc được (trước đây /docs/* bị loại hết).
+# Chỉ loại những thứ sinh ra tự động và nặng:
+/docs/audit-5-vung-2026-09-23/evidence-claude/run-*/
+!/docs/audit-5-vung-2026-09-23/evidence-claude/run-20260926T095757Z-15146/
+!/docs/audit-5-vung-2026-09-23/evidence-claude/run-20260926T104227Z-16342/
+!/docs/audit-5-vung-2026-09-23/evidence-claude/run-20260926T110933Z-16513/
+!/docs/audit-5-vung-2026-09-23/evidence-claude/run-20260926T112834Z-16941/
+!/docs/audit-5-vung-2026-09-23/evidence-claude/run-20260926T114617Z-17145/
+!/docs/audit-5-vung-2026-09-23/evidence-claude/run-20260926T130436Z-17717/
+!/docs/audit-5-vung-2026-09-23/evidence-claude/run-20260926T133216Z-18582/
+!/docs/audit-5-vung-2026-09-23/evidence-claude/run-20260926T172624Z-3262/
+!/docs/audit-5-vung-2026-09-23/evidence-claude/run-20260927T040645Z-2863/
 .env
 composer-setup.php
 composer.phar 
@@ -34,4 +43,24 @@ ACTION_PLAN_SEO.md
 AUDIT_SEO_INVENTORY.md 
 action_plan_seo_complete.md 
 AUDIT_PHASE1_INVENTORY_INTELLIGENCE.md 
-PLAN_DATA_ACTUAL_MEASUREMENT.md 
+PLAN_DATA_ACTUAL_MEASUREMENT.md
+
+# ── Khóa và chứng chỉ: KHÔNG BAO GIỜ vào repo ─────────────────────────────
+#
+# `github_actions_deploy` (khóa riêng SSH vào VPS production) đã bị commit từ
+# 26/03/2026 và repo này là PUBLIC, nên khóa đó công khai suốt sáu tháng. Xóa
+# khỏi cây thư mục không thu hồi quyền — việc thu hồi là xóa khóa công khai
+# tương ứng khỏi `authorized_keys` trên máy chủ.
+#
+# Mấy dòng dưới chặn lần sau. Vân tay khóa đã lộ, để tra trên máy chủ:
+# SHA256:RPtyXaKydiJxA0XUnGQX59e3v3YXgDA2QL2Kggy5/t0
+github_actions_deploy
+github_actions_deploy.pub
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*_deploy
+*_deploy.pub

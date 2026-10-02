@@ -104,11 +104,15 @@ class PaymentPerOwnerTest extends TestCase
 
         $this->assertCount(2, $rows);
 
+        // Thuế suất lấy từ config, không mã hoá cứng: mức áp dụng do nghiệp vụ
+        // chốt và đã đổi 10% → 8% ngày 27/09/2026.
+        $vatRate = (float) config('pricing.vat_rate');
+
         $rowA = $rows->firstWhere(fn ($r) => $r['owner']->id === $a->id);
         $this->assertSame(100_000_000.0, $rowA['cost']);
-        $this->assertSame(10_000_000.0, $rowA['vat']);
-        $this->assertSame(110_000_000.0, $rowA['total']);
-        $this->assertSame(110_000_000.0, $rowA['remaining']);
+        $this->assertSame(100_000_000.0 * $vatRate, $rowA['vat']);
+        $this->assertSame(100_000_000.0 * (1 + $vatRate), $rowA['total']);
+        $this->assertSame(100_000_000.0 * (1 + $vatRate), $rowA['remaining']);
         $this->assertFalse($rowA['is_paid']);
     }
 
@@ -136,7 +140,15 @@ class PaymentPerOwnerTest extends TestCase
         $b = $this->makeOwner('B');
         $campaign = $this->makeCampaign([$a->id => 10_000_000, $b->id => 20_000_000]);
 
-        app(PaymentService::class)->createPayment($campaign, 'bank_transfer', 11_000_000, $a->id);
+        // Hai điều đã đổi so với lúc viết test này, đều là đổi có chủ ý:
+        //
+        // 1. Số tiền do MÁY CHỦ tính. Không truyền gì thì nó lấy đúng phần còn
+        //    nợ. Con số 11.000.000 cũ là 10 triệu + VAT 10% — mức thuế đã đổi
+        //    thành 8% ngày 27/09, nên số cũ nay vượt phần còn nợ và bị chặn.
+        // 2. Tạo khoản thanh toán KHÔNG còn nghĩa là đã trả. Phải xác nhận
+        //    chuyển khoản thì mới tính là owner đã nhận tiền.
+        $payment = app(PaymentService::class)->createPayment($campaign, 'bank_transfer', null, $a->id);
+        app(PaymentService::class)->confirmBankTransfer($payment);
 
         $rows = app(PaymentService::class)->breakdownByOwner($campaign->fresh());
         $rowA = $rows->firstWhere(fn ($r) => $r['owner']->id === $a->id);
@@ -144,7 +156,7 @@ class PaymentPerOwnerTest extends TestCase
 
         $this->assertTrue($rowA['is_paid']);
         $this->assertFalse($rowB['is_paid'], 'trả cho owner A không thể làm owner B thành đã nhận tiền');
-        $this->assertSame(22_000_000.0, $rowB['remaining']);
+        $this->assertSame(20_000_000.0 * (1 + (float) config('pricing.vat_rate')), $rowB['remaining']);
     }
 
     public function test_payment_ghi_nhan_dung_owner_nhan_tien(): void
@@ -152,9 +164,14 @@ class PaymentPerOwnerTest extends TestCase
         $a = $this->makeOwner('A');
         $campaign = $this->makeCampaign([$a->id => 10_000_000]);
 
-        $payment = app(PaymentService::class)->createPayment($campaign, 'bank_transfer', 11_000_000, $a->id);
+        // Không truyền số tiền: máy chủ tính phần còn nợ, gồm VAT hiện hành.
+        $payment = app(PaymentService::class)->createPayment($campaign, 'bank_transfer', null, $a->id);
 
         $this->assertSame($a->id, $payment->owner_id);
+        $this->assertSame(
+            (int) round(10_000_000 * (1 + (float) config('pricing.vat_rate'))),
+            (int) round((float) $payment->amount),
+        );
     }
 
     // ── Trang thanh toán ─────────────────────────────────────────────────────
@@ -206,7 +223,7 @@ class PaymentPerOwnerTest extends TestCase
         $response = $this->actingAs($this->user)->post($this->paymentUrl($campaign), [
             'method'   => 'bank_transfer',
             'owner_id' => $a->id,
-            'amount'   => 11_000_000,
+            'amount'   => 10_800_000,   // 10 triệu + VAT 8%
         ]);
 
         $response->assertSessionHasErrors('accept_terms');
@@ -222,7 +239,7 @@ class PaymentPerOwnerTest extends TestCase
         $this->actingAs($this->user)->post($this->paymentUrl($campaign), [
             'method'       => 'bank_transfer',
             'owner_id'     => $stranger->id,
-            'amount'       => 11_000_000,
+            'amount'       => 10_800_000,
             'accept_terms' => '1',
         ])->assertStatus(422);
 

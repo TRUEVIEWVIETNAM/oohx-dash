@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="/tmp/oohx-audit/phpunit.xml" tests="2" assertions="1" errors="1" failures="0" skipped="0" time="0.213912">
+    <testsuite name="Unit" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.213912">
+      <testsuite name="Tests\Unit\ExampleTest" file="/tmp/oohx-audit/tests/Unit/ExampleTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.213912">
+        <testcase name="test_that_true_is_true" file="/tmp/oohx-audit/tests/Unit/ExampleTest.php" line="12" class="Tests\Unit\ExampleTest" classname="Tests.Unit.ExampleTest" assertions="1" time="0.213912"/>
+      </testsuite>
+    </testsuite>
+    <testsuite name="Feature" tests="1" assertions="0" errors="1" failures="0" skipped="0" time="0.000000">
+      <testsuite name="Tests\Feature\Api\InventoryLocationsTest" file="/tmp/oohx-audit/tests/Feature/Api/InventoryLocationsTest.php" tests="1" assertions="0" errors="1" failures="0" skipped="0" time="0.000000">
+        <testcase name="test_returns_correct_structure" file="/tmp/oohx-audit/tests/Feature/Api/InventoryLocationsTest.php" line="64" class="Tests\Feature\Api\InventoryLocationsTest" classname="Tests.Feature.Api.InventoryLocationsTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\Api\InventoryLocationsTest::test_returns_correct_structure
+Illuminate\Database\QueryException: SQLSTATE[HY000]: General error: 1 near "SHOW": syntax error (Connection: sqlite, Database: :memory:, SQL: SHOW INDEX FROM screens)
+
+/source/vendor/laravel/framework/src/Illuminate/Database/Connection.php:838
+/source/vendor/laravel/framework/src/Illuminate/Database/Connection.php:794
+/source/vendor/laravel/framework/src/Illuminate/Database/Connection.php:411
+/source/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php:491
+/source/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php:363
+/tmp/oohx-audit/database/migrations/2026_03_20_000001_add_performance_indexes.php:10
+/source/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:517
+/source/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:442
+/source/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:451
+/source/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:253
+/source/vendor/laravel/framework/src/Illuminate/Console/View/Components/Task.php:41
+/source/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:814
+/source/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:253
+/source/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:211
+/source/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:138
+/source/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/MigrateCommand.php:116
+/source/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:671
+/source/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/MigrateCommand.php:109
+/source/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/MigrateCommand.php:88
+/source/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/source/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/source/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/source/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/source/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/source/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/source/vendor/symfony/console/Command/Command.php:341
+/source/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/source/vendor/laravel/framework/src/Illuminate/Console/Concerns/CallsCommands.php:68
+/source/vendor/laravel/framework/src/Illuminate/Console/Concerns/CallsCommands.php:29
+/source/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:88
+/source/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/source/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/source/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/source/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/source/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/source/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/source/vendor/symfony/console/Command/Command.php:341
+/source/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/source/vendor/symfony/console/Application.php:1094
+/source/vendor/symfony/console/Application.php:356
+/source/vendor/symfony/console/Application.php:195
+/source/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/source/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/source/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/source/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/source/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/source/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/source/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/source/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/source/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:217
+/source/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:101
+/source/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/tmp/oohx-audit/tests/Feature/Api/InventoryLocationsTest.php:23</error>
+        </testcase>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

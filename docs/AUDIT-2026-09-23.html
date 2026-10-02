@@ -1,0 +1,776 @@
+<title>OOHX Audit 112e2aa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=IBM+Plex+Sans:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f2f5f4; --surface:#ffffff; --surface-2:#eaefee; --line:#d6dedc; --line-2:#c2cecb;
+  --ink:#0e1a19; --ink-2:#38504d; --muted:#65807c;
+  --accent:#0f5a5e; --accent-soft:#e2efef; --accent-ink:#0b4448;
+  --crit:#a3201a; --crit-bg:#fbe9e7; --high:#a8560b; --high-bg:#fdefe2;
+  --med:#7d6408; --med-bg:#fbf3d9; --ok:#1a6b40; --ok-bg:#e3f3ea;
+  --shadow:0 1px 2px rgba(14,26,25,.05), 0 8px 24px -16px rgba(14,26,25,.25);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1413; --surface:#121d1c; --surface-2:#182624; --line:#263835; --line-2:#334946;
+  --ink:#e6eeec; --ink-2:#aec4c0; --muted:#89a29e;
+  --accent:#4fb3b8; --accent-soft:#122c2e; --accent-ink:#8ad3d7;
+  --crit:#ff8e85; --crit-bg:#33110f; --high:#f0ab63; --high-bg:#2e1c0b;
+  --med:#ddc356; --med-bg:#2a2408; --ok:#6ed49b; --ok-bg:#0d2618;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --bg:#0c1413; --surface:#121d1c; --surface-2:#182624; --line:#263835; --line-2:#334946;
+  --ink:#e6eeec; --ink-2:#aec4c0; --muted:#89a29e;
+  --accent:#4fb3b8; --accent-soft:#122c2e; --accent-ink:#8ad3d7;
+  --crit:#ff8e85; --crit-bg:#33110f; --high:#f0ab63; --high-bg:#2e1c0b;
+  --med:#ddc356; --med-bg:#2a2408; --ok:#6ed49b; --ok-bg:#0d2618;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:"IBM Plex Sans","Be Vietnam Pro",system-ui,sans-serif;text-wrap:balance;margin:0}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+a{color:var(--accent-ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+/* ── top bar ── */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1240px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{font-family:"IBM Plex Sans",sans-serif;font-weight:700;font-size:15px;letter-spacing:-.01em}
+.brand span{color:var(--muted);font-weight:500}
+.meta-chip{font-size:11.5px;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 9px}
+.topbar .spacer{flex:1}
+.tbtn{font:inherit;font-size:12.5px;cursor:pointer;background:var(--surface);color:var(--ink-2);border:1px solid var(--line-2);border-radius:8px;padding:5px 11px}
+.tbtn:hover{border-color:var(--accent);color:var(--accent-ink)}
+
+/* ── shell ── */
+.shell{max-width:1240px;margin:0 auto;padding-inline:16px;padding-block:28px 72px;display:grid;grid-template-columns:232px minmax(0,1fr);gap:40px;align-items:start}
+@media (max-width:920px){.shell{grid-template-columns:1fr;gap:20px}}
+nav.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 64px);font-size:13.5px}
+@media (max-width:920px){nav.toc{position:static;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}}
+nav.toc h4{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+@media (max-width:920px){nav.toc ol{flex-direction:row;flex-wrap:wrap;gap:6px}}
+nav.toc a{display:block;color:var(--ink-2);text-decoration:none;padding:4px 9px;border-left:2px solid transparent;border-radius:0 6px 6px 0}
+@media (max-width:920px){nav.toc a{border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12.5px}}
+nav.toc a:hover{color:var(--ink);background:var(--surface-2)}
+nav.toc a.on{color:var(--accent-ink);border-left-color:var(--accent);background:var(--accent-soft);font-weight:500}
+@media (max-width:920px){nav.toc a.on{border-color:var(--accent)}}
+
+main{min-width:0;display:flex;flex-direction:column;gap:40px}
+section{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 76px)}
+.eyebrow{font-family:"IBM Plex Sans",sans-serif;font-size:11px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+h2.sec{font-size:23px;font-weight:700;letter-spacing:-.015em;margin-bottom:6px}
+.lede{color:var(--ink-2);max-width:68ch}
+h3.sub{font-size:15.5px;font-weight:600;margin:22px 0 8px}
+p{margin:0 0 10px;max-width:72ch}
+ul,ol.num{margin:0 0 10px;padding-left:20px;max-width:72ch}
+li{margin-bottom:5px}
+
+/* ── hero ── */
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px 24px;box-shadow:var(--shadow)}
+.hero h1{font-size:30px;font-weight:700;letter-spacing:-.025em;line-height:1.2}
+@media (max-width:520px){.hero h1{font-size:24px}}
+.verdict{margin-top:14px;padding:14px 16px;border-left:3px solid var(--crit);background:var(--crit-bg);border-radius:0 10px 10px 0;color:var(--ink)}
+.verdict b{font-family:"IBM Plex Sans",sans-serif}
+.scorerow{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px}
+.score{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:11px 13px}
+.score .n{font-family:"IBM Plex Sans",sans-serif;font-size:25px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.score .l{font-size:11.5px;color:var(--muted);margin-top:2px}
+.score.crit .n{color:var(--crit)} .score.high .n{color:var(--high)} .score.med .n{color:var(--med)} .score.ok .n{color:var(--ok)}
+
+/* ── tables ── */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
+th,td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-family:"IBM Plex Sans",sans-serif;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:var(--surface-2);position:sticky;top:0}
+tbody tr:last-child td{border-bottom:0}
+td code{font-size:12px;color:var(--ink-2);background:var(--surface-2);padding:1px 5px;border-radius:5px;white-space:nowrap}
+
+/* ── status pills ── */
+.st{display:inline-block;font-family:"IBM Plex Sans",sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.04em;padding:2px 7px;border-radius:5px;white-space:nowrap;border:1px solid transparent}
+.st-e2e{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.st-part{background:var(--med-bg);color:var(--med);border-color:color-mix(in srgb,var(--med) 30%,transparent)}
+.st-broken{background:var(--crit-bg);color:var(--crit);border-color:color-mix(in srgb,var(--crit) 30%,transparent)}
+.st-miss{background:var(--surface-2);color:var(--muted);border-color:var(--line-2)}
+.st-stub{background:var(--high-bg);color:var(--high);border-color:color-mix(in srgb,var(--high) 30%,transparent)}
+
+/* ── findings ── */
+.filters{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0 16px}
+.fbtn{font:inherit;font-size:12.5px;font-weight:500;cursor:pointer;background:var(--surface);color:var(--ink-2);border:1px solid var(--line-2);border-radius:999px;padding:5px 13px}
+.fbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] .fbtn[aria-pressed="true"],:root:not([data-theme="light"]) .fbtn[aria-pressed="true"]{color:#08201f}
+.finds{display:flex;flex-direction:column;gap:12px}
+.find{background:var(--surface);border:1px solid var(--line);border-radius:12px;border-left:4px solid var(--line-2);overflow:hidden}
+.find.sev-critical{border-left-color:var(--crit)} .find.sev-high{border-left-color:var(--high)} .find.sev-medium{border-left-color:var(--med)}
+.find > summary{cursor:pointer;list-style:none;padding:13px 16px;display:flex;gap:11px;align-items:baseline;flex-wrap:wrap}
+.find > summary::-webkit-details-marker{display:none}
+.find > summary:hover{background:var(--surface-2)}
+.fid{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted)}
+.ftitle{font-family:"IBM Plex Sans",sans-serif;font-weight:600;font-size:15px;flex:1;min-width:200px}
+.sev{font-family:"IBM Plex Sans",sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.05em;padding:2px 8px;border-radius:999px}
+.sev-c{background:var(--crit-bg);color:var(--crit)} .sev-h{background:var(--high-bg);color:var(--high)} .sev-m{background:var(--med-bg);color:var(--med)}
+.fbody{padding:2px 16px 16px;border-top:1px solid var(--line);display:grid;grid-template-columns:96px minmax(0,1fr);gap:4px 14px;font-size:13.5px}
+@media (max-width:560px){.fbody{grid-template-columns:1fr;gap:2px}}
+.fbody dt{font-family:"IBM Plex Sans",sans-serif;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:9px}
+@media (max-width:560px){.fbody dt{padding-top:10px}}
+.fbody dd{margin:0;padding-top:7px;color:var(--ink-2)}
+.fbody dd strong{color:var(--ink);font-weight:600}
+.ev{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:7px 9px;display:block;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+
+/* ── answer grid ── */
+.qa{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:12px;margin-top:8px}
+.qa-item{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 15px}
+.qa-item .q{font-family:"IBM Plex Sans",sans-serif;font-weight:600;font-size:13.5px;margin-bottom:6px}
+.qa-item .a{font-size:13.5px;color:var(--ink-2)}
+.qa-item .tag{font-family:"IBM Plex Sans",sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.tag-no{color:var(--crit)} .tag-part{color:var(--high)} .tag-yes{color:var(--ok)}
+
+/* ── roadmap ── */
+.phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:12px}
+.phase{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+.phase h4{font-size:14px;font-weight:600;margin-bottom:3px}
+.phase .win{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--accent-ink);margin-bottom:9px}
+.phase ul{padding-left:17px;margin-bottom:8px;font-size:13.5px;color:var(--ink-2)}
+.phase .exit{font-size:12.5px;color:var(--muted);border-top:1px dashed var(--line-2);padding-top:8px}
+
+.note{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);border-radius:11px;padding:13px 15px;font-size:13.5px;color:var(--ink-2)}
+.note b{color:var(--ink)}
+details.raw{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 15px}
+details.raw summary{cursor:pointer;font-family:"IBM Plex Sans",sans-serif;font-weight:600;font-size:13.5px}
+details.raw pre{overflow-x:auto;font-size:11.5px;line-height:1.55;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:10px}
+footer{border-top:1px solid var(--line);padding-top:16px;font-size:12.5px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand">OOHX Audit <span>· oohx-dash</span></div>
+    <span class="meta-chip mono">112e2aa</span>
+    <span class="meta-chip">feat/tmdt-review-1107</span>
+    <span class="meta-chip">23/09/2026</span>
+    <span class="spacer"></span>
+    <button class="tbtn" id="themeBtn" type="button">Đổi nền</button>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="toc" aria-label="Mục lục">
+    <h4>Mục lục</h4>
+    <ol id="tocList">
+      <li><a href="#tomtat">Tóm tắt</a></li>
+      <li><a href="#findings">17 phát hiện</a></li>
+      <li><a href="#giaca">Giá &amp; thanh toán</a></li>
+      <li><a href="#lich">Lịch trống &amp; trùng chỗ</a></li>
+      <li><a href="#baomat">Bảo mật &amp; phân quyền</a></li>
+      <li><a href="#luong">Luồng giao dịch</a></li>
+      <li><a href="#dulieu">Mô hình dữ liệu</a></li>
+      <li><a href="#trangcong">Trang công khai</a></li>
+      <li><a href="#tichhop">Tích hợp &amp; vận hành</a></li>
+      <li><a href="#backlog">Việc cần làm</a></li>
+      <li><a href="#roadmap">Lộ trình 90 ngày</a></li>
+      <li><a href="#ketluan">8 câu kết luận</a></li>
+      <li><a href="#phamvi">Phạm vi &amp; hạn chế</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <!-- ══ HERO ══ -->
+    <section id="tomtat">
+      <div class="hero">
+        <div class="eyebrow">Audit chỉ đọc · Laravel 12 + Filament 3</div>
+        <h1>OOHX đang là sàn tạo khách hàng tiềm năng, chưa phải sàn giao dịch</h1>
+        <p class="lede" style="margin-top:10px">Người mua chọn được màn hình, tạo chiến dịch, gửi booking và chuyển khoản. Nhưng phần lõi của một sàn giao dịch — giá được khóa ở máy chủ, chống trùng chỗ, bằng chứng đã phát sóng, đối soát và hủy đơn — thì chưa có hoặc đang hỏng.</p>
+        <div class="verdict">
+          <b>Rủi ro lớn nhất nếu vận hành thương mại ngay:</b> thất thoát doanh thu do người mua tự quyết số lượng tính tiền, bán trùng chỗ do không có khóa, rò dữ liệu giá và hồ sơ đối tác qua API, và không chứng minh được đã phát quảng cáo khi có khiếu nại.
+        </div>
+        <div class="scorerow">
+          <div class="score crit"><div class="n">4</div><div class="l">Nghiêm trọng</div></div>
+          <div class="score high"><div class="n">6</div><div class="l">Cao</div></div>
+          <div class="score med"><div class="n">7</div><div class="l">Trung bình</div></div>
+          <div class="score ok"><div class="n">14</div><div class="l">Chạy end-to-end</div></div>
+          <div class="score"><div class="n">28</div><div class="l">Chưa có</div></div>
+          <div class="score"><div class="n">219<span style="font-size:14px;color:var(--muted)">/229</span></div><div class="l">Test pass</div></div>
+        </div>
+      </div>
+
+      <h3 class="sub">Năm điểm mạnh</h3>
+      <ol class="num">
+        <li><b>Cô lập tenant chặt ở tầng giao diện quản trị</b> — <code>HasOwnerScope</code> + <code>TenantPermission</code>, có test <code>PanelAccessTest.php:40-167</code>.</li>
+        <li><b>Cổng hiển thị công khai theo trạng thái duyệt</b> làm đúng và có test — <code>Screen::scopePubliclyVisible</code> (<code>app/Models/Screen.php:222-227</code>).</li>
+        <li><b>Nhập kho bằng Excel có AI map cột</b>, chạy qua hàng đợi, hủy được giữa chừng — <code>app/Jobs/ImportScreensJob.php:26-42</code>.</li>
+        <li><b>OOHX Data Engine</b> ước tính lưu lượng có phiên bản công thức, nhật ký cấu hình và trang theo dõi sức khỏe.</li>
+        <li><b>Kiến trúc Filament sạch</b> — Base Resource dùng chung hai panel, nghiệp vụ nằm ở 20 service.</li>
+      </ol>
+
+      <h3 class="sub">Mười khoảng trống nghiêm trọng nhất</h3>
+      <div class="tw">
+        <table>
+          <thead><tr><th style="width:38px">#</th><th>Vấn đề</th><th style="width:118px">Mức</th><th>Bằng chứng</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Giá phụ thuộc số lượng do client gửi lên</td><td><span class="st st-broken">CRITICAL</span></td><td><code>CartController.php:61-63</code></td></tr>
+            <tr><td>2</td><td>Không khóa chống đặt trùng; duyệt không kiểm lịch</td><td><span class="st st-broken">CRITICAL</span></td><td><code>CampaignService.php:22</code></td></tr>
+            <tr><td>3</td><td>API ghi dữ liệu không có phân quyền</td><td><span class="st st-broken">CRITICAL</span></td><td><code>routes/api.php:47-62</code></td></tr>
+            <tr><td>4</td><td>Tenant scope mở toang khi không có owner</td><td><span class="st st-broken">CRITICAL</span></td><td><code>HasOwnerScope.php:18</code></td></tr>
+            <tr><td>5</td><td>Endpoint player không xác thực, không giới hạn</td><td><span class="st st-broken">HIGH</span></td><td><code>routes/api.php:41-44</code></td></tr>
+            <tr><td>6</td><td>Bằng chứng phát sóng không ghi được (sai kiểu khóa)</td><td><span class="st st-broken">CRITICAL</span></td><td><code>…000011:11,14</code></td></tr>
+            <tr><td>7</td><td><code>actual_impressions</code> không code nào ghi ⇒ báo cáo luôn 0</td><td><span class="st st-miss">HIGH</span></td><td><code>CampaignReportService.php:20</code></td></tr>
+            <tr><td>8</td><td>Không có rate card, không có bảng lịch trống</td><td><span class="st st-miss">HIGH</span></td><td>0 kết quả grep</td></tr>
+            <tr><td>9</td><td>Duyệt nội dung quảng cáo không chặn phát sóng</td><td><span class="st st-broken">HIGH</span></td><td><code>PaymentService.php:103-132</code></td></tr>
+            <tr><td>10</td><td>Hủy, hoàn tiền, kết thúc chiến dịch: enum chết</td><td><span class="st st-miss">HIGH</span></td><td><code>Campaign.php:49</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><b>Ngoài danh sách trên:</b> private key <code>github_actions_deploy</code> đang nằm trong git (xác nhận bằng <code>git ls-files</code>). Ai clone repo cũng có khóa SSH vào máy chủ. Nên xoay khóa trước tiên.</div>
+    </section>
+
+    <!-- ══ FINDINGS ══ -->
+    <section id="findings">
+      <div class="eyebrow">Chi tiết</div>
+      <h2 class="sec">17 phát hiện</h2>
+      <p class="lede">Bốn phát hiện nghiêm trọng nhất tôi đã tự đọc lại code để kiểm chứng, không chỉ dựa vào kết quả rà soát tự động.</p>
+      <div class="filters" role="group" aria-label="Lọc theo mức độ">
+        <button class="fbtn" type="button" data-f="all" aria-pressed="true">Tất cả · 17</button>
+        <button class="fbtn" type="button" data-f="critical" aria-pressed="false">Nghiêm trọng · 4</button>
+        <button class="fbtn" type="button" data-f="high" aria-pressed="false">Cao · 6</button>
+        <button class="fbtn" type="button" data-f="medium" aria-pressed="false">Trung bình · 7</button>
+      </div>
+      <div class="finds" id="finds">
+
+        <details class="find sev-critical" data-sev="critical" open>
+          <summary><span class="fid">F-01</span><span class="ftitle">Giá phụ thuộc số lượng do client gửi lên</span><span class="sev sev-c">CRITICAL</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd><strong>Người mua trả tiền 1 tháng nhưng giữ chỗ 12 tháng.</strong> Thất thoát doanh thu trực tiếp, không có cảnh báo nào.</dd>
+            <dt>Kỹ thuật</dt><dd><code>booked_cpms</code>, <code>screen_count</code>, <code>duration_units</code> chỉ validate <code>min:1</code> rồi đi thẳng vào phép nhân giá. Không đối chiếu với <code>start_date</code>/<code>end_date</code>, trong khi lịch giữ chỗ lại tính theo ngày.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">CartController.php:61-63  'booked_cpms' => ['nullable','integer','min:1']
+CartService.php:229   $cost = round($floorCpm * $bookedCpms, 2);
+CartService.php:260   $cost = round($ioRate * $screenCount * $durationUnits, 2);</span></dd>
+            <dt>Sửa</dt><dd>Máy chủ tự suy số lượng từ khoảng ngày. Nếu vẫn nhận input thì phải kiểm tra lớn hơn hoặc bằng giá trị suy ra.</dd>
+            <dt>Nghiệm thu</dt><dd>Test: đặt 90 ngày với <code>booked_cpms=1</code> bị từ chối hoặc bị tính lại đúng.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-critical" data-sev="critical" open>
+          <summary><span class="fid">F-02</span><span class="ftitle">Không có khóa chống đặt trùng; đường duyệt không kiểm lịch</span><span class="sev sev-c">CRITICAL</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Hai người mua cùng đặt 100% thời lượng một màn hình đều lọt. Tổng thành 200%, phải đền hoặc hủy đơn thủ công.</dd>
+            <dt>Kỹ thuật</dt><dd>Kiểm tra ở bước xem lại và gửi, ghi ở request sau — kinh điển check rồi mới act. Không <code>lockForUpdate</code>, không ràng buộc DB. <code>approveLines</code> của media owner không kiểm thời lượng lần nào. Vì <code>cancelled</code> không bao giờ được ghi, đơn bỏ dở giữ chỗ vĩnh viễn.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">AvailabilityService.php:14-40  (chỉ SUM share_of_voice_pct)
+CampaignService.php:22        DB::transaction không kiểm lại lịch
+BookingController.php:132,157 nơi duy nhất gọi kiểm tra</span></dd>
+            <dt>Sửa</dt><dd>Kiểm lại trong transaction kèm <code>lockForUpdate</code> trên các dòng booking chồng lấn; thêm ràng buộc ở tầng DB.</dd>
+            <dt>Nghiệm thu</dt><dd>Test hai lần gửi đồng thời: một thành công, một bị từ chối.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-critical" data-sev="critical" open>
+          <summary><span class="fid">F-03</span><span class="ftitle">API ghi dữ liệu không có phân quyền; tenant scope mở toang</span><span class="sev sev-c">CRITICAL</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Bất kỳ ai có token Sanctum đọc được danh sách toàn bộ media owner kèm tỷ lệ chia doanh thu, thông tin thanh toán, mã số thuế — rồi sửa hoặc xóa.</dd>
+            <dt>Kỹ thuật</dt><dd><code>OwnerPolicy</code> có đăng ký nhưng controller không gọi <code>authorize()</code> lần nào. <code>HasOwnerScope</code> thoát sớm khi <code>current_owner_id</code> rỗng, nên token của người mua đọc được màn hình và giá sàn của mọi owner.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">routes/api.php:47-62        chỉ middleware auth:sanctum
+Api/V1/OwnerController.php:13-87  không authorize()
+HasOwnerScope.php:18        if ($user->current_owner_id) — không có nhánh chặn
+ScreenController.php:41     nhận owner_id bất kỳ khi tạo màn hình</span></dd>
+            <dt>Sửa</dt><dd>Policy cho mọi action; scope mặc định chặn khi không có tenant; lọc trường nhạy cảm qua API Resource.</dd>
+            <dt>Nghiệm thu</dt><dd>Test người dùng thường nhận 403 trên mọi endpoint owners, sites, screens.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-critical" data-sev="critical" open>
+          <summary><span class="fid">F-04</span><span class="ftitle">Bằng chứng phát sóng không ghi được, endpoint lại không xác thực</span><span class="sev sev-c">CRITICAL</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Không chứng minh được quảng cáo đã phát. Báo cáo của người mua vĩnh viễn 0%. Đồng thời ai biết UUID màn hình đều bơm được số liệu giả và bật trạng thái online.</dd>
+            <dt>Kỹ thuật</dt><dd>Bảng <code>impression_logs</code> khai <code>campaign_id</code> kiểu bigint trong khi <code>Campaign</code> dùng ULID; khóa chính là <code>ulid('id')</code> không có giá trị mặc định, còn model không dùng <code>HasUlids</code> ⇒ <code>ImpressionLog::create()</code> không sinh được id. Bảng được thiết kế cho player AdTRUE từ trước khi marketplace chuyển sang ULID.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">2025_01_01_000011:11,14   ulid('id') + unsignedBigInteger('campaign_id')
+app/Models/ImpressionLog.php:6-9   không HasUlids
+PlayerController.php:58   ImpressionLog::create([...]) không truyền id
+routes/api.php:41-44      player endpoints ngoài mọi middleware</span></dd>
+            <dt>Sửa</dt><dd>Đổi <code>campaign_id</code> sang ULID kèm backfill, thêm <code>HasUlids</code>, ký request bằng device token, thêm khóa chống trùng sự kiện và giới hạn tần suất.</dd>
+            <dt>Nghiệm thu</dt><dd>Gửi cùng một sự kiện hai lần chỉ ghi một dòng; request không chữ ký nhận 401.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-high" data-sev="high">
+          <summary><span class="fid">F-05</span><span class="ftitle">Không có hủy dịch vụ, hoàn tiền, hay kết thúc chiến dịch</span><span class="sev sev-h">HIGH</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Không đáp ứng được mục 14 của phiếu review TMĐT. Chỗ đã bỏ dở bị giữ mãi. Hai tính năng đang điều kiện trên trạng thái <code>completed</code> nên thực tế không kích hoạt được.</dd>
+            <dt>Kỹ thuật</dt><dd><code>cancelled</code>, <code>completed</code>, <code>paused</code>, <code>refunded</code> đều là giá trị enum chưa từng được ghi.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">Campaign.php:49            STATUS_CANCELLED không nơi nào tham chiếu
+BuyerReportController.php:21   điều kiện trên completed
+OwnerReviewService.php:46      điều kiện trên completed</span></dd>
+            <dt>Sửa</dt><dd><code>CampaignService::cancel/complete</code>, <code>PaymentService::refund</code>, cột <code>cancelled_at</code>/<code>cancellation_reason</code>, job tự chuyển sang hoàn thành khi hết hạn.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-high" data-sev="high">
+          <summary><span class="fid">F-06</span><span class="ftitle">Duyệt nội dung quảng cáo không chặn phát sóng</span><span class="sev sev-h">HIGH</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Nội dung chưa duyệt vẫn có thể lên sóng — rủi ro pháp lý về quảng cáo.</dd>
+            <dt>Kỹ thuật</dt><dd><code>checkAndActivate</code> kích hoạt chiến dịch chỉ dựa trên tổng tiền, không hỏi bảng creatives. Bảng <code>booking_line_creatives</code> (thứ cho biết phát nội dung nào ở màn hình nào) chưa từng được ghi dòng nào.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">PaymentService.php:103-132  chỉ kiểm tiền
+BookingLine.php:76 / Creative.php:47  quan hệ khai báo, bảng rỗng</span></dd>
+            <dt>Sửa</dt><dd>Chặn kích hoạt khi còn creative chờ duyệt hoặc bị từ chối; ghi bản đồ creative → dòng booking khi gán.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-high" data-sev="high">
+          <summary><span class="fid">F-07</span><span class="ftitle">Private key deploy nằm trong git</span><span class="sev sev-h">HIGH</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Ai clone repo cũng có khóa SSH vào máy chủ production.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">git ls-files → github_actions_deploy, github_actions_deploy.pub</span></dd>
+            <dt>Sửa</dt><dd>Xoay khóa trên VPS, gỡ khỏi lịch sử git, chuyển sang GitHub Secrets.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-high" data-sev="high">
+          <summary><span class="fid">F-08</span><span class="ftitle">Không có đối soát, hóa đơn, chi trả; tỷ lệ chia doanh thu không được áp dụng</span><span class="sev sev-h">HIGH</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Không biết sàn thu được gì và media owner nhận được gì. Không xuất được hóa đơn.</dd>
+            <dt>Kỹ thuật</dt><dd><code>actual_impressions</code>/<code>actual_cost</code> chỉ được đọc, không nơi nào ghi. <code>invoice_number</code> được sinh nhưng <code>invoice_url</code> luôn rỗng. <code>breakdownByOwner</code> trả owner 100% số tiền.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">CampaignReportService.php:20,111
+PaymentService.php:192-206, 215</span></dd>
+            <dt>Sửa</dt><dd>Sau khi sửa F-04, dựng bảng đối soát theo kỳ và hóa đơn phí thuê bao theo mô hình phí đã chốt.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-high" data-sev="high">
+          <summary><span class="fid">F-09</span><span class="ftitle">API đối tác trả cả kho hàng của owner chưa duyệt</span><span class="sev sev-h">HIGH</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Trái với chính cam kết mục 9 và 10 trong hồ sơ đăng ký sàn TMĐT.</dd>
+            <dt>Kỹ thuật</dt><dd>Trang công khai dùng <code>Screen::publiclyVisible()</code>, nhưng API lại dùng <code>Screen::query()</code> trơn, kèm cả giá sàn.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">InventoryController.php:441   return Screen::query()
+app/Models/Screen.php:222     scopePubliclyVisible (không được dùng ở đây)</span></dd>
+            <dt>Sửa</dt><dd>Đổi sang <code>publiclyVisible()</code> và thêm test tương tự <code>PublicVisibilityGateTest</code> cho API.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-high" data-sev="high">
+          <summary><span class="fid">F-10</span><span class="ftitle">Không giới hạn tần suất ở API, đăng nhập, player và proxy geocode</span><span class="sev sev-h">HIGH</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Dò mật khẩu và <code>client_secret</code> không giới hạn; proxy Nominatim công khai có thể khiến IP máy chủ bị nhà cung cấp chặn.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">bootstrap/app.php:19-27   không gọi throttleApi()
+routes/web.php:68         POST /login không throttle
+routes/web.php:122-138    /geocode/search không auth, không throttle, không cache</span></dd>
+            <dt>Sửa</dt><dd>Bật <code>throttleApi</code>, thêm throttle cho đăng nhập, cấp token, player và geocode kèm cache.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-medium" data-sev="medium">
+          <summary><span class="fid">F-11</span><span class="ftitle">Nội dung quảng cáo nằm trên ổ đĩa công khai</span><span class="sev sev-m">MEDIUM</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Creative chưa phát sóng có thể bị tải về nếu đoán được đường dẫn. Toàn repo không có URL ký hạn.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">Buyer/BookingController.php:104  disk('public'), thư mục creatives/{campaign_id}</span></dd>
+            <dt>Sửa</dt><dd>Chuyển sang disk private kèm route kiểm quyền hoặc URL có hạn.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-medium" data-sev="medium">
+          <summary><span class="fid">F-12</span><span class="ftitle">Quan hệ Màn hình ↔ Mạng lưới có ba đường song song</span><span class="sev sev-m">MEDIUM</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Số liệu theo mạng lưới sai tùy chỗ gọi, và đây là nguyên nhân 7 test đang đỏ.</dd>
+            <dt>Kỹ thuật</dt><dd><code>screens.network_code</code> (chuỗi, không FK), <code>screen_inventory.network_id</code> và <code>sites.network_id</code> cùng tồn tại; model dùng đường chuỗi còn API dùng đường qua site.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">2026_03_24_000005:10   screens.network_code varchar(100)
+app/Models/Screen.php:132-135  belongsTo qua network_code
+InventoryController.php:220-228  join qua sites.network_id</span></dd>
+            <dt>Sửa</dt><dd>Chọn một đường (khóa ngoại qua site), migrate dữ liệu, bỏ hai đường còn lại.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-medium" data-sev="medium">
+          <summary><span class="fid">F-13</span><span class="ftitle">Trang bản đồ không giới hạn số bản ghi</span><span class="sev sev-m">MEDIUM</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Với kho hàng lớn, một truy vấn rộng nạp toàn bộ màn hình kèm 7 quan hệ vào bộ nhớ rồi gộp bằng PHP.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">FrontpageService.php:695-711   getMapPins kết thúc bằng ->get()</span></dd>
+            <dt>Sửa</dt><dd>Lọc theo khung nhìn bản đồ, gom cụm phía máy chủ, đặt giới hạn cứng.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-medium" data-sev="medium">
+          <summary><span class="fid">F-14</span><span class="ftitle">Webhook đẩy vào hàng đợi không có worker</span><span class="sev sev-m">MEDIUM</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Đối tác đăng ký webhook nhưng không bao giờ nhận được sự kiện trong cấu hình docker hiện tại.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">SendWebhookJob.php:27      onQueue('webhooks')
+docker-compose.yml:59-72   worker chỉ chạy hàng đợi mặc định</span></dd>
+            <dt>Sửa</dt><dd>Thêm worker cho hàng đợi <code>webhooks</code>, hoặc bỏ <code>onQueue</code>.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-medium" data-sev="medium">
+          <summary><span class="fid">F-15</span><span class="ftitle">Trang công khai có số liệu bịa và nút bấm không hoạt động</span><span class="sev sev-m">MEDIUM</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Rủi ro uy tín với agency và rủi ro khi cơ quan quản lý hậu kiểm: mô tả tính năng không hoạt động.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">index.blade.php:65        "30M+ Impressions" hardcode
+index.blade.php:75,388-390  bộ đếm "Live Impressions" tăng bằng Math.random()
+index.blade.php:91        "AI Match 94%" hardcode
+index.blade.php:369       "Tăng fill rate lên 40%" hardcode
+index.blade.php:345,361   nút CTA không có hành vi
+screen-card.blade.php:24  badge "Còn trống" in vô điều kiện
+owners.blade.php:6-8      ô tìm kiếm và bộ lọc không hoạt động</span></dd>
+            <dt>Sửa</dt><dd>Thay bằng số liệu thật hoặc gỡ bỏ. Riêng bộ đếm ngẫu nhiên nên gỡ ngay.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-medium" data-sev="medium">
+          <summary><span class="fid">F-16</span><span class="ftitle">Không có nhật ký hoạt động; đăng nhập thay người dùng không để lại vết</span><span class="sev sev-m">MEDIUM</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Khi có sự cố không truy được ai làm gì. Quản trị viên có thể đăng nhập thành bất kỳ ai chỉ bằng một cú bấm.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">UserResource.php:201-213   auth()->login($record) — không ghi log, không đường quay lại
+Nhật ký duy nhất là AuditLog của Data Engine</span></dd>
+            <dt>Sửa</dt><dd>Ghi nhật ký: đăng nhập, đóng vai, đổi vai trò, đổi giá, duyệt owner, xác nhận thanh toán.</dd>
+          </dl>
+        </details>
+
+        <details class="find sev-medium" data-sev="medium">
+          <summary><span class="fid">F-17</span><span class="ftitle">Không có CI; deploy.sh ngoài repo; migration chỉ chạy được trên MySQL</span><span class="sev sev-m">MEDIUM</span></summary>
+          <dl class="fbody">
+            <dt>Hậu quả</dt><dd>Code lên thẳng production mà không chạy test. Các bước deploy thật không ai kiểm soát được vì nằm ngoài git.</dd>
+            <dt>Kỹ thuật</dt><dd>Workflow chỉ SSH rồi gọi <code>deploy.sh</code>. Migration dùng <code>SHOW INDEX</code> (MySQL) trong khi <code>phpunit.xml</code> cấu hình SQLite, nên bộ test không chạy được theo mặc định.</dd>
+            <dt>Bằng chứng</dt><dd><span class="ev">.github/workflows/deploy.yml   không có bước test/lint/build
+2026_03_20_000001:9           DB::select("SHOW INDEX FROM screens")
+phpunit.xml:26-27             DB_CONNECTION=sqlite</span></dd>
+            <dt>Sửa</dt><dd>Thêm job CI chạy test trên MySQL trước khi deploy; đưa <code>deploy.sh</code> vào repo.</dd>
+          </dl>
+        </details>
+
+      </div>
+    </section>
+
+    <!-- ══ PRICING ══ -->
+    <section id="giaca">
+      <div class="eyebrow">Chuyên đề</div>
+      <h2 class="sec">Giá &amp; thanh toán</h2>
+      <p class="lede">Không có bộ máy tính giá. Chỉ có một hàm hai nhánh trong <code>CartService</code> và VAT 10% viết cứng ở bốn nơi.</p>
+      <h3 class="sub">Công thức đang chạy</h3>
+      <span class="ev">CPM      cost = floor_cpm × booked_cpms                       CartService.php:229
+I/O      cost = io_rate × screen_count × duration_units        CartService.php:260
+Gói      cost = products.floor_price  (bỏ qua ngày hoàn toàn)  CartService.php:42-58
+VAT      hardcode 0.1 tại PaymentService.php:15,113,154 + nhiều blade</span>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Năng lực</th><th style="width:132px">Trạng thái</th><th>Ghi chú</th></tr></thead>
+          <tbody>
+            <tr><td>Rate card có phiên bản, ngày hiệu lực</td><td><span class="st st-miss">MISSING</span></td><td>Giá là một số gắn thẳng vào màn hình; sửa là mất giá cũ</td></tr>
+            <tr><td>Đóng băng giá lúc đặt</td><td><span class="st st-part">PARTIAL</span></td><td><code>CampaignService.php:56-66</code> — nhưng đọc lại giá lúc chuyển đổi, có thể lệch với giá trong giỏ</td></tr>
+            <tr><td>Máy chủ quyết định số lượng</td><td><span class="st st-broken">BROKEN</span></td><td>Xem F-01</td></tr>
+            <tr><td>Chiết khấu theo thời lượng</td><td><span class="st st-miss">MISSING</span></td><td>12 tháng = 12 × giá tháng, nhân thẳng</td></tr>
+            <tr><td>Chiết khấu theo số lượng</td><td><span class="st st-miss">MISSING</span></td><td>Tuyến tính</td></tr>
+            <tr><td>Giá gói</td><td><span class="st st-stub">STUB</span></td><td><code>package_discount_pct</code>, <code>package_options</code> lưu và sửa được nhưng không code tính giá nào đọc</td></tr>
+            <tr><td>Áp dụng tỷ lệ chia doanh thu</td><td><span class="st st-miss">MISSING</span></td><td>Mặc định 70% chưa bao giờ được tính; owner nhận 100%</td></tr>
+            <tr><td>Báo giá có hạn</td><td><span class="st st-miss">MISSING</span></td><td><code>carts.expires_at</code> có cột, không ai ghi hay đọc</td></tr>
+            <tr><td>Cấu hình VAT</td><td><span class="st st-part">PARTIAL</span></td><td>Không có key config, sửa thuế suất phải sửa 4+ chỗ</td></tr>
+            <tr><td>Test khóa công thức</td><td><span class="st st-miss">MISSING</span></td><td>Sửa <code>estimateCost</code> không test nào đỏ</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">Điểm tốt: đơn giá không bao giờ do client gửi lên — <code>CartController</code> không nhận <code>unit_price</code> hay <code>floor_cpm</code>. Lỗ hổng nằm ở <b>số lượng</b>, không phải đơn giá.</div>
+    </section>
+
+    <!-- ══ AVAILABILITY ══ -->
+    <section id="lich">
+      <div class="eyebrow">Chuyên đề</div>
+      <h2 class="sec">Lịch trống &amp; trùng chỗ</h2>
+      <p class="lede"><code>AvailabilityService</code> dài 79 dòng, chỉ cộng tổng phần trăm thời lượng của các dòng booking chồng ngày. Không có bảng lịch, không có trạng thái được bảo vệ.</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Hạng mục</th><th style="width:132px">Trạng thái</th><th>Bằng chứng</th></tr></thead>
+          <tbody>
+            <tr><td>Chống trùng cho biển tĩnh</td><td><span class="st st-broken">BROKEN</span></td><td>Không phân biệt tĩnh và màn hình số: hai người mỗi người 50% đều "vừa" một tấm biển</td></tr>
+            <tr><td>Sức chứa vòng phát của màn hình số</td><td><span class="st st-miss">MISSING</span></td><td><code>loop_length</code>/<code>spot_length</code> chỉ để trả API</td></tr>
+            <tr><td>Khóa đồng thời</td><td><span class="st st-miss">MISSING</span></td><td><code>lockForUpdate</code> cả repo chỉ có ở <code>UserInvitationService:73</code></td></tr>
+            <tr><td>Hàm <code>isAvailable()</code></td><td><span class="st st-broken">DEAD</span></td><td>Không nơi nào gọi ngoài chính class</td></tr>
+            <tr><td>Đặt theo gói</td><td><span class="st st-broken">BROKEN</span></td><td><code>CartService:71</code> chỉ ghi màn hình đầu tiên — 49 màn còn lại vô hình với lịch</td></tr>
+            <tr><td>Giữ chỗ tạm &amp; hết hạn</td><td><span class="st st-miss">MISSING</span></td><td><code>carts.expires_at</code> không ai dùng</td></tr>
+            <tr><td>Ngày chặn, bảo trì, đệm lắp/tháo</td><td><span class="st st-miss">MISSING</span></td><td>Màn hình <code>maintenance</code> vẫn đặt được</td></tr>
+            <tr><td>Múi giờ</td><td><span class="st st-stub">STUB</span></td><td>Cột có, mọi phép tính dùng giờ máy chủ</td></tr>
+            <tr><td>SLA duyệt 48 giờ</td><td><span class="st st-miss">MISSING</span></td><td>Chỉ là chữ trong blade, không có mốc thời gian hay job</td></tr>
+            <tr><td>Độ tươi dữ liệu / đồng bộ CMS</td><td><span class="st st-miss">MISSING</span></td><td>Không có <code>last_synced_at</code>; booking ngoài sàn là vô hình</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><b>Data Engine tách rời:</b> hệ ước tính lưu lượng có phiên bản công thức và theo dõi độ tươi rất tử tế — nhưng giá bán lại đọc <code>weekly_impressions</code> nhập tay, <b>không</b> đọc <code>ScreenEstimate</code>. Con số dùng để tính tiền không phải con số được quản lý phiên bản.</div>
+    </section>
+
+    <!-- ══ SECURITY ══ -->
+    <section id="baomat">
+      <div class="eyebrow">Chuyên đề</div>
+      <h2 class="sec">Bảo mật &amp; phân quyền</h2>
+      <p class="lede">Phân quyền được cài rất kỹ ở tầng giao diện Filament, nhưng gần như không có ở tầng API. Đây là khoảng cách lớn nhất về rủi ro.</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Đối tượng</th><th>Kỳ vọng</th><th>Thực tế</th><th style="width:96px">Rủi ro</th></tr></thead>
+          <tbody>
+            <tr><td>super_admin</td><td>Toàn quyền, có vết</td><td>Toàn quyền, <b>đóng vai người khác không ghi log</b></td><td><span class="st st-part">MED</span></td></tr>
+            <tr><td>owner / manager / scheduler</td><td>Chỉ tenant của mình</td><td>Đúng trong panel</td><td><span class="st st-e2e">OK</span></td></tr>
+            <tr><td>Bất kỳ ai có token Sanctum</td><td>Chỉ dữ liệu của mình</td><td><b>Đọc, sửa, xóa mọi media owner</b></td><td><span class="st st-broken">CRIT</span></td></tr>
+            <tr><td>Người mua (không có owner)</td><td>Không thấy kho nội bộ</td><td><b>Thấy toàn bộ màn hình kèm giá sàn</b></td><td><span class="st st-broken">CRIT</span></td></tr>
+            <tr><td>Publisher A</td><td>Không tạo dữ liệu cho B</td><td><b>Tạo màn hình cho owner bất kỳ</b></td><td><span class="st st-broken">HIGH</span></td></tr>
+            <tr><td>Ẩn danh</td><td>Không ghi được gì</td><td><b>Bơm impression, bật trạng thái online</b></td><td><span class="st st-broken">HIGH</span></td></tr>
+            <tr><td>Token đối tác</td><td>Chỉ kho đã duyệt</td><td><b>Thấy cả owner đang chờ duyệt</b></td><td><span class="st st-broken">HIGH</span></td></tr>
+            <tr><td>Agency quản nhiều khách</td><td>Có phân cấp</td><td>Không có khái niệm khách hàng</td><td><span class="st st-miss">MED</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3 class="sub">Những thứ làm đúng</h3>
+      <ul>
+        <li>Không có lỗ hổng SQL injection: mọi <code>whereRaw</code>/<code>selectRaw</code> đều là chuỗi tĩnh với tham số ràng buộc.</li>
+        <li>Không model nào dùng <code>$guarded</code>; tất cả khai báo <code>$fillable</code> tường minh.</li>
+        <li>CORS là danh sách trắng, không cho gửi cookie kèm.</li>
+        <li>Giấy tờ pháp lý của đối tác nằm trên disk riêng, không có đường dẫn công khai.</li>
+        <li>Upload tạm Livewire đã được siết sau sự cố webshell, có test đi kèm.</li>
+        <li><code>client_secret</code> được băm và ẩn khỏi serialize; không có lời gọi <code>env()</code> nào ngoài thư mục <code>config/</code>.</li>
+      </ul>
+    </section>
+
+    <!-- ══ TRANSACTION ══ -->
+    <section id="luong">
+      <div class="eyebrow">Chuyên đề</div>
+      <h2 class="sec">Luồng giao dịch</h2>
+      <p class="lede">19 bước của một sàn OOH đầy đủ. Tám bước chạy được, mười một bước đứt hoặc chưa có. Chiến dịch chỉ có thể đi tới trạng thái <code>active</code> rồi nằm đó mãi.</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Bước</th><th style="width:150px">Trạng thái</th><th>Điểm đứt</th></tr></thead>
+          <tbody>
+            <tr><td>Tạo brief chiến dịch</td><td><span class="st st-e2e">E2E</span></td><td>—</td></tr>
+            <tr><td>Chọn kho hàng, giỏ hàng</td><td><span class="st st-e2e">E2E</span></td><td>Không kiểm cổng hiển thị khi thêm vào giỏ</td></tr>
+            <tr><td>Kế hoạch truyền thông</td><td><span class="st st-part">PARTIAL</span></td><td>Giỏ hàng đóng vai kế hoạch; không xuất được file</td></tr>
+            <tr><td>Yêu cầu báo giá / chào giá</td><td><span class="st st-miss">MISSING</span></td><td>0 kết quả grep</td></tr>
+            <tr><td>Media owner duyệt</td><td><span class="st st-e2e">E2E</span></td><td>Duyệt hàng loạt, không duyệt từng dòng</td></tr>
+            <tr><td>Thương lượng, chào giá ngược</td><td><span class="st st-miss">MISSING</span></td><td><code>negotiated_cpm</code> có cột, không ai ghi</td></tr>
+            <tr><td>Giữ chỗ tạm</td><td><span class="st st-miss">MISSING</span></td><td>—</td></tr>
+            <tr><td>Khách hàng cuối phê duyệt</td><td><span class="st st-miss">MISSING</span></td><td>—</td></tr>
+            <tr><td>Hợp đồng / đơn đặt hàng</td><td><span class="st st-miss">MISSING</span></td><td>—</td></tr>
+            <tr><td>Thanh toán</td><td><span class="st st-part">PARTIAL</span></td><td>Chỉ chuyển khoản; VNPay/Momo bị chặn cứng ở controller</td></tr>
+            <tr><td>Xác nhận đã nhận tiền</td><td><span class="st st-broken">BROKEN</span></td><td><b>Tiền vào tài khoản owner nhưng chỉ admin sàn xác nhận được</b></td></tr>
+            <tr><td>Tải nội dung quảng cáo</td><td><span class="st st-part">PARTIAL</span></td><td>Chỉ kiểm mime và dung lượng</td></tr>
+            <tr><td>Kiểm tra kỹ thuật</td><td><span class="st st-miss">MISSING</span></td><td><code>width_px</code>, <code>duration_sec</code> không ai ghi</td></tr>
+            <tr><td>Duyệt nội dung</td><td><span class="st st-broken">BROKEN</span></td><td>Duyệt xong không chặn gì (F-06)</td></tr>
+            <tr><td>Lên lịch phát</td><td><span class="st st-miss">MISSING</span></td><td><code>booking_line_creatives</code> rỗng</td></tr>
+            <tr><td>Kích hoạt chiến dịch</td><td><span class="st st-part">BACKEND</span></td><td>Chỉ dựa trên tiền</td></tr>
+            <tr><td>Bằng chứng phát sóng</td><td><span class="st st-broken">BROKEN</span></td><td>Hỏng ở tầng schema (F-04)</td></tr>
+            <tr><td>Đối soát &amp; hóa đơn</td><td><span class="st st-miss">MISSING</span></td><td><code>invoice_url</code> luôn rỗng</td></tr>
+            <tr><td>Hủy, hoàn tiền, khiếu nại</td><td><span class="st st-miss">MISSING</span></td><td>Enum có, code không</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><b>Máy trạng thái:</b> <code>Campaign</code> không có phương thức chuyển trạng thái nào, chỉ có hàm kiểm tra. Mọi thay đổi là <code>update(['status' => …])</code> rải ở 12 chỗ, trong đó chỉ 3 chỗ có bảo vệ.</p>
+    </section>
+
+    <!-- ══ DATA MODEL ══ -->
+    <section id="dulieu">
+      <div class="eyebrow">Chuyên đề</div>
+      <h2 class="sec">Mô hình dữ liệu</h2>
+      <p class="lede">Chuẩn ngành xếp 6 tầng: Địa điểm → Đơn vị quảng cáo → Sản phẩm bán → Bảng giá → Lịch trống → Đơn đặt. Hệ thống hiện có 4 tầng, và đơn đặt lại bám thẳng vào màn hình nên bỏ qua tầng sản phẩm.</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Tầng</th><th style="width:132px">Trạng thái</th><th>Ghi chú</th></tr></thead>
+          <tbody>
+            <tr><td>Địa điểm (Site)</td><td><span class="st st-part">PARTIAL</span></td><td>Thiếu loại hình địa điểm ở cấp site, địa chỉ chuẩn hóa, cờ trong/ngoài trời, xác minh, giấy tờ, người liên hệ</td></tr>
+            <tr><td>Đơn vị quảng cáo (Screen)</td><td><span class="st st-part">PARTIAL</span></td><td>Thiếu loại hình biển, diện tích, tỉ lệ khung, khoảng cách và góc nhìn, độ cao lắp, chiếu sáng, che khuất</td></tr>
+            <tr><td>Thông số biển tĩnh</td><td><span class="st st-miss">MISSING</span></td><td>Toàn bộ: vật liệu, kích thước in, chi phí và thời gian sản xuất, thi công, tháo dỡ, giấy phép</td></tr>
+            <tr><td>Thông số màn hình số</td><td><span class="st st-part">~40%</span></td><td>Có độ phân giải, slot, loop, giờ hoạt động, SOV; thiếu pixel pitch, độ sáng, codec, bitrate, fps, âm thanh, SLA</td></tr>
+            <tr><td>Sản phẩm bán</td><td><span class="st st-part">PARTIAL</span></td><td>Tồn tại nhưng bị bỏ qua: <code>booking_lines.screen_id</code> bắt buộc còn <code>product_id</code> thì không</td></tr>
+            <tr><td>Bảng giá</td><td><span class="st st-miss">MISSING</span></td><td>0 kết quả grep cho <code>rate_card</code></td></tr>
+            <tr><td>Lịch trống</td><td><span class="st st-miss">MISSING</span></td><td>Tính lại mỗi request, không phải trạng thái lưu trữ</td></tr>
+            <tr><td>Đơn đặt</td><td><span class="st st-part">PARTIAL</span></td><td>Có, nhưng không ràng buộc ngược về thứ đã bán</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><b>Thực thể chưa tồn tại:</b> RateCard, PriceRule, Availability, Hold, RFQ, Quote, MediaPlan, Hợp đồng, Hóa đơn, Settlement, Khiếu nại, Hoàn tiền, Bằng chứng thi công, Khách hàng của agency, Nhật ký hoạt động toàn cục, Thông báo trong ứng dụng.</p>
+    </section>
+
+    <!-- ══ PUBLIC ══ -->
+    <section id="trangcong">
+      <div class="eyebrow">Chuyên đề</div>
+      <h2 class="sec">Trang công khai</h2>
+      <p class="lede">Phần khám phá kho hàng làm tốt: bộ lọc tác động thật vào truy vấn, có phân trang, sắp xếp, SEO và dữ liệu có cấu trúc. Phần trang chủ thì trộn số liệu thật với số liệu bịa.</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Trang</th><th style="width:132px">Trạng thái</th><th>Ghi chú</th></tr></thead>
+          <tbody>
+            <tr><td><code>/explore</code> + chi tiết màn hình</td><td><span class="st st-e2e">E2E</span></td><td>Lọc, sắp xếp, phân trang thật; có JSON-LD và chuyển hướng canonical</td></tr>
+            <tr><td><code>/products</code></td><td><span class="st st-e2e">E2E</span></td><td>Nhưng <b>không có link nào ở header và footer</b></td></tr>
+            <tr><td><code>/owners/{owner}</code></td><td><span class="st st-e2e">E2E</span></td><td>Đánh giá lấy từ dữ liệu thật</td></tr>
+            <tr><td>Trang chính sách + bảng phí + phản ánh</td><td><span class="st st-e2e">E2E</span></td><td>Vừa bổ sung trong đợt TMĐT</td></tr>
+            <tr><td><code>/map</code></td><td><span class="st st-part">PARTIAL</span></td><td>Không giới hạn số bản ghi (F-13)</td></tr>
+            <tr><td><code>/owners</code>, <code>/agency</code></td><td><span class="st st-part">PARTIAL</span></td><td>Ô tìm kiếm không nằm trong form, chip và sắp xếp không hoạt động</td></tr>
+            <tr><td>Trang chủ</td><td><span class="st st-part">PARTIAL</span></td><td>4 ô số liệu thì 3 thật, 1 bịa; bộ đếm impression chạy bằng <code>Math.random()</code></td></tr>
+            <tr><td>Danh sách đã lưu</td><td><span class="st st-broken">BROKEN</span></td><td>Có API lưu, không có trang xem; nav trỏ <code>#</code></td></tr>
+            <tr><td>So sánh, Giải pháp, Tài nguyên, Giới thiệu, Phương pháp luận, Chuẩn xác minh</td><td><span class="st st-miss">MISSING</span></td><td>Chữ "Verified" gắn ở 6 chỗ nhưng không có trang nào định nghĩa nó</td></tr>
+            <tr><td>Cổng tài liệu API, cổng duyệt cho khách hàng</td><td><span class="st st-miss">MISSING</span></td><td>API có thật, tài liệu công khai thì không</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══ INTEGRATIONS ══ -->
+    <section id="tichhop">
+      <div class="eyebrow">Chuyên đề</div>
+      <h2 class="sec">Tích hợp &amp; vận hành</h2>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Tích hợp</th><th style="width:118px">Trạng thái</th><th>Ghi chú</th></tr></thead>
+          <tbody>
+            <tr><td>Bản đồ Leaflet</td><td><span class="st st-e2e">E2E</span></td><td>—</td></tr>
+            <tr><td>Geocoding Nominatim</td><td><span class="st st-part">PARTIAL</span></td><td>Không retry, nuốt lỗi im lặng, proxy công khai không giới hạn</td></tr>
+            <tr><td>AI map cột khi nhập Excel</td><td><span class="st st-e2e">E2E</span></td><td>Có cache, không retry, không test</td></tr>
+            <tr><td>Webhook</td><td><span class="st st-part">PARTIAL</span></td><td>Có retry và tự tắt sau 3 lần lỗi; <b>không có chống trùng</b>; hàng đợi không worker</td></tr>
+            <tr><td>Data Engine (đọc + đẩy)</td><td><span class="st st-e2e">E2E</span></td><td>Chạy tốt nhưng không nối vào giá hay lịch</td></tr>
+            <tr><td>Cổng thanh toán VNPay/Momo</td><td><span class="st st-stub">STUB</span></td><td>Bị chặn cứng ở controller kèm ghi chú TODO</td></tr>
+            <tr><td>Hóa đơn điện tử, SMS/Zalo, S3/CDN, công cụ tìm kiếm</td><td><span class="st st-miss">MISSING</span></td><td>Tìm kiếm đang dùng <code>LIKE %…%</code></td></tr>
+            <tr><td>Theo dõi lỗi (Sentry…)</td><td><span class="st st-miss">MISSING</span></td><td>Không có gói nào trong <code>composer.json</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3 class="sub">Kiểm thử</h3>
+      <p>22 file test, không có unit test thực chất. <b>Có test:</b> phân quyền panel, cổng hiển thị công khai, mời người dùng, trang chính sách và bằng chứng đồng ý, đánh giá owner, chia tiền theo owner, bảo mật upload, API kho hàng. <b>Không có test:</b> toàn bộ công thức giá, lịch trống, tạo và duyệt chiến dịch, upload và duyệt creative, xác nhận thanh toán, endpoint player, webhook, báo cáo.</p>
+      <p>Bộ test chạy trong container PHP 8.4 với MySQL tạm: <b>219 pass, 10 fail</b>. Cả 10 lỗi đều có sẵn từ trước, nguyên nhân: 7 lỗi do hai đường quan hệ mạng lưới (F-12), 2 lỗi do dùng sai tham số thứ ba của <code>view()</code> (tưởng là mã HTTP), 1 lỗi do test tạo trạng thái <code>inactive</code> không có trong enum.</p>
+    </section>
+
+    <!-- ══ BACKLOG ══ -->
+    <section id="backlog">
+      <div class="eyebrow">Hành động</div>
+      <h2 class="sec">Việc cần làm, theo thứ tự</h2>
+      <div class="tw">
+        <table>
+          <thead><tr><th style="width:52px">Mức</th><th>Việc</th><th style="width:74px">Công</th><th>Nghiệm thu</th></tr></thead>
+          <tbody>
+            <tr><td><b>P0</b></td><td>Máy chủ tự tính số lượng và giá (F-01)</td><td>S</td><td>Test khóa công thức</td></tr>
+            <tr><td><b>P0</b></td><td>Khóa và kiểm lại lịch trong transaction (F-02)</td><td>M</td><td>Test hai lần gửi đồng thời</td></tr>
+            <tr><td><b>P0</b></td><td>Kiểm cổng hiển thị khi thêm giỏ và khi gửi booking</td><td>S</td><td>Màn hình của owner chờ duyệt không đặt được</td></tr>
+            <tr><td><b>P0</b></td><td>Policy cho API v1, scope mặc định chặn (F-03)</td><td>M</td><td>Test 403</td></tr>
+            <tr><td><b>P0</b></td><td>Ký và giới hạn endpoint player (F-04, F-10)</td><td>M</td><td>Test 401 và 429</td></tr>
+            <tr><td><b>P0</b></td><td>Xoay và gỡ private key khỏi repo (F-07)</td><td>S</td><td>Repo sạch, khóa cũ vô hiệu</td></tr>
+            <tr><td><b>P0</b></td><td>API đối tác lọc theo owner đã duyệt (F-09)</td><td>S</td><td>Test cổng hiển thị cho API</td></tr>
+            <tr><td><b>P0</b></td><td>Gỡ hoặc thay số liệu bịa trên trang công khai (F-15)</td><td>S</td><td>Không còn số hardcode</td></tr>
+            <tr><td><b>P0</b></td><td>Sửa schema bằng chứng phát sóng sang ULID (F-04)</td><td>M</td><td>Ghi được log thật</td></tr>
+            <tr><td><b>P0</b></td><td>Luồng hủy và giải phóng chỗ (F-05)</td><td>M</td><td>Test hủy trả lại thời lượng</td></tr>
+            <tr><td>P1</td><td>Chặn phát sóng khi chưa duyệt nội dung (F-06)</td><td>M</td><td>Test chặn kích hoạt</td></tr>
+            <tr><td>P1</td><td>Đối soát và hóa đơn phí thuê bao (F-08)</td><td>L</td><td>Báo cáo kỳ khớp số</td></tr>
+            <tr><td>P1</td><td>Rate card có phiên bản và bậc theo thời lượng</td><td>L</td><td>Giá 12 tháng khác 12 lần giá tháng</td></tr>
+            <tr><td>P1</td><td>Hợp nhất quan hệ mạng lưới (F-12)</td><td>M</td><td>7 test đỏ xanh lại</td></tr>
+            <tr><td>P1</td><td>Lịch trống và trang doanh thu cho media owner</td><td>L</td><td>Owner tự chặn ngày</td></tr>
+            <tr><td>P1</td><td>CI chạy test trước khi deploy (F-17)</td><td>S</td><td>PR đỏ thì chặn merge</td></tr>
+            <tr><td>P2</td><td>Yêu cầu báo giá, kế hoạch truyền thông, cổng duyệt cho khách hàng</td><td>XL</td><td>Luồng báo giá khép kín</td></tr>
+            <tr><td>P2</td><td>So sánh, danh sách đã lưu, trang phương pháp luận và chuẩn xác minh</td><td>M</td><td>Trang có dữ liệu thật</td></tr>
+            <tr><td>P3</td><td>SEO landing, programmatic/OpenRTB, DCO</td><td>XL</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══ ROADMAP ══ -->
+    <section id="roadmap">
+      <div class="eyebrow">Hành động</div>
+      <h2 class="sec">Lộ trình 90 ngày</h2>
+      <div class="phases">
+        <div class="phase">
+          <h4>Nền dữ liệu &amp; khung giao dịch</h4>
+          <div class="win">0 – 30 ngày</div>
+          <ul><li>F-01 giá, F-02 khóa lịch</li><li>F-03 phân quyền API</li><li>F-07 xoay khóa, F-09, F-10</li><li>F-15 gỡ số liệu bịa</li><li>Dựng CI chạy test</li></ul>
+          <div class="exit"><b>Rủi ro:</b> sửa scope thành chặn mặc định có thể làm hỏng job chạy nền không có tenant — cần rà trước.<br><b>Xong khi:</b> không còn đường nào đặt sai giá hoặc đặt trùng; API có policy; test xanh trong CI.</div>
+        </div>
+        <div class="phase">
+          <h4>Đặt chỗ, duyệt, nội dung, vận hành</h4>
+          <div class="win">31 – 60 ngày</div>
+          <ul><li>F-05 hủy và hoàn tiền</li><li>F-06 chặn phát khi chưa duyệt</li><li>Rate card v1 có bậc giá</li><li>Lịch trống cho media owner</li><li>Hợp nhất quan hệ mạng lưới</li></ul>
+          <div class="exit"><b>Rủi ro:</b> migration mạng lưới cần backfill cẩn thận trên dữ liệu production.<br><b>Xong khi:</b> một chiến dịch đi trọn vòng từ nháp đến hoàn thành hoặc đã hủy, hoàn toàn trong hệ thống.</div>
+        </div>
+        <div class="phase">
+          <h4>Bằng chứng, tài chính, báo cáo</h4>
+          <div class="win">61 – 90 ngày</div>
+          <ul><li>F-04 trọn vẹn: ký request, chống trùng, hàng đợi offline</li><li>Ghi impression thực, phát hiện phát thiếu</li><li>Đối soát và hóa đơn phí thuê bao</li><li>Nhật ký hoạt động, theo dõi lỗi</li></ul>
+          <div class="exit"><b>Rủi ro:</b> cần ít nhất một thiết bị phát thật để kiểm chứng.<br><b>Xong khi:</b> người mua xem được báo cáo phát sóng thật; sàn xuất được hóa đơn phí.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ ANSWERS ══ -->
+    <section id="ketluan">
+      <div class="eyebrow">Kết luận</div>
+      <h2 class="sec">Tám câu trả lời thẳng</h2>
+      <div class="qa">
+        <div class="qa-item"><div class="q">1. OOHX hiện là gì?</div><div class="a"><span class="tag tag-part">Lead marketplace</span> — có vỏ giao dịch nhưng lõi chưa đủ.</div></div>
+        <div class="qa-item"><div class="q">2. Người mua hoàn tất booking trong hệ thống được chưa?</div><div class="a"><span class="tag tag-no">Chưa</span> — thương lượng, hợp đồng, hóa đơn, báo cáo phát sóng và hủy đều phải làm ngoài.</div></div>
+        <div class="qa-item"><div class="q">3. Media owner quản được giá và lịch trống chưa?</div><div class="a"><span class="tag tag-part">Một nửa</span> — giá thì sửa được, lịch trống thì không có màn hình nào.</div></div>
+        <div class="qa-item"><div class="q">4. Có ngăn được trùng chỗ và bán quá sức chứa chưa?</div><div class="a"><span class="tag tag-no">Chưa</span> — không khóa, không ràng buộc, sức chứa vòng phát không được mô hình hóa.</div></div>
+        <div class="qa-item"><div class="q">5. Giá đủ cấu trúc cho agency, chiết khấu, VAT, đối soát chưa?</div><div class="a"><span class="tag tag-no">Chưa</span> — một số cho mỗi màn hình, VAT viết cứng bốn nơi.</div></div>
+        <div class="qa-item"><div class="q">6. Duyệt nội dung và bằng chứng phát sóng có gắn với booking chưa?</div><div class="a"><span class="tag tag-no">Chưa</span> — duyệt không chặn gì, đường ghi bằng chứng hỏng ở schema.</div></div>
+        <div class="qa-item"><div class="q">7. Ba kiến trúc dữ liệu cần sửa gấp nhất?</div><div class="a">Bảng <code>impression_logs</code>; tầng lịch trống phải thành trạng thái có ràng buộc; hợp nhất quan hệ Màn hình ↔ Mạng lưới.</div></div>
+        <div class="qa-item"><div class="q">8. Mười việc P0 tiếp theo?</div><div class="a">Xem bảng <a href="#backlog">Việc cần làm</a> — bắt đầu từ F-01 và F-02 vì hai lỗi này đang ảnh hưởng tiền thật.</div></div>
+      </div>
+    </section>
+
+    <!-- ══ SCOPE ══ -->
+    <section id="phamvi">
+      <div class="eyebrow">Minh bạch</div>
+      <h2 class="sec">Phạm vi &amp; hạn chế</h2>
+      <h3 class="sub">Đã kiểm</h3>
+      <p>Toàn bộ <code>routes/</code>, 71 migration, 37 model chính và 17 model Data Engine, 20 service, controller web và API, khoảng 158 file Filament, view trang công khai và khu vực người mua, 22 file test, Dockerfile, docker-compose và workflow deploy.</p>
+      <h3 class="sub">Chưa kiểm</h3>
+      <p>Nội dung <code>deploy.sh</code> trên máy chủ, dữ liệu production thật, hành vi lúc chạy của Data Engine qua đường hầm SSH, JavaScript phía client ngoài các chỗ đã trích dẫn.</p>
+      <h3 class="sub">Cần xác minh lúc chạy thật</h3>
+      <p>F-04 (tôi kết luận việc ghi <code>impression_logs</code> hỏng dựa trên schema và model, không chạy thử); mức độ ràng buộc của <code>OwnerReviewService::reviewableOwners</code>; hiệu năng trang bản đồ với dữ liệu lớn.</p>
+      <h3 class="sub">Câu hỏi không trả lời được từ code</h3>
+      <ol class="num">
+        <li>Có thiết bị phát nào đang chạy thật ngoài thực địa không, hay 83 màn hình hiện chỉ là dữ liệu danh mục?</li>
+        <li>Mô hình bán chính thức là I/O hay CPM? Hai hệ thống giá đang tồn tại song song.</li>
+        <li>Sàn có định làm biển tĩnh (in bạt) không? Nếu có thì phải xây mới toàn bộ nhóm trường sản xuất và giấy phép.</li>
+        <li>Chính sách hủy và hoàn tiền — quyết định này đang chặn F-05.</li>
+        <li>Tỷ lệ 70/30 còn hiệu lực không, sau khi đã chốt mô hình phí thuê bao?</li>
+        <li>Agency có cần quản lý nhiều khách hàng trong 6 tháng tới không?</li>
+      </ol>
+      <div class="note"><b>Mức tin cậy:</b> cao với các phát hiện có trích dẫn — bốn phát hiện nghiêm trọng nhất đã được đọc lại trực tiếp trong code để xác nhận. Trung bình với các ước lượng về hiệu năng và vận hành.</div>
+    </section>
+
+    <footer>
+      Audit chỉ đọc · không sửa file, không tạo commit · oohx-dash @ <span class="mono">112e2aa</span> · 23/09/2026
+    </footer>
+  </main>
+</div>
+
+<script>
+(function(){
+  // theme toggle
+  var btn = document.getElementById('themeBtn');
+  btn.addEventListener('click', function(){
+    var root = document.documentElement;
+    var cur = root.getAttribute('data-theme');
+    var dark = cur ? cur === 'dark'
+      : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    root.setAttribute('data-theme', dark ? 'light' : 'dark');
+    try { localStorage.setItem('oohx-audit-theme', dark ? 'light' : 'dark'); } catch(e){}
+  });
+  try {
+    var saved = localStorage.getItem('oohx-audit-theme');
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+  } catch(e){}
+
+  // severity filter
+  var btns = document.querySelectorAll('.fbtn');
+  var cards = document.querySelectorAll('.find');
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      var f = b.dataset.f;
+      btns.forEach(function(o){ o.setAttribute('aria-pressed', String(o === b)); });
+      cards.forEach(function(c){ c.hidden = !(f === 'all' || c.dataset.sev === f); });
+    });
+  });
+
+  // toc active state
+  var links = Array.prototype.slice.call(document.querySelectorAll('#tocList a'));
+  var secs = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (!en.isIntersecting) return;
+        var i = secs.indexOf(en.target);
+        if (i < 0) return;
+        links.forEach(function(l, j){ l.classList.toggle('on', j === i); });
+      });
+    }, { rootMargin: '-72px 0px -70% 0px' });
+    secs.forEach(function(s){ if (s) io.observe(s); });
+  }
+})();
+</script>

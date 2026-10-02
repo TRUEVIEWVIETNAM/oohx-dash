@@ -1,0 +1,899 @@
+openapi: 3.1.0
+
+# NGUỒN SỰ THẬT cho kiểu dữ liệu của /api/v2.
+#
+# Next.js sinh TypeScript từ file này, không chép tay (CLAUDE.md mục 2). Kèm
+# theo là một phép kiểm tự động: `OpenApiContractTest` đối chiếu HAI CHIỀU giữa
+# file này và bảng route thật — thêm endpoint mà quên mô tả, hoặc mô tả một
+# endpoint không tồn tại, đều làm test đỏ. Một đặc tả không ai kiểm là một đặc
+# tả sẽ lệch.
+
+info:
+  title: OOHX API v2
+  version: 0.1.0
+  description: |
+    Danh mục công khai của sàn OOHX. Phần này phục vụ trang công khai và
+    ứng dụng Next.js.
+
+    Không dùng /api/v1 cho việc mới: v1 là hợp đồng đang chạy với đối tác và
+    giữ nguyên hành vi, kể cả những chỗ đặt tên sai (xem `price_per_slot_vnd`).
+
+servers:
+  - url: https://api.oohx.net
+    description: Production
+  - url: http://oohx.test
+    description: Môi trường phát triển
+
+tags:
+  - name: catalog
+    description: Dữ liệu công khai — không cần đăng nhập, có giới hạn tần suất.
+  - name: cart
+    description: |
+      Khu người mua — **cần đăng nhập** (Sanctum dạng SPA, cookie phiên).
+      Số tiền ở nhóm này luôn do máy chủ tính; không endpoint nào nhận số tiền
+      từ client.
+
+paths:
+  /api/v2/stats:
+    get:
+      tags: [catalog]
+      summary: Số liệu tổng quan của sàn
+      description: |
+        Ba con số đọc được từ CSDL. Không có số liệu phát sóng ở đây: đường ghi
+        bằng chứng phát sóng mới hoạt động từ giai đoạn 2 và chưa có dữ liệu.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [total_screens, total_cities, total_owners]
+                    properties:
+                      total_screens: { type: integer }
+                      total_cities:  { type: integer }
+                      total_owners:  { type: integer }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/filters:
+    get:
+      tags: [catalog]
+      summary: Bộ lọc tổng hợp cho trang khám phá
+      description: |
+        Dùng chung nguồn với bộ lọc trên trang công khai, nên hai nơi không
+        thể hiện ra danh sách khác nhau. Khoảng giá lấy từ `floor_cpm` —
+        chính con số trang công khai đang hiển thị.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [cities, venue_types, networks, owners, price_range]
+                    properties:
+                      cities:      { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
+                      venue_types: { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
+                      networks:    { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
+                      owners:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            slug:  { type: [string, 'null'] }
+                            name:  { type: [string, 'null'] }
+                            count: { type: integer }
+                      price_range:
+                        type: object
+                        description: |
+                          Khoảng giá CPM, **chỉ tính hàng VND**. Bản đầu gọi
+                          nó là `price_range_vnd` trong khi MIN/MAX chạy trên
+                          toàn bộ `floor_cpm` bất kể `floor_cpm_currency`, nên
+                          một hàng USD kéo `min` xuống vài đơn vị (Codex R39).
+                        required: [currency, min, max]
+                        properties:
+                          currency: { type: string, enum: [VND] }
+                          min:      { type: integer }
+                          max:      { type: integer }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/screens/map:
+    get:
+      tags: [catalog]
+      summary: Pin bản đồ trong một khung nhìn
+      description: |
+        **Khung nhìn bắt buộc.** Thiếu `north`/`south`/`east`/`west` là 422,
+        không phải "mặc định cả thế giới": không có khung nhìn thì endpoint
+        này là một lần xuất toàn bộ kho dưới cái tên vô hại.
+
+        Trên khung nhìn vẫn còn **giới hạn cứng** số pin, vì khung nhìn rộng
+        vẫn có thể trùm cả kho. Khi bị cắt, `meta.truncated` là `true` và
+        `meta.total` cho biết còn bao nhiêu — client thu nhỏ khung nhìn lại.
+        Pin bị cắt được sắp thứ tự xác định, nên kéo bản đồ qua lại không ra
+        tập pin khác nhau một cách vô cớ.
+
+        Bộ lọc giống hệt `/api/v2/screens`.
+      parameters:
+        - { name: north, in: query, required: true, schema: { type: number, minimum: -90,  maximum: 90 } }
+        - { name: south, in: query, required: true, schema: { type: number, minimum: -90,  maximum: 90 } }
+        - { name: east,  in: query, required: true, schema: { type: number, minimum: -180, maximum: 180 } }
+        - { name: west,  in: query, required: true, schema: { type: number, minimum: -180, maximum: 180 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 300 } }
+        - { name: q,           in: query, schema: { type: string, maxLength: 100 } }
+        - { name: city,        in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: venue_type,  in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: screen_type, in: query, style: form, explode: false, schema: { type: array, maxItems: 5,  items: { type: string, enum: [billboard, led, lcd] } } }
+        - { name: network,     in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: owner,       in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/MapPin' }
+                  meta:
+                    type: object
+                    required: [returned, total, limit, max_limit, truncated, viewport]
+                    properties:
+                      returned:  { type: integer }
+                      total:     { type: integer, description: 'Tổng số pin khớp bộ lọc và khung nhìn, trước khi cắt.' }
+                      limit:     { type: integer }
+                      max_limit: { type: integer }
+                      truncated: { type: boolean }
+                      viewport:
+                        type: object
+                        required: [north, south, east, west]
+                        properties:
+                          north: { type: number }
+                          south: { type: number }
+                          east:  { type: number }
+                          west:  { type: number }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/screens:
+    get:
+      tags: [catalog]
+      summary: Danh sách màn hình
+      description: |
+        Phân trang có **giới hạn cứng**: `per_page` lớn hơn `max_per_page` bị
+        kẹp về mức đó, không trả về toàn bộ kho.
+      # Bộ lọc dưới đây do `FrontpageListingRequest` kiểm — CÙNG một bộ luật
+      # với trang công khai. Sửa luật ở đó thì sửa cả ở đây, nếu không đặc tả
+      # nói một đằng máy chủ nhận một nẻo.
+      #
+      # Tham số nhiều giá trị dùng `style: form, explode: false`, tức MỘT khóa
+      # phân tách bằng dấu phẩy: `city=hanoi,hcm`. Bản đầu tôi khai
+      # `explode: true` (`city=hanoi&city=hcm`) — sai, vì PHP không ghép khóa
+      # lặp thành mảng, nó lấy giá trị cuối và bỏ phần còn lại, rồi luật
+      # `array` trả 422. Dạng `city[]=` cũng được nhận nhưng không phải hợp
+      # đồng khai ở đây (Codex R37).
+      parameters:
+        - { name: page,        in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page,    in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+        - { name: q,           in: query, schema: { type: string, maxLength: 100 } }
+        - { name: city,        in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: province,    in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: district,    in: query, style: form, explode: false, schema: { type: array, maxItems: 20, items: { type: string } } }
+        - { name: region,      in: query, style: form, explode: false, schema: { type: array, maxItems: 3,  items: { type: string, enum: [north, central, south] } } }
+        - { name: venue_type,  in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: screen_type, in: query, style: form, explode: false, schema: { type: array, maxItems: 5,  items: { type: string, enum: [billboard, led, lcd] } } }
+        - { name: orientation, in: query, style: form, explode: false, schema: { type: array, maxItems: 3,  items: { type: string, enum: [landscape, portrait, square] } } }
+        - { name: network,     in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: owner,       in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: site,        in: query, schema: { type: string, maxLength: 50 } }
+        - { name: min_price,   in: query, schema: { type: number, minimum: 0 } }
+        - { name: max_price,   in: query, schema: { type: number, minimum: 0 } }
+        - { name: sort,        in: query, schema: { type: string, enum: [price_asc, price_desc, newest] } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ScreenSummary' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/screens/{slug}:
+    get:
+      tags: [catalog]
+      summary: Chi tiết một màn hình
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/ScreenSummary'
+                      - type: object
+                        required: [availability]
+                        properties:
+                          availability: { $ref: '#/components/schemas/Availability' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/owners:
+    get:
+      tags: [catalog]
+      summary: Danh sách media owner
+      parameters:
+        - { name: page,     in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+        - { name: q,        in: query, schema: { type: string, maxLength: 100 } }
+        - { name: type,     in: query, description: Lọc theo loại điểm đặt của màn hình thuộc owner., schema: { type: string, maxLength: 100 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/OwnerSummary' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v2/owners/{slug}:
+    get:
+      tags: [catalog]
+      summary: Chi tiết media owner kèm màn hình của họ
+      description: |
+        Màn hình đi kèm dùng đúng `ScreenSummary` như `/api/v2/screens`, nên
+        bên tiêu thụ chỉ cần một kiểu dữ liệu cho màn hình.
+      parameters:
+        - { name: slug,     in: path,  required: true, schema: { type: string } }
+        - { name: page,     in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+        - { name: city,     in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: network,  in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, screens]
+                properties:
+                  data: { $ref: '#/components/schemas/OwnerDetail' }
+                  screens:
+                    type: object
+                    required: [data, meta]
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/ScreenSummary' }
+                      meta: { $ref: '#/components/schemas/PageMeta' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/products:
+    get:
+      tags: [catalog]
+      summary: Danh sách sản phẩm (gói và vị trí lẻ)
+      description: |
+        Dùng chung `ProductService` với trang `/products`, nên bộ lọc và thứ
+        tự không thể khác nhau giữa hai nơi.
+
+        `owner` nhận **slug**, không nhận id nội bộ. Slug không tồn tại thì
+        kết quả rỗng, không phải "bỏ qua bộ lọc và trả cả kho".
+
+        Tham số nhiều giá trị dùng `explode: false` (`category=led,lcd`) —
+        xem ghi chú ở `/api/v2/screens` về vì sao không dùng `explode: true`.
+      parameters:
+        - { name: page,      in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page,  in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+        - { name: q,         in: query, schema: { type: string, maxLength: 100 } }
+        - { name: category,  in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string, enum: [billboard, led, lcd, posm, standee, escalator_wrap, ceiling_hang, lightbox] } } }
+        - { name: type,      in: query, schema: { type: string, enum: [single, package, custom] } }
+        - { name: city,      in: query, style: form, explode: false, schema: { type: array, maxItems: 10, items: { type: string } } }
+        - { name: owner,     in: query, schema: { type: string, maxLength: 100 } }
+        - { name: min_price, in: query, schema: { type: number, minimum: 0 } }
+        - { name: max_price, in: query, schema: { type: number, minimum: 0 } }
+        - { name: sort,      in: query, schema: { type: string, enum: [price_asc, price_desc, newest] } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ProductSummary' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v2/products/{slug}:
+    get:
+      tags: [catalog]
+      summary: Chi tiết một sản phẩm
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/ProductDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/cart:
+    get:
+      tags: [cart]
+      security: [{ sessionCookie: [] }]
+      summary: Giỏ hàng hiện tại của người đang đăng nhập
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Cart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/cart/items:
+    post:
+      tags: [cart]
+      security: [{ sessionCookie: [] }]
+      summary: Thêm một màn hình hoặc một sản phẩm vào giỏ
+      description: |
+        Gửi `screen_slug` để thêm một màn hình lẻ, hoặc `product_slug` để thêm
+        một sản phẩm. API **không** nhận khóa nội bộ: trang Blade gửi
+        `screen_id`/`product_id` vì nó dựng form từ model sẵn trong tay, còn
+        client ngoài thì dùng slug và máy chủ quy đổi.
+
+        **Không nhận số tiền.** `estimated_cost` do `CartService` tính lại từ
+        cấu hình kho; trường nào client gửi lên cũng bị bỏ qua.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                screen_slug:  { type: string, description: Bắt buộc khi thêm một màn hình lẻ. }
+                product_slug: { type: string, description: Bắt buộc khi thêm một sản phẩm. }
+                selected_screen_slugs: { type: array, items: { type: string } }
+                buy_mode:     { type: string, enum: [package, individual] }
+                start_date:   { type: string, format: date }
+                end_date:     { type: string, format: date }
+                quantity:     { type: integer, minimum: 1 }
+                pricing_model: { type: string, enum: [cpm, io] }
+                booked_cpms:   { type: integer, minimum: 1 }
+                duration_units: { type: integer, minimum: 1 }
+      responses:
+        '201':
+          description: Đã thêm
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/Cart'
+                      - type: object
+                        properties:
+                          added_item_id: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/cart/items/{item}:
+    parameters:
+      - { name: item, in: path, required: true, schema: { type: string } }
+    patch:
+      tags: [cart]
+      security: [{ sessionCookie: [] }]
+      summary: Sửa một dòng giỏ
+      description: |
+        Không có trường tiền nào. `estimated_cost` được tính lại từ cấu hình
+        kho sau mỗi lần sửa — số tiền do máy chủ tính.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                start_date:         { type: string, format: date }
+                end_date:           { type: string, format: date }
+                share_of_voice_pct: { type: integer, minimum: 1, maximum: 100 }
+                spot_length:        { type: integer, minimum: 5, maximum: 60 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Cart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      tags: [cart]
+      security: [{ sessionCookie: [] }]
+      summary: Xóa một dòng giỏ
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Cart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: laravel_session
+      description: |
+        Sanctum dạng SPA. Client gọi `GET /sanctum/csrf-cookie` trước, rồi gửi
+        kèm cookie phiên và header `X-XSRF-TOKEN` cho mọi yêu cầu ghi. Nhóm
+        này **không** dùng token đối tác; token đối tác chỉ dùng cho `/api/v1`.
+
+  schemas:
+    ScreenSummary:
+      type: object
+      required: [slug, name, screen_type, owner, location, size, pricing]
+      properties:
+        slug:        { type: string }
+        name:        { type: string }
+        screen_type: { type: string, enum: [billboard, led, lcd] }
+        owner:
+          type: object
+          properties:
+            slug: { type: [string, 'null'] }
+            name: { type: [string, 'null'] }
+        location:
+          type: object
+          properties:
+            site:     { type: [string, 'null'] }
+            city:     { type: [string, 'null'] }
+            district: { type: [string, 'null'] }
+        network:
+          type: [object, 'null']
+          properties:
+            code: { type: string }
+            name: { type: string }
+        size:
+          type: object
+          properties:
+            width_m:  { type: [number, 'null'] }
+            height_m: { type: [number, 'null'] }
+        pricing:
+          type: object
+          description: |
+            Tên trường nói đúng nó là gì, và **mỗi số tiền đi kèm đơn vị**.
+            `floor_cpm` là giá cho 1.000 lượt hiển thị; `io_rate` là giá thuê
+            một kỳ, kỳ nói ở `io_rate.unit`.
+
+            Bản đầu trả `floor_cpm_vnd` bằng cách làm tròn `floor_cpm` và bỏ
+            qua `floor_cpm_currency` — cột đó nhận VND hoặc USD, nên một hàng
+            USD 2,50 ra ngoài thành "3 VND" (Codex R39). API **không** tự quy
+            đổi: quy đổi cần một chính sách tỷ giá có người chốt.
+
+            `io_rate` không có cột currency trong CSDL nên luôn là VND; trường
+            `currency` vẫn có mặt để giả định đó nhìn thấy được.
+
+            v1 có `price_per_slot_vnd` trả giá CPM dưới cái tên "giá một slot" —
+            v2 không lặp lại.
+          required: [model, floor_cpm, io_rate]
+          properties:
+            model: { type: [string, 'null'], enum: [cpm, io, both, null] }
+            floor_cpm:
+              type: object
+              required: [amount, currency]
+              properties:
+                amount:   { type: [number, 'null'], description: 'Có thể là số lẻ khi currency không phải VND.' }
+                currency: { type: string, enum: [VND, USD] }
+            io_rate:
+              type: object
+              required: [amount, currency]
+              properties:
+                amount:   { type: [integer, 'null'] }
+                currency: { type: string, enum: [VND] }
+                unit:     { type: [string, 'null'], enum: [week, month, null] }
+        photo_url: { type: [string, 'null'] }
+
+    OwnerSummary:
+      type: object
+      required: [slug, name]
+      description: |
+        Danh sách trắng. Không bao giờ chứa `revenue_share_pct`, `billing_info`,
+        `bank_*`, `tax_code` hay `business_license_path`.
+      properties:
+        slug:         { type: string }
+        name:         { type: string }
+        type:         { type: [string, 'null'] }
+        cover_url:    { type: [string, 'null'] }
+        screen_count: { type: [integer, 'null'] }
+
+    OwnerDetail:
+      type: object
+      required: [slug, name, stats]
+      description: |
+        Bộ trường lấy đúng bằng những gì trang owner công khai đang hiển thị,
+        không thêm. Không bao giờ chứa `revenue_share_pct`, `billing_info`,
+        `bank_*`, `tax_code`, `business_license_path` hay `legal_*`.
+      properties:
+        slug:      { type: string }
+        name:      { type: string }
+        type:      { type: [string, 'null'] }
+        tagline:   { type: [string, 'null'] }
+        about:     { type: [string, 'null'] }
+        logo_url:  { type: [string, 'null'] }
+        cover_url: { type: [string, 'null'] }
+        contact:
+          type: object
+          description: Thông tin liên hệ doanh nghiệp, đã công khai trên trang owner.
+          properties:
+            website: { type: [string, 'null'] }
+            email:   { type: [string, 'null'] }
+            phone:   { type: [string, 'null'] }
+            address: { type: [string, 'null'] }
+        location:
+          type: object
+          properties:
+            province: { type: [string, 'null'] }
+            commune:  { type: [string, 'null'] }
+        founded: { type: [string, integer, 'null'] }
+        stats:
+          type: object
+          required: [screen_count, city_count, venue_types]
+          properties:
+            screen_count: { type: integer }
+            city_count:   { type: integer }
+            venue_types:  { type: array, items: { type: string } }
+
+    ProductSummary:
+      type: object
+      required: [slug, name, type, category, listing_mode, pricing]
+      description: |
+        Danh sách trắng. **Không có `id`** — trang Blade dùng `$product->id`
+        cho form giỏ hàng, API dùng `slug`; khóa nội bộ không ra ngoài.
+
+        Về tên trường giá: cột trong CSDL tên `floor_price`, nhưng với sản phẩm
+        dạng gói đó chính là **giá người mua trả cho cả gói**, không phải giá
+        sàn nội bộ — `BundleExpander::productTotal()` lấy đúng cột này và trang
+        sản phẩm đã hiển thị nó công khai. Ở đây đặt tên nói đúng nó là gì
+        (`package`, `per_screen`) thay vì chép lại một cái tên gây hiểu sai.
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [single, package, custom] }
+        category:
+          type: object
+          properties:
+            code:  { type: [string, 'null'] }
+            label: { type: [string, 'null'] }
+        listing_mode:
+          type: object
+          description: Cách bán — chỉ gói, chỉ lẻ, hay cả hai.
+          properties:
+            code:               { type: [string, 'null'], enum: [package_only, individual_only, both, null] }
+            label:              { type: [string, 'null'] }
+            allows_package:     { type: boolean }
+            allows_individual:  { type: boolean }
+        owner:
+          type: object
+          properties:
+            slug: { type: [string, 'null'] }
+            name: { type: [string, 'null'] }
+        location:
+          type: object
+          properties:
+            city:   { type: [string, 'null'] }
+            region: { type: [string, 'null'] }
+            site:   { type: [string, 'null'] }
+        network:
+          type: [object, 'null']
+          properties:
+            name: { type: string }
+        quantity:
+          type: object
+          properties:
+            total_units:  { type: [integer, 'null'] }
+            min:          { type: [integer, 'null'] }
+            max:          { type: [integer, 'null'] }
+            screen_count: { type: [integer, 'null'] }
+        pricing:
+          type: object
+          description: |
+            Mỗi số tiền đi kèm `currency`, lấy từ cột `products.currency`.
+            Không giả định VND — đó đúng là lỗi R39 đã bắt ở màn hình.
+          required: [currency]
+          properties:
+            currency:             { type: string }
+            unit:                 { type: [string, 'null'], enum: [month, week, day, campaign, null] }
+            package:              { type: [number, 'null'], description: Giá cả gói. }
+            per_screen:           { type: [number, 'null'], description: 'Giá một màn hình khi mua lẻ; rỗng nghĩa là không bán lẻ.' }
+            package_discount_pct: { type: [integer, 'null'] }
+        short_description: { type: [string, 'null'] }
+        cover_url:         { type: [string, 'null'] }
+        featured:          { type: boolean }
+
+    ProductDetail:
+      allOf:
+        - $ref: '#/components/schemas/ProductSummary'
+        - type: object
+          properties:
+            description: { type: [string, 'null'] }
+            photo_urls:  { type: array, items: { type: string } }
+            specs:
+              type: [object, 'null']
+              description: |
+                JSON tự do do quản trị nhập, đã hiển thị công khai trên trang
+                sản phẩm. Không whitelist được theo khóa vì bộ khóa đổi theo
+                từng loại sản phẩm, nên **bất cứ gì nhập vào đây đều là công
+                khai** — chỗ phải chặn là lúc nhập, không phải lúc trả.
+            package_options:
+              type: array
+              description: Whitelist theo khóa, không trả nguyên blob JSON.
+              items:
+                type: object
+                properties:
+                  name:     { type: [string, 'null'] }
+                  quantity: { type: [integer, 'null'] }
+                  price:    { type: [number, 'null'] }
+            screens:
+              type: array
+              items: { $ref: '#/components/schemas/ScreenSummary' }
+            seo:
+              type: object
+              properties:
+                meta_title:       { type: [string, 'null'] }
+                meta_description: { type: [string, 'null'] }
+
+    Cart:
+      type: object
+      required: [items, summary]
+      description: |
+        `rate_snapshot` **không** có trong DTO này. Đó là ảnh chụp cấu hình giá
+        của media owner lúc thêm giỏ, dùng để phát hiện giá đổi trước khi chốt
+        đơn — nó mang nguyên cấu hình kho, không phải thứ người mua cần thấy.
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CartItem' }
+        summary:
+          type: object
+          required: [currency, item_count, subtotal]
+          properties:
+            currency:    { type: string, enum: [VND] }
+            item_count:  { type: integer }
+            subtotal:
+              type: integer
+              description: |
+                **Chưa gồm VAT.** VAT tính một chỗ duy nhất ở
+                `PaymentService::withVat()`, lúc chốt đơn — cộng VAT ở đây là
+                một phép làm tròn thứ hai, và hai chỗ làm tròn khác nhau là
+                cách sinh ra "công nợ bằng 0 nhưng chưa trả đủ".
+            impressions: { type: integer }
+
+    CartItem:
+      type: object
+      required: [id, period, estimate]
+      properties:
+        id:
+          type: string
+          description: |
+            Dòng giỏ **có** `id` trong khi các DTO công khai thì không. Cố ý:
+            client phải gọi được PATCH/DELETE lên đúng dòng này, và nó là dữ
+            liệu riêng của chính người đang đăng nhập chứ không phải khóa của
+            tài nguyên dùng chung.
+        screen:  { oneOf: [{ $ref: '#/components/schemas/ScreenSummary' }, { type: 'null' }] }
+        product:
+          type: [object, 'null']
+          properties:
+            slug: { type: string }
+            name: { type: string }
+        buy_mode: { type: [string, 'null'], enum: [package, individual, null] }
+        period:
+          type: object
+          properties:
+            start_date: { type: [string, 'null'], format: date }
+            end_date:   { type: [string, 'null'], format: date }
+        delivery:
+          type: object
+          properties:
+            pricing_model:      { type: [string, 'null'], enum: [cpm, io, null] }
+            share_of_voice_pct: { type: [integer, 'null'] }
+            spot_length:        { type: [integer, 'null'] }
+            booked_cpms:        { type: [integer, 'null'] }
+            duration_units:     { type: [integer, 'null'] }
+            duration_unit:      { type: [string, 'null'] }
+        estimate:
+          type: object
+          description: Do máy chủ tính. Không nhận chiều ngược lại.
+          required: [currency]
+          properties:
+            currency:              { type: string, enum: [VND] }
+            cost:                  { type: [integer, 'null'] }
+            impressions:           { type: [integer, 'null'] }
+            duration_discount_pct: { type: [integer, 'null'] }
+        notes: { type: [string, 'null'] }
+
+    MapPin:
+      type: object
+      required: [slug, name, lat, lng]
+      description: |
+        Cố tình gọn: bản đồ trả hàng trăm bản ghi một lúc nên mỗi trường thừa
+        nhân lên hàng trăm lần. Cần đầy đủ thì gọi `/api/v2/screens/{slug}`.
+      properties:
+        slug:    { type: string }
+        name:    { type: string }
+        lat:     { type: number }
+        lng:     { type: number }
+        city:    { type: [string, 'null'] }
+        address: { type: [string, 'null'] }
+        owner:
+          type: object
+          properties:
+            slug: { type: [string, 'null'] }
+            name: { type: [string, 'null'] }
+        price:
+          type: object
+          description: |
+            Giá hiển thị kèm **đơn vị đo** (`unit`) và **đơn vị tiền**
+            (`currency`). `io_rate` nếu bán theo kỳ, ngược lại là giá CPM —
+            hai thang đo khác nhau, nên thiếu `unit` là mời so nhầm, và giá
+            CPM có thể lưu bằng USD nên thiếu `currency` là gắn nhãn sai
+            (Codex R39).
+          required: [amount, currency]
+          properties:
+            amount:   { type: [number, 'null'] }
+            currency: { type: string, enum: [VND, USD] }
+            unit:     { type: [string, 'null'] }
+        photo_url: { type: [string, 'null'] }
+
+    FilterFacet:
+      type: object
+      required: [code, name, count]
+      properties:
+        code:  { type: [string, 'null'] }
+        name:  { type: [string, 'null'] }
+        count: { type: integer }
+
+    Availability:
+      type: object
+      description: |
+        Suất còn lại tính thật, gồm cả suất người khác đang giữ trong giỏ.
+      required: [window_days, remaining_sov_pct, has_capacity]
+      properties:
+        window_days:       { type: integer }
+        remaining_sov_pct: { type: integer, minimum: 0, maximum: 100 }
+        has_capacity:      { type: boolean }
+
+    PageMeta:
+      type: object
+      required: [page, per_page, total, last_page, max_per_page]
+      properties:
+        page:         { type: integer }
+        per_page:     { type: integer }
+        total:        { type: integer }
+        last_page:    { type: integer }
+        max_per_page: { type: integer }
+
+    Error:
+      type: object
+      description: Định dạng lỗi thống nhất cho mọi endpoint v2.
+      required: [error, message, code, details]
+      properties:
+        error:   { type: string }
+        message: { type: string }
+        code:    { type: integer }
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:   { type: string }
+              message: { type: string }
+
+  responses:
+    NotFound:
+      description: Không tìm thấy
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ValidationFailed:
+      description: Dữ liệu gửi lên không hợp lệ
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TooManyRequests:
+      description: |
+        Vượt giới hạn tần suất. Phản hồi giữ nguyên `Retry-After` và các
+        header hạn mức của `ThrottleRequests` — đổi định dạng body không được
+        phá thông tin điều khiển của giao thức (Codex R41).
+      headers:
+        Retry-After:
+          description: Số giây nên chờ trước khi gọi lại.
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: |
+        Chưa đăng nhập. Dùng **đúng** định dạng lỗi thống nhất, kể cả ở mã
+        này — bên tiêu thụ không phải viết một nhánh đặc biệt cho 401.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: |
+        Yêu cầu hợp lệ nhưng trạng thái hiện tại không cho phép — ví dụ suất
+        phát sóng đã hết, hoặc giá của media owner đã đổi kể từ lúc thêm giỏ.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ServerError:
+      description: |
+        Lỗi phía máy chủ, vẫn theo định dạng lỗi thống nhất. Thông điệp chi
+        tiết chỉ xuất hiện khi `app.debug` bật; production trả câu chung và
+        không bao giờ có stack trace.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }

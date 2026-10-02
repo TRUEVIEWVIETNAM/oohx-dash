@@ -146,7 +146,13 @@
   <div class="gal-main">
     <img src="{{ $mainPhoto }}" id="gal-main-img" alt="{{ $screen->name }}">
     <div class="gal-actions"><button class="gal-btn" id="savebtn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="var(--t3)" style="width:17px;height:17px;flex-shrink:0"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg></button><button class="gal-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="var(--t3)" style="width:17px;height:17px;flex-shrink:0"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg></button><button class="gal-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="var(--t3)" style="width:17px;height:17px;flex-shrink:0"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg></button></div>
+    {{-- Badge chỉ hiện khi CÒN suất thật trong 30 ngày tới. Trước đây in vô
+         điều kiện, nên một màn hình đã bán kín vẫn mời người mua (audit F-15). --}}
+    @if($availableSov > 0)
     <div class="gal-badge"><span class="badge b-grn"><span style="width:7px;height:7px;border-radius:50%;background:var(--grn);display:inline-block"></span> Còn trống</span></div>
+    @else
+    <div class="gal-badge"><span class="badge" style="background:rgba(120,120,128,.16);color:var(--t2)">Đã đầy 30 ngày tới</span></div>
+    @endif
     <div class="gal-count"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" style="width:13px;height:13px;flex-shrink:0"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg> {{ count($photos) }} ảnh</div>
   </div>
   @if(count($photos) > 1)
@@ -247,6 +253,13 @@
     $isBoth = $pricingModel === 'both';
     $ioRate = (float)($inv?->io_rate ?? 0);
     $cpmRate = (float)($inv?->floor_cpm ?? 0);
+    // `io_rate` không có cột currency nên là VND; `floor_cpm` đi theo
+    // `floor_cpm_currency`, và cột đó có hàng USD trong dữ liệu thật. In "₫"
+    // cạnh một số USD là nói sai với người mua (Codex R39).
+    $cpmCurrency = $inv?->floor_cpm_currency ?: 'VND';
+    $cpmLabel = $cpmCurrency === 'VND'
+        ? number_format($cpmRate, 0, ',', '.') . ' ₫'
+        : number_format($cpmRate, 2, ',', '.') . ' ' . $cpmCurrency;
     $ioRateUnit = $inv?->io_rate_unit ?? 'month';
     $kpiSpots = $inv?->io_kpi_spots_per_day;
     $defIoUnits = $ioRateUnit === 'week' ? 4 : 3;
@@ -265,7 +278,7 @@
 </div>
 <div class="bp-quote-title">Liên hệ báo giá</div>
 <div class="bp-quote-sub">Vị trí này chưa công khai giá. Liên hệ Media Owner để nhận báo giá chi tiết.</div>
-<div class="bp-avail" style="margin-top:10px"><div class="bp-dot"></div>Còn trống</div>
+@if($availableSov > 0)<div class="bp-avail" style="margin-top:10px"><div class="bp-dot"></div>Còn {{ $availableSov }}% thời lượng trong 30 ngày tới</div>@endif
 </div>
 </div>
 @else
@@ -277,9 +290,9 @@
 <div class="bp-price">{{ number_format($ioRate, 0, ',', '.') }} ₫</div>
 <div style="font-size:13px;color:var(--t4)">/ {{ $ioRateUnit === 'week' ? 'mh/tuần' : 'mh/tháng' }}</div>
 </div>
-<div style="font-size:12px;color:var(--t3);margin:4px 0 2px">hoặc <strong>{{ number_format($cpmRate, 0, ',', '.') }} ₫/CPM</strong></div>
+<div style="font-size:12px;color:var(--t3);margin:4px 0 2px">hoặc <strong>{{ $cpmLabel }}/CPM</strong></div>
 @elseif($allowsCpm && !$allowsIo)
-<div class="bp-price">{{ number_format($cpmRate, 0, ',', '.') }} ₫</div>
+<div class="bp-price">{{ $cpmLabel }}</div>
 <div style="font-size:13px;color:var(--t4);margin:4px 0 10px">/ CPM · Chưa bao gồm VAT</div>
 @else
 <div class="bp-price">{{ number_format($ioRate, 0, ',', '.') }} ₫</div>
@@ -288,7 +301,7 @@
 @if($allowsIo && $kpiSpots)
 <div style="font-size:12px;color:var(--bl);font-weight:600;margin:4px 0 8px">KPI: {{ number_format($kpiSpots) }} spots/màn hình/ngày</div>
 @endif
-<div class="bp-avail"><div class="bp-dot"></div>Còn trống</div>
+@if($availableSov > 0)<div class="bp-avail"><div class="bp-dot"></div>Còn {{ $availableSov }}% thời lượng trong 30 ngày tới</div>@endif
 </div>
 <div class="bp-body">
 @if($isBoth)
@@ -320,8 +333,9 @@
 <div class="bp-field"><div class="bp-lbl">Brand / Campaign</div><input class="bp-inp" type="text" placeholder="VD: Honda Civic Launch Q2"></div>
 <div class="bp-sum">
 <div class="bp-row"><span class="bp-rl" id="bp-calc-label">—</span><span class="bp-rv" id="bp-calc-sub">{{ number_format($defSub, 0, ',', '.') }} ₫</span></div>
-<div class="bp-row"><span class="bp-rl">VAT (10%)</span><span class="bp-rv" id="bp-calc-vat">{{ number_format($defSub * 0.1, 0, ',', '.') }} ₫</span></div>
-<div class="bp-row bp-total"><span class="bp-rl">Tổng cộng</span><span class="bp-rv" id="bp-calc-total">{{ number_format($defSub * 1.1, 0, ',', '.') }} ₫</span></div>
+{{-- Nhãn và con số phải cùng một nguồn. Trước đây nhãn đọc config (8%) còn con số nhân cứng 0.1 (10%), nên trang nói một đằng tính một nẻo. --}}
+<div class="bp-row"><span class="bp-rl">VAT ({{ rtrim(rtrim(number_format(config('pricing.vat_rate') * 100, 2, '.', ''), '0'), '.') }}%)</span><span class="bp-rv" id="bp-calc-vat">{{ number_format($defSub * config('pricing.vat_rate'), 0, ',', '.') }} ₫</span></div>
+<div class="bp-row bp-total"><span class="bp-rl">Tổng cộng</span><span class="bp-rv" id="bp-calc-total">{{ number_format($defSub * (1 + config('pricing.vat_rate')), 0, ',', '.') }} ₫</span></div>
 </div>
 <div class="bp-ctas">@auth<form method="POST" action="{{ route('buyer.cart.add') }}" class="cart-add-form"><input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="screen_id" value="{{ $screen->id }}"><input type="hidden" name="start_date" id="bp-h-start" value="{{ now()->addDays(7)->format('Y-m-d') }}"><input type="hidden" name="end_date" id="bp-h-end" value="{{ now()->addDays(7)->addMonths(3)->format('Y-m-d') }}"><input type="hidden" name="pricing_model" id="bp-h-mode" value="{{ $defMode }}"><input type="hidden" name="booked_cpms" id="bp-h-cpms" value="1000"><input type="hidden" name="screen_count" id="bp-h-screens" value="1"><input type="hidden" name="duration_units" id="bp-h-dunits" value="{{ $defIoUnits }}">
 <button type="submit" class="btn btn-p btn-lg" style="width:100%;justify-content:center;border-radius:12px;height:52px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" style="width:18px;height:18px;flex-shrink:0"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> Thêm vào Plan</button></form>@else<a href="{{ route('login') }}" class="btn btn-p btn-lg" style="width:100%;justify-content:center;border-radius:12px;height:52px;text-decoration:none"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" style="width:18px;height:18px;flex-shrink:0"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> Đăng nhập để Booking</a>@endauth</div>
@@ -548,6 +562,8 @@ function sw(el,id){
   var hDunits = document.getElementById('bp-h-dunits');
   var hCpms = document.getElementById('bp-h-cpms');
 
+  // Thuế suất lấy từ config, không viết cứng trong JS.
+  var VAT_RATE = {{ (float) config('pricing.vat_rate') }};
   function fmtVND(n){ return n.toLocaleString('vi-VN'); }
   function fmtPrice(n){ return n >= 1e6 ? (n/1e6).toFixed(1).replace('.0','') + 'M' : fmtVND(n); }
   function addMonths(d,m){ var x=new Date(d);x.setMonth(x.getMonth()+m);return x.toISOString().slice(0,10); }
@@ -561,8 +577,8 @@ function sw(el,id){
       var sub = cpmRate * cpms;
       document.getElementById('bp-calc-label').textContent = fmtVND(cpmRate) + ' ₫ × ' + fmtVND(cpms) + ' CPM';
       document.getElementById('bp-calc-sub').textContent = fmtVND(sub) + ' ₫';
-      document.getElementById('bp-calc-vat').textContent = fmtVND(Math.round(sub * 0.1)) + ' ₫';
-      document.getElementById('bp-calc-total').textContent = fmtVND(Math.round(sub * 1.1)) + ' ₫';
+      document.getElementById('bp-calc-vat').textContent = fmtVND(Math.round(sub * VAT_RATE)) + ' ₫';
+      document.getElementById('bp-calc-total').textContent = fmtVND(Math.round(sub * (1 + VAT_RATE))) + ' ₫';
       if(hCpms) hCpms.value = cpms;
     } else {
       var units = parseInt(durSel?.value) || 1;
@@ -570,8 +586,8 @@ function sw(el,id){
       var sub = ioRate * screens * units;
       document.getElementById('bp-calc-label').textContent = fmtPrice(ioRate) + ' × ' + screens + ' mh × ' + units + ' ' + unitLabel;
       document.getElementById('bp-calc-sub').textContent = fmtVND(sub) + ' ₫';
-      document.getElementById('bp-calc-vat').textContent = fmtVND(Math.round(sub * 0.1)) + ' ₫';
-      document.getElementById('bp-calc-total').textContent = fmtVND(Math.round(sub * 1.1)) + ' ₫';
+      document.getElementById('bp-calc-vat').textContent = fmtVND(Math.round(sub * VAT_RATE)) + ' ₫';
+      document.getElementById('bp-calc-total').textContent = fmtVND(Math.round(sub * (1 + VAT_RATE))) + ' ₫';
       if(hScreens) hScreens.value = screens;
       if(hDunits) hDunits.value = units;
       if(hEnd && startInp) hEnd.value = rateUnit === 'week' ? addWeeks(startInp.value, units) : addMonths(startInp.value, units);

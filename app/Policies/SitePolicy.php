@@ -4,22 +4,28 @@ namespace App\Policies;
 
 use App\Models\Site;
 use App\Models\User;
+use App\Services\TenantPermission;
 
+/**
+ * Quyền trên địa điểm. Cùng nguyên tắc với ScreenPolicy:
+ * đọc dùng `view_inventory`, ghi dùng `manage_inventory`, và mọi quyền đi qua
+ * TenantPermission nên membership bị gỡ hoặc owner tạm ngưng là mất quyền ngay.
+ */
 class SitePolicy
 {
     public function viewAny(User $user): bool
-    {
-        return $user->hasRole('super_admin')
-            || $user->current_owner_id !== null;
-    }
-
-    public function view(User $user, Site $site): bool
     {
         if ($user->hasRole('super_admin')) {
             return true;
         }
 
-        return $site->owner_id === $user->current_owner_id;
+        return $user->current_owner_id !== null
+            && TenantPermission::for($user)->can('view_inventory');
+    }
+
+    public function view(User $user, Site $site): bool
+    {
+        return $this->allows($user, $site, 'view_inventory');
     }
 
     public function create(User $user): bool
@@ -29,27 +35,17 @@ class SitePolicy
         }
 
         return $user->current_owner_id !== null
-            && $this->hasManagePermission($user);
+            && TenantPermission::for($user)->can('manage_inventory');
     }
 
     public function update(User $user, Site $site): bool
     {
-        if ($user->hasRole('super_admin')) {
-            return true;
-        }
-
-        return $site->owner_id === $user->current_owner_id
-            && $this->hasManagePermission($user);
+        return $this->allows($user, $site, 'manage_inventory');
     }
 
     public function delete(User $user, Site $site): bool
     {
-        if ($user->hasRole('super_admin')) {
-            return true;
-        }
-
-        return $site->owner_id === $user->current_owner_id
-            && $this->hasManagePermission($user);
+        return $this->allows($user, $site, 'manage_inventory');
     }
 
     public function deleteAny(User $user): bool
@@ -58,11 +54,19 @@ class SitePolicy
             return true;
         }
 
-        return $this->hasManagePermission($user);
+        return TenantPermission::for($user)->can('manage_inventory');
     }
 
-    private function hasManagePermission(User $user): bool
+    private function allows(User $user, Site $site, string $permission): bool
     {
-        return \App\Services\TenantPermission::for($user)->can('manage_inventory');
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        if ($site->owner_id !== $user->current_owner_id) {
+            return false;
+        }
+
+        return TenantPermission::for($user, $site->owner_id)->can($permission);
     }
 }

@@ -7,7 +7,11 @@
     <div class="mpop-close" onclick="OOHXMap.hidePopup('{{ $pfx }}')">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" style="width:14px;height:14px;flex-shrink:0"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
     </div>
-    <div class="mpop-img"><img id="{{ $pfx }}popup-img" src="" alt=""><div class="mpop-avail"><span class="mpop-avail-dot"></span>Còn trống</div></div>
+    {{-- ĐÃ GỠ badge "Còn trống" trong popup bản đồ: nó viết cứng trong
+         template và hiện cho mọi pin, kể cả màn hình đã bán kín. Dữ liệu pin
+         gửi xuống trình duyệt không mang thông tin suất, nên không có gì để
+         kiểm — trang chi tiết là nơi trả lời câu đó (audit F-15). --}}
+    <div class="mpop-img"><img id="{{ $pfx }}popup-img" src="" alt=""></div>
     <div class="mpop-body">
         <div class="mpop-bc" id="{{ $pfx }}popup-bc"></div>
         <div class="mpop-name" id="{{ $pfx }}popup-name"></div>

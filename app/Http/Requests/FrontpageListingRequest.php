@@ -6,9 +6,54 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class FrontpageListingRequest extends FormRequest
 {
+    /** Tham số nhận nhiều giá trị. */
+    private const LIST_PARAMS = [
+        'city', 'province', 'venue_type', 'screen_type',
+        'orientation', 'network', 'owner', 'district', 'region',
+    ];
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * Cho phép gửi nhiều giá trị dưới dạng **một khóa, phân tách bằng dấu
+     * phẩy** — ngoài dạng `city[]=` đang dùng (Codex R37).
+     *
+     * Vì sao: đặc tả OpenAPI của tôi khai `style: form, explode: true`, tức
+     * client sinh ra `city=hanoi&city=hcm`. PHP **không** ghép khóa lặp thành
+     * mảng — nó lấy giá trị cuối và bỏ các giá trị trước. Luật `array` ở dưới
+     * liền trả 422, nên bộ lọc khai trong tài liệu không dùng được. Phép kiểm
+     * hai chiều đặc tả ↔ route vẫn xanh vì nó không kiểm cách serialize.
+     *
+     * `city=hanoi,hcm` là dạng OpenAPI chuẩn (`explode: false`), một khóa,
+     * không mất phần tử nào, và PHP đọc được nguyên vẹn. Dạng `city[]=` cũ
+     * vẫn chạy nên trang Blade không đổi. Dấu `|` giữ lại vì
+     * `FrontpageService::resolveArrayParam()` đã hỗ trợ từ trước.
+     */
+    protected function prepareForValidation(): void
+    {
+        $normalized = [];
+
+        foreach (self::LIST_PARAMS as $key) {
+            $value = $this->input($key);
+
+            if (! is_string($value) || $value === '') {
+                continue;
+            }
+
+            $parts = preg_split('/[,|]/', $value) ?: [];
+            $parts = array_values(array_filter(array_map('trim', $parts), fn ($v) => $v !== ''));
+
+            if ($parts !== []) {
+                $normalized[$key] = $parts;
+            }
+        }
+
+        if ($normalized !== []) {
+            $this->merge($normalized);
+        }
     }
 
     public function rules(): array

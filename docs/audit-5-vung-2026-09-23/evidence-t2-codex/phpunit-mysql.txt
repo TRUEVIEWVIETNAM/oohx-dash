@@ -1,0 +1,37 @@
+PHPUnit 11.5.55 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.21
+Configuration: /app/phpunit.xml
+
+...........FF.FF                                                  16 / 16 (100%)
+Warning: file_put_contents(/app/.phpunit.result.cache): Failed to open stream: Read-only file system in /app/vendor/phpunit/phpunit/src/Runner/ResultCache/DefaultResultCache.php on line 160
+
+
+Time: 04:11.704, Memory: 80.50 MB
+
+There were 4 failures:
+
+1) Tests\Feature\Buyer\T2ReviewTest::test_review_notes_only_preserves_purchased_units
+Failed asserting that 1 is identical to 3.
+
+/app/docs/audit-5-vung-2026-09-23/T2ReviewTest.php:26
+
+2) Tests\Feature\Buyer\T2ReviewTest::test_review_start_only_cannot_reverse_dates
+Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponseAssert.php:45
+/app/vendor/laravel/framework/src/Illuminate/Testing/TestResponse.php:175
+/app/docs/audit-5-vung-2026-09-23/T2ReviewTest.php:33
+
+3) Tests\Feature\Buyer\T2ReviewTest::test_review_legacy_cart_requires_requote
+Failed asserting that exception of type "Symfony\Component\HttpKernel\Exception\HttpException" is thrown.
+
+4) Tests\Feature\Buyer\T2ReviewTest::test_review_device_count_is_part_of_rate_snapshot
+Billable quantity changed, snapshot must invalidate the old quote.
+Failed asserting that two arrays are not identical.
+
+/app/docs/audit-5-vung-2026-09-23/T2ReviewTest.php:57
+
+FAILURES!
+Tests: 16, Assertions: 26, Failures: 4.

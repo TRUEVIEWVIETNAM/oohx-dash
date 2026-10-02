@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="/app/phpunit.xml" tests="18" assertions="31" errors="0" failures="0" skipped="0" time="151.611817">
+    <testsuite name="Feature" tests="18" assertions="31" errors="0" failures="0" skipped="0" time="151.611817">
+      <testsuite name="Tests\Feature\Api\T1ReviewTest" file="/app/tests/Feature/Api/T1ReviewTest.php" tests="18" assertions="31" errors="0" failures="0" skipped="0" time="151.611817">
+        <testcase name="test_token_chi_co_quyen_doc_khong_ghi_duoc_man_hinh" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="93" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="2" time="61.458789"/>
+        <testcase name="test_api_client_khong_vao_duoc_nhom_quan_ly" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="104" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="3.797484"/>
+        <testcase name="test_publisher_khong_sua_duoc_man_hinh_cua_owner_khac" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="123" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="2" time="3.204039"/>
+        <testcase name="test_publisher_khong_tao_duoc_du_lieu_cho_owner_khac" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="134" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="2" time="3.584982"/>
+        <testcase name="test_site_duoc_tao_cho_dung_owner_cua_nguoi_goi" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="147" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="2" time="4.015734"/>
+        <testcase name="test_nguoi_mua_khong_liet_ke_duoc_man_hinh_qua_api_quan_ly" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="164" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="2.931022"/>
+        <testcase name="test_scope_chan_mac_dinh_khi_thanh_vien_mat_tenant_dang_chon" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="175" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="0.844342"/>
+        <testcase name="test_api_owner_khong_lo_truong_tai_chinh_cho_nguoi_thuong" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="195" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="5" time="4.051231"/>
+        <testcase name="test_super_admin_van_xem_duoc_truong_noi_bo" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="207" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="2" time="31.478031"/>
+        <testcase name="test_danh_sach_owner_chi_gom_owner_minh_la_thanh_vien" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="216" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="3" time="9.472546"/>
+        <testcase name="test_super_admin_van_sua_duoc_moi_owner" file="/app/tests/Feature/Api/ApiAuthorizationTest.php" line="228" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="2" time="3.738997"/>
+        <testcase name="test_review_revoked_member_cannot_read_screen" file="/app/tests/Feature/Api/T1ReviewTest.php" line="23" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="3.887402"/>
+        <testcase name="test_review_revoked_member_cannot_write_screen" file="/app/tests/Feature/Api/T1ReviewTest.php" line="30" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="3.308138"/>
+        <testcase name="test_review_suspended_owner_cannot_write" file="/app/tests/Feature/Api/T1ReviewTest.php" line="37" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="2.964805"/>
+        <testcase name="test_review_scheduler_cannot_set_floor_price" file="/app/tests/Feature/Api/T1ReviewTest.php" line="43" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="3.282746"/>
+        <testcase name="test_review_read_only_cannot_read_revenue" file="/app/tests/Feature/Api/T1ReviewTest.php" line="49" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="2.945944"/>
+        <testcase name="test_review_reporting_only_cannot_read_inventory" file="/app/tests/Feature/Api/T1ReviewTest.php" line="55" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="1" time="2.676550"/>
+        <testcase name="test_review_screen_response_hides_device_token" file="/app/tests/Feature/Api/T1ReviewTest.php" line="61" class="Tests\Feature\Api\T1ReviewTest" classname="Tests.Feature.Api.T1ReviewTest" assertions="2" time="3.969035"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

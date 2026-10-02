@@ -89,7 +89,7 @@ class PanelAccessTest extends TestCase
 
     public function test_publisher_with_inactive_owner_cannot_access_publisher_panel(): void
     {
-        $owner = Owner::factory()->create(['status' => 'inactive']);
+        $owner = Owner::factory()->create(['status' => 'suspended']);
         $user  = User::factory()->create();
         $user->assignRole('publisher');
         OwnerUser::create([

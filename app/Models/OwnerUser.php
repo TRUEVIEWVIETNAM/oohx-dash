@@ -65,6 +65,15 @@ class OwnerUser extends Model
         'export_reports'   => ['owner', 'manager', 'reporting_only'],
         // Xem sales dashboard (CPM, deals)
         'view_sales'       => ['owner', 'manager', 'sales_manager'],
+        // Duyệt / từ chối yêu cầu đặt chỗ. Đây là quyết định thương mại có hệ
+        // quả tiền, nên không mở cho scheduler hay read_only — trước đây action
+        // duyệt không kiểm quyền nào cả, chỉ dựa vào việc giao diện có hiện nút.
+        'manage_bookings'  => ['owner', 'manager', 'sales_manager'],
+        // Đánh dấu đã hoàn tiền cho người mua. Sàn không giữ tiền — người mua
+        // chuyển thẳng cho media owner — nên "đã hoàn" là lời khai của owner về
+        // một lần chuyển khoản thật. Hẹp hơn `manage_bookings`: sales_manager
+        // chốt được đơn nhưng không khai thay phòng kế toán là tiền đã đi.
+        'settle_refunds'   => ['owner', 'manager'],
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────────

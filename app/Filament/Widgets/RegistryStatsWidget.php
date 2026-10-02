@@ -1,7 +1,6 @@
 <?php
 namespace App\Filament\Widgets;
 
-use App\Models\ImpressionLog;
 use App\Models\Owner;
 use App\Models\Screen;
 use App\Models\Site;

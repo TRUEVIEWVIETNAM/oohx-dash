@@ -8,6 +8,7 @@ use App\Models\UserInvitation;
 use App\Services\UserInvitationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -18,20 +19,20 @@ class InvitationController extends Controller
     ) {}
 
     /** GET /invitations/{token}/accept — render accept form */
-    public function show(string $token): View
+    public function show(string $token): View|Response
     {
         $invitation = UserInvitation::where('token', $token)->first();
 
         if (! $invitation) {
-            return view('invitations.error', ['message' => 'Lời mời không tồn tại hoặc đã bị thu hồi.'], 410);
+            return $this->errorPage('Lời mời không tồn tại hoặc đã bị thu hồi.');
         }
 
         if ($invitation->isAccepted()) {
-            return view('invitations.error', ['message' => 'Lời mời đã được sử dụng. Vui lòng đăng nhập trực tiếp.'], 410);
+            return $this->errorPage('Lời mời đã được sử dụng. Vui lòng đăng nhập trực tiếp.');
         }
 
         if ($invitation->isExpired()) {
-            return view('invitations.error', ['message' => 'Lời mời đã hết hạn. Liên hệ quản trị viên để được mời lại.'], 410);
+            return $this->errorPage('Lời mời đã hết hạn. Liên hệ quản trị viên để được mời lại.');
         }
 
         $tenant = $invitation->tenant();
@@ -49,6 +50,19 @@ class InvitationController extends Controller
             'roleLabel'     => $roleLabel,
             'isExistingUser' => (bool) $existingUser,
         ]);
+    }
+
+    /**
+     * Trang báo lời mời không dùng được, kèm mã 410.
+     *
+     * Trước đây gọi view('invitations.error', [...], 410): tham số thứ ba của
+     * view() là DỮ LIỆU GỘP THÊM, không phải mã trạng thái, nên Laravel ném
+     * TypeError ở array_merge và người nhận lời mời hết hạn thấy trang 500 thay
+     * vì lời nhắn. Phải đi qua response()->view() mới đặt được mã.
+     */
+    private function errorPage(string $message): Response
+    {
+        return response()->view('invitations.error', ['message' => $message], 410);
     }
 
     /** POST /invitations/{token}/accept — chấp nhận và login */

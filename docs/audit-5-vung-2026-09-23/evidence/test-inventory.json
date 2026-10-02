@@ -1,0 +1,342 @@
+[
+  {
+    "path": "tests/Feature/Api/InventoryLocationsTest.php",
+    "tests": [
+      "test_returns_correct_structure",
+      "test_returns_empty_arrays_when_no_screens",
+      "test_provinces_only_includes_cities_with_active_screens",
+      "test_province_count_is_correct",
+      "test_province_has_correct_region",
+      "test_region_count_is_rolled_up_from_provinces",
+      "test_region_not_returned_when_no_provinces_have_screens",
+      "test_districts_empty_when_no_district_code_set",
+      "test_districts_includes_district_with_code",
+      "test_district_count_aggregates_correctly",
+      "test_result_is_cached",
+      "test_unauthenticated_is_rejected"
+    ]
+  },
+  {
+    "path": "tests/Feature/Api/InventoryNetworksTest.php",
+    "tests": [
+      "test_returns_correct_structure",
+      "test_returns_empty_when_no_networks",
+      "test_only_networks_with_active_screens_are_returned",
+      "test_screen_count_is_correct",
+      "test_sorted_by_screen_count_desc",
+      "test_result_is_cached",
+      "test_unauthenticated_is_rejected"
+    ]
+  },
+  {
+    "path": "tests/Feature/Api/InventoryOwnersTest.php",
+    "tests": [
+      "test_owners_returns_correct_structure",
+      "test_owner_id_is_slug",
+      "test_only_active_owners_are_returned",
+      "test_featured_filter_returns_only_featured_owners",
+      "test_screen_count_is_correct",
+      "test_screen_count_excludes_inactive_screens",
+      "test_city_count_counts_distinct_cities",
+      "test_venue_types_returns_distinct_types",
+      "test_owner_detail_returns_correct_structure",
+      "test_owner_detail_includes_about_field",
+      "test_owner_detail_404_for_unknown_slug",
+      "test_owner_detail_404_for_non_active_owner",
+      "test_owner_detail_does_not_have_about_field_in_list",
+      "test_q_filters_by_owner_name",
+      "test_q_returns_empty_when_no_match",
+      "test_q_validates_max_100_chars",
+      "test_owners_unauthenticated_is_rejected",
+      "test_owner_detail_unauthenticated_is_rejected"
+    ]
+  },
+  {
+    "path": "tests/Feature/Api/InventoryScreensFilterTest.php",
+    "tests": [
+      "test_status_active_returns_only_active_screens",
+      "test_city_slug_matches_vietnamese_name_in_db",
+      "test_city_array_filter_returns_matching_screens",
+      "test_city_pipe_separated_backward_compat",
+      "test_city_single_value_backward_compat",
+      "test_venue_type_array_filter",
+      "test_screen_type_lcd_filter",
+      "test_screen_type_led_filter",
+      "test_screen_type_billboard_filter",
+      "test_screen_type_multi_value_lcd_and_led",
+      "test_orientation_landscape_filter",
+      "test_orientation_portrait_filter",
+      "test_orientation_multi_value",
+      "test_orientation_invalid_value_returns_all",
+      "test_q_searches_screen_name",
+      "test_q_searches_site_city",
+      "test_q_empty_returns_all",
+      "test_sort_price_asc",
+      "test_sort_price_desc",
+      "test_sort_invalid_value_does_not_error",
+      "test_response_has_correct_structure",
+      "test_network_filter_returns_matching_screens",
+      "test_network_filter_multi_value_returns_union",
+      "test_network_filter_nonexistent_code_returns_empty",
+      "test_owner_filter_returns_screens_by_owner_slug",
+      "test_owner_filter_nonexistent_slug_returns_empty",
+      "test_district_filter_returns_matching_screens",
+      "test_district_filter_multi_value",
+      "test_region_filter_returns_screens_in_provinces_of_that_region",
+      "test_region_filter_invalid_value_returns_422",
+      "test_region_filter_multi_value",
+      "test_unauthenticated_request_is_rejected"
+    ]
+  },
+  {
+    "path": "tests/Feature/Api/InventoryScreensMapTest.php",
+    "tests": [
+      "test_map_returns_correct_structure",
+      "test_map_has_no_page_or_limit_in_response",
+      "test_map_returns_all_screens_without_pagination",
+      "test_map_item_has_only_lightweight_fields",
+      "test_map_route_is_not_matched_by_screen_id_route",
+      "test_map_filters_by_city_array",
+      "test_map_filters_by_venue_type",
+      "test_map_filters_by_status",
+      "test_map_filters_by_orientation",
+      "test_map_size_field_format",
+      "test_map_size_null_when_no_spec_dimensions",
+      "test_map_unauthenticated_is_rejected"
+    ]
+  },
+  {
+    "path": "tests/Feature/Api/InventoryStatsTest.php",
+    "tests": [
+      "test_stats_returns_correct_structure",
+      "test_total_screens_counts_only_active",
+      "test_total_cities_counts_distinct_cities",
+      "test_venues_groups_by_venue_type",
+      "test_venues_has_correct_labels",
+      "test_venues_fallback_label_when_not_in_taxonomy",
+      "test_cities_returns_exactly_5_fixed_cities",
+      "test_cities_counts_screens_by_vietnamese_city_name",
+      "test_stats_is_cached",
+      "test_unauthenticated_is_rejected"
+    ]
+  },
+  {
+    "path": "tests/Feature/Api/InventoryVenueTypesTest.php",
+    "tests": [
+      "test_returns_correct_structure",
+      "test_returns_empty_when_no_active_screens",
+      "test_only_includes_types_with_active_screens",
+      "test_inactive_screens_are_excluded",
+      "test_parent_count_is_rolled_up_from_children",
+      "test_children_are_nested_correctly",
+      "test_leaf_node_has_empty_children",
+      "test_rollup_aggregates_multiple_leaf_types",
+      "test_orphan_type_not_in_taxonomy_is_returned_flat",
+      "test_orphan_fallback_label_uses_ucfirst",
+      "test_result_is_cached",
+      "test_unauthenticated_is_rejected"
+    ]
+  },
+  {
+    "path": "tests/Feature/Buyer/OrgUserPermissionTest.php",
+    "tests": [
+      "test_assignable_roles_excludes_admin_for_non_super_admin",
+      "test_org_admin_can_view_and_create",
+      "test_planner_cannot_view_or_create",
+      "test_viewer_cannot_view",
+      "test_org_admin_cannot_update_record_with_role_admin",
+      "test_org_admin_can_update_planner_record",
+      "test_org_admin_cannot_update_self",
+      "test_super_admin_can_update_admin_record"
+    ]
+  },
+  {
+    "path": "tests/Feature/ExampleTest.php",
+    "tests": [
+      "test_the_application_returns_a_successful_response"
+    ]
+  },
+  {
+    "path": "tests/Feature/InvitationFlowTest.php",
+    "tests": [
+      "test_invite_creates_row_and_sends_notification",
+      "test_invite_revokes_pending_duplicate_for_same_tenant",
+      "test_invite_blocks_existing_member",
+      "test_accept_creates_user_with_pivot_and_role",
+      "test_accept_attaches_existing_user_to_pivot_only",
+      "test_accept_rejects_expired_token",
+      "test_accept_rejects_already_accepted_token",
+      "test_invite_rejects_invalid_role_for_tenant_type",
+      "test_show_route_renders_accept_page",
+      "test_show_route_returns_410_for_expired",
+      "test_store_route_creates_user_and_logs_in"
+    ]
+  },
+  {
+    "path": "tests/Feature/LivewireUploadSecurityTest.php",
+    "tests": [
+      "test_endpoint_upload_tu_choi_file_php",
+      "test_endpoint_upload_van_nhan_anh_hop_le",
+      "test_tu_choi_webshell_doi_duoi_thanh_anh",
+      "test_tu_choi_cac_duoi_php_khac",
+      "test_tu_choi_svg",
+      "test_nhan_anh",
+      "test_nhan_pdf_giay_phep_kinh_doanh",
+      "test_nhan_excel_va_csv_de_import",
+      "test_lenh_don_xoa_file_cu_va_giu_file_moi",
+      "test_lenh_don_duoc_dat_lich"
+    ]
+  },
+  {
+    "path": "tests/Feature/OwnerRevenueShareHiddenTest.php",
+    "tests": [
+      "test_danh_sach_media_owner_khong_co_cot_rev_share",
+      "test_form_media_owner_khong_co_truong_revenue_share"
+    ]
+  },
+  {
+    "path": "tests/Feature/OwnerReviewTest.php",
+    "tests": [
+      "test_campaign_da_chay_xong_thi_duoc_danh_gia_owner",
+      "test_campaign_con_la_nhap_thi_khong_duoc_danh_gia",
+      "test_khong_danh_gia_duoc_owner_khong_co_trong_campaign",
+      "test_moi_campaign_chi_danh_gia_moi_owner_mot_lan",
+      "test_danh_gia_moi_chua_hien_ngay",
+      "test_diem_trung_binh_chi_tinh_danh_gia_da_duyet",
+      "test_owner_chua_co_danh_gia_thi_khong_co_diem",
+      "test_gui_danh_gia_qua_form",
+      "test_khong_danh_gia_duoc_campaign_cua_to_chuc_khac",
+      "test_so_sao_ngoai_khoang_1_5_bi_tu_choi"
+    ]
+  },
+  {
+    "path": "tests/Feature/PanelAccessTest.php",
+    "tests": [
+      "test_user_model_implements_filament_user_contract",
+      "test_super_admin_can_access_admin_panel",
+      "test_publisher_cannot_access_admin_panel",
+      "test_buyer_cannot_access_admin_panel",
+      "test_publisher_with_active_owner_can_access_publisher_panel",
+      "test_publisher_without_owner_record_cannot_access_publisher_panel",
+      "test_publisher_with_inactive_owner_cannot_access_publisher_panel",
+      "test_super_admin_cannot_access_publisher_panel",
+      "test_buyer_cannot_access_publisher_panel",
+      "test_buyer_with_active_org_can_access_buyer_panel",
+      "test_buyer_without_org_record_cannot_access_buyer_panel",
+      "test_publisher_cannot_access_buyer_panel",
+      "test_user_with_no_role_cannot_access_any_panel",
+      "test_unknown_panel_id_always_denied"
+    ]
+  },
+  {
+    "path": "tests/Feature/PaymentPerOwnerTest.php",
+    "tests": [
+      "test_chia_so_tien_theo_tung_media_owner",
+      "test_tong_cac_phan_bang_tong_campaign",
+      "test_thanh_toan_cho_owner_nay_khong_lam_owner_kia_thanh_da_tra",
+      "test_payment_ghi_nhan_dung_owner_nhan_tien",
+      "test_trang_thanh_toan_hien_tai_khoan_cua_media_owner",
+      "test_trang_thanh_toan_khong_con_tai_khoan_gia_cua_san",
+      "test_owner_chua_khai_tai_khoan_thi_noi_thang_ra",
+      "test_khong_tick_dong_y_quy_che_thi_khong_xac_nhan_duoc",
+      "test_khong_tra_duoc_cho_owner_khong_co_trong_campaign"
+    ]
+  },
+  {
+    "path": "tests/Feature/PolicyConsentTest.php",
+    "tests": [
+      "test_dang_ky_khong_tick_dong_y_thi_bi_tu_choi",
+      "test_dang_ky_co_tick_thi_ghi_lai_bang_chung_chap_thuan",
+      "test_ban_ghi_chap_thuan_dong_dau_dung_phien_ban_chinh_sach",
+      "test_dang_ky_that_bai_thi_khong_de_lai_ban_ghi_chap_thuan_mo_coi",
+      "test_key_chinh_sach_sai_thi_no_ngay_thay_vi_ghi_ban_ghi_vo_nghia",
+      "test_phien_ban_luon_lay_tu_config_khong_lay_tu_client",
+      "test_ghi_lai_ip_va_user_agent",
+      "test_ghi_nhieu_chinh_sach_cung_luc"
+    ]
+  },
+  {
+    "path": "tests/Feature/PolicyPagesTest.php",
+    "tests": [
+      "test_trang_chinh_sach_tai_duoc",
+      "test_bang_phi_neu_ro_muc_phi_va_doi_tuong_thu",
+      "test_bang_phi_da_ban_hanh_khong_hien_canh_bao_ban_nhap",
+      "test_bang_phi_khong_noi_toi_chia_doanh_thu",
+      "test_chan_trang_co_link_bang_phi",
+      "test_chinh_sach_bao_mat_neu_viec_chia_se_lien_he_cho_media_owner",
+      "test_slug_chinh_sach_khong_ton_tai_thi_khong_render_trang_chinh_sach",
+      "test_route_chinh_sach_khong_nuot_cac_duong_dan_khac",
+      "test_trang_chinh_sach_noi_ro_la_ban_nhap_khi_chua_ban_hanh",
+      "test_khi_da_ban_hanh_thi_khong_con_canh_bao_ban_nhap",
+      "test_chan_trang_co_day_du_thong_tin_phap_nhan",
+      "test_chan_trang_co_du_nam_link_chinh_sach",
+      "test_chan_trang_khong_con_link_chet",
+      "test_pop_up_thu_nghiem_hien_tren_trang_chu",
+      "test_pop_up_thu_nghiem_hien_ca_o_trang_dang_ky",
+      "test_tat_trial_mode_thi_pop_up_bien_mat_toan_site"
+    ]
+  },
+  {
+    "path": "tests/Feature/PublicReflectionTest.php",
+    "tests": [
+      "test_gui_phan_anh_thi_duoc_ghi_nhan_va_tra_ma_tra_cuu",
+      "test_phan_anh_moi_khong_tu_dong_len_trang_cong_khai",
+      "test_thieu_email_lien_he_thi_khong_nhan",
+      "test_noi_dung_qua_ngan_thi_khong_nhan",
+      "test_bot_dien_vao_bay_spam_thi_bi_tu_choi",
+      "test_danh_sach_cong_khai_chi_hien_phan_anh_da_duoc_dang",
+      "test_trang_cong_khai_khong_lo_email_va_dien_thoai_nguoi_gui",
+      "test_ghi_chu_noi_bo_khong_bao_gio_ra_trang_cong_khai",
+      "test_serialize_model_khong_kem_du_lieu_ca_nhan",
+      "test_ma_tra_cuu_tang_dan_va_khong_trung"
+    ]
+  },
+  {
+    "path": "tests/Feature/PublicVisibilityGateTest.php",
+    "tests": [
+      "test_screen_cua_owner_pending_khong_hien_cong_khai",
+      "test_screen_cua_owner_suspended_khong_hien_cong_khai",
+      "test_owner_bi_xoa_mem_thi_screen_khong_hien",
+      "test_screen_cua_owner_active_van_hien_binh_thuong",
+      "test_owner_active_nhung_screen_tat_thi_khong_hien",
+      "test_listing_khong_tra_ve_screen_cua_owner_pending",
+      "test_trang_chi_tiet_screen_cua_owner_pending_tra_ve_null",
+      "test_hero_stats_khong_dem_screen_cua_owner_pending",
+      "test_product_cua_owner_pending_khong_hien_cong_khai"
+    ]
+  },
+  {
+    "path": "tests/Feature/Publisher/BookingInboxBuyerContactTest.php",
+    "tests": [
+      "test_owner_co_man_hinh_trong_booking_thay_lien_he_nguoi_mua",
+      "test_owner_khong_co_man_hinh_trong_booking_khong_mo_duoc_trang",
+      "test_booking_con_nhap_chua_gui_thi_owner_khong_thay"
+    ]
+  },
+  {
+    "path": "tests/Feature/Publisher/OwnerUserPermissionTest.php",
+    "tests": [
+      "test_assignable_roles_excludes_owner_for_non_super_admin",
+      "test_super_admin_can_create_owner_user",
+      "test_tenant_owner_can_create_owner_user",
+      "test_manager_cannot_create_owner_user",
+      "test_read_only_cannot_view_team_list",
+      "test_manager_cannot_view_team_list",
+      "test_tenant_owner_can_view_team_list",
+      "test_tenant_owner_cannot_update_a_record_with_role_owner",
+      "test_tenant_owner_can_update_manager_record",
+      "test_tenant_owner_cannot_update_self",
+      "test_super_admin_can_update_record_with_role_owner"
+    ]
+  },
+  {
+    "path": "tests/TestCase.php",
+    "tests": []
+  },
+  {
+    "path": "tests/Unit/ExampleTest.php",
+    "tests": [
+      "test_that_true_is_true"
+    ]
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "sourceFilesVerified": 585,
+  "changedSourceFiles": [],
+  "brokenLocalLinks": [],
+  "registeredRoutes": 207,
+  "reproducedDefects": [
+    "F04_client_duration_override",
+    "F05_disjoint_intervals",
+    "F08_player_ulid"
+  ],
+  "baselineExitCode": "2"
+}

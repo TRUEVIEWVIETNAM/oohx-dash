@@ -19,7 +19,7 @@
                 <div class="wz-card-title">Chi tiết thanh toán</div>
                 <div class="pay-rows">
                     <div class="pay-row"><span>Tổng chi phí booking</span><span>{{ number_format($summary['total_cost'], 0, ',', '.') }} ₫</span></div>
-                    <div class="pay-row"><span>VAT (10%)</span><span>{{ number_format($summary['vat'], 0, ',', '.') }} ₫</span></div>
+                    <div class="pay-row"><span>VAT ({{ rtrim(rtrim(number_format(config('pricing.vat_rate') * 100, 2, '.', ''), '0'), '.') }}%)</span><span>{{ number_format($summary['vat'], 0, ',', '.') }} ₫</span></div>
                     <div class="pay-row pay-row-total"><span>Tổng cộng</span><span>{{ number_format($summary['total_cost_vat'], 0, ',', '.') }} ₫</span></div>
                     @if($summary['total_paid'] > 0)
                     <div class="pay-row" style="color:var(--grn)"><span>Đã thanh toán</span><span>-{{ number_format($summary['total_paid'], 0, ',', '.') }} ₫</span></div>
@@ -90,7 +90,7 @@
                                 </div>
                             @endif
                             <div class="pay-bank-row"><span>Chi phí</span><span>{{ number_format($row['cost'], 0, ',', '.') }} ₫</span></div>
-                            <div class="pay-bank-row"><span>VAT (10%)</span><span>{{ number_format($row['vat'], 0, ',', '.') }} ₫</span></div>
+                            <div class="pay-bank-row"><span>VAT ({{ rtrim(rtrim(number_format(config('pricing.vat_rate') * 100, 2, '.', ''), '0'), '.') }}%)</span><span>{{ number_format($row['vat'], 0, ',', '.') }} ₫</span></div>
                             <div class="pay-bank-row"><span>Cần chuyển</span><span style="font-weight:700">{{ number_format($row['remaining'], 0, ',', '.') }} ₫</span></div>
                         </div>
 
@@ -100,6 +100,13 @@
                                 <input type="hidden" name="method" value="bank_transfer">
                                 <input type="hidden" name="owner_id" value="{{ $owner->id }}">
                                 <input type="hidden" name="amount" value="{{ $row['remaining'] }}">
+                                {{-- Mã riêng cho LẦN xác nhận này. Bấm hai lần trên cùng
+                                     biểu mẫu gửi lại cùng mã nên không tạo hai khoản; tải
+                                     lại trang để trả tiếp phần còn lại thì có mã mới.
+                                     Trước đây dùng token CSRF của phiên, mà token đó không
+                                     đổi giữa các lần trả nên lần trả thứ hai nhận lại đúng
+                                     khoản đã hoàn tất (Codex R07). --}}
+                                <input type="hidden" name="payment_nonce" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
 
                                 <label class="consent">
                                     <input type="checkbox" name="accept_terms" value="1" required>

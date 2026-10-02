@@ -26,7 +26,8 @@ class FrontpageController extends Controller
             'stats'             => $this->fp->getHeroStats(),
             'venueTypes'        => $this->fp->getVenueTypesWithCounts(),
             'topCities'         => $this->fp->getTopCities(),
-            'featuredScreens'   => $this->fp->getFeaturedScreens(4),
+            'featuredScreens'   => $featuredScreens = $this->fp->getFeaturedScreens(4),
+            'availability'      => $this->availabilityFor($featuredScreens),
             'featuredOwners'    => $this->fp->getFeaturedOwners(6),
             'locationsByRegion' => $this->fp->getLocationsByRegion(),
             'filters'           => $this->fp->getFilterAggregates(),
@@ -37,12 +38,41 @@ class FrontpageController extends Controller
 
     public function listing(FrontpageListingRequest $request): View
     {
+        $screens = $this->fp->getScreensPaginated($request);
+
         return view('frontpage.listing', [
-            'screens'          => $this->fp->getScreensPaginated($request),
+            'screens'          => $screens,
+            'availability'     => $this->availabilityFor($screens->getCollection()),
             'filters'          => $this->fp->getFilterAggregates(),
             'vnCatLabels'      => $this->fp->getVnCategoryLabels(),
             'locationsByRegion' => $this->fp->getLocationsByRegion(),
         ]);
+    }
+
+    /**
+     * Suất còn lại của các màn hình đang hiển thị, trong 30 ngày tới.
+     *
+     * Tính theo LÔ: hai truy vấn tổng hợp bất kể bao nhiêu thẻ. Gọi lẻ từng thẻ
+     * là một truy vấn mỗi thẻ; in badge vô điều kiện thì mời người mua vào một
+     * suất đã bán (audit F-15). Thẻ nào không có trong mảng này thì không hiện
+     * badge — fail-closed.
+     *
+     * @param  iterable<int, \App\Models\Screen>  $screens
+     * @return array<string, int>
+     */
+    private function availabilityFor(iterable $screens): array
+    {
+        $ids = collect($screens)->pluck('id')->filter()->unique()->values()->all();
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return app(\App\Services\InventoryHoldService::class)->remainingSovForScreens(
+            $ids,
+            now()->toDateString(),
+            now()->addDays(30)->toDateString(),
+        );
     }
 
     public function detail(string $screen): View|\Illuminate\Http\RedirectResponse
@@ -72,6 +102,18 @@ class FrontpageController extends Controller
                 return $dates;
             })->toArray();
 
+        // Còn suất trong 30 ngày tới hay không — tính thật, không in vô điều kiện.
+        //
+        // Badge "Còn trống" trước đây được in ở ba chỗ trên trang này mà không
+        // hề kiểm gì: một màn hình đã bán kín vẫn hiện "Còn trống" cho người
+        // mua (audit F-15). Từ giai đoạn 1 đã có nguồn thật để tính, gồm cả
+        // suất người khác đang giữ trong giỏ.
+        $availableSovNext30Days = app(\App\Services\AvailabilityService::class)->getRemainingSOV(
+            $screenModel->id,
+            now()->toDateString(),
+            now()->addDays(30)->toDateString(),
+        );
+
         $isSaved = auth()->check()
             ? \App\Models\SavedItem::where('user_id', auth()->id())->where('screen_id', $screenModel->id)->exists()
             : false;
@@ -81,9 +123,11 @@ class FrontpageController extends Controller
 
         return view('frontpage.detail', [
             'screen'         => $screenModel,
-            'similarScreens' => $this->fp->getSimilarScreens($screenModel),
+            'similarScreens' => $similar = $this->fp->getSimilarScreens($screenModel),
+            'availability'   => $this->availabilityFor($similar),
             'vnCatLabels'    => $this->fp->getVnCategoryLabels(),
             'bookedDates'    => $bookedDates,
+            'availableSov'   => $availableSovNext30Days,
             'isSaved'        => $isSaved,
             'nearbyPois'     => $nearbyPois,
         ]);
@@ -196,11 +240,6 @@ class FrontpageController extends Controller
         ]);
     }
 
-    public function booking(): View
-    {
-        return view('frontpage.booking');
-    }
-
     public function agency(Request $request): View
     {
         return view('frontpage.agency', [
@@ -225,7 +264,12 @@ class FrontpageController extends Controller
 
         return view('frontpage.owner-detail', [
             'owner'            => $ownerModel,
-            'ownerScreens'     => $this->fp->getOwnerScreens($ownerModel->id, $request),
+            'ownerScreens'     => $ownerScreens = $this->fp->getOwnerScreens($ownerModel->id, $request),
+            'availability'     => $this->availabilityFor(
+                $ownerScreens instanceof \Illuminate\Contracts\Pagination\Paginator
+                    ? $ownerScreens->getCollection()
+                    : $ownerScreens
+            ),
             'filters'          => $this->fp->getOwnerFilterAggregates($ownerModel->id),
             'locationsByRegion' => $this->fp->getLocationsByRegion(),
             'vnCatLabels'      => $this->fp->getVnCategoryLabels(),

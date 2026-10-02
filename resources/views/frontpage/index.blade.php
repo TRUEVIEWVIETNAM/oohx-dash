@@ -27,8 +27,16 @@
       </h1>
     </div>
 
+    {{-- Chỉ nói những con số đọc được từ CSDL.
+         Bản trước hứa "dữ liệu traffic xác thực, AI hỗ trợ lên plan, tiếp cận
+         30M+ khách hàng": không có nguồn nào cho 30M, không có tính năng AI lên
+         plan, và số liệu traffic là do media owner tự công bố chứ chưa xác
+         thực. Với một sàn đang nộp hồ sơ TMĐT thì đó là rủi ro pháp lý, không
+         phải chuyện câu chữ (audit F-15). --}}
     <p class="hero-desc">
-      Tìm, so sánh và đặt booking billboard · LED · LCD trong vài phút. Dữ liệu traffic xác thực, AI hỗ trợ lên plan. Tiếp cận 30M+ khách hàng thường xuyên.
+      Tìm, so sánh và đặt booking billboard · LED · LCD trong vài phút.
+      {{ number_format($stats['total_screens']) }} vị trí từ {{ number_format($stats['total_owners']) }} media owner
+      tại {{ number_format($stats['total_cities']) }} tỉnh thành.
     </p>
 
     <!-- Mega Search -->
@@ -55,43 +63,35 @@
       <a href="{{ route('fp.listing') }}" class="btn btn-p btn-lg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" style="width:18px;height:18px;flex-shrink:0"><path d="M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z"/></svg> Khám phá Inventory</a>
       <a href="{{ route('fp.map') }}" class="btn btn-s btn-lg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="var(--t2)" style="width:18px;height:18px;flex-shrink:0"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg> Xem bản đồ</a>
     </div>
-    <div class="hero-hint">Miễn phí đăng ký · Không phí môi giới · 30M+ impressions</div>
+    {{-- "Miễn phí đăng ký" và "không phí môi giới" là chính sách thật, giữ lại.
+         "30M+ impressions" không có nguồn — gỡ. --}}
+    <div class="hero-hint">Miễn phí đăng ký · Không phí môi giới</div>
 
     <!-- Stats -->
     <div class="hero-stats">
       <div class="hstat"><div class="hstat-n">{{ number_format($stats['total_screens'] / 1000, 1) }}<span class="unit">K+</span></div><div class="hstat-l">Inventory</div></div>
       <div class="hstat"><div class="hstat-n">{{ $stats['total_cities'] }}</div><div class="hstat-l">Tỉnh thành</div></div>
       <div class="hstat"><div class="hstat-n">{{ $stats['total_owners'] }}<span class="unit">+</span></div><div class="hstat-l">Media owners</div></div>
-      <div class="hstat"><div class="hstat-n">30<span class="unit">M+</span></div><div class="hstat-l">Impressions</div></div>
     </div>
   </div>
 
   <!-- Browser mockup -->
   <div class="w" style="padding-bottom:0">
     <div class="hero-visual" style="position:relative;padding:0 20px">
-      <!-- Floating card left -->
-      <div class="hero-float hf-left" style="position:absolute;left:0;bottom:80px;z-index:2">
-        <div class="hf-label">Live Impressions</div>
-        <div class="hf-value" id="imp-n" style="color:var(--bl)">120,847</div>
-        <div class="hf-sub">LED Láng Hạ — hôm nay</div>
-        <div class="hf-bar" style="margin-top:10px">
-          <div class="hf-bar-item" style="height:20px;background:rgba(42,79,246,.15)"></div>
-          <div class="hf-bar-item" style="height:32px;background:rgba(42,79,246,.25)"></div>
-          <div class="hf-bar-item" style="height:26px;background:rgba(42,79,246,.2)"></div>
-          <div class="hf-bar-item" style="height:38px;background:var(--bl)"></div>
-          <div class="hf-bar-item" style="height:42px;background:var(--bl)"></div>
-          <div class="hf-bar-item" style="height:34px;background:rgba(0,113,227,.6)"></div>
-          <div class="hf-bar-item" style="height:44px;background:var(--bl)"></div>
-        </div>
-      </div>
+      {{-- ĐÃ GỠ: thẻ "Live Impressions" với bộ đếm chạy bằng Math.random().
+           Nó tự tăng vài chục lượt mỗi 1,4 giây và gắn tên một màn hình cụ thể
+           ("LED Láng Hạ — hôm nay"), tức là bịa ra số liệu phát sóng của một
+           vị trí có thật. Đường ghi bằng chứng phát sóng chỉ mới hoạt động từ
+           giai đoạn 2 và hiện chưa có dữ liệu nào, nên không có gì để hiện ở
+           đây (audit F-15).
 
-      <!-- Floating card right -->
-      <div class="hero-float hf-right" style="position:absolute;right:0;top:60px;z-index:2">
-        <div class="hf-label">AI Match</div>
-        <div class="hf-value" style="color:var(--grn);font-size:28px">94%</div>
-        <div class="hf-sub" style="margin-top:6px">phù hợp với campaign</div>
-        <div style="margin-top:8px;font-size:11px;color:var(--t4)">12 vị trí đề xuất</div>
-      </div>
+           Khi có dữ liệu thật: đọc từ `impression_daily_rollups`, và nhớ rằng
+           lượt phát có `played_at_clamped` đã bị loại khỏi bảng đó. --}}
+
+      {{-- ĐÃ GỠ: thẻ "AI Match 94% — 12 vị trí đề xuất".
+           Không có tính năng nào trong hệ thống tính ra con số này; cả "94%"
+           lẫn "12 vị trí" đều viết cứng trong template. Quảng cáo một năng lực
+           không tồn tại là chỗ nặng nhất của F-15. --}}
 
       <div class="hero-browser">
         <div class="hb-bar">
@@ -384,10 +384,13 @@
 </script>
 <script>
 (function(){
-  // Impression counter
-  let imp=120847;
-  const c=document.getElementById('imp-n');
-  if(c) setInterval(()=>{imp+=Math.floor(Math.random()*12+3);c.textContent=imp.toLocaleString('en-US')},1400);
+  {{-- ĐÃ GỠ: bộ đếm impression sinh số ngẫu nhiên phía trình duyệt. Thẻ hiển
+       thị nó cũng đã gỡ; để lại script thì lần sau ai thêm lại phần tử #imp-n
+       là con số bịa quay về ngay.
+
+       Chú thích này dùng cú pháp Blade, KHÔNG dùng `//` của JavaScript: chú
+       thích JS nằm trong <script> sẽ đi thẳng ra trang, và test canh "không
+       còn tên hàm sinh số ngẫu nhiên trong HTML" bắt đúng chuyện đó. --}}
 
   // Save toggle
   document.querySelectorAll('.inv-save').forEach(b=>b.addEventListener('click',e=>{

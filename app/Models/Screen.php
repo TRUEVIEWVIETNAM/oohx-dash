@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -51,6 +52,13 @@ use Illuminate\Support\Str;
 class Screen extends Model
 {
     use HasFactory, HasUlids, HasOwnerScope, HasSlug, SoftDeletes;
+
+    /**
+     * device_token là bí mật của thiết bị phát — dùng để xác thực player.
+     * Nó từng đi theo mọi response serialize Screen, kể cả quan hệ lồng nhau
+     * (Codex review T1, F3). Ẩn ở tầng model để bịt mọi đường ra cùng lúc.
+     */
+    protected $hidden = ['device_token'];
 
     protected $fillable = [
         // Marketplace
@@ -127,15 +135,30 @@ class Screen extends Model
     }
 
     /**
-     * Network via site relationship (Site belongsTo Network).
+     * Mạng lưới của màn hình — **đi qua địa điểm**, một đường duy nhất.
+     *
+     * Trước đây quan hệ này trỏ thẳng `screens.network_code → networks.code`,
+     * trong khi trang công khai đếm theo `sites.network_id` và Filament đếm
+     * theo `screen_inventory.network_id`. Ba đường cho ba câu trả lời khác
+     * nhau cho cùng một câu hỏi, và không ai biết con số nào đúng (F-12).
+     *
+     * Nay chỉ còn một: mạng lưới là chuỗi địa điểm, màn hình thừa hưởng mạng
+     * lưới của nơi nó đứng. Xem migration `unify_screen_network_relation`.
      */
-    public function network(): BelongsTo
+    public function network(): HasOneThrough
     {
-        return $this->belongsTo(Network::class, 'network_code', 'code');
+        return $this->hasOneThrough(
+            Network::class,
+            Site::class,
+            'id',          // sites.id
+            'id',          // networks.id
+            'site_id',     // screens.site_id
+            'network_id',  // sites.network_id
+        );
     }
 
     /**
-     * Get network through site (preferred).
+     * @deprecated Dùng `network` — hai tên cho cùng một thứ là cách F-12 bắt đầu.
      */
     public function getNetworkViaAttribute(): ?Network
     {

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Cart\AddToCartRequest;
+use App\Http\Requests\Cart\UpdateCartItemRequest;
 use App\Models\CartItem;
 use App\Services\CartService;
 use Illuminate\Http\JsonResponse;
@@ -33,38 +35,18 @@ class CartController extends Controller
     /**
      * POST /cart/add — add screen or product to cart (AJAX or redirect)
      */
-    public function add(Request $request): JsonResponse|RedirectResponse
+    public function add(AddToCartRequest $request): JsonResponse|RedirectResponse
     {
+        // Luật kiểm chuyển sang `AddToCartRequest`, dùng chung với
+        // `/api/v2/cart/items`. Giữ hai bộ luật cho cùng một thao tác là cách
+        // để một ngày nào đó API nhận thứ mà trang từ chối, và không ai biết
+        // bên nào đúng.
         $cart = $this->cartService->getOrCreateCart($request->user());
+        $data = $request->validated();
 
-        // Product-based add (new flow)
-        if ($request->filled('product_id') && ! $request->filled('screen_id')) {
-            $data = $request->validate([
-                'product_id'         => ['required', 'string', 'exists:products,id'],
-                'buy_mode'           => ['nullable', 'in:package,individual'],
-                'selected_screen_ids' => ['nullable', 'array'],
-                'selected_screen_ids.*' => ['string', 'exists:screens,id'],
-                'start_date'         => ['nullable', 'date', 'after_or_equal:today'],
-                'end_date'           => ['nullable', 'date', 'after:start_date'],
-            ]);
-
-            $item = $this->cartService->addProduct($cart, $data['product_id'], $data);
-        } else {
-            // Screen-based add (supports CPM + I/O + both)
-            $data = $request->validate([
-                'screen_id'      => ['required', 'string', 'exists:screens,id'],
-                'product_id'     => ['nullable', 'string', 'exists:products,id'],
-                'start_date'     => ['nullable', 'date', 'after_or_equal:today'],
-                'end_date'       => ['nullable', 'date', 'after:start_date'],
-                'quantity'       => ['nullable', 'integer', 'min:1'],
-                'pricing_model'  => ['nullable', 'in:cpm,io'],
-                'booked_cpms'    => ['nullable', 'integer', 'min:1'],
-                'screen_count'   => ['nullable', 'integer', 'min:1'],
-                'duration_units' => ['nullable', 'integer', 'min:1'],
-            ]);
-
-            $item = $this->cartService->addItem($cart, $data['screen_id'], $data);
-        }
+        $item = $request->buysProduct()
+            ? $this->cartService->addProduct($cart, $data['product_id'], $data)
+            : $this->cartService->addItem($cart, $data['screen_id'], $data);
 
         $count = $cart->items()->count();
 
@@ -83,19 +65,12 @@ class CartController extends Controller
     /**
      * PUT /cart/{item} — update cart item
      */
-    public function update(Request $request, CartItem $item): JsonResponse|RedirectResponse
+    public function update(UpdateCartItemRequest $request, CartItem $item): JsonResponse|RedirectResponse
     {
-        // Ensure item belongs to user's cart
-        abort_unless($item->cart->user_id === $request->user()->id, 403);
+        // Qua policy thay cho phép so `user_id` bằng tay — cùng luật, một chỗ.
+        abort_unless($request->user()?->can('update', $item) ?? false, 403);
 
-        $data = $request->validate([
-            'start_date' => ['nullable', 'date'],
-            'end_date' => ['nullable', 'date'],
-            'share_of_voice_pct' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'spot_length' => ['nullable', 'integer', 'min:5', 'max:60'],
-        ]);
-
-        $item = $this->cartService->updateItem($item, $data);
+        $item = $this->cartService->updateItem($item, $request->validated());
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -113,7 +88,7 @@ class CartController extends Controller
      */
     public function remove(Request $request, CartItem $item): JsonResponse|RedirectResponse
     {
-        abort_unless($item->cart->user_id === $request->user()->id, 403);
+        abort_unless($request->user()?->can('delete', $item) ?? false, 403);
 
         $this->cartService->removeItem($item);
 

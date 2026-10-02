@@ -1,0 +1,10 @@
+date_utc=2026-09-23T08:47:15Z
+repo_sha=112e2aa4432d65ed85dcd4ac730e8093854e8476
+repo_dirty= M .claude/settings.local.json;
+php_image=foodyman-local-backend
+php_version=8.4.21
+mysql_version=
+mysql_version=8.0 (bản ghi bị rỗng ở lượt chạy 23/09 do lỗi lệnh; script đã vá, lượt sau sẽ tự ghi)
+mysql_image=mysql:8.0 (mysql@sha256:d0304ed9fdb64a3f6c7ad11a5fb4f13abfc10e6dfa3f288d652e7320c34df7f9)
+php_image_id=sha256:66c020ab405e
+note_migrate=Bộ test chạy trước nên schema đã tồn tại; artisan migrate in "Nothing to migrate". Probe vẫn chạy trên schema do migration tạo.

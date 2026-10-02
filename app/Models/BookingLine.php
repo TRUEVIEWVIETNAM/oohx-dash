@@ -12,7 +12,8 @@ class BookingLine extends Model
     use HasUlids;
 
     protected $fillable = [
-        'campaign_id', 'product_id', 'screen_id', 'owner_id',
+        'campaign_id', 'product_id', 'bundle_id', 'screen_id', 'owner_id',
+        'duration_discount_pct',
         'start_date', 'end_date', 'spot_length',
         'share_of_voice_pct',
         'floor_cpm_at_booking', 'negotiated_cpm',
@@ -56,9 +57,17 @@ class BookingLine extends Model
         return $this->belongsTo(Product::class);
     }
 
+    /** Gói mà dòng này được mở ra từ, kèm bản chụp thành phần gói lúc mua. */
+    public function bundle(): BelongsTo
+    {
+        return $this->belongsTo(BookingLineBundle::class, 'bundle_id');
+    }
+
     public function screen(): BelongsTo
     {
-        return $this->belongsTo(Screen::class);
+        // Bỏ owner_scope: dòng booking đã xác định ngữ cảnh rồi. Người mua không có
+        // tenant nên nếu để scope, quan hệ này trả null và hỏng cả trang chiến dịch.
+        return $this->belongsTo(Screen::class)->withoutGlobalScope('owner_scope');
     }
 
     public function owner(): BelongsTo

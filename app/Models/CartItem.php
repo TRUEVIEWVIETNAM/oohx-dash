@@ -8,17 +8,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CartItem extends Model
 {
     protected $fillable = [
-        'cart_id', 'screen_id', 'product_id',
+        'cart_id', 'screen_id', 'product_id', 'buy_mode',
         'start_date', 'end_date', 'spot_length',
         'quantity', 'selected_screen_ids', 'selected_region',
         'share_of_voice_pct', 'estimated_impressions', 'estimated_cost',
         'notes',
         // Pricing model fields
         'pricing_model', 'booked_cpms', 'screen_count',
-        'duration_units', 'duration_unit', 'unit_price',
+        'duration_units', 'duration_unit', 'unit_price', 'duration_discount_pct',
+        // Giá đã chụp lúc thêm vào giỏ, để phát hiện giá đổi trước khi chốt đơn.
+        'rate_captured_at', 'rate_snapshot',
     ];
 
     protected $casts = [
+        'rate_captured_at' => 'datetime',
+        'rate_snapshot' => 'array',
         'start_date' => 'date',
         'end_date' => 'date',
         'spot_length' => 'integer',
@@ -40,7 +44,8 @@ class CartItem extends Model
 
     public function screen(): BelongsTo
     {
-        return $this->belongsTo(Screen::class);
+        // Bỏ owner_scope, lý do như BookingLine::screen().
+        return $this->belongsTo(Screen::class)->withoutGlobalScope('owner_scope');
     }
 
     public function product(): BelongsTo

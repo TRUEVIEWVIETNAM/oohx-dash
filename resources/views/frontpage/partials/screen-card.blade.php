@@ -5,7 +5,12 @@
 @php
     $photo = $screen->display_photo ?? 'https://placehold.co/600x400/F5F5F7/6E6E73?text=No+Photo';
     $price = $screen->inventory?->display_price ?? 0;
-    $priceDisplay = number_format($price, 0, ',', '.');
+    // Đơn vị tiền lấy từ kho, không dán cứng: `floor_cpm_currency` có hàng USD
+    // trong dữ liệu thật, và một màn hình 2,50 USD hiện ra là "2 đ" (Codex R39).
+    $priceCurrency = $screen->inventory?->display_currency ?? 'VND';
+    $priceDisplay = $priceCurrency === 'VND'
+        ? number_format($price, 0, ',', '.')
+        : number_format($price, 2, ',', '.');
     $priceUnit = $screen->inventory?->display_price_unit ?? (($screen->inventory?->io_rate_unit ?? 'month') === 'week' ? 'màn hình/tuần' : 'màn hình/tháng');
     $vnCatId = $screen->inventory?->vn_category_id;
     $venueLabel = ($vnCatLabels ?? [])[$vnCatId] ?? '—';
@@ -17,11 +22,21 @@
     $detailUrl = route('fp.detail', $screen->slug ?? $screen->uuid ?? $screen->id);
     // Product badge: lấy product đầu tiên nếu screen thuộc product
     $product = $screen->relationLoaded('products') ? $screen->products->first() : null;
+
+    // Suất còn lại, do người gọi truyền vào theo lô (2 truy vấn cho cả trang).
+    //
+    // FAIL-CLOSED: người gọi không truyền thì KHÔNG hiện badge. Badge này trước
+    // đây in vô điều kiện trên mọi thẻ ở trang chủ, trang danh sách, trang chi
+    // tiết và trang owner — tức mời người mua vào cả những suất đã bán kín
+    // (audit F-15). Thà không nói gì còn hơn nói một điều chưa kiểm được.
+    $cardAvailability = ($availability ?? [])[$screen->id] ?? null;
 @endphp
 <a href="{{ $detailUrl }}" class="sc-card {{ $compact ? 'sc-compact' : '' }}">
     <div class="sc-photo">
         <img src="{{ $photo }}" loading="lazy" alt="{{ $screen->name }}">
+        @if($cardAvailability !== null && $cardAvailability > 0)
         <div class="sc-badge">Còn trống</div>
+        @endif
         @if($product)
         <div class="sc-product-badge">
             @if($product->total_units > 1)
@@ -69,7 +84,7 @@
     <div class="sc-foot">
         @if($price > 0)
         <div>
-            <div class="sc-price">{{ $priceDisplay }}<sup>đ</sup></div>
+            <div class="sc-price">{{ $priceDisplay }}<sup>{{ $priceCurrency === 'VND' ? 'đ' : $priceCurrency }}</sup></div>
             <div class="sc-price-sub">/ {{ $priceUnit }}</div>
         </div>
         <span class="btn btn-p btn-sm sc-btn">Chi tiết</span>

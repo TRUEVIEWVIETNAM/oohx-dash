@@ -10,8 +10,19 @@ use App\Models\ScreenSpec;
 use App\Models\Site;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
+/**
+ * Năm ca trong file này hỏng suốt từ baseline `112e2aa` vì F-12: hệ thống có
+ * BA cách nói "màn hình thuộc mạng lưới nào" và chúng trả lời khác nhau. Test
+ * dựng dữ liệu theo `screens.network_code`, còn endpoint đếm theo
+ * `sites.network_id`, nên luôn ra rỗng.
+ *
+ * Giai đoạn 3 (29/09/2026) chốt **`sites.network_id` là nguồn sự thật duy
+ * nhất** và đưa mọi đường đọc về đó. Nhãn `#[Group('f12-network-relation')]`
+ * cùng cờ `--exclude-group` trong CI đã được gỡ.
+ */
 class InventoryNetworksTest extends TestCase
 {
     use RefreshDatabase;
@@ -33,13 +44,23 @@ class InventoryNetworksTest extends TestCase
 
     private function makeActiveScreenWithNetwork(string $networkCode): Screen
     {
-        $owner  = Owner::factory()->create(['status' => 'active']);
-        $site   = Site::factory()->create(['owner_id' => $owner->id]);
+        $owner = Owner::factory()->create(['status' => 'active']);
+
+        // Gán mạng lưới cho ĐỊA ĐIỂM — nguồn sự thật duy nhất từ giai đoạn 3.
+        $network = Network::firstOrCreate(
+            ['code' => $networkCode],
+            ['name' => $networkCode, 'owner_id' => $owner->id],
+        );
+
+        $site = Site::factory()->create([
+            'owner_id'   => $owner->id,
+            'network_id' => $network->id,
+        ]);
+
         $screen = Screen::factory()->create([
-            'owner_id'     => $owner->id,
-            'site_id'      => $site->id,
-            'active'       => true,
-            'network_code' => $networkCode,
+            'owner_id' => $owner->id,
+            'site_id'  => $site->id,
+            'active'   => true,
         ]);
         ScreenSpec::factory()->create(['screen_id' => $screen->id]);
         ScreenInventory::factory()->create(['screen_id' => $screen->id]);
