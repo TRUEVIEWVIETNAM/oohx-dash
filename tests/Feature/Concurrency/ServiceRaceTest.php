@@ -83,9 +83,22 @@ class ServiceRaceTest extends TestCase
             }
 
             User::whereIn('id', $this->cleanupUserIds)->delete();
-        } catch (\Throwable) {
-            // Dọn hết sức; không che lỗi thật của test.
+        } catch (\Throwable $e) {
+            // Không nuốt im lặng.
+            //
+            // Lớp này commit thật, nên dọn sót là làm đỏ những test chẳng liên
+            // quan — và người đọc sẽ đi tìm nguyên nhân ở đúng chỗ sai. Đã xảy
+            // ra một lần với `RefundContentionTest`: một ngoại lệ khóa ngoại bị
+            // `catch` trần nuốt, hai màn hình ở lại CSDL, và năm test đếm màn
+            // hình đỏ ở nơi khác.
+            fwrite(STDERR, "\n[ServiceRaceTest] DỌN KHÔNG XONG: {$e->getMessage()}\n");
         }
+
+        // Chốt lại trước khi nhường cho lớp cha: không còn màn hình nào của lớp
+        // này sót lại.
+        $conLai = Screen::withoutGlobalScopes()->whereIn('id', $this->cleanupScreenIds)->count();
+
+        $this->assertSame(0, $conLai, 'Dọn sót màn hình — các test chạy sau sẽ đếm sai.');
 
         parent::tearDown();
     }

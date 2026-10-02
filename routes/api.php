@@ -105,11 +105,19 @@ Route::prefix('v2')->middleware('throttle:api')->group(function () {
 // `buyer` kiểm người dùng có tổ chức; mỗi action vẫn tự gọi policy — middleware
 // chỉ là lớp chặn đầu tiên, không thay cho phân quyền theo bản ghi.
 Route::prefix('v2')
+    // Thứ tự quan trọng: `throttle` phải đứng TRƯỚC `auth`.
+    //
+    // Bản đầu tôi để `throttle:api` ở cuối. Middleware chạy theo đúng thứ tự
+    // liệt kê, nên `auth:sanctum` chặn yêu cầu chưa đăng nhập và throttle
+    // **không bao giờ kịp đếm** — tức các endpoint này không có giới hạn tần
+    // suất với lưu lượng chưa đăng nhập, trái CLAUDE.md mục 2 ("mọi endpoint
+    // có giới hạn tần suất"). Ai cũng dội được vào `/api/v2/cart` không hạn,
+    // và mỗi lần dội vẫn tốn công dựng phiên.
     ->middleware([
         \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        'throttle:api',
         'auth:sanctum',
         'buyer',
-        'throttle:api',
     ])
     ->group(function () {
         Route::get   ('cart',              [V2CartController::class, 'show']);

@@ -9,6 +9,7 @@ use App\Rules\SafePublicUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -89,7 +90,7 @@ class RateLimitAndWebhookTest extends TestCase
 
     // ── Chặn SSRF ────────────────────────────────────────────────────────────
 
-    /** @dataProvider forbiddenUrls */
+    #[DataProvider('forbiddenUrls')]
     public function test_khong_dang_ky_duoc_webhook_tro_vao_mang_noi_bo(string $url): void
     {
         $token = $this->apiClient()->createToken('t', ['inventory'])->plainTextToken;

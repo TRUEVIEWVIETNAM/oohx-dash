@@ -4,6 +4,7 @@ namespace Tests\Unit\Pricing;
 
 use App\Services\Pricing\BillablePeriodCalculator;
 use Carbon\Carbon;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -22,7 +23,7 @@ class BillablePeriodCalculatorTest extends TestCase
         $this->calc = new BillablePeriodCalculator();
     }
 
-    /** @dataProvider ioCases */
+    #[DataProvider('ioCases')]
     public function test_so_ky_io(string $start, string $end, string $unit, int $expected): void
     {
         $this->assertSame(
