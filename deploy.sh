@@ -24,10 +24,23 @@
 # 2. `migrate` chạy TRƯỚC `optimize:clear`, nên migration đọc config đã cache
 #    của lần deploy TRƯỚC. Nay xoá cache trước khi migrate.
 #
-# 3. Không hâm cache sau khi xoá. Người truy cập đầu tiên phải dựng lại toàn bộ
-#    số liệu tổng hợp trên gần 3.000 địa điểm trong một request — ngày 02/10
-#    yêu cầu đầu timeout 100s và Cloudflare trả 524, yêu cầu thứ hai mất 1,26s.
-#    Mỗi lần deploy, khách đầu tiên gặp trang lỗi.
+# ══ Một lỗi CHƯA tìm ra nguyên nhân, ghi lại để không ai kết luận sớm ══
+#
+# Ngày 02/10 lúc 06:24, yêu cầu ĐẦU TIÊN tới oohx.net sau deploy timeout ở 100s
+# và Cloudflare trả 524; yêu cầu thứ hai trả 200 trong 1,26s.
+#
+# Tôi đoán nguyên nhân là cache tổng hợp bị xoá rồi phải dựng lại trong request
+# đầu, và đã thêm một lệnh `oohx:warm-cache` để chữa. **Đo ra thì sai**:
+# `cache:clear` rồi gọi ngay cho 1,14s, gọi lần hai 1,05s — dựng lại toàn bộ
+# cache tốn khoảng 90ms, không phải 100 giây. Lệnh đó đã được gỡ.
+#
+# Cũng đã loại: không có lời gọi HTTP/SSH nào trên đường trang chủ, và
+# `storage/framework/cache/data` thuộc `www` và ghi được bình thường.
+#
+# Nguyên nhân vẫn chưa biết. Khả năng còn lại chưa loại được: opcache lạnh sau
+# khi `git reset --hard` thay toàn bộ file PHP (vendor có Filament, rất lớn),
+# PHP-FPM đang nạp lại, hoặc một sự cố nhất thời của Cloudflare. Cách đo: ở lần
+# deploy tới, bấm đồng hồ ngay lần gọi đầu tiên TỪ NGOÀI vào.
 
 set -e
 trap 'php artisan up || true' ERR
@@ -47,25 +60,25 @@ echo "Path   : $(pwd)"
 echo "Branch : $BRANCH"
 
 echo ""
-echo "[1/10] Enable maintenance mode"
+echo "[1/9] Enable maintenance mode"
 $PHP_BIN artisan down || true
 
 echo ""
-echo "[2/10] Save current commit for rollback"
+echo "[2/9] Save current commit for rollback"
 git rev-parse HEAD > .previous_deploy_commit || true
 echo "Saved previous commit: $(cat .previous_deploy_commit || true)"
 
 echo ""
-echo "[3/10] Update source"
+echo "[3/9] Update source"
 git fetch origin
 git reset --hard origin/$BRANCH
 
 echo ""
-echo "[4/10] Install composer dependencies"
+echo "[4/9] Install composer dependencies"
 $COMPOSER_BIN install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
 echo ""
-echo "[5/10] Build frontend assets"
+echo "[5/9] Build frontend assets"
 # KHÔNG có `|| true` ở đây, có chủ ý.
 #
 # Bản cũ không build gì cả và không ai biết, vì trang vẫn chạy với asset cũ.
@@ -82,7 +95,7 @@ npm ci
 npm run build
 
 echo ""
-echo "[6/10] Clear old caches"
+echo "[6/9] Clear old caches"
 # TRƯỚC migrate, không phải sau.
 #
 # Bản cũ migrate trước rồi mới xoá cache, nên migration đọc config đã cache của
@@ -90,26 +103,18 @@ echo "[6/10] Clear old caches"
 $PHP_BIN artisan optimize:clear
 
 echo ""
-echo "[7/10] Run migrations"
+echo "[7/9] Run migrations"
 $PHP_BIN artisan migrate --force
 
 echo ""
-echo "[8/10] Rebuild caches"
+echo "[8/9] Rebuild caches"
 $PHP_BIN artisan config:cache
 $PHP_BIN artisan route:cache
 $PHP_BIN artisan view:cache
 $PHP_BIN artisan event:cache || true
 
 echo ""
-echo "[9/10] Warm public caches"
-# Để request đầu tiên là của máy chủ, không phải của khách. Lệnh này luôn trả
-# exit 0 kể cả khi một phần hỏng — xem docblock của App\Console\Commands\
-# WarmPublicCache. Hậu quả của hâm cache hỏng chỉ nên là trang đầu chậm, không
-# phải deploy dừng giữa chừng với ứng dụng kẹt trong chế độ bảo trì.
-$PHP_BIN artisan oohx:warm-cache || true
-
-echo ""
-echo "[10/10] Fix permissions and restart workers"
+echo "[9/9] Fix permissions and restart workers"
 # `|| true` vì nhiều file trong storage thuộc user `www` chứ không phải
 # `deploy`, nên chmod báo "Operation not permitted" và đó là bình thường.
 chmod -R 775 storage bootstrap/cache 2>/dev/null || true
