@@ -22,7 +22,7 @@
 
 [Unit]
 Description=OOHX webapp (Next.js) cho trang cong khai
-Documentation=https://github.com/tuanna0703/oohx-dash/tree/main/docs/deploy/nextjs-proxy
+Documentation=https://github.com/TRUEVIEWVIETNAM/oohx-dash/tree/main/docs/deploy/nextjs-proxy
 After=network.target
 
 [Service]
