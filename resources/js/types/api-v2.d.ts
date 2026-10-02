@@ -510,6 +510,175 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Danh sách trang chính sách (siêu dữ liệu)
+         * @description **Chỉ siêu dữ liệu, không trả nội dung.** Văn bản bốn trang chính sách
+         *     nằm trong Blade, và `PolicyController` ghi rõ lý do: bản nào đang có
+         *     hiệu lực phải truy được bằng lịch sử git, không phải một hàng trong
+         *     bảng mà ai đó sửa xong không còn dấu vết.
+         *
+         *     API dựng lại văn bản pháp lý thành HTML sẽ tạo **hai** đường render cho
+         *     cùng một văn bản, trong khi lộ trình yêu cầu "giữ nguyên văn bản và
+         *     đường dẫn" cho nhóm trang này. Nên endpoint trả `url` trỏ về trang
+         *     Laravel đang phục vụ; văn bản vẫn do một nơi duy nhất phát ra.
+         *
+         *     `effective_from` rỗng nghĩa là **chưa ban hành** — nội dung còn là bản
+         *     nháp, và bên tiêu thụ phải thấy được điều đó.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                slug: string;
+                                title: string | null;
+                                version?: string | null;
+                                effective_from?: string | null;
+                                is_effective: boolean;
+                                url: string;
+                            }[];
+                        };
+                    };
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/reflections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Phản ánh của tổ chức xã hội đã công bố
+         * @description Dùng chung `PublicReflectionService::published()` với trang Blade, nên
+         *     phép lọc "đã công bố" chỉ có một định nghĩa.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    per_page?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                /** @description Mã công khai PA-YYYYMM-nnn, không phải khóa nội bộ. */
+                                code?: string;
+                                organization_name?: string | null;
+                                subject?: string | null;
+                                content?: string | null;
+                                status?: string | null;
+                                resolution?: string | null;
+                                /** Format: date-time */
+                                received_at?: string | null;
+                                /** Format: date-time */
+                                resolved_at?: string | null;
+                            }[];
+                            meta: components["schemas"]["PageMeta"];
+                        };
+                    };
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        /**
+         * Gửi một phản ánh
+         * @description Hạn mức **riêng và chặt hơn** nhóm `api`: 5 lần mỗi 60 phút. Đây là
+         *     đường ghi mở cho người lạ, và trang Blade tương ứng cũng đã có mức đó.
+         *
+         *     Dùng chung `StorePublicReflectionRequest` với trang Blade — cùng bộ
+         *     luật kiểm, kể cả bẫy mật `website` (`prohibited`). Viết lại bộ luật thứ
+         *     hai cho API là mở một cửa vào mà trang web không có.
+         *
+         *     Trả về **mã phản ánh** và không gì khác: đây là dữ liệu người lạ gửi
+         *     lên, chưa ai duyệt.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        organization_name: string;
+                        subject: string;
+                        content: string;
+                        contact_name?: string | null;
+                        /** Format: email */
+                        contact_email: string;
+                        contact_phone?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã tiếp nhận */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                code: string;
+                                message: string;
+                            };
+                        };
+                    };
+                };
+                422: components["responses"]["ValidationFailed"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/cart": {
         parameters: {
             query?: never;

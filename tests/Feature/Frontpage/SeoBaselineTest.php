@@ -178,23 +178,51 @@ class SeoBaselineTest extends TestCase
         }
     }
 
-    public function test_sitemap_hien_khong_chua_trang_chinh_sach(): void
+    public function test_sitemap_co_trang_chinh_sach_va_phan_anh(): void
     {
         $body = $this->get($this->url('/sitemap.xml'))->assertOk()->getContent();
 
-        // Chốt đúng hành vi ĐANG CÓ, không phải hành vi mong muốn.
+        // Khi chụp mốc lần đầu (02/10/2026) sitemap KHÔNG có bốn trang này, và
+        // ca test chốt đúng hiện trạng đó. Sau khi được đồng ý, chúng đã được
+        // thêm vào — nên ca test đổi theo quyết định, không phải ngược lại.
         //
-        // Bốn trang chính sách là trang bắt buộc của sàn TMĐT và đáng lẽ nên
-        // tìm thấy được, nhưng `SitemapController` chưa đưa chúng vào. Ca này
-        // chốt hiện trạng để mốc là hiện trạng thật; khi nào quyết định thêm
-        // vào thì ca này đỏ, và đó là lúc đổi nó cùng với quyết định đó.
+        // Bốn trang chính sách là nền của hồ sơ đăng ký sàn TMĐT; để chúng
+        // ngoài sitemap là để công cụ tìm kiếm khó thấy đúng những trang mà
+        // người dùng và cơ quan quản lý cần tìm nhất.
         foreach (self::POLICY_SLUGS as $slug) {
-            $this->assertStringNotContainsString(
-                '<loc>' . $this->url('/' . $slug) . '</loc>',
+            $this->assertStringContainsString(
+                '<loc>' . url('/' . $slug) . '</loc>',
                 $body,
-                "sitemap đã có /{$slug} — nếu đây là thay đổi có chủ ý thì cập nhật ca test này.",
+                "sitemap thiếu trang chính sách /{$slug}.",
             );
         }
+
+        foreach (['/phan-anh-to-chuc-xa-hoi', '/phan-anh-to-chuc-xa-hoi/danh-sach'] as $path) {
+            $this->assertStringContainsString(
+                '<loc>' . url($path) . '</loc>',
+                $body,
+                "sitemap thiếu trang phản ánh {$path}.",
+            );
+        }
+    }
+
+    public function test_sitemap_lay_trang_chinh_sach_tu_config_khong_viet_cung(): void
+    {
+        $body = $this->get($this->url('/sitemap.xml'))->assertOk()->getContent();
+
+        // Số trang chính sách trong sitemap phải khớp config. Viết cứng danh
+        // sách trong controller thì thêm một trang chính sách mới là nó lặng
+        // lẽ nằm ngoài sitemap — đúng cái vừa phải sửa.
+        $trongConfig = count(config('policies.pages', []));
+        $trongSitemap = 0;
+
+        foreach (array_keys(config('policies.pages', [])) as $slug) {
+            if (str_contains($body, '<loc>' . url('/' . $slug) . '</loc>')) {
+                $trongSitemap++;
+            }
+        }
+
+        $this->assertSame($trongConfig, $trongSitemap, 'Có trang chính sách trong config mà không có trong sitemap.');
     }
 
     // ── robots.txt ──────────────────────────────────────────────────────────

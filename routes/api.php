@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V2\CartController as V2CartController;
 use App\Http\Controllers\Api\V2\CatalogController as V2CatalogController;
+use App\Http\Controllers\Api\V2\PublicContentController as V2PublicContentController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OohxEstimateController;
 use App\Http\Controllers\Api\V1\OwnerController;
@@ -96,6 +97,15 @@ Route::prefix('v2')->group(function () {
 
     Route::get('products',        [V2CatalogController::class, 'products']);
     Route::get('products/{slug}', [V2CatalogController::class, 'product']);
+
+    // Nội dung công khai ngoài danh mục, cho những route của giai đoạn 6 không
+    // phải màn hình hay sản phẩm.
+    Route::get ('policies',    [V2PublicContentController::class, 'policies']);
+    Route::get ('reflections', [V2PublicContentController::class, 'reflections']);
+    // Gửi phản ánh có hạn mức RIÊNG, chặt hơn `api`: đây là đường ghi, mở cho
+    // người lạ, và trang Blade tương ứng cũng đã có `throttle:5,60`.
+    Route::post('reflections', [V2PublicContentController::class, 'storeReflection'])
+        ->middleware('throttle:5,60');
 });
 
 // ── /api/v2 — nhóm cần quyền (khu người mua) ──────────────────────────────
