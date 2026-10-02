@@ -74,7 +74,14 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'ability:manage'])->group(funct
 // Dữ liệu ở đây là dữ liệu công khai nên không đòi đăng nhập, nhưng vẫn có
 // giới hạn tần suất và giới hạn cứng số bản ghi mỗi trang. Các nhóm cần quyền
 // (giỏ hàng, đặt chỗ, thanh toán) sẽ vào nhóm riêng dùng Sanctum dạng SPA.
-Route::prefix('v2')->middleware('throttle:api')->group(function () {
+// Không khai `throttle:api` ở đây nữa.
+//
+// Nhóm `api` đã mang giới hạn tần suất. Trước đây khai lại ở route là vô hại
+// vì `Route::gatherMiddleware()` có `array_unique` và hai chuỗi giống nhau bị
+// gộp. Nay entry trong nhóm là `throttle.preauth:api` (để chạy trước xác
+// thực), nên hai chuỗi KHÁC nhau và sẽ không gộp — tức đếm hai lần mỗi yêu
+// cầu, và hạn mức thật chỉ còn một nửa mà không ai nhận ra.
+Route::prefix('v2')->group(function () {
     Route::get('stats',           [V2CatalogController::class, 'stats']);
     Route::get('filters',         [V2CatalogController::class, 'filters']);
 
@@ -105,14 +112,12 @@ Route::prefix('v2')->middleware('throttle:api')->group(function () {
 // `buyer` kiểm người dùng có tổ chức; mỗi action vẫn tự gọi policy — middleware
 // chỉ là lớp chặn đầu tiên, không thay cho phân quyền theo bản ghi.
 Route::prefix('v2')
-    // `throttle.preauth` chứ không phải `throttle`: Laravel sắp lại middleware
-    // theo danh sách ưu tiên cố định và đặt xác thực TRƯỚC giới hạn tần suất,
-    // nên `throttle:api` ở đây sẽ không bao giờ kịp đếm lưu lượng chưa đăng
-    // nhập. `ThrottleBeforeAuth` uỷ quyền nguyên vẹn cho `ThrottleRequests`
-    // nhưng không bị phép sắp lại đó chạm tới — xem docblock của nó.
+    // Không khai `throttle` ở đây: giới hạn tần suất đã nằm trong nhóm `api`
+    // và được đặt để chạy TRƯỚC xác thực (xem `bootstrap/app.php`). Khai thêm
+    // một throttle cùng limiter ở route là cộng đôi số đếm, tức hạn mức thật
+    // chỉ còn một nửa mà không ai nhận ra.
     ->middleware([
         \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        'throttle.preauth:api',
         'auth:sanctum',
         'buyer',
     ])

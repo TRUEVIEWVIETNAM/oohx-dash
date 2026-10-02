@@ -27,10 +27,24 @@ return Application::configure(basePath: dirname(__DIR__))
         // /auth/token (dò client_secret) và endpoint player (audit F-10).
         $middleware->throttleApi();
 
-        // KHÔNG dùng `prependToPriorityList()` để đẩy throttle lên trước auth:
-        // nó là no-op với middleware đã có trong danh sách ưu tiên, và
-        // `ThrottleRequests` đã có sẵn ở đó. Lý do đầy đủ cùng hai cách thử
-        // khác cũng không chạy: xem `App\Http\Middleware\ThrottleBeforeAuth`.
+        // Giới hạn tần suất chạy TRƯỚC xác thực, cho toàn bộ `/api/*`.
+        //
+        // Thay tại chỗ trong **nhóm** `api`, không thêm ở route. Lý do nằm ở
+        // cách `SortedMiddleware` hoạt động: entry `throttle:api` của nhóm nằm
+        // ở đầu mảng gom lại, nên phép sắp lại phải kéo `auth` lên **trước**
+        // nó — và `auth` do đó vượt qua mọi middleware khai ở route. Đặt ở
+        // route thì không bao giờ thắng được; đặt ở nhóm thì ở đúng đầu mảng.
+        //
+        // Một entry duy nhất thay cho `throttle:api`, cùng limiter `api`, cùng
+        // hạn mức — không cộng đôi số đếm, chỉ đổi vị trí.
+        //
+        // PHẠM VI: áp cả `/api/v1`. Với đối tác có token hợp lệ thì hành vi
+        // không đổi; thứ đổi là client gửi token sai sẽ gặp 429 sau một số
+        // lần thay vì 401 không giới hạn. Siết chặt, không phải đổi hợp đồng.
+        //
+        // Lý do đầy đủ và ba cách thử khác đều không chạy: xem docblock của
+        // `App\Http\Middleware\ThrottleBeforeAuth`.
+        $middleware->replaceInGroup('api', 'throttle:api', 'throttle.preauth:api');
         $middleware->alias([
             'ability' => \App\Http\Middleware\CheckTokenAbility::class,
             'buyer'   => \App\Http\Middleware\EnsureBuyerAuth::class,
