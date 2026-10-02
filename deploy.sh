@@ -128,5 +128,15 @@ echo ""
 echo "=============================="
 echo " Laravel Deploy Success"
 echo "=============================="
-echo "Assets : $(ls -1 public/build/assets 2>/dev/null | wc -l) file"
+# In CHUỖI BĂM, không đếm số file.
+#
+# Bản đầu tôi in `ls | wc -l` và nó vô dụng: nó đếm cả file cũ, nên "4 file"
+# xuất hiện y nhau dù build có ghi hay không. Ngày 02/10 tôi đã dùng chính dòng
+# đó làm bằng chứng build thành công, và nó không chứng minh được gì — phải đi
+# `grep` vào file build mới biết sự thật.
+#
+# Tên file mang băm nội dung, nên hai lần build cho cùng băm nghĩa là cùng nội
+# dung. Đó là con số nói được điều cần biết.
+echo "Assets :"
+ls -1 public/build/assets 2>/dev/null | sed 's/^/           /' || echo "           (không có)"
 echo "Rollback: git reset --hard \$(cat .previous_deploy_commit) && bash deploy.sh"
