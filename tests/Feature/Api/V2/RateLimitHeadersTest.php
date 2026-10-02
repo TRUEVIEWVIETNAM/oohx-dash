@@ -45,20 +45,24 @@ class RateLimitHeadersTest extends TestCase
 
         $response = $this->getJson('/api/v2/stats')->assertStatus(429);
 
-        $this->assertNotEmpty(
-            $response->headers->get('Retry-After'),
-            'Phản hồi 429 của v2 mất header Retry-After — client không biết chờ bao lâu.'
-        );
+        // Kiểm **có header**, không kiểm "không rỗng".
+        //
+        // `X-RateLimit-Remaining` trên một phản hồi 429 có giá trị `"0"`, và
+        // trong PHP `empty("0")` là `true` — nên `assertNotEmpty()` làm ca này
+        // đỏ dù header có mặt đúng như mong đợi. Bản đầu tôi viết đúng lỗi đó.
+        foreach (['Retry-After', 'X-RateLimit-Limit', 'X-RateLimit-Remaining'] as $header) {
+            $this->assertTrue(
+                $response->headers->has($header),
+                "Phản hồi 429 của v2 mất header {$header} — đổi định dạng body không được phá thông tin điều khiển."
+            );
+        }
 
-        // `ThrottleRequests` còn gắn các header hạn mức; chúng cũng là thông
-        // tin điều khiển, không phải trang trí.
-        $this->assertNotEmpty(
-            $response->headers->get('X-RateLimit-Limit'),
-            'Mất X-RateLimit-Limit.'
-        );
-        $this->assertNotEmpty(
-            $response->headers->get('X-RateLimit-Remaining'),
-            'Mất X-RateLimit-Remaining.'
+        // `Retry-After` thì phải là một con số giây dùng được, không chỉ là có
+        // mặt rỗng.
+        $this->assertGreaterThan(
+            0,
+            (int) $response->headers->get('Retry-After'),
+            'Retry-After có mặt nhưng không phải số giây dùng được.'
         );
     }
 
@@ -116,8 +120,8 @@ class RateLimitHeadersTest extends TestCase
         // hiểm nhất của nó không được bảo vệ.
         $response = $this->getJson('/api/v2/cart')->assertStatus(429);
 
-        $this->assertNotEmpty(
-            $response->headers->get('Retry-After'),
+        $this->assertTrue(
+            $response->headers->has('Retry-After'),
             'Nhóm cần quyền mất Retry-After khi bị hạn mức.'
         );
         $response->assertJsonPath('code', 429);
