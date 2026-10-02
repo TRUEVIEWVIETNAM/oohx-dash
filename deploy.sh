@@ -115,9 +115,24 @@ $PHP_BIN artisan event:cache || true
 
 echo ""
 echo "[9/9] Fix permissions and restart workers"
+# Thư mục và file đặt RIÊNG, không `chmod -R` cả cây.
+#
+# Bản cũ chạy `chmod -R 775 storage bootstrap/cache`. 775 lật bit thực thi lên
+# 11 file `.gitignore` được git theo dõi dưới hai thư mục đó, và git theo dõi
+# bit thực thi — nên chúng thành "modified" vĩnh viễn: bước 3 trả mode về 644,
+# bước 9 lật lại 755, vòng lặp không bao giờ dừng.
+#
+# Hệ quả không phải trang hỏng, mà là `git status` trên production KHÔNG BAO
+# GIỜ sạch — nên không còn cách nào phát hiện có ai sửa tay file nào trên máy
+# chủ. Đo ngày 02/10/2026: đúng 11 file, đúng hai thư mục bị chmod.
+#
+# 664 cho file là đủ, và git không thấy nó khác 644: git chỉ lưu 100644 hoặc
+# 100755, không lưu bit group.
+#
 # `|| true` vì nhiều file trong storage thuộc user `www` chứ không phải
 # `deploy`, nên chmod báo "Operation not permitted" và đó là bình thường.
-chmod -R 775 storage bootstrap/cache 2>/dev/null || true
+find storage bootstrap/cache -type d -exec chmod 775 {} + 2>/dev/null || true
+find storage bootstrap/cache -type f -exec chmod 664 {} + 2>/dev/null || true
 $PHP_BIN artisan queue:restart || true
 
 echo ""
