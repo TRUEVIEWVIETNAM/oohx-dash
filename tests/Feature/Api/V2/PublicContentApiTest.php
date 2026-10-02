@@ -44,7 +44,10 @@ class PublicContentApiTest extends TestCase
             'contact_phone'     => '0900000001',
             'internal_notes'    => 'ghi chú nội bộ không được lộ',
             'submitted_ip'      => '203.0.113.7',
-            'status'            => 'received',
+            // Dùng hằng số của model, không viết chuỗi tay: `status` là cột
+            // enum, và một giá trị lạ cho "Data truncated" chứ không cho lỗi
+            // nói rõ sai ở đâu. Lần đầu tôi viết 'received' và mất một vòng CI.
+            'status'            => PublicReflection::STATUS_PENDING,
         ], $attributes));
     }
 
