@@ -111,9 +111,15 @@ class SeoBaselineTest extends TestCase
     {
         $body = $this->get($this->url('/sitemap.xml'))->assertOk()->getContent();
 
+        // Dùng chính `url()` mà `SitemapController` dùng, không tự ghép chuỗi.
+        //
+        // Lần đầu tôi ghép tay và ca này đỏ: `url('/')` trả về
+        // `http://oohx.test` KHÔNG có dấu gạch cuối, còn chuỗi tôi ghép thì
+        // có. Ca test đỏ vì khác một ký tự định dạng, không vì sitemap thiếu
+        // trang nào — tức nó đo sai thứ nó định đo.
         foreach (['/', '/explore', '/map', '/owners', '/products', '/agency'] as $path) {
             $this->assertStringContainsString(
-                '<loc>' . $this->url($path) . '</loc>',
+                '<loc>' . url($path) . '</loc>',
                 $body,
                 "sitemap thiếu trang tĩnh {$path}.",
             );
