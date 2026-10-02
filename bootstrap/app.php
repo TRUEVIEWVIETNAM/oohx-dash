@@ -27,32 +27,15 @@ return Application::configure(basePath: dirname(__DIR__))
         // /auth/token (dò client_secret) và endpoint player (audit F-10).
         $middleware->throttleApi();
 
-        // Giới hạn tần suất phải chạy TRƯỚC xác thực.
-        //
-        // Laravel có một danh sách ưu tiên cố định và **sắp lại** middleware
-        // theo nó, bất kể thứ tự mình khai ở route. Trong danh sách mặc định,
-        // `AuthenticatesRequests` đứng trước `ThrottleRequests` — nên mọi
-        // endpoint đòi đăng nhập bị `auth` chặn trước khi throttle kịp đếm,
-        // tức **không có giới hạn nào** với lưu lượng chưa đăng nhập. Tôi đã
-        // thử đổi thứ tự khai báo ở `routes/api.php` và nó vô tác dụng đúng vì
-        // lý do này.
-        //
-        // Trái CLAUDE.md mục 2 ("mọi endpoint có giới hạn tần suất"), và một
-        // endpoint chỉ bị hạn SAU khi đăng nhập thì phần dễ bị dội nhất của nó
-        // không được bảo vệ.
-        //
-        // PHẠM VI: đây là thay đổi toàn cục, áp cả `/api/v1`. Với đối tác có
-        // token hợp lệ thì hành vi **không đổi** — cả hai middleware đều chạy,
-        // chỉ khác thứ tự. Thứ đổi là client gửi token sai sẽ gặp 429 sau một
-        // số lần, thay vì 401 không giới hạn. Đó là siết chặt, không phải đổi
-        // hợp đồng.
-        $middleware->prependToPriorityList(
-            before: \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
-            prepend: \Illuminate\Routing\Middleware\ThrottleRequests::class,
-        );
+        // KHÔNG dùng `prependToPriorityList()` để đẩy throttle lên trước auth:
+        // nó là no-op với middleware đã có trong danh sách ưu tiên, và
+        // `ThrottleRequests` đã có sẵn ở đó. Lý do đầy đủ cùng hai cách thử
+        // khác cũng không chạy: xem `App\Http\Middleware\ThrottleBeforeAuth`.
         $middleware->alias([
             'ability' => \App\Http\Middleware\CheckTokenAbility::class,
             'buyer'   => \App\Http\Middleware\EnsureBuyerAuth::class,
+            // Giới hạn tần suất chạy TRƯỚC xác thực — xem docblock của lớp.
+            'throttle.preauth' => \App\Http\Middleware\ThrottleBeforeAuth::class,
         ]);
         $middleware->encryptCookies(except: ['oohx_city']);
     })

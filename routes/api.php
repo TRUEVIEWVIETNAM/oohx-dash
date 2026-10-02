@@ -105,14 +105,14 @@ Route::prefix('v2')->middleware('throttle:api')->group(function () {
 // `buyer` kiểm người dùng có tổ chức; mỗi action vẫn tự gọi policy — middleware
 // chỉ là lớp chặn đầu tiên, không thay cho phân quyền theo bản ghi.
 Route::prefix('v2')
-    // `throttle` liệt kê trước `auth` cho **dễ đọc**, nhưng thứ tự thật KHÔNG
-    // do đây quyết định: Laravel sắp lại middleware theo một danh sách ưu tiên
-    // cố định, và mặc định của nó đặt xác thực trước giới hạn tần suất. Chỗ
-    // sửa thật nằm ở `bootstrap/app.php` (`prependToPriorityList`) — xem chú
-    // thích ở đó. Tôi đã thử sửa bằng cách đổi thứ tự ở đây và nó vô tác dụng.
+    // `throttle.preauth` chứ không phải `throttle`: Laravel sắp lại middleware
+    // theo danh sách ưu tiên cố định và đặt xác thực TRƯỚC giới hạn tần suất,
+    // nên `throttle:api` ở đây sẽ không bao giờ kịp đếm lưu lượng chưa đăng
+    // nhập. `ThrottleBeforeAuth` uỷ quyền nguyên vẹn cho `ThrottleRequests`
+    // nhưng không bị phép sắp lại đó chạm tới — xem docblock của nó.
     ->middleware([
         \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        'throttle:api',
+        'throttle.preauth:api',
         'auth:sanctum',
         'buyer',
     ])
