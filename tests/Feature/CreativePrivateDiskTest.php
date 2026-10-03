@@ -129,15 +129,30 @@ class CreativePrivateDiskTest extends TestCase
         Storage::disk('public')->assertMissing($creative->file_path);
     }
 
+    /**
+     * Phép phân loại ảnh/video kiểm ở tầng service, không qua HTTP.
+     *
+     * Lý do: `UploadedFile::fake()->create('clip.mp4', ...)` tạo một tệp
+     * **không có nội dung mp4 thật**, và luật `mimes:` suy phần mở rộng từ nội
+     * dung (`guessExtension()` của Symfony đọc tệp, không đọc tên). Tệp rỗng ra
+     * `application/x-empty`, nên nó bị từ chối ngay ở cửa và endpoint không
+     * bao giờ chạm tới phép phân loại.
+     *
+     * Đó là luật kiểm làm đúng việc của nó. Nên kiểm hai thứ ở hai tầng: danh
+     * sách định dạng cho phép ở test HTTP bên dưới, và phép phân loại ở đây.
+     */
     public function test_kieu_tep_quyet_theo_mime_chu_khong_theo_ten(): void
     {
         $campaign = $this->campaign();
 
-        $this->actingAs($this->buyer)->post($this->uploadUrl($campaign), [
-            'file' => UploadedFile::fake()->create('clip.mp4', 120),
-        ])->assertRedirect();
+        // Tên là `.png`, mime báo là video. Bản cũ đọc
+        // `getClientOriginalExtension()` nên sẽ ghi `image`.
+        $creative = app(\App\Services\CreativeService::class)->store(
+            $campaign,
+            UploadedFile::fake()->create('clip.png', 120, 'video/mp4'),
+        );
 
-        $this->assertSame('video', Creative::firstOrFail()->type);
+        $this->assertSame('video', $creative->type);
     }
 
     public function test_dinh_dang_ngoai_danh_sach_bi_tu_choi(): void
