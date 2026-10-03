@@ -120,10 +120,38 @@ if [ -f /etc/systemd/system/oohx-webapp.service ]; then
     # Restart SAU khi build xong, không trước: `next start` nạp `.next` lúc khởi
     # động, nên restart trước khi build là khởi động lại trên bản cũ rồi để bản
     # mới nằm đó không ai dùng.
-    sudo systemctl restart oohx-webapp || systemctl restart oohx-webapp || {
-        echo "CẢNH BÁO: build xong nhưng không restart được oohx-webapp."
-        echo "          Trang Next.js vẫn đang chạy bản cũ."
-    }
+    #
+    # `sudo -n`: KHÔNG hỏi mật khẩu, thất bại ngay.
+    #
+    # Bản đầu viết `sudo systemctl restart ... || systemctl restart ... || { echo
+    # cảnh báo; }` rồi in "đã build và restart" ở dòng sau. Ba chỗ sai:
+    #
+    # 1. `sudo` không có `-n` nên nó CHỜ mật khẩu trên một phiên không có TTY,
+    #    và trả "Interactive authentication required".
+    # 2. Nhánh dự phòng không sudo cũng hỏng, vì user `deploy` không đủ quyền.
+    # 3. Dòng "đã build và restart" chạy VÔ ĐIỀU KIỆN sau đó, nên log in cả
+    #    cảnh báo lẫn lời khẳng định ngược lại nó. Đo ngày 03/10/2026: deploy
+    #    xanh, log nói đã restart, và service vẫn chạy bản build cũ.
+    #
+    # Nay thất bại thì DỪNG deploy. Lý do: một bản Next cũ phục vụ sau khi code
+    # đã đổi là đúng loại lỗi âm thầm mà bước [5] vừa được thêm để chặn cho
+    # asset của Laravel. `trap ... ERR` ở đầu file vẫn đưa ứng dụng trở lại
+    # online, nên trang không bị tắt.
+    if ! sudo -n systemctl restart oohx-webapp 2>/dev/null; then
+        echo "LỖI: build xong nhưng KHÔNG restart được oohx-webapp."
+        echo "     Service vẫn đang chạy bản build CŨ."
+        echo ""
+        echo "     Nguyên nhân thường gặp: user $(whoami) không được phép"
+        echo "     restart unit đó mà không cần mật khẩu. Cấp đúng một quyền đó:"
+        echo ""
+        echo "       echo '$(whoami) ALL=(root) NOPASSWD: /usr/bin/systemctl restart oohx-webapp' \\"
+        echo "         > /etc/sudoers.d/oohx-webapp-restart"
+        echo "       chmod 440 /etc/sudoers.d/oohx-webapp-restart"
+        echo "       visudo -c"
+        echo ""
+        echo "     Phạm vi hẹp có chủ ý: đúng MỘT lệnh, đúng MỘT unit."
+        exit 1
+    fi
 
     echo "Next.js : đã build và restart"
 else
