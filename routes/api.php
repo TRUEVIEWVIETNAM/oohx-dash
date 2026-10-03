@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V2\BookingController as V2BookingController;
 use App\Http\Controllers\Api\V2\CartController as V2CartController;
 use App\Http\Controllers\Api\V2\CatalogController as V2CatalogController;
+use App\Http\Controllers\Api\V2\PaymentController as V2PaymentController;
 use App\Http\Controllers\Api\V2\PublicContentController as V2PublicContentController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OohxEstimateController;
@@ -136,4 +138,32 @@ Route::prefix('v2')
         Route::post  ('cart/items',        [V2CartController::class, 'store']);
         Route::patch ('cart/items/{item}', [V2CartController::class, 'update']);
         Route::delete('cart/items/{item}', [V2CartController::class, 'destroy']);
+
+        // ── Đặt chỗ (mốc 3) ───────────────────────────────────────────────
+        Route::get('campaigns/{campaign}', [V2BookingController::class, 'show']);
+
+        // Hai đường GHI của đặt chỗ có hạn mức RIÊNG, chặt hơn nhóm `api`.
+        //
+        // `throttle:10,1` là một limiter inline, tức một khóa đếm khác với
+        // `throttle.preauth:api` của nhóm — nên nó KHÔNG cộng đôi số đếm như
+        // chú thích ở đầu nhóm cảnh báo. Khai thêm cùng một limiter mới cộng
+        // đôi.
+        //
+        // Vì sao chặt hơn: mỗi lần `POST campaigns` tạo một campaign kèm toàn
+        // bộ `booking_lines` từ giỏ, tức tạo nghĩa vụ tiền và giữ suất. Hạn
+        // mức 300/phút của nhóm `api` là quá rộng cho một thao tác như vậy.
+        Route::post('campaigns', [V2BookingController::class, 'store'])
+            ->middleware('throttle:10,1');
+
+        Route::post('campaigns/{campaign}/submit', [V2BookingController::class, 'submit'])
+            ->middleware('throttle:10,1');
+
+        // ── Thanh toán (mốc 3) ────────────────────────────────────────────
+        Route::get('campaigns/{campaign}/payments', [V2PaymentController::class, 'index']);
+
+        // Chặt hơn nữa: đây là đường ghi vào bảng tiền. Khóa chống trùng đã
+        // chặn lần gửi lặp của cùng một biểu mẫu, nhưng hạn mức chặn thứ khác
+        // — một script gọi liên tục với mã khác nhau mỗi lần.
+        Route::post('campaigns/{campaign}/payments', [V2PaymentController::class, 'store'])
+            ->middleware('throttle:10,1');
     });

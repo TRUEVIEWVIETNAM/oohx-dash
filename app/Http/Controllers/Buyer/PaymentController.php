@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Booking\StorePaymentRequest;
 use App\Models\Campaign;
 use App\Models\PolicyConsent;
 use App\Services\PaymentService;
@@ -45,67 +46,31 @@ class PaymentController extends Controller
     /**
      * POST /booking/{campaign}/payment — Create payment (bank transfer)
      */
-    public function process(Request $request, Campaign $campaign): RedirectResponse
+    public function process(StorePaymentRequest $request, Campaign $campaign): RedirectResponse
     {
         $this->authorize($request, $campaign);
 
-        $data = $request->validate([
-            'method'   => ['required', 'in:bank_transfer,vnpay,momo'],
-            'amount'   => ['nullable', 'numeric', 'min:1000'],
-            // Người mua chuyển thẳng cho từng media owner, nên mỗi lần xác nhận
-            // phải nói rõ là đã trả cho ai. exists+booking_lines: chỉ chấp nhận
-            // owner thật sự có màn hình trong campaign này.
-            'owner_id' => ['required', 'string', 'exists:owners,id'],
-
-            // Mã chống trùng của chính lần gửi biểu mẫu này — xem chú thích
-            // ở chỗ gọi createPayment.
-            'payment_nonce' => ['nullable', 'string', 'max:64'],
-
-            'accept_terms' => ['accepted'],
-        ], [
-            'accept_terms.accepted' => 'Bạn cần đồng ý với Quy chế hoạt động để xác nhận thanh toán.',
-            'owner_id.required'     => 'Không xác định được media owner nhận khoản thanh toán này.',
-        ]);
-
-        abort_unless(
-            $campaign->bookingLines()->where('owner_id', $data['owner_id'])->exists(),
-            422,
-            'Media owner này không có màn hình nào trong campaign'
-        );
-
-        $method = $data['method'];
-
-        if ($method === 'vnpay') {
-            // TODO: Phase 6.5 — VNPay integration
-            return back()->withErrors(['method' => 'VNPay chưa được hỗ trợ. Vui lòng chọn chuyển khoản.']);
-        }
-
-        if ($method === 'momo') {
-            return back()->withErrors(['method' => 'MoMo chưa được hỗ trợ. Vui lòng chọn chuyển khoản.']);
-        }
-
-        // Bank transfer — create pending payment.
+        // Luật kiểm nằm ở `StorePaymentRequest`, dùng chung với
+        // `Api\V2\PaymentController`. Gồm cả phép kiểm "owner có màn hình
+        // trong campaign này" — trước đây là `abort(422)` ở đây, nay là lỗi
+        // của trường `owner_id`.
         //
-        // Khóa chống trùng dựng từ mã riêng của LẦN gửi biểu mẫu này, không
-        // phải token CSRF của phiên. Token phiên không đổi giữa các lần trả,
-        // nên trả một phần rồi quay lại trả nốt sẽ nhận lại đúng khoản cũ đã
-        // hoàn tất và không tạo được khoản mới (Codex R07).
+        // Đổi hình dạng có chủ ý: 422 trần không nói trường nào sai, mà đây là
+        // lỗi của ĐÚNG MỘT trường. Và `/api/v2` cần nó ở dạng
+        // `details[].field` để khớp định dạng lỗi thống nhất (CLAUDE.md mục 2)
+        // — hai bên không nên trả hai hình dạng cho cùng một phép kiểm.
         //
-        // Không có mã (gọi bằng script, hoặc biểu mẫu cũ còn mở) thì vẫn chạy:
-        // tầng service đã có phép dùng lại khoản đang chờ của cùng owner.
+        // VNPay và MoMo cũng chuyển vào đó: bản cũ cho chúng qua validate rồi
+        // mới từ chối ở đây, tức enum nói có ba cách trả tiền trong khi chỉ
+        // một cách hoạt động (CLAUDE.md mục 8).
+        $data = $request->validated();
+
         $payment = $this->paymentService->createPayment(
             $campaign,
             'bank_transfer',
             $data['amount'] ?? null,
             $data['owner_id'],
-            idempotencyKey: $data['payment_nonce'] ?? null
-                ? hash('sha256', implode('|', [
-                    $campaign->id,
-                    $data['owner_id'],
-                    (string) $request->user()?->id,
-                    (string) $data['payment_nonce'],
-                ]))
-                : null,
+            idempotencyKey: $request->idempotencyKey($campaign),
         );
 
         $this->consents->record(

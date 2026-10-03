@@ -27,6 +27,14 @@ servers:
 tags:
   - name: catalog
     description: Dữ liệu công khai — không cần đăng nhập, có giới hạn tần suất.
+  - name: booking
+    description: |
+      Đặt chỗ — **cần đăng nhập**. Mỗi action gọi `CampaignPolicy`; middleware
+      `buyer` chỉ là lớp chặn đầu tiên, không thay cho phân quyền theo bản ghi.
+  - name: payment
+    description: |
+      Thanh toán — **cần đăng nhập**, và đường ghi cần quyền `manage_payments`
+      chứ không phải quyền xem. Công nợ tính theo **từng media owner**.
   - name: cart
     description: |
       Khu người mua — **cần đăng nhập** (Sanctum dạng SPA, cookie phiên).
@@ -601,6 +609,217 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /api/v2/campaigns:
+    post:
+      tags: [booking]
+      security: [{ sessionCookie: [] }]
+      summary: Tạo campaign từ giỏ hàng (bước 1 của đặt chỗ)
+      description: |
+        Chuyển toàn bộ giỏ hàng hiện tại thành một campaign trạng thái `draft`
+        kèm `booking_lines`. Giỏ trống thì trả 422.
+
+        **Không nhận số tiền.** `total_budget` là ngân sách người mua tự ghi để
+        theo dõi, **không** phải số tiền phải trả và không đổi một đồng nào
+        trong `booking_lines`. Giá từng dòng do `CampaignService` tính lại từ
+        giỏ; số tiền phải trả ở `GET /api/v2/campaigns/{campaign}/payments`.
+
+        Hạn mức riêng 10 lần/phút: mỗi lần gọi tạo nghĩa vụ tiền và giữ suất.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:         { type: string, maxLength: 255 }
+                brand_name:   { type: string, maxLength: 255, nullable: true }
+                category:     { type: string, maxLength: 100, nullable: true }
+                objectives:   { type: array, items: { type: string, maxLength: 100 } }
+                total_budget: { type: number, minimum: 0, nullable: true, description: Ngân sách dự kiến do người mua tự ghi. Không phải số tiền phải trả. }
+                notes:        { type: string, maxLength: 2000, nullable: true }
+      responses:
+        '201':
+          description: Đã tạo
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/BookingReview' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/campaigns/{campaign}:
+    parameters:
+      - { name: campaign, in: path, required: true, schema: { type: string }, description: ULID của campaign. }
+    get:
+      tags: [booking]
+      security: [{ sessionCookie: [] }]
+      summary: Xem lại campaign trước khi gửi (bước 2 của đặt chỗ)
+      description: |
+        Trả campaign, các dòng đặt chỗ, nội dung đã tải lên, và **xung đột SOV
+        tính ngay lúc gọi** — không phải ảnh chụp lúc tạo.
+
+        **404 khi không được xem, 403 khi được xem nhưng không được làm.** Hai
+        câu trả lời khác nhau cho hai câu hỏi khác nhau: campaign của tổ chức
+        khác thì sự tồn tại của nó cũng là thông tin riêng, còn đồng nghiệp vai
+        trò `viewer` thì đang nhìn thấy đúng campaign đó và cần biết vấn đề là
+        quyền.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/BookingReview' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/campaigns/{campaign}/submit:
+    parameters:
+      - { name: campaign, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [booking]
+      security: [{ sessionCookie: [] }]
+      summary: Gửi campaign chờ duyệt (bước 3 của đặt chỗ)
+      description: |
+        Hai ô xác nhận là bắt buộc. `PolicyConsentService` ghi lại việc đồng ý
+        kèm IP và thời điểm — đó là bằng chứng khi có tranh chấp, không phải
+        thủ tục giấy tờ.
+
+        Xung đột SOV được kiểm lại **ngay trước khi gửi**, không tin vào lần
+        kiểm ở bước xem lại: giữa hai lần gọi có thể có người khác đặt kín
+        suất. Có xung đột thì trả 422 với `error: sov_conflict`, và `details[]`
+        nói từng màn hình còn bao nhiêu phần trăm.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirm_accuracy, accept_terms]
+              properties:
+                confirm_accuracy: { type: boolean, description: Xác nhận thông tin booking là chính xác. }
+                accept_terms:     { type: boolean, description: Đồng ý Quy chế hoạt động và Chính sách bảo mật. }
+      responses:
+        '200':
+          description: Đã gửi chờ duyệt
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/BookingReview' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: 'Lỗi kiểm dữ liệu, hoặc xung đột SOV (error = sov_conflict).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/campaigns/{campaign}/payments:
+    parameters:
+      - { name: campaign, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [payment]
+      security: [{ sessionCookie: [] }]
+      summary: Công nợ theo từng media owner, và các khoản đã tạo
+      description: |
+        **Công nợ tính theo từng owner, không phải theo tổng campaign.** Người
+        mua chuyển thẳng cho từng media owner, nên `is_fully_paid` chỉ đúng khi
+        **mọi** owner đã đủ — không phải khi tổng thu bằng tổng phải thu. Tổng
+        tiền che khuất công nợ từng owner là F07 trong `FINDINGS.md`.
+
+        Tiền bằng **VND số nguyên** ở mọi trường. VAT cộng một chỗ duy nhất
+        (`PaymentService::withVat()`).
+
+        **Không có thông tin ngân hàng ở đây.** `owner` chỉ có `id` và `name`;
+        CLAUDE.md mục 2 cấm lộ `bank_*` và `billing_info`.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/PaymentOverview' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      tags: [payment]
+      security: [{ sessionCookie: [] }]
+      summary: Xác nhận một khoản chuyển khoản cho một media owner
+      description: |
+        **`amount` là đề nghị, không phải quyết định.** `PaymentService` quyết
+        số tiền: không gửi thì nó lấy đúng công nợ còn lại của owner đó, gửi
+        vượt công nợ thì trả 422 kèm số đúng, công nợ đã bằng 0 thì từ chối
+        tạo thêm. Client không đặt được số tiền mình muốn (CLAUDE.md mục 5).
+
+        Cần quyền `manage_payments` — **không phải** quyền xem. Vai trò
+        `viewer` xem được campaign nhưng nhận 403 ở đây.
+
+        Campaign phải ở trạng thái `approved` hoặc `active`.
+
+        `payment_nonce` là mã chống trùng của **chính lần gửi này**, không phải
+        token phiên: token phiên không đổi giữa các lần trả, nên trả một phần
+        rồi quay lại trả nốt sẽ nhận lại khoản cũ đã hoàn tất và không tạo được
+        khoản mới. Không gửi mã thì vẫn chạy — tầng service dùng lại khoản đang
+        chờ của cùng owner.
+
+        `method` cố tình chỉ có một giá trị: VNPay và MoMo chưa có đường chạy
+        nào, và một enum ba giá trị trong khi chỉ một hoạt động là nói sai về
+        năng lực của hệ thống (CLAUDE.md mục 8).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [method, accept_terms]
+              properties:
+                method:        { type: string, enum: [bank_transfer] }
+                owner_slug:    { type: string, description: 'Dùng cái này. Phải là owner có màn hình trong campaign.' }
+                owner_id:      { type: string, description: 'Khóa nội bộ — trang Blade dùng. Client ngoài nên gửi `owner_slug`.' }
+                amount:        { type: number, minimum: 1000, nullable: true, description: Bỏ trống để trả đúng công nợ còn lại. }
+                payment_nonce: { type: string, maxLength: 64, nullable: true }
+                accept_terms:  { type: boolean }
+      responses:
+        '201':
+          description: Đã tạo khoản chờ xác nhận
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    allOf:
+                      - type: object
+                        required: [payment]
+                        properties:
+                          payment: { $ref: '#/components/schemas/Payment' }
+                      - $ref: '#/components/schemas/PaymentOverview'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
 components:
   securitySchemes:
     sessionCookie:
@@ -971,6 +1190,204 @@ components:
               field:   { type: string }
               message: { type: string }
 
+    Campaign:
+      type: object
+      description: |
+        Campaign của người mua. `floor_cpm_at_booking` và `io_rate_at_booking`
+        **không** có ở đây hay ở `BookingLine`: đó là giá sàn nội bộ của media
+        owner, mà CLAUDE.md mục 2 cấm lộ.
+      properties:
+        id:         { type: string }
+        code:       { type: string }
+        name:       { type: string }
+        brand_name: { type: string, nullable: true }
+        category:   { type: string, nullable: true }
+        objectives: { type: array, items: { type: string } }
+        period:
+          type: object
+          properties:
+            start_date: { type: string, format: date, nullable: true }
+            end_date:   { type: string, format: date, nullable: true }
+        status: { type: string, enum: [draft, pending_approval, approved, rejected, active, paused, completed, cancelled] }
+        timeline:
+          type: object
+          properties:
+            submitted_at: { type: string, format: date-time, nullable: true }
+            approved_at:  { type: string, format: date-time, nullable: true }
+            rejected_at:  { type: string, format: date-time, nullable: true }
+            activated_at: { type: string, format: date-time, nullable: true }
+            completed_at: { type: string, format: date-time, nullable: true }
+        rejection_reason: { type: string, nullable: true }
+        totals:
+          type: object
+          properties:
+            currency:    { type: string, enum: [VND] }
+            budget:      { type: integer, nullable: true, description: 'Ngân sách người mua tự ghi, không phải số phải trả.' }
+            screens:     { type: integer, nullable: true }
+            impressions: { type: integer, nullable: true }
+        notes: { type: string, nullable: true }
+
+    BookingLine:
+      type: object
+      properties:
+        id:     { type: string }
+        screen: { $ref: '#/components/schemas/ScreenSummary' }
+        period:
+          type: object
+          properties:
+            start_date: { type: string, format: date, nullable: true }
+            end_date:   { type: string, format: date, nullable: true }
+        delivery:
+          type: object
+          properties:
+            pricing_model:      { type: string, nullable: true, enum: [cpm, io, null] }
+            share_of_voice_pct: { type: integer, nullable: true }
+            spot_length:        { type: integer, nullable: true }
+            booked_cpms:        { type: integer, nullable: true }
+            kpi_spots_per_day:  { type: integer, nullable: true }
+            io_rate_unit:       { type: string, nullable: true }
+        estimate:
+          type: object
+          properties:
+            currency:              { type: string, enum: [VND] }
+            cost:                  { type: integer, nullable: true, description: Số tiền CHƯA gồm VAT. }
+            impressions:           { type: integer, nullable: true }
+            duration_discount_pct: { type: integer, nullable: true }
+        status:          { type: string }
+        rejected_reason: { type: string, nullable: true }
+
+    Creative:
+      type: object
+      description: |
+        Nội dung quảng cáo đã tải lên. **Không có `file_path` và không có URL**
+        — nội dung quảng cáo nằm trong nhóm tệp nhạy cảm mà CLAUDE.md mục 5
+        yêu cầu để disk riêng và truy cập qua URL ký hạn. Hiện tệp đang nằm
+        trên disk công khai, nên phát đường dẫn ra đây sẽ biến một lỗi lưu trữ
+        thành một lỗi lộ dữ liệu.
+      properties:
+        id:   { type: string }
+        name: { type: string, nullable: true }
+        type: { type: string, enum: [image, video] }
+        dimensions:
+          type: object
+          properties:
+            width_px:     { type: integer, nullable: true }
+            height_px:    { type: integer, nullable: true }
+            duration_sec: { type: integer, nullable: true }
+        file_size:   { type: integer, nullable: true }
+        status:      { type: string }
+        reviewed_at: { type: string, format: date-time, nullable: true }
+        created_at:  { type: string, format: date-time, nullable: true }
+
+    SovConflict:
+      type: object
+      description: Một dòng đặt chỗ xin nhiều thời lượng hơn phần còn trống.
+      properties:
+        booking_line_id: { type: string }
+        screen_name:     { type: string, nullable: true }
+        requested_pct:   { type: integer }
+        available_pct:   { type: integer }
+        dates:           { type: string, description: 'Khoảng ngày dạng dd/mm → dd/mm.' }
+
+    BookingReview:
+      type: object
+      description: |
+        Khối dữ liệu dùng chung cho cả ba bước đặt chỗ. Client vừa tạo campaign
+        cần đúng những gì bước xem lại cần, và sau khi gửi cũng vậy — trả ba
+        hình dạng cho cùng một tài nguyên là bắt bên tiêu thụ viết ba đường xử
+        lý cho một thứ.
+      required: [campaign, lines, creatives, conflicts, summary]
+      properties:
+        campaign:  { $ref: '#/components/schemas/Campaign' }
+        lines:     { type: array, items: { $ref: '#/components/schemas/BookingLine' } }
+        creatives: { type: array, items: { $ref: '#/components/schemas/Creative' } }
+        conflicts: { type: array, items: { $ref: '#/components/schemas/SovConflict' } }
+        summary:
+          type: object
+          properties:
+            currency:    { type: string, enum: [VND] }
+            line_count:  { type: integer }
+            subtotal:    { type: integer, description: 'Tổng CHƯA gồm VAT. VAT cộng một chỗ duy nhất, lúc tính công nợ.' }
+            impressions: { type: integer }
+            can_submit:
+              type: boolean
+              description: |
+                Do máy chủ trả lời, không để client tự suy từ `status` và
+                `conflicts`. Giao diện ẩn nút không phải phân quyền, nhưng
+                giao diện tự đoán điều kiện thì lệch là chắc chắn.
+
+    Payment:
+      type: object
+      description: |
+        Một khoản thanh toán. **Không có** `metadata`, `idempotency_key`,
+        `gateway_ref`, `invoice_url` — xem `PaymentResource` để biết lý do từng
+        trường. `owner` chỉ có `id` và `name`: số tài khoản không đi qua đây.
+      properties:
+        id: { type: string }
+        owner:
+          type: object
+          nullable: true
+          properties:
+            id:   { type: string }
+            name: { type: string }
+        method:          { type: string, enum: [bank_transfer] }
+        currency:        { type: string, enum: [VND] }
+        amount:          { type: integer }
+        status:          { type: string }
+        transaction_ref: { type: string, nullable: true }
+        invoice_number:  { type: string, nullable: true }
+        due_date:        { type: string, format: date, nullable: true }
+        paid_at:         { type: string, format: date-time, nullable: true }
+        created_at:      { type: string, format: date-time, nullable: true }
+
+    OwnerDebt:
+      type: object
+      description: Công nợ với MỘT media owner. Tiền bằng VND số nguyên.
+      properties:
+        owner:
+          type: object
+          properties:
+            id:   { type: string }
+            name: { type: string }
+        cost:      { type: integer, description: Chưa gồm VAT. }
+        vat:       { type: integer }
+        total:     { type: integer, description: Đã gồm VAT — số phải trả cho owner này. }
+        paid:      { type: integer, description: 'Đã trả, đã trừ phần phân bổ cho dòng đã hủy.' }
+        refunded:  { type: integer }
+        pending:   { type: integer, description: Khoản đã tạo nhưng chưa xác nhận. }
+        remaining: { type: integer }
+        is_paid:   { type: boolean }
+
+    PaymentOverview:
+      type: object
+      required: [campaign, summary, by_owner, payments, can_pay]
+      properties:
+        campaign:
+          type: object
+          properties:
+            id:     { type: string }
+            code:   { type: string }
+            status: { type: string }
+        summary:
+          type: object
+          properties:
+            currency:       { type: string, enum: [VND] }
+            total_cost:     { type: integer }
+            vat:            { type: integer }
+            total_cost_vat: { type: integer }
+            total_paid:     { type: integer }
+            refunded:       { type: integer }
+            pending:        { type: integer }
+            remaining:      { type: integer }
+            is_fully_paid:
+              type: boolean
+              description: |
+                Đúng khi **mọi** owner đã nhận đủ, không phải khi tổng thu bằng
+                tổng phải thu (F07).
+        by_owner: { type: array, items: { $ref: '#/components/schemas/OwnerDebt' } }
+        payments: { type: array, items: { $ref: '#/components/schemas/Payment' } }
+        can_pay:  { type: boolean }
+
   responses:
     NotFound:
       description: Không tìm thấy
@@ -991,6 +1408,14 @@ components:
         Retry-After:
           description: Số giây nên chờ trước khi gọi lại.
           schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: |
+        Xem được nhưng không được làm. Khác 404: 404 nghĩa là bản ghi thuộc tổ
+        chức khác và sự tồn tại của nó cũng là thông tin riêng; 403 nghĩa là
+        bản ghi đang hiện trên màn hình người gọi, và thứ thiếu là quyền.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
