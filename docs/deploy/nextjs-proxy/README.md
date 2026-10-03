@@ -62,18 +62,55 @@ sudo -u deploy -H npm ci
 sudo -u deploy -H npm run build
 
 # Kiểm chạy được TRƯỚC khi dựng service.
-# Hai biến đều cần: OOHX_API_BASE để gọi dữ liệu, OOHX_PUBLIC_ORIGIN để dựng
-# canonical — thiếu biến sau thì mọi trang phát
-# <link rel="canonical" href="http://127.0.0.1/...">, một URL không ai mở được.
 sudo -u deploy -H env \
-  OOHX_API_BASE=http://127.0.0.1/api/v2 \
+  OOHX_API_BASE=https://oohx.net/api/v2 \
   OOHX_PUBLIC_ORIGIN=https://oohx.net \
   npx next start --port 3001 --hostname 127.0.0.1 &
 
+sleep 5
 curl -s -o /dev/null -w "/explore → %{http_code}\n" http://127.0.0.1:3001/explore
 curl -s http://127.0.0.1:3001/explore | grep -c 'rel="canonical"'   # phải 1
 kill %1
 ```
+
+### Hai biến môi trường, và vì sao cả hai đều cần
+
+**`OOHX_API_BASE` phải trỏ vào tên miền, không phải `127.0.0.1`.**
+
+Bản đầu của tài liệu này đặt `http://127.0.0.1/api/v2` với lý lẽ "gọi nội bộ,
+không vòng ra ngoài". Đo trên máy chủ ngày 03/10/2026: mọi lời gọi trả **403**
+kèm `body: null` — không phải envelope lỗi của Laravel mà là OpenLiteSpeed
+chặn ở tầng ngoài. Yêu cầu tới `127.0.0.1` mang `Host: 127.0.0.1`, không khớp
+virtual host `oohx.net`, nên nó **không vào tới Laravel lần nào**. Trang trả
+500.
+
+Cách chữa hiển nhiên — tự đặt `Host: oohx.net` khi gọi — **không làm được**:
+`fetch` của Node bỏ qua header `Host` do người gọi đặt và luôn gửi host của
+URL. Đã thử cả `Host` và `host`; cả ba lần máy chủ nhận đúng
+`127.0.0.1:<cổng>`.
+
+Nên trỏ vào tên miền thật, và cho tên đó phân giải về chính máy chủ:
+
+```sh
+grep -q 'oohx.net' /etc/hosts || echo '127.0.0.1  oohx.net' >> /etc/hosts
+
+# Kiểm: phải ra 200 và KHÔNG đi qua Cloudflare
+curl -s -o /dev/null -w 'api noi bo → %{http_code}\n' https://oohx.net/api/v2/stats
+curl -sI https://oohx.net/api/v2/stats | grep -ci 'cf-ray'    # phải 0
+```
+
+Khi đó `Host` và SNI đều đúng, kết nối vẫn không ra khỏi máy, và không vòng
+qua Cloudflare — không thêm độ trễ, không thêm điểm hỏng, không tính vào hạn
+mức tần suất của người dùng thật.
+
+Không thêm dòng `/etc/hosts` thì vẫn chạy, chỉ là mỗi lần dựng trang đi ra
+Cloudflare rồi quay lại.
+
+**`OOHX_PUBLIC_ORIGIN` dựng canonical, og:url và og:image.** Phải khai riêng:
+nếu canonical dựng từ `OOHX_API_BASE` thì khi biến đó trỏ nội bộ, mọi trang sẽ
+phát `<link rel="canonical" href="http://127.0.0.1/...">` — một URL không ai
+ngoài máy chủ mở được, và công cụ tìm kiếm coi đó là địa chỉ chuẩn của trang.
+Trang vẫn hiện bình thường, nên không ai thấy.
 
 Chạy bằng user `deploy`, không phải root: đó là user GitHub Actions deploy bằng, và `npm ci` chạy bằng root sẽ để lại `node_modules` thuộc root — lần deploy tự động sau đó không ghi được.
 

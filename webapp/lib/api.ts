@@ -15,12 +15,31 @@ import type { components, paths } from '@api-types';
  * ══ Không truy cập CSDL ══
  *
  * CLAUDE.md mục 3 cấm Next.js chạm vào CSDL. Mọi dữ liệu đi qua HTTP, kể cả
- * khi hai bên nằm trên cùng một máy — `OOHX_API_BASE` trỏ vào
- * `http://127.0.0.1/api/v2` trên production, nên vòng gọi không ra khỏi máy
- * chủ và không tính vào hạn mức tần suất của người dùng thật.
+ * khi hai bên nằm trên cùng một máy.
+ *
+ * ══ Vì sao KHÔNG phải `http://127.0.0.1/api/v2` ══
+ *
+ * Đó là giá trị tôi đặt ban đầu, và nó **không chạy**. Đo trên máy chủ ngày
+ * 03/10/2026: mọi lời gọi trả **403** với `body: null` — không phải envelope
+ * lỗi của Laravel, mà là OpenLiteSpeed chặn ở tầng ngoài. Yêu cầu tới
+ * `127.0.0.1` mang header `Host: 127.0.0.1`, không khớp virtual host
+ * `oohx.net`, nên nó không vào tới Laravel lần nào.
+ *
+ * Cách chữa hiển nhiên — tự đặt `Host: oohx.net` khi gọi — **không làm được**:
+ * `fetch` của Node bỏ qua header `Host` do người gọi đặt và luôn gửi host của
+ * URL. Đã thử cả `Host` và `host`, cả ba lần máy chủ nhận đúng
+ * `127.0.0.1:<cổng>`.
+ *
+ * Nên cấu hình đúng là trỏ vào **tên miền thật** và cho tên miền đó phân giải
+ * về chính máy chủ (một dòng trong `/etc/hosts`). Khi đó header `Host` và SNI
+ * đều đúng, kết nối vẫn không ra khỏi máy, và không vòng qua Cloudflare — nên
+ * không thêm độ trễ, không thêm một điểm hỏng, và không tính vào hạn mức tần
+ * suất của người dùng thật.
+ *
+ * Chi tiết và lệnh kiểm ở `docs/deploy/nextjs-proxy/README.md`.
  */
 
-const BASE = (process.env.OOHX_API_BASE ?? 'http://127.0.0.1/api/v2').replace(/\/+$/, '');
+const BASE = (process.env.OOHX_API_BASE ?? 'https://oohx.net/api/v2').replace(/\/+$/, '');
 
 /** Tên miền công khai — dùng cho canonical và OG, không dùng để gọi API. */
 export const PUBLIC_ORIGIN = (process.env.OOHX_PUBLIC_ORIGIN ?? 'https://oohx.net').replace(/\/+$/, '');
