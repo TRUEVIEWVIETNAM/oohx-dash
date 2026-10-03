@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V2\BookingController as V2BookingController;
 use App\Http\Controllers\Api\V2\CartController as V2CartController;
 use App\Http\Controllers\Api\V2\CatalogController as V2CatalogController;
+use App\Http\Controllers\Api\V2\MeController;
 use App\Http\Controllers\Api\V2\PaymentController as V2PaymentController;
 use App\Http\Controllers\Api\V2\PublicContentController as V2PublicContentController;
 use App\Http\Controllers\Api\V1\InventoryController;
@@ -123,6 +124,22 @@ Route::prefix('v2')->group(function () {
 //
 // `buyer` kiểm người dùng có tổ chức; mỗi action vẫn tự gọi policy — middleware
 // chỉ là lớp chặn đầu tiên, không thay cho phân quyền theo bản ghi.
+// ── /api/v2 — đã đăng nhập, KHÔNG cần tổ chức ─────────────────────────────
+//
+// Chỉ có `/me`, và nó tách khỏi nhóm dưới vì một lý do cụ thể: nhóm dưới có
+// middleware `buyer`, yêu cầu người dùng thuộc một tổ chức. Nhưng một người
+// vừa đăng ký và chưa tạo tổ chức vẫn cần thanh điều hướng vẽ đúng — đặt
+// `/me` sau `buyer` là trả 403 cho họ, và header hiện ra như thể họ chưa đăng
+// nhập.
+Route::prefix('v2')
+    ->middleware([
+        \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        'auth:sanctum',
+    ])
+    ->group(function () {
+        Route::get('me', MeController::class);
+    });
+
 Route::prefix('v2')
     // Không khai `throttle` ở đây: giới hạn tần suất đã nằm trong nhóm `api`
     // và được đặt để chạy TRƯỚC xác thực (xem `bootstrap/app.php`). Khai thêm
