@@ -41,7 +41,33 @@ Environment=HOSTNAME=127.0.0.1
 # Nguồn dữ liệu: gọi API nội bộ qua localhost, không vòng ra Cloudflare rồi
 # quay lại. Một vòng ra ngoài là thêm độ trễ, thêm một điểm hỏng, và tính vào
 # hạn mức tần suất của chính mình.
-Environment=OOHX_API_BASE=http://127.0.0.1/api/v2
+# Nguồn dữ liệu.
+#
+# Trỏ vào TÊN MIỀN, không phải `127.0.0.1`, và đây là chỗ tôi đã làm sai một
+# lần nên ghi lại đầy đủ.
+#
+# Bản đầu đặt `http://127.0.0.1/api/v2` với lý lẽ "gọi nội bộ, không vòng ra
+# ngoài". Đo trên máy chủ ngày 03/10/2026: mọi lời gọi trả **403** kèm
+# `body: null` — không phải envelope lỗi của Laravel mà là OpenLiteSpeed chặn
+# ở tầng ngoài. Yêu cầu tới `127.0.0.1` mang `Host: 127.0.0.1`, không khớp
+# virtual host `oohx.net`, nên nó không vào tới Laravel lần nào.
+#
+# Tự đặt `Host: oohx.net` khi gọi thì KHÔNG LÀM ĐƯỢC: `fetch` của Node bỏ qua
+# header `Host` do người gọi đặt và luôn gửi host của URL. Đã thử cả hai cách
+# viết hoa thường.
+#
+# Nên: trỏ vào tên miền thật, và thêm một dòng vào `/etc/hosts` của máy chủ để
+# tên đó phân giải về chính nó:
+#
+#     127.0.0.1  oohx.net
+#
+# Khi đó `Host` và SNI đều đúng, kết nối vẫn không ra khỏi máy, và không vòng
+# qua Cloudflare — không thêm độ trễ, không thêm điểm hỏng, không tính vào hạn
+# mức tần suất của người dùng thật.
+#
+# Không thêm dòng `/etc/hosts` thì giá trị dưới đây vẫn chạy, chỉ là mỗi lần
+# dựng trang đi ra Cloudflare rồi quay lại.
+Environment=OOHX_API_BASE=https://oohx.net/api/v2
 
 # Tên miền công khai — dùng cho canonical, og:url và og:image. KHÔNG dùng để
 # gọi API.
