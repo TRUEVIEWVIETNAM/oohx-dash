@@ -44,6 +44,41 @@ jobs:
           fi
           echo "OK  không có backtick trong chuỗi nháy đôi"
 
+  # Trang công khai trên Next.js (giai đoạn 6).
+  #
+  # Job này là phép kiểm DUY NHẤT cho app đó, và nó kiểm đúng thứ đáng kiểm:
+  # `webapp/lib/api.ts` lấy mọi kiểu dữ liệu từ
+  # `resources/js/types/api-v2.d.ts`, sinh từ `docs/openapi/v2.yaml`. Nên đổi
+  # đặc tả mà quên đổi code gọi API thì `next build` đỏ ở đây — không phải chờ
+  # tới lúc ai đó mở trang.
+  #
+  # Chạy `types:api` trước khi build, có chủ ý: nếu file kiểu đã commit trôi
+  # khỏi đặc tả thì build sẽ dùng bản SINH LẠI, nên lỗi lộ ra ngay. Chốt chống
+  # trôi của chính file kiểm đó nằm ở `types:api:check`, chạy riêng bên dưới.
+  webapp:
+    name: Next.js (trang công khai)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Sinh lại kiểu từ OpenAPI
+        run: |
+          npm ci
+          npm run types:api
+
+      - name: Kiểu đã commit không được trôi khỏi đặc tả
+        run: git diff --exit-code -- resources/js/types/api-v2.d.ts
+
+      - name: Build
+        working-directory: webapp
+        run: |
+          npm ci
+          npm run build
+
   phpunit:
     name: PHPUnit (MySQL 8)
     runs-on: ubuntu-latest

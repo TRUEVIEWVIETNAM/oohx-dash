@@ -1,0 +1,18 @@
+/*
+ * Dùng LẠI stylesheet của trang Blade, không viết lại.
+ *
+ * `resources/css/frontpage.css` là CSS thuần — 2210 dòng, không directive
+ * Tailwind nào — nên nhập được trực tiếp. Giai đoạn 6 chuyển từng đường dẫn
+ * trên CÙNG một tên miền, nên `/explore` do Next phục vụ và `/map` do Laravel
+ * phục vụ sẽ nằm cạnh nhau trong cùng một lượt duyệt. Hai stylesheet khác nhau
+ * là hai giao diện khác nhau cho cùng một trang web, và người dùng sẽ thấy
+ * ngay ở lần bấm đầu tiên.
+ *
+ * Nhập qua `@import` với đường dẫn tương đối, không `import` trong TSX: Next
+ * chặn `import` tệp nằm ngoài thư mục gốc của app, còn `@import` của CSS thì
+ * bộ xử lý style giải quyết.
+ *
+ * Hệ quả cần biết: đổi `resources/css/frontpage.css` là đổi cả hai bản. Đó là
+ * chủ ý — trong giai đoạn chuyển đổi, một chỗ sửa thì cả hai nơi khớp nhau.
+ */
+@import '../../resources/css/frontpage.css';

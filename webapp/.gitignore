@@ -1,0 +1,26 @@
+# Thư mục riêng cho app Next.js.
+#
+# `.gitignore` ở gốc repo ghi `/node_modules` — có dấu gạch chéo đầu, nên nó
+# CHỈ neo ở gốc và không chặn `webapp/node_modules`. Thiếu file này thì
+# `git status` thấy ~12.000 file và một lần `git add -A` sẽ commit cả
+# `node_modules` lẫn `.next`.
+#
+# Đó không phải chuyện giả định: repo `oohx-webapp` cũ đã commit `.next` và
+# nặng thêm 63MB vì đúng lỗi này.
+
+/node_modules
+/.next
+/out
+/build
+
+# Next sinh file này và tự ghi lại khi build.
+next-env.d.ts
+
+# Biến môi trường. `OOHX_API_BASE` trỏ vào API nội bộ nên không phải secret,
+# nhưng file .env là chỗ secret hay bị để lẫn vào.
+.env
+.env.*
+!.env.example
+
+*.tsbuildinfo
+.DS_Store
