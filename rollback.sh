@@ -59,17 +59,75 @@ echo " Laravel Rollback Script Start"
 echo "=============================="
 echo "Đang ở  : $CURRENT_COMMIT"
 echo "Lùi về  : $ROLLBACK_COMMIT"
-
 echo ""
-echo "[0/9] Migration đang đi trước mã nguồn"
-# Tính TRƯỚC khi reset, vì sau reset thì HEAD không còn là bản đang lỗi nữa.
+echo "[1/9] Fetch source và kiểm an toàn"
+# Fetch TRƯỚC mọi phép kiểm, vì commit đích có thể chưa có trên máy chủ — và
+# `git cat-file` trên một commit chưa fetch sẽ báo "thiếu file" dù file có.
+#
+# Cả khối này chạy TRƯỚC `artisan down`, có chủ ý: phép kiểm nào hỏng thì trang
+# vẫn đang chạy bình thường, không ai thấy gì. Đưa trang vào maintenance rồi
+# mới phát hiện đích không dùng được là tự tạo thêm một sự cố.
+git fetch origin
+
+if ! git rev-parse -q --verify "$ROLLBACK_COMMIT^{commit}" >/dev/null; then
+  echo "DỪNG: không tìm thấy commit $ROLLBACK_COMMIT sau khi fetch."
+  echo "       Nội dung .previous_deploy_commit có thể hỏng, hoặc commit đó"
+  echo "       đã bị xoá khỏi origin (nhánh bị force-push hoặc bị gỡ)."
+  exit 1
+fi
+
+# ══ Commit đích có còn chứa chính đường deploy không ══
+#
+# Đây là cái bẫy đã thật sự chực chờ ngày 03/10/2026, một ngày sau khi hai
+# script này vào repo: `.previous_deploy_commit` đang trỏ vào `2f41dce`, tức
+# `main` TRƯỚC lần merge đưa `deploy.sh` và `rollback.sh` vào git.
+#
+# `git reset --hard` xoá file được git theo dõi mà commit đích không có. Nên
+# lùi về đó sẽ XOÁ cả hai script khỏi máy chủ, và lần deploy tự động kế tiếp
+# chạy `bash deploy.sh` trên một file không tồn tại — deploy hỏng hoàn toàn,
+# và `rollback.sh` cũng mất nên không chạy lại được để chữa. Lối ra duy nhất
+# là vào tay gõ `git reset --hard origin/main`.
+#
+# Người chạy script này đang có sự cố. Họ sẽ không đọc commit đích trước khi
+# gõ. Nên script phải tự biết.
+MISSING=""
+for f in deploy.sh rollback.sh; do
+  git cat-file -e "$ROLLBACK_COMMIT:$f" 2>/dev/null || MISSING="$MISSING $f"
+done
+
+if [ -n "$MISSING" ]; then
+  echo ""
+  echo "DỪNG: commit $ROLLBACK_COMMIT không chứa:$MISSING"
+  echo ""
+  echo "       Lệnh git reset --hard xoá file git theo dõi mà commit đích không"
+  echo "       có, nên lùi về đó sẽ XOÁ chính đường deploy khỏi máy chủ."
+  echo "       Lần deploy tự động sau sẽ chạy 'bash deploy.sh' trên một file"
+  echo "       không tồn tại và hỏng hoàn toàn."
+  echo ""
+  echo "       Muốn lùi về một bản CÒN hai script thì đặt lại mốc:"
+  echo "           echo <sha> > .previous_deploy_commit"
+  echo ""
+  echo "       Thật sự cần lùi về đúng commit này thì cố ý vượt qua:"
+  echo "           ROLLBACK_ALLOW_MISSING_SCRIPTS=1 bash rollback.sh"
+  echo "       và chuẩn bị sẵn lệnh chữa:"
+  echo "           git reset --hard origin/main"
+  echo ""
+  if [ "$ROLLBACK_ALLOW_MISSING_SCRIPTS" != "1" ]; then
+    exit 1
+  fi
+  echo "       ROLLBACK_ALLOW_MISSING_SCRIPTS=1 — đi tiếp theo yêu cầu."
+fi
+
+# ══ Migration đang đi trước mã nguồn ══
 #
 # Liệt kê file migration mà bản đang chạy CÓ nhưng bản sắp lùi về KHÔNG có.
 # Chúng vẫn ở trong CSDL sau rollback — script này không lùi migration, có chủ
 # ý (xem đầu file). Danh sách này để người chạy biết mình đang để lại gì.
+echo ""
+echo "Migration đang đi trước mã nguồn:"
 AHEAD=$(git diff --name-only --diff-filter=A "$ROLLBACK_COMMIT" "$CURRENT_COMMIT" -- database/migrations 2>/dev/null || true)
 if [ -z "$AHEAD" ]; then
-  echo "Không có — lược đồ CSDL khớp với mã nguồn sắp lùi về."
+  echo "           Không có — lược đồ CSDL khớp với mã nguồn sắp lùi về."
 else
   echo "$AHEAD" | sed 's/^/           /'
   echo ""
@@ -80,12 +138,8 @@ else
 fi
 
 echo ""
-echo "[1/9] Enable maintenance mode"
+echo "[2/9] Enable maintenance mode"
 $PHP_BIN artisan down || true
-
-echo ""
-echo "[2/9] Fetch source"
-git fetch origin
 
 echo ""
 echo "[3/9] Reset to previous commit"
