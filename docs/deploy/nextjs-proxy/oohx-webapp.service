@@ -1,0 +1,63 @@
+# Unit systemd cho ứng dụng Next.js của trang công khai (giai đoạn 6).
+#
+# Đặt tại: /etc/systemd/system/oohx-webapp.service
+#
+# ══ Vì sao cổng 3001 ══
+#
+# Cổng 3000 ĐÃ BỊ CHIẾM trên máy chủ này: `nghttpx` (/usr/sbin/nghttpx) nghe ở
+# 127.0.0.1:3000 và chuyển tiếp sang 127.0.0.1:80. Đo được ngày 02/10/2026.
+# Dùng 3000 là xung đột với một thứ đang chạy.
+#
+# ══ Vì sao chỉ nghe 127.0.0.1 ══
+#
+# Next.js không cần lộ ra internet: OpenLiteSpeed proxy tới nó qua localhost.
+# Nghe 0.0.0.0 là mở một cổng công khai không có TLS, không có WAF của
+# Cloudflare, và bỏ qua mọi luật đã đặt ở tầng trước.
+#
+# ══ Vì sao user `deploy` chứ không root ══
+#
+# Cùng user mà GitHub Actions deploy bằng, nên quyền file không lệch nhau. Ngày
+# 02/10 đã có một lần chạy deploy bằng root làm `public/build` và `node_modules`
+# thuộc root, và lần deploy tự động sau đó sẽ hỏng vì không ghi được.
+
+[Unit]
+Description=OOHX webapp (Next.js) cho trang cong khai
+Documentation=https://github.com/TRUEVIEWVIETNAM/oohx-dash/tree/main/docs/deploy/nextjs-proxy
+After=network.target
+
+[Service]
+Type=simple
+User=deploy
+Group=www
+WorkingDirectory=/www/wwwroot/oohx-webapp
+
+# `next start` phục vụ bản đã build. KHÔNG dùng `next dev` trên production:
+# nó biên dịch lại theo từng request và để lộ thông tin gỡ lỗi.
+ExecStart=/usr/bin/node /www/wwwroot/oohx-webapp/node_modules/next/dist/bin/next start --port 3001 --hostname 127.0.0.1
+
+Environment=NODE_ENV=production
+Environment=PORT=3001
+Environment=HOSTNAME=127.0.0.1
+# Nguồn dữ liệu: gọi API nội bộ qua localhost, không vòng ra Cloudflare rồi
+# quay lại. Một vòng ra ngoài là thêm độ trễ, thêm một điểm hỏng, và tính vào
+# hạn mức tần suất của chính mình.
+Environment=OOHX_API_BASE=http://127.0.0.1/api/v2
+
+Restart=always
+RestartSec=3
+# Chết liên tục thì dừng hẳn thay vì khởi động lại vô hạn và che mất lỗi.
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=oohx-webapp
+
+# Siết quyền: tiến trình này chỉ cần đọc code của chính nó.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

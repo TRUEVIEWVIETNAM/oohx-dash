@@ -23,6 +23,27 @@ class SitemapController extends Controller
             $urls->push(['loc' => url('/products'), 'priority' => '0.8', 'changefreq' => 'daily']);
             $urls->push(['loc' => url('/agency'), 'priority' => '0.6', 'changefreq' => 'monthly']);
 
+            // Trang chính sách bắt buộc của sàn TMĐT.
+            //
+            // Trước 02/10/2026 chúng không có trong sitemap, nên bốn trang mà
+            // hồ sơ đăng ký sàn dựa vào lại là bốn trang công cụ tìm kiếm khó
+            // thấy nhất. Lấy từ `config/policies.php` chứ không viết cứng, để
+            // thêm một trang chính sách là nó tự vào sitemap.
+            //
+            // `changefreq` là `yearly`: văn bản pháp lý đổi thì phải có người
+            // ký, không phải đổi hằng ngày như danh mục.
+            foreach (array_keys(config('policies.pages', [])) as $policySlug) {
+                $urls->push([
+                    'loc'        => url('/' . $policySlug),
+                    'priority'   => '0.5',
+                    'changefreq' => 'yearly',
+                ]);
+            }
+
+            // Trang tiếp nhận phản ánh của tổ chức xã hội.
+            $urls->push(['loc' => url('/phan-anh-to-chuc-xa-hoi'), 'priority' => '0.4', 'changefreq' => 'monthly']);
+            $urls->push(['loc' => url('/phan-anh-to-chuc-xa-hoi/danh-sach'), 'priority' => '0.4', 'changefreq' => 'weekly']);
+
             // Screens
             Screen::publiclyVisible()
                 ->whereNotNull('slug')

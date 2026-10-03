@@ -361,6 +361,125 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /api/v2/policies:
+    get:
+      tags: [catalog]
+      summary: Danh sách trang chính sách (siêu dữ liệu)
+      description: |
+        **Chỉ siêu dữ liệu, không trả nội dung.** Văn bản bốn trang chính sách
+        nằm trong Blade, và `PolicyController` ghi rõ lý do: bản nào đang có
+        hiệu lực phải truy được bằng lịch sử git, không phải một hàng trong
+        bảng mà ai đó sửa xong không còn dấu vết.
+
+        API dựng lại văn bản pháp lý thành HTML sẽ tạo **hai** đường render cho
+        cùng một văn bản, trong khi lộ trình yêu cầu "giữ nguyên văn bản và
+        đường dẫn" cho nhóm trang này. Nên endpoint trả `url` trỏ về trang
+        Laravel đang phục vụ; văn bản vẫn do một nơi duy nhất phát ra.
+
+        `effective_from` rỗng nghĩa là **chưa ban hành** — nội dung còn là bản
+        nháp, và bên tiêu thụ phải thấy được điều đó.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [slug, title, url, is_effective]
+                      properties:
+                        slug:           { type: string }
+                        title:          { type: [string, 'null'] }
+                        version:        { type: [string, 'null'] }
+                        effective_from: { type: [string, 'null'] }
+                        is_effective:   { type: boolean }
+                        url:            { type: string }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/reflections:
+    get:
+      tags: [catalog]
+      summary: Phản ánh của tổ chức xã hội đã công bố
+      description: |
+        Dùng chung `PublicReflectionService::published()` với trang Blade, nên
+        phép lọc "đã công bố" chỉ có một định nghĩa.
+      parameters:
+        - { name: page,     in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:              { type: string, description: 'Mã công khai PA-YYYYMM-nnn, không phải khóa nội bộ.' }
+                        organization_name: { type: [string, 'null'] }
+                        subject:           { type: [string, 'null'] }
+                        content:           { type: [string, 'null'] }
+                        status:            { type: [string, 'null'] }
+                        resolution:        { type: [string, 'null'] }
+                        received_at:       { type: [string, 'null'], format: date-time }
+                        resolved_at:       { type: [string, 'null'], format: date-time }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      tags: [catalog]
+      summary: Gửi một phản ánh
+      description: |
+        Hạn mức **riêng và chặt hơn** nhóm `api`: 5 lần mỗi 60 phút. Đây là
+        đường ghi mở cho người lạ, và trang Blade tương ứng cũng đã có mức đó.
+
+        Dùng chung `StorePublicReflectionRequest` với trang Blade — cùng bộ
+        luật kiểm, kể cả bẫy mật `website` (`prohibited`). Viết lại bộ luật thứ
+        hai cho API là mở một cửa vào mà trang web không có.
+
+        Trả về **mã phản ánh** và không gì khác: đây là dữ liệu người lạ gửi
+        lên, chưa ai duyệt.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [organization_name, subject, content, contact_email]
+              properties:
+                organization_name: { type: string, maxLength: 255 }
+                subject:           { type: string, maxLength: 255 }
+                content:           { type: string, minLength: 20, maxLength: 5000 }
+                contact_name:      { type: [string, 'null'], maxLength: 255 }
+                contact_email:     { type: string, format: email, maxLength: 255 }
+                contact_phone:     { type: [string, 'null'], maxLength: 30 }
+      responses:
+        '201':
+          description: Đã tiếp nhận
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [code, message]
+                    properties:
+                      code:    { type: string }
+                      message: { type: string }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /api/v2/cart:
     get:
       tags: [cart]

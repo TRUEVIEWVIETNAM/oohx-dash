@@ -4,13 +4,18 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "// types:api": "Sinh TypeScript từ docs/openapi/v2.yaml. CLAUDE.md mục 2: OpenAPI là nguồn sự thật cho kiểu dữ liệu, Next.js sinh từ đó chứ không chép tay.",
+        "types:api": "openapi-typescript docs/openapi/v2.yaml -o resources/js/types/api-v2.d.ts",
+        "// types:api:check": "Sinh lại rồi so với bản đã commit. CI dùng cái này: một file sinh ra mà không ai kiểm thì sẽ lệch khỏi đặc tả, và bên tiêu thụ dùng kiểu sai mà không có gì báo.",
+        "types:api:check": "npm run types:api && git diff --exit-code -- resources/js/types/api-v2.d.ts"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^2.0.0",
+        "openapi-typescript": "^7.13.0",
         "tailwindcss": "^4.0.0",
         "vite": "^7.0.7"
     }
