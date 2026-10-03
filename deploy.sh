@@ -60,25 +60,25 @@ echo "Path   : $(pwd)"
 echo "Branch : $BRANCH"
 
 echo ""
-echo "[1/9] Enable maintenance mode"
+echo "[1/10] Enable maintenance mode"
 $PHP_BIN artisan down || true
 
 echo ""
-echo "[2/9] Save current commit for rollback"
+echo "[2/10] Save current commit for rollback"
 git rev-parse HEAD > .previous_deploy_commit || true
 echo "Saved previous commit: $(cat .previous_deploy_commit || true)"
 
 echo ""
-echo "[3/9] Update source"
+echo "[3/10] Update source"
 git fetch origin
 git reset --hard origin/$BRANCH
 
 echo ""
-echo "[4/9] Install composer dependencies"
+echo "[4/10] Install composer dependencies"
 $COMPOSER_BIN install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
 echo ""
-echo "[5/9] Build frontend assets"
+echo "[5/10] Build frontend assets"
 # KHÔNG có `|| true` ở đây, có chủ ý.
 #
 # Bản cũ không build gì cả và không ai biết, vì trang vẫn chạy với asset cũ.
@@ -95,14 +95,68 @@ npm ci
 npm run build
 
 echo ""
-echo "[5b/9] Build app Next.js — chỉ khi service đã được dựng"
-# Có điều kiện, có chủ ý.
+echo "[6/10] Clear old caches"
+# TRƯỚC migrate, không phải sau.
 #
-# `webapp/` là trang công khai trên Next.js (giai đoạn 6). Nó CHƯA được kích
-# hoạt: proxy OpenLiteSpeed chưa bật và unit systemd chưa cài, nên build nó ở
-# mọi lần deploy là tốn 1-2 phút cho thứ không ai gọi tới.
+# Bản cũ migrate trước rồi mới xoá cache, nên migration đọc config đã cache của
+# lần deploy TRƯỚC. Một migration dựa vào config mới sẽ lặng lẽ dùng giá trị cũ.
+$PHP_BIN artisan optimize:clear
+
+echo ""
+echo "[7/10] Run migrations"
+$PHP_BIN artisan migrate --force
+
+echo ""
+echo "[8/10] Rebuild caches"
+$PHP_BIN artisan config:cache
+$PHP_BIN artisan route:cache
+$PHP_BIN artisan view:cache
+$PHP_BIN artisan event:cache || true
+
+echo ""
+echo "[9/10] Fix permissions and restart workers"
+# Thư mục và file đặt RIÊNG, không `chmod -R` cả cây.
 #
-# Nhưng khi đã kích hoạt thì bỏ bước này là lỗi tệ hơn: `git reset --hard` ở
+# Bản cũ chạy `chmod -R 775 storage bootstrap/cache`. 775 lật bit thực thi lên
+# 11 file `.gitignore` được git theo dõi dưới hai thư mục đó, và git theo dõi
+# bit thực thi — nên chúng thành "modified" vĩnh viễn: bước 3 trả mode về 644,
+# bước 9 lật lại 755, vòng lặp không bao giờ dừng.
+#
+# Hệ quả không phải trang hỏng, mà là `git status` trên production KHÔNG BAO
+# GIỜ sạch — nên không còn cách nào phát hiện có ai sửa tay file nào trên máy
+# chủ. Đo ngày 02/10/2026: đúng 11 file, đúng hai thư mục bị chmod.
+#
+# 664 cho file là đủ, và git không thấy nó khác 644: git chỉ lưu 100644 hoặc
+# 100755, không lưu bit group.
+#
+# `|| true` vì nhiều file trong storage thuộc user `www` chứ không phải
+# `deploy`, nên chmod báo "Operation not permitted" và đó là bình thường.
+find storage bootstrap/cache -type d -exec chmod 775 {} + 2>/dev/null || true
+find storage bootstrap/cache -type f -exec chmod 664 {} + 2>/dev/null || true
+$PHP_BIN artisan queue:restart || true
+
+echo ""
+echo "Bring app back online"
+$PHP_BIN artisan up || true
+
+echo ""
+echo "[10/10] Build app Next.js — chỉ khi service đã được dựng"
+# Đặt ở CUỐI, sau khi Laravel đã online. Và có điều kiện.
+#
+# ══ Vì sao không nằm giữa, ở vị trí [5b] như bản đầu ══
+#
+# Bản đầu đặt nó giữa bước 5 và bước 6 với nhãn `[5b/9]`, rồi cho `exit 1` khi
+# restart hỏng. Hai thứ đó cộng lại cho một trạng thái nửa vời TỆ HƠN lỗi nó
+# định chặn: bước 3 đã thay TOÀN BỘ mã nguồn, nhưng bước xoá cache, migration
+# và dựng lại cache chưa chạy. Code mới trên route cache cũ, và migration
+# không chạy. Trang vẫn online nhờ `trap`, nên không ai thấy gì bất thường.
+#
+# Bản build Next không phụ thuộc bước nào của Laravel ngoài mã nguồn, nên chỗ
+# đúng của nó là sau cùng. Hỏng ở đây thì Laravel đã deploy xong trọn vẹn và
+# chỉ bản Next là cũ — vẫn đỏ để buộc sửa, nhưng không để lại nửa vời.
+#
+# `webapp/` là trang công khai trên Next.js (giai đoạn 6), chuyển từng đường
+# dẫn một. Bỏ bước này khi service đã chạy là lỗi âm thầm: `git reset --hard` ở
 # bước 3 thay mã nguồn Next.js, còn `.next` vẫn là bản build cũ — tức production
 # phục vụ trang Next.js của commit TRƯỚC, im lặng. Đúng loại lỗi mà bước 5 vừa
 # được thêm để chữa cho asset của Laravel.
@@ -159,50 +213,6 @@ else
     echo "        Trang công khai vẫn do Laravel phục vụ toàn bộ."
 fi
 
-echo ""
-echo "[6/9] Clear old caches"
-# TRƯỚC migrate, không phải sau.
-#
-# Bản cũ migrate trước rồi mới xoá cache, nên migration đọc config đã cache của
-# lần deploy TRƯỚC. Một migration dựa vào config mới sẽ lặng lẽ dùng giá trị cũ.
-$PHP_BIN artisan optimize:clear
-
-echo ""
-echo "[7/9] Run migrations"
-$PHP_BIN artisan migrate --force
-
-echo ""
-echo "[8/9] Rebuild caches"
-$PHP_BIN artisan config:cache
-$PHP_BIN artisan route:cache
-$PHP_BIN artisan view:cache
-$PHP_BIN artisan event:cache || true
-
-echo ""
-echo "[9/9] Fix permissions and restart workers"
-# Thư mục và file đặt RIÊNG, không `chmod -R` cả cây.
-#
-# Bản cũ chạy `chmod -R 775 storage bootstrap/cache`. 775 lật bit thực thi lên
-# 11 file `.gitignore` được git theo dõi dưới hai thư mục đó, và git theo dõi
-# bit thực thi — nên chúng thành "modified" vĩnh viễn: bước 3 trả mode về 644,
-# bước 9 lật lại 755, vòng lặp không bao giờ dừng.
-#
-# Hệ quả không phải trang hỏng, mà là `git status` trên production KHÔNG BAO
-# GIỜ sạch — nên không còn cách nào phát hiện có ai sửa tay file nào trên máy
-# chủ. Đo ngày 02/10/2026: đúng 11 file, đúng hai thư mục bị chmod.
-#
-# 664 cho file là đủ, và git không thấy nó khác 644: git chỉ lưu 100644 hoặc
-# 100755, không lưu bit group.
-#
-# `|| true` vì nhiều file trong storage thuộc user `www` chứ không phải
-# `deploy`, nên chmod báo "Operation not permitted" và đó là bình thường.
-find storage bootstrap/cache -type d -exec chmod 775 {} + 2>/dev/null || true
-find storage bootstrap/cache -type f -exec chmod 664 {} + 2>/dev/null || true
-$PHP_BIN artisan queue:restart || true
-
-echo ""
-echo "Bring app back online"
-$PHP_BIN artisan up || true
 
 echo ""
 echo "=============================="
