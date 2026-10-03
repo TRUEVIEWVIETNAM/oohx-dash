@@ -204,10 +204,11 @@ class PaymentApiTest extends TestCase
         $campaign = $this->campaign([$owner->id => 10_000_000]);
         app(PaymentService::class)->createPayment($campaign, 'bank_transfer', null, $owner->id);
 
-        $body = $this->actingAs($this->buyer)
+        $response = $this->actingAs($this->buyer)
             ->getJson($this->url($campaign))
-            ->assertOk()
-            ->getContent();
+            ->assertOk();
+
+        $body = $response->getContent();
 
         foreach ([
             // Người mua cần biết chuyển tiền cho AI, nhưng số tài khoản là
@@ -239,7 +240,12 @@ class PaymentApiTest extends TestCase
 
         // Nhưng tên owner thì phải có — không biết trả cho ai là không trả
         // được.
-        $this->assertStringContainsString('Kim Ngân ADV', $body);
+        //
+        // Qua `assertJsonPath`, không qua `assertStringContainsString`:
+        // Laravel escape ký tự ngoài ASCII, nên tên nằm trong body dưới dạng
+        // `Kim Ngân ADV` và phép so chuỗi thô luôn trượt. Danh sách cấm ở
+        // trên thì so chuỗi thô vẫn đúng, vì mọi mục trong đó là ASCII.
+        $response->assertJsonPath('data.by_owner.0.owner.name', 'Kim Ngân ADV');
     }
 
     // ── Phân quyền ──────────────────────────────────────────────────────────
@@ -383,7 +389,37 @@ class PaymentApiTest extends TestCase
 
     // ── Chống trùng, đồng ý, và enum trung thực ─────────────────────────────
 
-    public function test_gui_lai_cung_mot_ma_khong_tao_khoan_thu_hai(): void
+    /**
+     * Khoản đang chờ của cùng owner được dùng lại, dù có mã hay không.
+     *
+     * Đây là hành vi CÓ CHỦ Ý ở `PaymentService::createPayment()`, và nó đứng
+     * trước phép kiểm mã: bấm hai lần khi chưa ai xác nhận thì nhận lại đúng
+     * khoản đó, thay vì sinh thêm một dòng công nợ ma.
+     *
+     * Ghi lại thành test vì nó cũng là cái bẫy khi ĐỌC các test dưới: hai lần
+     * gọi liên tiếp luôn ra một khoản, nên một test "chống trùng" chạy trên
+     * trạng thái đang chờ sẽ xanh mà không chạm tới cơ chế mã lần nào.
+     */
+    public function test_khoan_dang_cho_cua_cung_owner_duoc_dung_lai(): void
+    {
+        $owner    = $this->owner('Kim Ngân ADV');
+        $campaign = $this->campaign([$owner->id => 10_000_000]);
+
+        $payload = [
+            'method'       => 'bank_transfer',
+            'owner_id'     => $owner->id,
+            'amount'       => 1_000_000,
+            'accept_terms' => true,
+        ];
+
+        $first  = $this->actingAs($this->buyer)->postJson($this->url($campaign), $payload)->assertStatus(201);
+        $second = $this->actingAs($this->buyer)->postJson($this->url($campaign), $payload)->assertStatus(201);
+
+        $this->assertSame(1, Payment::count());
+        $this->assertSame($first->json('data.payment.id'), $second->json('data.payment.id'));
+    }
+
+    public function test_gui_lai_cung_mot_ma_sau_khi_da_xac_nhan_khong_tao_khoan_moi(): void
     {
         $owner    = $this->owner('Kim Ngân ADV');
         $campaign = $this->campaign([$owner->id => 10_000_000]);
@@ -396,34 +432,44 @@ class PaymentApiTest extends TestCase
             'accept_terms'  => true,
         ];
 
-        $first  = $this->actingAs($this->buyer)->postJson($this->url($campaign), $payload)->assertStatus(201);
+        $first = $this->actingAs($this->buyer)->postJson($this->url($campaign), $payload)->assertStatus(201);
+
+        // Xác nhận để khoản đó không còn `pending` — nếu không thì nhánh "dùng
+        // lại khoản đang chờ" trả lời thay, và test này không kiểm cơ chế mã.
+        app(PaymentService::class)->confirmBankTransfer(Payment::firstOrFail());
+
         $second = $this->actingAs($this->buyer)->postJson($this->url($campaign), $payload)->assertStatus(201);
 
         $this->assertSame(1, Payment::count(), 'Gửi lại cùng một mã không được tạo khoản thứ hai.');
-        $this->assertSame(
-            $first->json('data.payment.id'),
-            $second->json('data.payment.id'),
-        );
+        $this->assertSame($first->json('data.payment.id'), $second->json('data.payment.id'));
     }
 
-    public function test_hai_ma_khac_nhau_thi_tra_duoc_hai_lan(): void
+    public function test_tra_mot_phan_roi_tra_not_bang_ma_khac_thi_tao_duoc_khoan_moi(): void
     {
         $owner    = $this->owner('Kim Ngân ADV');
         $campaign = $this->campaign([$owner->id => 10_000_000]);
 
-        foreach (['lan-mot', 'lan-hai'] as $nonce) {
-            $this->actingAs($this->buyer)->postJson($this->url($campaign), [
-                'method'        => 'bank_transfer',
-                'owner_id'      => $owner->id,
-                'amount'        => 1_000_000,
-                'payment_nonce' => $nonce,
-                'accept_terms'  => true,
-            ])->assertStatus(201);
-        }
+        $this->actingAs($this->buyer)->postJson($this->url($campaign), [
+            'method'        => 'bank_transfer',
+            'owner_id'      => $owner->id,
+            'amount'        => 1_000_000,
+            'payment_nonce' => 'lan-mot',
+            'accept_terms'  => true,
+        ])->assertStatus(201);
 
-        // Trả một phần rồi quay lại trả nốt phải tạo được khoản mới — đó là
-        // Codex R07, và là lý do khóa dựng từ mã của LẦN gửi chứ không từ token
-        // phiên.
+        app(PaymentService::class)->confirmBankTransfer(Payment::firstOrFail());
+
+        $this->actingAs($this->buyer)->postJson($this->url($campaign), [
+            'method'        => 'bank_transfer',
+            'owner_id'      => $owner->id,
+            'amount'        => 1_000_000,
+            'payment_nonce' => 'lan-hai',
+            'accept_terms'  => true,
+        ])->assertStatus(201);
+
+        // Đây là Codex R07: khóa chống trùng dựng từ mã của LẦN GỬI, không từ
+        // token phiên. Token phiên không đổi giữa hai lần trả, nên lần thứ hai
+        // sẽ nhận lại khoản cũ đã hoàn tất và người mua không trả nốt được.
         $this->assertSame(2, Payment::count());
     }
 

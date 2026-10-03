@@ -1544,7 +1544,7 @@ export interface components {
             totals?: {
                 /** @enum {string} */
                 currency?: "VND";
-                /** @description Ngân sách người mua tự ghi */
+                /** @description Ngân sách người mua tự ghi, không phải số phải trả. */
                 budget?: number | null;
                 screens?: number | null;
                 impressions?: number | null;
@@ -1628,7 +1628,7 @@ export interface components {
                 /** @enum {string} */
                 currency?: "VND";
                 line_count?: number;
-                /** @description Tổng CHƯA gồm VAT. VAT cộng một chỗ duy nhất */
+                /** @description Tổng CHƯA gồm VAT. VAT cộng một chỗ duy nhất, lúc tính công nợ. */
                 subtotal?: number;
                 impressions?: number;
                 /**
@@ -1676,7 +1676,7 @@ export interface components {
             vat?: number;
             /** @description Đã gồm VAT — số phải trả cho owner này. */
             total?: number;
-            /** @description Đã trả */
+            /** @description Đã trả, đã trừ phần phân bổ cho dòng đã hủy. */
             paid?: number;
             refunded?: number;
             /** @description Khoản đã tạo nhưng chưa xác nhận. */

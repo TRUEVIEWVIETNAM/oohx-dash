@@ -1222,7 +1222,7 @@ components:
           type: object
           properties:
             currency:    { type: string, enum: [VND] }
-            budget:      { type: integer, nullable: true, description: Ngân sách người mua tự ghi, không phải số phải trả. }
+            budget:      { type: integer, nullable: true, description: 'Ngân sách người mua tự ghi, không phải số phải trả.' }
             screens:     { type: integer, nullable: true }
             impressions: { type: integer, nullable: true }
         notes: { type: string, nullable: true }
@@ -1307,7 +1307,7 @@ components:
           properties:
             currency:    { type: string, enum: [VND] }
             line_count:  { type: integer }
-            subtotal:    { type: integer, description: Tổng CHƯA gồm VAT. VAT cộng một chỗ duy nhất, lúc tính công nợ. }
+            subtotal:    { type: integer, description: 'Tổng CHƯA gồm VAT. VAT cộng một chỗ duy nhất, lúc tính công nợ.' }
             impressions: { type: integer }
             can_submit:
               type: boolean
@@ -1352,7 +1352,7 @@ components:
         cost:      { type: integer, description: Chưa gồm VAT. }
         vat:       { type: integer }
         total:     { type: integer, description: Đã gồm VAT — số phải trả cho owner này. }
-        paid:      { type: integer, description: Đã trả, đã trừ phần phân bổ cho dòng đã hủy. }
+        paid:      { type: integer, description: 'Đã trả, đã trừ phần phân bổ cho dòng đã hủy.' }
         refunded:  { type: integer }
         pending:   { type: integer, description: Khoản đã tạo nhưng chưa xác nhận. }
         remaining: { type: integer }

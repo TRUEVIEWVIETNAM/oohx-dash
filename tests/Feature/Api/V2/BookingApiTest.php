@@ -269,17 +269,24 @@ class BookingApiTest extends TestCase
             'status'          => 'pending_review',
         ]);
 
-        $body = $this->actingAs($this->buyer)
+        $response = $this->actingAs($this->buyer)
             ->getJson('/api/v2/campaigns/' . $campaignId)
-            ->assertOk()
-            ->getContent();
+            ->assertOk();
+
+        $body = $response->getContent();
 
         // Nội dung quảng cáo đang nằm trên disk CÔNG KHAI (xem
         // `CreativeResource`). Phát đường dẫn ra đây là biến một lỗi lưu trữ
         // thành một lỗi lộ dữ liệu.
         $this->assertStringNotContainsString('file_path', $body);
         $this->assertStringNotContainsString('bi-mat.jpg', $body);
-        $this->assertStringContainsString('Banner thử', $body);
+
+        // Khẳng định chiều ngược lại đi qua `assertJsonPath`, không qua
+        // `assertStringContainsString`: Laravel escape ký tự ngoài ASCII trong
+        // JSON, nên "Banner thử" nằm trong body dưới dạng `Banner thử` và
+        // phép so chuỗi thô luôn trượt — trượt vì lý do không liên quan gì tới
+        // điều đang kiểm.
+        $response->assertJsonPath('data.creatives.0.name', 'Banner thử');
     }
 
     // ── Phân quyền: 404 với người ngoài, 403 với người trong ────────────────
