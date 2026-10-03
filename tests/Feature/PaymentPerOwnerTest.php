@@ -236,12 +236,20 @@ class PaymentPerOwnerTest extends TestCase
         $stranger = $this->makeOwner('Người lạ');
         $campaign = $this->makeCampaign([$a->id => 10_000_000]);
 
+        // Phép kiểm này chuyển từ `abort(422)` trong controller sang lỗi của
+        // trường `owner_id` trong `StorePaymentRequest`, để trang Blade và
+        // `/api/v2` dùng chung một bộ luật (mốc 3 giai đoạn 5).
+        //
+        // Assert mạnh hơn trước: 422 trần chỉ nói "có gì sai", còn
+        // `assertSessionHasErrors('owner_id')` nói sai Ở ĐÂU — và đó mới là
+        // điều cần khóa, vì lỗi này là gán tiền của mình cho một owner không
+        // có màn hình nào trong campaign.
         $this->actingAs($this->user)->post($this->paymentUrl($campaign), [
             'method'       => 'bank_transfer',
             'owner_id'     => $stranger->id,
             'amount'       => 10_800_000,
             'accept_terms' => '1',
-        ])->assertStatus(422);
+        ])->assertSessionHasErrors('owner_id');
 
         $this->assertSame(0, Payment::count());
     }
