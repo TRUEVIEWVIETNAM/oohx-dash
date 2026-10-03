@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { listScreens } from '@/lib/api';
 import { buildMetadata, OgType } from '@/lib/seo';
 import { ScreenCard } from '@/components/ScreenCard';
+import { SiteHeader } from '@/components/SiteHeader';
+import { Pagination } from '@/components/Pagination';
 
 /**
  * `/explore` — danh sách màn hình. Đường dẫn ĐẦU TIÊN chuyển sang Next.js.
@@ -60,8 +62,11 @@ export default async function ExplorePage({
     });
 
     return (
-        <main>
+        <>
+            <SiteHeader active="explore" />
             <OgType type="website" />
+
+            <main>
 
             <div className="ex-hero">
                 <div className="w">
@@ -90,66 +95,9 @@ export default async function ExplorePage({
                     </div>
                 )}
 
-                <Pagination params={params} meta={meta} />
-            </div>
-        </main>
-    );
-}
-
-/**
- * Phân trang bằng thẻ `<a>`, không bằng nút gọi JS.
- *
- * Hai lý do: công cụ tìm kiếm đi theo được, và nó hoạt động khi JS chưa tải
- * xong. Trang danh mục mà phải chờ JS mới xem được trang 2 thì không giải
- * quyết được việc giai đoạn 6 đặt ra.
- */
-function Pagination({
-    params,
-    meta,
-}: {
-    params: SearchParams;
-    meta: { page?: number; last_page?: number };
-}) {
-    const page = meta.page ?? 1;
-    const lastPage = meta.last_page ?? 1;
-
-    if (lastPage <= 1) return null;
-
-    const href = (target: number) => {
-        const search = new URLSearchParams();
-
-        for (const [key, value] of Object.entries(params)) {
-            if (key === 'page' || value === undefined || value === '') continue;
-            search.set(key, value);
-        }
-
-        if (target > 1) search.set('page', String(target));
-
-        const query = search.toString();
-
-        return query ? `/explore?${query}` : '/explore';
-    };
-
-    return (
-        <nav
-            aria-label="Phân trang"
-            style={{ display: 'flex', justifyContent: 'center', gap: 12, padding: '32px 0 64px' }}
-        >
-            {page > 1 ? (
-                <Link className="btn btn-s btn-sm" href={href(page - 1)} rel="prev">
-                    Trang trước
-                </Link>
-            ) : null}
-
-            <span style={{ alignSelf: 'center', fontSize: 14, color: 'var(--t2)' }}>
-                Trang {page} / {lastPage}
-            </span>
-
-            {page < lastPage ? (
-                <Link className="btn btn-s btn-sm" href={href(page + 1)} rel="next">
-                    Trang sau
-                </Link>
-            ) : null}
-        </nav>
+                <Pagination basePath="/explore" params={params} meta={meta} />
+                </div>
+            </main>
+        </>
     );
 }

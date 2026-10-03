@@ -120,8 +120,27 @@ Chạy bằng user `deploy`, không phải root: đó là user GitHub Actions de
 cp docs/deploy/nextjs-proxy/oohx-webapp.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now oohx-webapp
-systemctl status oohx-webapp --no-pager
-curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3001/explore
+systemctl is-active oohx-webapp
+
+# sleep TRƯỚC khi curl, và nó không phải tuỳ chọn.
+#
+# `systemctl is-active` trả `active` ngay khi systemd đã fork tiến trình, CHƯA
+# phải khi tiến trình mở cổng. Gọi curl ngay sau `enable --now` cho `000` —
+# không phải mã lỗi HTTP mà là không có kết nối nào.
+#
+# Ngày 03/10/2026 tôi mất một vòng chẩn đoán vì đúng chỗ này: thấy `active` mà
+# `000` nên đi tìm đường dẫn `node` sai trong unit, trong khi service hoàn toàn
+# bình thường và chỉ cần thêm vài giây.
+sleep 5
+curl -s -o /dev/null -w "qua service → %{http_code}\n" http://127.0.0.1:3001/explore
+```
+
+Ra `000` dù đã chờ thì mới cần đào, và chỗ nói rõ nhất là log:
+
+```sh
+journalctl -u oohx-webapp -n 40 --no-pager
+readlink -f "$(command -v node)"    # phải khớp ExecStart trong unit
+ss -ltnp | grep 3001
 ```
 
 Chưa ra 200 thì **dừng**. Chưa chạy được qua localhost thì thêm proxy chỉ làm trang công khai hỏng.

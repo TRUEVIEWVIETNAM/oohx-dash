@@ -134,23 +134,79 @@ export function listScreens(query: FetchOptions['query'] = {}): Promise<ScreenLi
     return get<ScreenList>('/screens', { query, revalidate: 60 });
 }
 
-export async function getScreen(slug: string): Promise<ScreenDetail | null> {
+/**
+ * Gọi một endpoint chi tiết, trả `null` khi API trả 404.
+ *
+ * 404 là **câu trả lời**, không phải sự cố: slug không tồn tại thì trang phải
+ * ra 404 thật để công cụ tìm kiếm bỏ nó khỏi chỉ mục, chứ không phải một trang
+ * 200 rỗng — một trang 200 rỗng thì URL đó nằm trong chỉ mục mãi.
+ *
+ * Mọi lỗi KHÁC vẫn ném ra: 500 của API không được biến thành "không tìm thấy".
+ * Hai thứ đó cần hai hành vi khác nhau, và gộp chúng là cách biến một sự cố
+ * tạm thời thành một URL bị xoá khỏi chỉ mục.
+ */
+async function getOrNull<T>(path: string, options: FetchOptions = {}): Promise<T | null> {
     try {
-        const body = await get<{ data: ScreenDetail }>(`/screens/${encodeURIComponent(slug)}`, {
-            revalidate: 300,
-        });
-
-        return body.data;
+        return await get<T>(path, options);
     } catch (error) {
-        // 404 là câu trả lời, không phải sự cố: slug không tồn tại thì trang
-        // phải ra 404 thật để công cụ tìm kiếm bỏ nó khỏi chỉ mục, chứ không
-        // phải một trang 200 rỗng.
         if (error instanceof ApiError && error.status === 404) {
             return null;
         }
 
         throw error;
     }
+}
+
+export async function getScreen(slug: string): Promise<ScreenDetail | null> {
+    const body = await getOrNull<{ data: ScreenDetail }>(
+        `/screens/${encodeURIComponent(slug)}`,
+        { revalidate: 300 },
+    );
+
+    return body?.data ?? null;
+}
+
+// ── Media owner ─────────────────────────────────────────────────────────────
+
+export type OwnerSummary = components['schemas']['OwnerSummary'];
+export type OwnerDetail = components['schemas']['OwnerDetail'];
+
+export type OwnerListResult =
+    paths['/api/v2/owners']['get']['responses'][200]['content']['application/json'];
+
+export type OwnerDetailResult =
+    paths['/api/v2/owners/{slug}']['get']['responses'][200]['content']['application/json'];
+
+export function listOwners(query: FetchOptions['query'] = {}): Promise<OwnerListResult> {
+    return get<OwnerListResult>('/owners', { query, revalidate: 300 });
+}
+
+export function getOwner(slug: string, query: FetchOptions['query'] = {}) {
+    return getOrNull<OwnerDetailResult>(`/owners/${encodeURIComponent(slug)}`, {
+        query,
+        revalidate: 300,
+    });
+}
+
+// ── Sản phẩm / gói ──────────────────────────────────────────────────────────
+
+export type ProductSummary = components['schemas']['ProductSummary'];
+export type ProductDetail = components['schemas']['ProductDetail'];
+
+export type ProductListResult =
+    paths['/api/v2/products']['get']['responses'][200]['content']['application/json'];
+
+export type ProductDetailResult =
+    paths['/api/v2/products/{slug}']['get']['responses'][200]['content']['application/json'];
+
+export function listProducts(query: FetchOptions['query'] = {}): Promise<ProductListResult> {
+    return get<ProductListResult>('/products', { query, revalidate: 300 });
+}
+
+export function getProduct(slug: string) {
+    return getOrNull<ProductDetailResult>(`/products/${encodeURIComponent(slug)}`, {
+        revalidate: 300,
+    });
 }
 
 export async function getFilters(): Promise<Filters> {

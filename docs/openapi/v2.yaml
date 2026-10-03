@@ -488,6 +488,47 @@ paths:
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /api/v2/me:
+    get:
+      tags: [cart]
+      security: [{ sessionCookie: [] }]
+      summary: Người đang đăng nhập — chỉ những gì thanh điều hướng cần vẽ
+      description: |
+        Tồn tại để trang công khai trên Next.js vẽ được header giống bản Blade.
+        Header Blade đọc `auth()->user()`, mà Next **không giải mã được session
+        của Laravel** — cookie có đó nhưng định dạng là của Laravel.
+
+        **Trạng thái đăng nhập không được render ở máy chủ bên Next.** Trang
+        `/explore` cache 60 giây, nên render tên và email vào HTML nghĩa là
+        bản cache đó phục vụ cho người tiếp theo — tên và email của người A
+        hiện ra cho người B. Vì vậy khung header render dưới dạng khách, rồi
+        một component client gọi endpoint này để điền.
+
+        **Không nằm sau middleware `buyer`.** Một người vừa đăng ký và chưa
+        tạo tổ chức vẫn cần header vẽ đúng; đặt endpoint này sau `buyer` là
+        trả 403 cho họ và header hiện ra như thể họ chưa đăng nhập.
+
+        **401 là câu trả lời, không phải sự cố.** Khách chưa đăng nhập nhận 401
+        với envelope thống nhất; client coi đó là "khách" và giữ nguyên khung
+        đã render. Không có nhánh nào trả 200 kèm `data: null`, vì khi đó bên
+        tiêu thụ phải phân biệt hai loại null.
+
+        Phạm vi hẹp có chủ ý: đây là endpoint mọi trang gọi tới trên mọi lượt
+        duyệt, nên nó chỉ trả đúng những gì header vẽ. Không có `id`, không có
+        danh sách tổ chức, không có vai trò.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Me' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /api/v2/cart:
     get:
       tags: [cart]
@@ -1099,6 +1140,22 @@ components:
               properties:
                 meta_title:       { type: [string, 'null'] }
                 meta_description: { type: [string, 'null'] }
+
+    Me:
+      type: object
+      required: [name, email, initial, organization, cart_count]
+      properties:
+        name:    { type: string }
+        email:   { type: string, format: email }
+        initial: { type: string, description: 'Chữ cái đầu của tên, cho ô avatar. Tính bằng mb_substr — tên tiếng Việt có ký tự nhiều byte.' }
+        organization:
+          type: object
+          nullable: true
+          description: 'Tổ chức đang chọn. Null khi người dùng chưa thuộc tổ chức nào. Chỉ có tên — trả id ra là mời bên tiêu thụ dùng nó để gọi tiếp.'
+          required: [name]
+          properties:
+            name: { type: string }
+        cart_count: { type: integer, description: 'Số món trong giỏ, để vẽ badge. Lấy từ cùng hàm header Blade gọi.' }
 
     Cart:
       type: object

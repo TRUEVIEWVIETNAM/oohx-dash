@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getScreen, type ScreenDetail } from '@/lib/api';
 import { buildMetadata, jsonLd, OgType } from '@/lib/seo';
+import { SiteHeader } from '@/components/SiteHeader';
 
 /**
  * `/explore/{slug}` — chi tiết một màn hình.
@@ -60,7 +61,10 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
         screen.pricing?.io_rate?.currency ?? screen.pricing?.floor_cpm?.currency ?? 'VND';
 
     return (
-        <main>
+        <>
+            <SiteHeader active="explore" />
+
+            <main>
             {/* Bản Blade phát `og:type=product`. Giữ nguyên — xem `OgType`. */}
             <OgType type="product" />
 
@@ -155,7 +159,8 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
                     </p>
                 ) : null}
             </div>
-        </main>
+            </main>
+        </>
     );
 }
 
