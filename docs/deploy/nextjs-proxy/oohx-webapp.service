@@ -29,11 +29,11 @@ After=network.target
 Type=simple
 User=deploy
 Group=www
-WorkingDirectory=/www/wwwroot/oohx-webapp
+WorkingDirectory=/www/wwwroot/dash.oohx.net/webapp
 
 # `next start` phục vụ bản đã build. KHÔNG dùng `next dev` trên production:
 # nó biên dịch lại theo từng request và để lộ thông tin gỡ lỗi.
-ExecStart=/usr/bin/node /www/wwwroot/oohx-webapp/node_modules/next/dist/bin/next start --port 3001 --hostname 127.0.0.1
+ExecStart=/usr/bin/node /www/wwwroot/dash.oohx.net/webapp/node_modules/next/dist/bin/next start --port 3001 --hostname 127.0.0.1
 
 Environment=NODE_ENV=production
 Environment=PORT=3001
@@ -42,6 +42,16 @@ Environment=HOSTNAME=127.0.0.1
 # quay lại. Một vòng ra ngoài là thêm độ trễ, thêm một điểm hỏng, và tính vào
 # hạn mức tần suất của chính mình.
 Environment=OOHX_API_BASE=http://127.0.0.1/api/v2
+
+# Tên miền công khai — dùng cho canonical, og:url và og:image. KHÔNG dùng để
+# gọi API.
+#
+# Phải khai riêng vì `OOHX_API_BASE` trỏ vào 127.0.0.1: nếu canonical dựng từ
+# cùng biến đó thì mọi trang sẽ phát `<link rel="canonical"
+# href="http://127.0.0.1/...">` — một URL không ai ngoài máy chủ mở được, và
+# công cụ tìm kiếm sẽ coi đó là địa chỉ chuẩn của trang. Đó là cách làm tụt SEO
+# mà không ai thấy, vì trang vẫn hiện bình thường.
+Environment=OOHX_PUBLIC_ORIGIN=https://oohx.net
 
 Restart=always
 RestartSec=3

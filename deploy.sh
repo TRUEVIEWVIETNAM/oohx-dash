@@ -95,6 +95,43 @@ npm ci
 npm run build
 
 echo ""
+echo "[5b/9] Build app Next.js — chỉ khi service đã được dựng"
+# Có điều kiện, có chủ ý.
+#
+# `webapp/` là trang công khai trên Next.js (giai đoạn 6). Nó CHƯA được kích
+# hoạt: proxy OpenLiteSpeed chưa bật và unit systemd chưa cài, nên build nó ở
+# mọi lần deploy là tốn 1-2 phút cho thứ không ai gọi tới.
+#
+# Nhưng khi đã kích hoạt thì bỏ bước này là lỗi tệ hơn: `git reset --hard` ở
+# bước 3 thay mã nguồn Next.js, còn `.next` vẫn là bản build cũ — tức production
+# phục vụ trang Next.js của commit TRƯỚC, im lặng. Đúng loại lỗi mà bước 5 vừa
+# được thêm để chữa cho asset của Laravel.
+#
+# Điều kiện là sự tồn tại của unit systemd, không phải sự tồn tại của thư mục:
+# thư mục luôn có (nó nằm trong repo), còn unit chỉ có khi ai đó đã cố ý bật.
+if [ -f /etc/systemd/system/oohx-webapp.service ]; then
+    if ! command -v npm >/dev/null 2>&1; then
+        echo "LỖI: service oohx-webapp đã cài nhưng không có npm để build."
+        exit 1
+    fi
+
+    ( cd webapp && npm ci && npm run build )
+
+    # Restart SAU khi build xong, không trước: `next start` nạp `.next` lúc khởi
+    # động, nên restart trước khi build là khởi động lại trên bản cũ rồi để bản
+    # mới nằm đó không ai dùng.
+    sudo systemctl restart oohx-webapp || systemctl restart oohx-webapp || {
+        echo "CẢNH BÁO: build xong nhưng không restart được oohx-webapp."
+        echo "          Trang Next.js vẫn đang chạy bản cũ."
+    }
+
+    echo "Next.js : đã build và restart"
+else
+    echo "Bỏ qua: /etc/systemd/system/oohx-webapp.service chưa tồn tại."
+    echo "        Trang công khai vẫn do Laravel phục vụ toàn bộ."
+fi
+
+echo ""
 echo "[6/9] Clear old caches"
 # TRƯỚC migrate, không phải sau.
 #
