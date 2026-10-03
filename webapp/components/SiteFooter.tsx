@@ -100,10 +100,10 @@ export function SiteFooter() {
                                 <Link href="/owners">Chủ sở hữu màn hình</Link>
                             </li>
                             <li>
-                                <a href="/products">Gói sản phẩm</a>
+                                <Link href="/products">Gói sản phẩm</Link>
                             </li>
                             <li>
-                                <a href="/map">Bản đồ</a>
+                                <Link href="/map">Bản đồ</Link>
                             </li>
                         </ul>
                     </div>

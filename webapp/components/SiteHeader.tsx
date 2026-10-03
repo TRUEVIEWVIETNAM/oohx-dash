@@ -26,8 +26,24 @@ import { LOGO_DATA_URI } from '@/lib/logo';
  * sách `TRONG_APP` dưới đây là chỗ duy nhất phải sửa.
  */
 
-/** Những đường dẫn app này phục vụ. Thêm vào đây khi chuyển thêm trang. */
-const TRONG_APP = new Set(['/explore', '/owners']);
+/**
+ * Những đường dẫn app này phục vụ.
+ *
+ * ══ Danh sách này PHẢI khớp các context đang mở trong nextjs.conf ══
+ *
+ * Không phải "nên", mà là phải, và lệch theo chiều nào cũng sai một kiểu:
+ *
+ * - Có ở đây mà proxy CHƯA mở: `next/link` điều hướng phía client và hiện
+ *   trang của app Next, nhưng tải lại cùng URL đó thì OpenLiteSpeed đưa về
+ *   Laravel và hiện trang Blade. **Hai trang khác nhau cho một URL**, tuỳ cách
+ *   người dùng tới — và không có gì báo.
+ * - Proxy đã mở mà thiếu ở đây: `<a>` gây tải lại cả trang cho một điều hướng
+ *   nội bộ. Chậm hơn, nhưng không sai.
+ *
+ * Nên khi mở thêm một context trong `docs/deploy/nextjs-proxy/nextjs.conf`,
+ * sửa luôn dòng này trong cùng commit.
+ */
+const TRONG_APP = new Set(['/explore', '/owners', '/map']);
 
 function NavLink({ href, active, children }: {
     href: string;
