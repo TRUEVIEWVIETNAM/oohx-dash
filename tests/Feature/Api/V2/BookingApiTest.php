@@ -15,7 +15,9 @@ use App\Models\Site;
 use App\Models\User;
 use App\Services\CartService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -287,6 +289,59 @@ class BookingApiTest extends TestCase
         // phép so chuỗi thô luôn trượt — trượt vì lý do không liên quan gì tới
         // điều đang kiểm.
         $response->assertJsonPath('data.creatives.0.name', 'Banner thử');
+    }
+
+    // ── Tải nội dung quảng cáo lên ──────────────────────────────────────────
+
+    public function test_tai_noi_dung_len_qua_api_va_tep_khong_nam_tren_disk_cong_khai(): void
+    {
+        Storage::fake('public');
+        Storage::fake(config('creatives.disk'));
+
+        $this->fillCart();
+        $campaignId = $this->actingAs($this->buyer)
+            ->postJson('/api/v2/campaigns', $this->payload())
+            ->json('data.campaign.id');
+
+        $response = $this->actingAs($this->buyer)
+            ->post('/api/v2/campaigns/' . $campaignId . '/creatives', [
+                'file' => UploadedFile::fake()->image('banner.png', 400, 200),
+                'name' => 'Banner thử',
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('data.creative.name', 'Banner thử')
+            ->assertJsonPath('data.creative.status', 'pending_review');
+
+        $creative = \App\Models\Creative::firstOrFail();
+
+        Storage::disk(config('creatives.disk'))->assertExists($creative->file_path);
+        Storage::disk('public')->assertMissing($creative->file_path);
+
+        // `download_url` là URL ký hạn, không phải đường dẫn trên đĩa.
+        $url = $response->json('data.creative.download_url');
+        $this->assertNotNull($url);
+        $this->assertStringContainsString('signature=', $url);
+        $this->assertStringNotContainsString($creative->file_path, $url);
+    }
+
+    public function test_viewer_khong_tai_noi_dung_len_duoc(): void
+    {
+        Storage::fake(config('creatives.disk'));
+
+        $this->fillCart();
+        $campaignId = $this->actingAs($this->buyer)
+            ->postJson('/api/v2/campaigns', $this->payload())
+            ->json('data.campaign.id');
+
+        $viewer = $this->makeMember($this->org, OrganizationUser::ROLE_VIEWER);
+
+        $this->actingAs($viewer)
+            ->post('/api/v2/campaigns/' . $campaignId . '/creatives', [
+                'file' => UploadedFile::fake()->image('banner.png'),
+            ])
+            ->assertStatus(403);
+
+        $this->assertSame(0, \App\Models\Creative::count());
     }
 
     // ── Phân quyền: 404 với người ngoài, 403 với người trong ────────────────

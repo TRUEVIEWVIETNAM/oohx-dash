@@ -38,9 +38,14 @@ class CreativeResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('file_path')
+                // Đọc `file_url` (accessor sinh URL ký hạn qua route có kiểm
+                // policy), KHÔNG đọc `file_path` trên disk `public`.
+                //
+                // `->disk('public')` cũ là thứ giữ nội dung quảng cáo trên disk
+                // công khai: đổi chỗ lưu mà quên cột này thì bảng duyệt hiện
+                // toàn ảnh vỡ, nên hai thứ phải đi cùng nhau.
+                Tables\Columns\ImageColumn::make('file_url')
                     ->label('Preview')
-                    ->disk('public')
                     ->width(60)
                     ->height(45)
                     ->defaultImageUrl('https://placehold.co/60x45/F5F5F7/6E6E73?text=—'),
