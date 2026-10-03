@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V2;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Booking\StoreCampaignRequest;
 use App\Http\Requests\Booking\SubmitCampaignRequest;
+use App\Http\Requests\Booking\UploadCreativeRequest;
 use App\Http\Resources\V2\BookingLineResource;
 use App\Http\Resources\V2\CampaignResource;
 use App\Http\Resources\V2\CreativeResource;
@@ -13,6 +14,7 @@ use App\Models\PolicyConsent;
 use App\Services\AvailabilityService;
 use App\Services\CampaignService;
 use App\Services\CartService;
+use App\Services\CreativeService;
 use App\Services\PolicyConsentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -55,6 +57,7 @@ class BookingController extends Controller
         private readonly CartService $carts,
         private readonly AvailabilityService $availability,
         private readonly PolicyConsentService $consents,
+        private readonly CreativeService $creatives,
     ) {}
 
     public function store(StoreCampaignRequest $request): JsonResponse
@@ -83,6 +86,35 @@ class BookingController extends Controller
         $this->authorizeCampaign($request, $campaign, 'view');
 
         return response()->json(['data' => $this->reviewPayload($campaign)]);
+    }
+
+    /**
+     * Tải nội dung quảng cáo lên — bước 2 của đặt chỗ.
+     *
+     * Endpoint này **không tồn tại** trong bản đầu của mốc 3, có lý do: lúc đó
+     * `uploadCreative()` của Blade lưu vào disk `public`, nên thêm đường API sẽ
+     * phải chọn giữa lặp lại chỗ sai hoặc dựng đường lưu trữ thứ hai cho cùng
+     * một thực thể. Chỗ lưu đã sửa (xem `config/creatives.php` và
+     * `CreativeFileController`), nên giờ mở được.
+     *
+     * Trả về `multipart/form-data`, không phải JSON — đây là đường duy nhất
+     * trong `/api/v2` nhận tệp.
+     */
+    public function storeCreative(UploadCreativeRequest $request, Campaign $campaign): JsonResponse
+    {
+        $this->authorizeCampaign($request, $campaign, 'uploadCreative');
+
+        $creative = $this->creatives->store(
+            $campaign,
+            $request->file('file'),
+            $request->input('name'),
+        );
+
+        return response()->json([
+            'data' => [
+                'creative' => (new CreativeResource($creative))->resolve(),
+            ] + $this->reviewPayload($campaign->fresh()),
+        ], 201);
     }
 
     public function submit(SubmitCampaignRequest $request, Campaign $campaign): JsonResponse

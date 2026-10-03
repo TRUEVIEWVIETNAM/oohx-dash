@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Buyer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Booking\StoreCampaignRequest;
 use App\Http\Requests\Booking\SubmitCampaignRequest;
+use App\Http\Requests\Booking\UploadCreativeRequest;
 use App\Models\Campaign;
-use App\Models\Creative;
 use App\Models\PolicyConsent;
 use App\Services\AvailabilityService;
 use App\Services\CampaignService;
 use App\Services\CartService;
+use App\Services\CreativeService;
 use App\Services\PolicyConsentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ class BookingController extends Controller
         private CartService $cartService,
         private AvailabilityService $availabilityService,
         private PolicyConsentService $consents,
+        private CreativeService $creatives,
     ) {}
 
     /**
@@ -91,28 +93,18 @@ class BookingController extends Controller
     /**
      * Step 2: POST /booking/{campaign}/creative — Upload file
      */
-    public function uploadCreative(Request $request, Campaign $campaign): RedirectResponse
+    public function uploadCreative(UploadCreativeRequest $request, Campaign $campaign): RedirectResponse
     {
         $this->authorizeCampaign($request, $campaign, 'uploadCreative');
 
-        $request->validate([
-            'file' => ['required', 'file', 'mimes:jpg,jpeg,png,mp4,webm', 'max:51200'], // 50MB
-            'name' => ['nullable', 'string', 'max:255'],
-        ]);
-
-        $file = $request->file('file');
-        $path = $file->store('creatives/' . $campaign->id, 'public');
-        $isVideo = in_array($file->getClientOriginalExtension(), ['mp4', 'webm']);
-
-        Creative::create([
-            'campaign_id'     => $campaign->id,
-            'organization_id' => $campaign->organization_id,
-            'name'            => $request->input('name', $file->getClientOriginalName()),
-            'type'            => $isVideo ? 'video' : 'image',
-            'file_path'       => $path,
-            'file_size'       => $file->getSize(),
-            'status'          => 'pending_review',
-        ]);
+        // Luật kiểm ở `UploadCreativeRequest`, việc lưu ở `CreativeService` —
+        // cả hai dùng chung với `Api\V2\BookingController`.
+        //
+        // Ba thứ trước đây nằm trong hàm này và sẽ bị nhân đôi khi có đường
+        // API: lưu vào disk nào, kiểu tệp là gì, trạng thái ban đầu. Nhân đôi
+        // chúng là cách chắc chắn để một ngày một đường lưu vào `public` và
+        // đường kia lưu vào `private`.
+        $this->creatives->store($campaign, $request->file('file'), $request->input('name'));
 
         return redirect()->route('buyer.booking.creative', $campaign)->with('success', 'Creative đã được upload');
     }

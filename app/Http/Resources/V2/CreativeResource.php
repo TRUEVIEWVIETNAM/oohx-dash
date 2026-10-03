@@ -8,24 +8,27 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /**
  * Một nội dung quảng cáo đã tải lên — DTO danh sách trắng.
  *
- * ══ `file_path` KHÔNG ra ngoài, và đây là chỗ cần nói thẳng ══
+ * ══ `file_path` không ra ngoài, nhưng `download_url` thì có ══
  *
- * Nội dung quảng cáo nằm trong nhóm tệp nhạy cảm mà CLAUDE.md mục 5 yêu cầu
- * "để disk riêng, truy cập qua URL ký hạn — không để trên disk công khai".
+ * `file_path` là đường dẫn trên đĩa — một chi tiết lưu trữ, và đổi chỗ lưu thì
+ * nó đổi theo. Thứ bên tiêu thụ cần là một cách lấy tệp, không phải vị trí của
+ * nó.
  *
- * Hiện `Buyer\BookingController::uploadCreative()` lưu vào disk **public**
- * (`$file->store('creatives/' . $campaign->id, 'public')`), nên tệp nằm dưới
- * `storage/app/public` và tải được qua `/storage/...` **không cần đăng nhập**.
- * Đường dẫn gồm id campaign cộng tên tệp băm ngẫu nhiên nên khó đoán, nhưng
- * "khó đoán" không phải phân quyền.
+ * `download_url` là URL **ký hạn** tới route `creatives.file`. Route đó kiểm
+ * `CreativePolicy` chứ không chỉ kiểm ký, nên URL rò ra ngoài vẫn vô dụng với
+ * người không có quyền — xem `CreativeFileController` để biết vì sao hai lớp
+ * chứ không một.
  *
- * Nên DTO này **không** trả `file_path` và cũng **không** trả URL. Trả ra là
- * phát đi một đường dẫn công khai tới nội dung chưa duyệt của người mua, và
- * biến một lỗi lưu trữ thành một lỗi lộ dữ liệu.
+ * ══ Lịch sử, để không ai quay lại chỗ cũ ══
  *
- * Việc cần làm (ngoài phạm vi mốc này, vì phải chuyển cả tệp đã có): đổi sang
- * disk `private` — đã cấu hình trong `config/filesystems.php` và chưa ai dùng
- * — rồi phát URL ký hạn qua một route có kiểm `CampaignPolicy`.
+ * Tới 03/10/2026 nội dung quảng cáo lưu trên disk **public**, nên tệp tải được
+ * qua `/storage/creatives/...` **không cần đăng nhập**. Đường dẫn gồm id chiến
+ * dịch và tên tệp băm nên khó đoán, nhưng khó đoán không phải phân quyền — và
+ * CLAUDE.md mục 5 nêu đúng "nội dung quảng cáo" trong nhóm phải để disk riêng.
+ *
+ * Trong thời gian đó DTO này **không** trả URL nào, vì trả ra là phát đi một
+ * đường dẫn công khai tới nội dung chưa duyệt của người mua. Giờ chỗ lưu đã
+ * đúng, nên URL ra ngoài được.
  */
 class CreativeResource extends JsonResource
 {
@@ -45,6 +48,11 @@ class CreativeResource extends JsonResource
             ],
 
             'file_size' => $this->file_size !== null ? (int) $this->file_size : null,
+
+            // URL ký hạn, sống theo `config('creatives.url_ttl_minutes')`.
+            // Hết hạn thì gọi lại endpoint này để lấy URL mới — đừng lưu nó
+            // vào CSDL hay cache lâu hơn chính cái hạn.
+            'download_url' => $this->file_url,
 
             'status'      => $this->status,
             'reviewed_at' => $this->reviewed_at?->toJSON(),

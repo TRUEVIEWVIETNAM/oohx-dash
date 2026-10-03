@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Campaign;
 use App\Models\CartItem;
+use App\Models\Creative;
 use App\Models\OrganizationUser;
 use App\Models\Owner;
 use App\Models\OwnerUser;
@@ -16,6 +17,7 @@ use App\Models\Network;
 use App\Models\Site;
 use App\Policies\CampaignPolicy;
 use App\Policies\CartItemPolicy;
+use App\Policies\CreativePolicy;
 use App\Policies\NetworkPolicy;
 use App\Policies\OrganizationUserPolicy;
 use App\Policies\OwnerPolicy;
@@ -51,6 +53,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Owner::class, OwnerPolicy::class);
         Gate::policy(Refund::class, RefundPolicy::class);
         Gate::policy(CartItem::class, CartItemPolicy::class);
+        Gate::policy(Creative::class, CreativePolicy::class);
         Gate::policy(OwnerUser::class, OwnerUserPolicy::class);
         Gate::policy(OrganizationUser::class, OrganizationUserPolicy::class);
         // Đăng ký tường minh thay vì dựa vào auto-discovery cho dễ truy vết.

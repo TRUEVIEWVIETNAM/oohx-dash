@@ -1003,6 +1003,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/campaigns/{campaign}/creatives": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tải nội dung quảng cáo lên (bước 2 của đặt chỗ)
+         * @description Đường **duy nhất** của `/api/v2` nhận tệp, nên gửi
+         *     `multipart/form-data` chứ không phải JSON.
+         *
+         *     Ba lớp kiểm, và không lớp nào thừa (CLAUDE.md mục 5 đòi kiểm mime,
+         *     phần mở rộng và dung lượng):
+         *
+         *     - phần mở rộng phải là jpg/jpeg/png/mp4/webm;
+         *     - **mime thật đọc từ nội dung tệp** phải khớp danh sách cho phép, nên
+         *       một tệp mp4 đổi tên thành .png không qua được;
+         *     - tối đa 50MB.
+         *
+         *     Tệp lưu trên disk riêng. Bản ghi tạo ra luôn ở `pending_review` —
+         *     nội dung tự lên sóng là chỗ nặng nhất có thể sai ở một sàn quảng cáo
+         *     ngoài trời, nên mặc định phải là đóng.
+         *
+         *     Hạn mức riêng 20 lần/10 phút: mỗi lần gọi có thể ghi 50MB vào đĩa.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    campaign: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        file: string;
+                        /** @description Bỏ trống thì lấy tên tệp gốc. */
+                        name?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã tải lên, chờ duyệt */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                creative: components["schemas"]["Creative"];
+                            } & components["schemas"]["BookingReview"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["ValidationFailed"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/campaigns/{campaign}/submit": {
         parameters: {
             query?: never;
@@ -1581,11 +1657,16 @@ export interface components {
             rejected_reason?: string | null;
         };
         /**
-         * @description Nội dung quảng cáo đã tải lên. **Không có `file_path` và không có URL**
-         *     — nội dung quảng cáo nằm trong nhóm tệp nhạy cảm mà CLAUDE.md mục 5
-         *     yêu cầu để disk riêng và truy cập qua URL ký hạn. Hiện tệp đang nằm
-         *     trên disk công khai, nên phát đường dẫn ra đây sẽ biến một lỗi lưu trữ
-         *     thành một lỗi lộ dữ liệu.
+         * @description Nội dung quảng cáo đã tải lên.
+         *
+         *     **Không có `file_path`** — đó là đường dẫn trên đĩa, một chi tiết lưu
+         *     trữ. Thứ bên tiêu thụ cần là một cách lấy tệp, không phải vị trí của nó.
+         *
+         *     `download_url` là URL **ký hạn** tới tệp, sống theo
+         *     `CREATIVES_URL_TTL_MINUTES` (mặc định 60 phút). Route phía sau còn
+         *     kiểm `CreativePolicy` chứ không chỉ kiểm ký, nên URL rò ra ngoài vẫn
+         *     vô dụng với người không có quyền. Hết hạn thì gọi lại endpoint này để
+         *     lấy URL mới; đừng lưu nó vào CSDL hay cache lâu hơn chính cái hạn.
          */
         Creative: {
             id?: string;
@@ -1598,6 +1679,11 @@ export interface components {
                 duration_sec?: number | null;
             };
             file_size?: number | null;
+            /**
+             * Format: uri
+             * @description URL ký hạn. Null khi bản ghi chưa có tệp.
+             */
+            download_url?: string | null;
             status?: string;
             /** Format: date-time */
             reviewed_at?: string | null;

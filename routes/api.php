@@ -155,6 +155,11 @@ Route::prefix('v2')
         Route::post('campaigns', [V2BookingController::class, 'store'])
             ->middleware('throttle:10,1');
 
+        // Tải tệp lên: hạn mức chặt hơn nữa. Đây là đường duy nhất của
+        // `/api/v2` nhận tệp, và mỗi lần gọi có thể ghi 50MB vào đĩa.
+        Route::post('campaigns/{campaign}/creatives', [V2BookingController::class, 'storeCreative'])
+            ->middleware('throttle:20,10');
+
         Route::post('campaigns/{campaign}/submit', [V2BookingController::class, 'submit'])
             ->middleware('throttle:10,1');
 

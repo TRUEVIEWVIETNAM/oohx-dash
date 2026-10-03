@@ -683,6 +683,62 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /api/v2/campaigns/{campaign}/creatives:
+    parameters:
+      - { name: campaign, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [booking]
+      security: [{ sessionCookie: [] }]
+      summary: Tải nội dung quảng cáo lên (bước 2 của đặt chỗ)
+      description: |
+        Đường **duy nhất** của `/api/v2` nhận tệp, nên gửi
+        `multipart/form-data` chứ không phải JSON.
+
+        Ba lớp kiểm, và không lớp nào thừa (CLAUDE.md mục 5 đòi kiểm mime,
+        phần mở rộng và dung lượng):
+
+        - phần mở rộng phải là jpg/jpeg/png/mp4/webm;
+        - **mime thật đọc từ nội dung tệp** phải khớp danh sách cho phép, nên
+          một tệp mp4 đổi tên thành .png không qua được;
+        - tối đa 50MB.
+
+        Tệp lưu trên disk riêng. Bản ghi tạo ra luôn ở `pending_review` —
+        nội dung tự lên sóng là chỗ nặng nhất có thể sai ở một sàn quảng cáo
+        ngoài trời, nên mặc định phải là đóng.
+
+        Hạn mức riêng 20 lần/10 phút: mỗi lần gọi có thể ghi 50MB vào đĩa.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                name: { type: string, maxLength: 255, nullable: true, description: 'Bỏ trống thì lấy tên tệp gốc.' }
+      responses:
+        '201':
+          description: Đã tải lên, chờ duyệt
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    allOf:
+                      - type: object
+                        required: [creative]
+                        properties:
+                          creative: { $ref: '#/components/schemas/Creative' }
+                      - $ref: '#/components/schemas/BookingReview'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /api/v2/campaigns/{campaign}/submit:
     parameters:
       - { name: campaign, in: path, required: true, schema: { type: string } }
@@ -1259,11 +1315,16 @@ components:
     Creative:
       type: object
       description: |
-        Nội dung quảng cáo đã tải lên. **Không có `file_path` và không có URL**
-        — nội dung quảng cáo nằm trong nhóm tệp nhạy cảm mà CLAUDE.md mục 5
-        yêu cầu để disk riêng và truy cập qua URL ký hạn. Hiện tệp đang nằm
-        trên disk công khai, nên phát đường dẫn ra đây sẽ biến một lỗi lưu trữ
-        thành một lỗi lộ dữ liệu.
+        Nội dung quảng cáo đã tải lên.
+
+        **Không có `file_path`** — đó là đường dẫn trên đĩa, một chi tiết lưu
+        trữ. Thứ bên tiêu thụ cần là một cách lấy tệp, không phải vị trí của nó.
+
+        `download_url` là URL **ký hạn** tới tệp, sống theo
+        `CREATIVES_URL_TTL_MINUTES` (mặc định 60 phút). Route phía sau còn
+        kiểm `CreativePolicy` chứ không chỉ kiểm ký, nên URL rò ra ngoài vẫn
+        vô dụng với người không có quyền. Hết hạn thì gọi lại endpoint này để
+        lấy URL mới; đừng lưu nó vào CSDL hay cache lâu hơn chính cái hạn.
       properties:
         id:   { type: string }
         name: { type: string, nullable: true }
@@ -1274,9 +1335,10 @@ components:
             width_px:     { type: integer, nullable: true }
             height_px:    { type: integer, nullable: true }
             duration_sec: { type: integer, nullable: true }
-        file_size:   { type: integer, nullable: true }
-        status:      { type: string }
-        reviewed_at: { type: string, format: date-time, nullable: true }
+        file_size:    { type: integer, nullable: true }
+        download_url: { type: string, format: uri, nullable: true, description: 'URL ký hạn. Null khi bản ghi chưa có tệp.' }
+        status:       { type: string }
+        reviewed_at:  { type: string, format: date-time, nullable: true }
         created_at:  { type: string, format: date-time, nullable: true }
 
     SovConflict:
