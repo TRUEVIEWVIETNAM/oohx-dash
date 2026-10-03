@@ -16,11 +16,15 @@
 </div>
 
 <div class="w">
-    <div class="cat-chips">
-        <div class="cat-chip on">Tất cả ({{ $agencies->total() }})</div>
-        <div class="cat-chip">Đại lý</div>
-        <div class="cat-chip">Nhãn hàng</div>
-        <div class="cat-chip">Khách hàng</div>
+    {{-- ĐÃ GỠ: cụm chip "Tất cả / Đại lý / Nhãn hàng / Khách hàng".
+     Khối JS kèm theo chỉ bỏ class `on` ở mọi chip rồi thêm vào chip vừa
+     bấm — chip sáng lên như đã lọc, danh sách bên dưới không đổi một dòng.
+     Phản hồi như đã làm việc trong khi không làm gì (F-15).
+
+     Khác trang /owners, ở đây KHÔNG nối được: `getAgencies()` cố định
+     `type = 'agency'` và không nhận tham số lọc nào, nên ba nhãn kia
+     không có chỗ nào ở backend để trỏ tới. Làm chúng chạy là thêm tính
+     năng mới — CLAUDE.md mục 3 cấm trong giai đoạn chuyển đổi. --}}
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <div style="font-size:14px;font-weight:600;color:var(--t2)">Hiển thị <strong style="color:var(--bl)">{{ $agencies->total() }}</strong> agencies</div>
@@ -52,15 +56,4 @@
 </div>
 @endsection
 
-@push('scripts')
-<script>
-(function(){
-  document.querySelectorAll('.cat-chip').forEach(function(c){
-    c.addEventListener('click',function(){
-      document.querySelectorAll('.cat-chip').forEach(function(x){x.classList.remove('on');});
-      c.classList.add('on');
-    });
-  });
-})();
-</script>
-@endpush
+

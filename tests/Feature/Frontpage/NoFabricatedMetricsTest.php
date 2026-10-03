@@ -266,4 +266,52 @@ class NoFabricatedMetricsTest extends TestCase
             $response->assertDontSee('<select', false);
         }
     }
+    // ── Nút không có hành vi, và khẳng định truy vấn không đỡ ────────────────
+
+    public function test_trang_chu_khong_con_nut_khong_co_hanh_vi(): void
+    {
+        $this->sellableScreen();
+
+        $response = $this->get($this->url('/'))->assertOk();
+
+        // Năm `<button>` trần: không `onclick`, không trong form, không JS nào
+        // bắt. Canh kèm `</button>` chứ không canh riêng nhãn — "Tìm hiểu thêm"
+        // là cụm chữ có thể dùng lại ở chỗ khác một cách hợp lệ, cái sai là nó
+        // nằm trong một cái nút không đi đâu.
+        $response->assertDontSee('Đăng ký làm chủ sở hữu</button>', false);
+        $response->assertDontSee('Tìm hiểu thêm</button>', false);
+        $response->assertDontSee('>City Launch</button>', false);
+        $response->assertDontSee('>Retail Activation</button>', false);
+        $response->assertDontSee('>Event Blitz</button>', false);
+    }
+
+    public function test_tieu_de_muc_khong_hua_con_trong(): void
+    {
+        $screen = $this->sellableScreen();
+        $this->sellOut($screen);
+
+        $response = $this->get($this->url('/'))->assertOk();
+
+        // `getFeaturedScreens()` lọc có ảnh + có giá sàn, KHÔNG lọc còn suất —
+        // nên một màn hình bán kín vẫn nằm trong mục này. Tiêu đề cũ hứa điều
+        // truy vấn không bảo đảm. Badge trên từng thẻ thì vẫn đúng theo suất
+        // thật, và test khác đã canh.
+        $response->assertDontSee('Đang còn trống</h2>', false);
+        $response->assertSee('Vị trí nổi bật', false);
+    }
+
+    public function test_trang_owners_khong_khang_dinh_verified(): void
+    {
+        Owner::factory()->count(2)->create(['status' => 'active']);
+
+        $response = $this->get($this->url('/owners'))->assertOk();
+
+        // `getOwnersPaginated()` lọc `status = 'active'`, không đọc cột
+        // `verified`/`verified_at` — nên gọi mọi owner đang hoạt động là "đối
+        // tác verified" là một khẳng định về tư cách pháp lý của đối tác mà
+        // không ai kiểm. Nặng hơn một con số trang trí.
+        $response->assertDontSee('VERIFIED PARTNERS', false);
+        $response->assertDontSee('đối tác verified', false);
+        $response->assertSee('đối tác đang hoạt động', false);
+    }
 }
