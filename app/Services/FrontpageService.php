@@ -321,10 +321,30 @@ class FrontpageService
         $owners = Owner::query()
             ->where('status', 'active')
             ->when($request->filled('q'), fn ($q) => $q->where('name', 'LIKE', '%' . $request->input('q') . '%'))
-            ->when($request->filled('type'), fn ($q) => $q->whereHas('screens', function ($sq) use ($request) {
-                $sq->where('active', true)
-                    ->whereHas('inventory', fn ($iq) => $iq->where('venue_type', $request->input('type')));
-            }))
+            // `type` nhận SLUG của venue_categories — cùng từ vựng mà
+            // `getVenueTypesWithCounts()` phát ra cho chip lọc, và cùng từ vựng
+            // `/explore` dùng (xem nhánh `venue_type` trong `getListing`).
+            //
+            // Bản cũ so slug đó với cột `screen_inventory.venue_type`, là một
+            // cột chuỗi KHÁC: nó giữ mã venue type của OpenOOH do Filament ghi,
+            // không phải slug nhóm. Hai từ vựng không giao nhau, nên filter
+            // `type` khớp không gì cả — kể cả tham số `type` đã công bố ở
+            // `/api/v2/owners`. Lỗi im lặng: không báo gì, chỉ trả danh sách
+            // rỗng, và trước đây không ai gọi tới nó vì chip lọc chưa phải link.
+            ->when($request->filled('type'), function ($q) use ($request) {
+                $catIds = DB::table('venue_categories')
+                    ->where('slug', $request->input('type'))
+                    ->pluck('id');
+
+                // Slug lạ thì bỏ qua filter, giống `/explore`, chứ không trả
+                // rỗng — hai danh sách phải trả lời giống nhau cho cùng một
+                // tham số sai.
+                if ($catIds->isNotEmpty()) {
+                    $q->whereHas('screens', fn ($sq) => $sq
+                        ->where('active', true)
+                        ->whereHas('inventory', fn ($iq) => $iq->whereIn('vn_category_id', $catIds)));
+                }
+            })
             ->withCount(['screens as screen_count' => fn ($q) => $q->where('active', true)])
             ->orderByDesc('featured')
             ->orderByDesc('screen_count')
