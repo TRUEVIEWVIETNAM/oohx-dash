@@ -231,4 +231,39 @@ class NoFabricatedMetricsTest extends TestCase
             'Thiếu dữ liệu thì không nói gì, chứ không mặc định là còn trống.'
         );
     }
+
+    // ── Lời hứa kết quả kinh doanh, và ô điều khiển không làm gì ────────────
+
+    public function test_trang_chu_khong_hua_fill_rate(): void
+    {
+        $this->sellableScreen();
+
+        $response = $this->get($this->url('/'))->assertOk();
+
+        // "Tăng fill rate lên 40%" là một lời hứa kết quả kinh doanh với media
+        // owner. Fill rate cần dữ liệu phát sóng thật để tính, mà chưa có
+        // player nào gửi dữ liệu vào `impression_logs` — nên 40% không chỉ
+        // thiếu nguồn, nó không tính được bằng bất cứ con số nào khác, kể cả
+        // khi muốn thay bằng số thật.
+        $response->assertDontSee('fill rate', false);
+        $response->assertDontSee('Fill rate', false);
+    }
+
+    public function test_danh_sach_owner_va_agency_khong_con_o_sap_xep_chet(): void
+    {
+        Owner::factory()->count(2)->create(['status' => 'active']);
+
+        foreach (['/owners', '/agency'] as $path) {
+            $response = $this->get($this->url($path))->assertOk();
+
+            // Ô `<select>` cũ không có `name`, không nằm trong form, và không
+            // JS nào bắt nó — bấm chọn thì thứ tự không đổi.
+            //
+            // Canh bằng thẻ chứ không bằng chữ trong `<option>`: không layout
+            // hay partial nào của trang công khai có `<select>`, nên một thẻ
+            // xuất hiện lại ở đây là ô chết quay về, kể cả khi người ta đổi
+            // nhãn các lựa chọn.
+            $response->assertDontSee('<select', false);
+        }
+    }
 }

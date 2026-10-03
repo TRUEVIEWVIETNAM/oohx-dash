@@ -24,11 +24,15 @@
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <div style="font-size:14px;font-weight:600;color:var(--t2)">Hiển thị <strong style="color:var(--bl)">{{ $agencies->total() }}</strong> agencies</div>
-        <select style="height:36px;padding:0 12px;border-radius:8px;border:1.5px solid var(--ln2);background:#fff;font-family:var(--font);font-size:13px;color:var(--t2);outline:none;appearance:none;-webkit-appearance:none;padding-right:28px">
-            <option>A → Z</option>
-            <option>Nhiều campaigns nhất</option>
-            <option>Mới nhất</option>
-        </select>
+        {{-- ĐÃ GỠ: ô sắp xếp (Nhiều campaigns nhất).
+     Nó không có `name`, không nằm trong form, và không JS nào bắt nó — bấm
+     chọn thì thứ tự không đổi. 
+     `FrontpageService` cũng KHÔNG nhận tham số sắp xếp nào cho danh sách này,
+     nên làm nó chạy là thêm tính năng mới vào Blade — CLAUDE.md mục 3 cấm
+     điều đó trong giai đoạn chuyển đổi. Gỡ là cách sửa đúng phạm vi (F-15).
+
+     Khi danh sách này chuyển sang Next.js (giai đoạn 6): thêm tham số sắp xếp
+     vào API v2 trước, rồi mới dựng ô chọn đọc từ đó. --}}
     </div>
 
     @if($agencies->isEmpty())

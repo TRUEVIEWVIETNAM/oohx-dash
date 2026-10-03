@@ -366,7 +366,17 @@
           <div class="oc-feat"><div class="oc-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="rgba(255,255,255,.9)" style="width:18px;height:18px;flex-shrink:0"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg></div><div><div class="oc-feat-title">Đăng inventory nhanh chóng</div><div class="oc-feat-sub">Upload ảnh, thông số, vị trí trong vài phút</div></div></div>
           <div class="oc-feat"><div class="oc-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="rgba(255,255,255,.9)" style="width:18px;height:18px;flex-shrink:0"><path d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z"/></svg></div><div><div class="oc-feat-title">Quản lý availability calendar</div><div class="oc-feat-sub">Cập nhật slot theo real-time</div></div></div>
           <div class="oc-feat"><div class="oc-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="rgba(255,255,255,.9)" style="width:18px;height:18px;flex-shrink:0"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div><div><div class="oc-feat-title">Nhận booking notification tức thì</div><div class="oc-feat-sub">Không bỏ lỡ bất kỳ lead nào</div></div></div>
-          <div class="oc-feat"><div class="oc-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="rgba(255,255,255,.9)" style="width:18px;height:18px;flex-shrink:0"><path d="m16 6 2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg></div><div><div class="oc-feat-title">Tăng fill rate lên 40%</div><div class="oc-feat-sub">Tiếp cận đúng buyer đang tìm kiếm</div></div></div>
+          {{-- ĐÃ GỠ: thẻ "Tăng fill rate lên 40%".
+               Fill rate là tỷ lệ thời lượng đã bán trên tổng thời lượng, nên muốn
+               biết nó phải có dữ liệu phát sóng thật. Hiện CHƯA CÓ thiết bị
+               player nào gửi dữ liệu vào `impression_logs`, nên không có cách
+               nào tính ra 40% — cũng không có cách nào tính ra con số khác để
+               thay vào. Con số viết cứng trong template và hứa một kết quả
+               kinh doanh với media owner (audit F-15).
+
+               Khi có dữ liệu thật: tính từ `impression_daily_rollups` so với
+               thời lượng khả dụng, và nêu rõ kỳ tính. Đừng in một số trung
+               bình toàn sàn như thể đó là cam kết cho từng owner. --}}
         </div>
       </div>
     </div>
