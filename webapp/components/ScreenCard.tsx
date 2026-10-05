@@ -8,15 +8,34 @@ import type { ScreenSummary } from '@/lib/api';
  * (`sc-photo`, `sc-body`, `sc-title`…), nên stylesheet dùng chung áp vào mà
  * không cần CSS mới. Đổi tên class ở đây là tự tạo một giao diện thứ hai.
  *
- * ══ Không có badge "Còn trống" ══
+ * ══ Badge "Còn trống" chỉ hiện khi CÓ dữ liệu suất ══
  *
- * Bản Blade chỉ in badge khi người gọi truyền dữ liệu suất vào, và
- * `NoFabricatedMetricsTest` canh đúng điều đó: thiếu dữ liệu thì không nói gì,
- * chứ không mặc định là còn trống (audit F-15). `/api/v2/screens` **không** trả
- * thông tin suất — nó chỉ có ở `/api/v2/screens/{slug}` — nên ở đây không có gì
- * để in, và in bừa là lặp lại đúng lỗi vừa dọn.
+ * `availability` là prop **tuỳ chọn**, và mặc định là không có. Bản Blade cũng
+ * vậy: nó chỉ in badge khi người gọi truyền mảng suất vào, và
+ * `NoFabricatedMetricsTest` canh đúng điều đó — thiếu dữ liệu thì không nói gì,
+ * chứ không mặc định là còn trống (audit F-15).
+ *
+ * Thực tế hiện nay: `/api/v2/screens`, `/api/v2/owners/{slug}` và
+ * `/api/v2/products/{slug}` **không** trả suất, nên thẻ ở các trang đó không
+ * có badge. Chỉ `/api/v2/screens/featured` trả, nên chỉ trang chủ có.
+ *
+ * Và `availability` có thể là `null` ngay cả khi endpoint trả nó: `null` nghĩa
+ * là **chưa biết**, khác `remaining_sov_pct: 0` nghĩa là **đã đặt kín**. Gộp
+ * hai thứ đó là cách in badge "đã đầy" cho một màn hình không ai đặt.
  */
-export function ScreenCard({ screen }: { screen: ScreenSummary }) {
+type Availability = {
+    window_days?: number;
+    remaining_sov_pct?: number;
+    has_capacity?: boolean;
+} | null;
+
+export function ScreenCard({
+    screen,
+    availability,
+}: {
+    screen: ScreenSummary;
+    availability?: Availability;
+}) {
     const price = formatPrice(screen);
 
     return (
@@ -30,6 +49,17 @@ export function ScreenCard({ screen }: { screen: ScreenSummary }) {
                     // `remotePatterns` nới ra sau này.
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={screen.photo_url} alt={screen.name ?? ''} loading="lazy" />
+                ) : null}
+
+                {/*
+                  Badge chỉ khi CÓ dữ liệu suất và còn suất. Không có dữ liệu
+                  thì không nói gì — xem chú thích đầu file.
+                */}
+                {availability?.has_capacity ? (
+                    <span className="sc-badge">
+                        Còn {availability.remaining_sov_pct}% trong{' '}
+                        {availability.window_days} ngày
+                    </span>
                 ) : null}
             </Link>
 
