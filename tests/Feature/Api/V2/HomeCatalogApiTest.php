@@ -312,4 +312,120 @@ class HomeCatalogApiTest extends TestCase
             $this->getJson($url)->assertOk();
         }
     }
+    // ── Điều kiện "nổi bật" và khoá cache ───────────────────────────────────
+
+    /** Màn hình có ảnh nhưng CHỈ có giá theo kỳ, không có giá sàn CPM. */
+    private function ioOnlyScreen(string $city = 'Hà Nội'): Screen
+    {
+        $owner  = Owner::factory()->create(['status' => 'active']);
+        $site   = Site::factory()->create([
+            'owner_id' => $owner->id,
+            'city'     => $city,
+            'status'   => 'active',
+            'lat'      => 21.028,
+            'lon'      => 105.834,
+        ]);
+        $screen = Screen::factory()->create([
+            'owner_id' => $owner->id,
+            'site_id'  => $site->id,
+            'active'   => true,
+        ]);
+
+        ScreenSpec::factory()->create([
+            'screen_id' => $screen->id,
+            'photo_url' => 'screens/anh-that.jpg',
+        ]);
+
+        ScreenInventory::create([
+            'screen_id'              => $screen->id,
+            'pricing_model'          => 'io',
+            'io_rate'                => 1_000_000,
+            'io_rate_unit'           => 'month',
+            // KHÔNG có giá sàn CPM — đúng hiện trạng production: đo ngày
+            // 05/10/2026 thì 0/50 màn hình có `floor_cpm > 0`.
+            'floor_cpm'              => null,
+            'spot_length'            => 15,
+            'share_of_voice_max_pct' => 100,
+        ]);
+
+        return $screen->fresh(['inventory', 'spec', 'site']);
+    }
+
+    public function test_man_hinh_ban_theo_ky_cung_duoc_coi_la_noi_bat(): void
+    {
+        $screen = $this->ioOnlyScreen();
+
+        // Bản cũ lọc `floor_cpm > 0`, nên cả kho bán theo kỳ bị loại hết và
+        // trang chủ hiện "Chưa có inventory" ở mục nổi bật. Không ai thấy vì
+        // đó là một mục rỗng, không phải một lỗi — nó lộ ra khi
+        // `/api/v2/screens/featured` trả `data: []` với 104 màn hình trong kho.
+        $slugs = collect(
+            $this->getJson('/api/v2/screens/featured')->assertOk()->json('data')
+        )->pluck('slug');
+
+        $this->assertContains($screen->slug, $slugs);
+    }
+
+    public function test_man_hinh_khong_co_gia_nao_thi_khong_noi_bat(): void
+    {
+        // Điều kiện là "có giá", không phải "có mô hình bán". Màn hình chưa
+        // niêm yết giá thì không đưa lên trang chủ — một thẻ không giá trên
+        // trang chủ là một thẻ không bán được gì.
+        $owner  = Owner::factory()->create(['status' => 'active']);
+        $site   = Site::factory()->create(['owner_id' => $owner->id, 'status' => 'active']);
+        $screen = Screen::factory()->create([
+            'owner_id' => $owner->id,
+            'site_id'  => $site->id,
+            'active'   => true,
+        ]);
+        ScreenSpec::factory()->create(['screen_id' => $screen->id, 'photo_url' => 'a.jpg']);
+        ScreenInventory::create([
+            'screen_id'              => $screen->id,
+            'pricing_model'          => 'io',
+            'io_rate'                => null,
+            'floor_cpm'              => null,
+            'spot_length'            => 15,
+            'share_of_voice_max_pct' => 100,
+        ]);
+
+        $this->getJson('/api/v2/screens/featured')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_limit_khac_nhau_khong_dung_lai_ket_qua_cache_cua_nhau(): void
+    {
+        for ($i = 0; $i < 6; $i++) {
+            $this->ioOnlyScreen();
+        }
+
+        // Gọi với limit nhỏ TRƯỚC để nạp cache, rồi gọi limit lớn.
+        //
+        // Bản cũ dùng khoá `fp:featured_screens` cố định trong khi `$limit` đi
+        // vào closure, nên lần gọi thứ hai nhận lại 2 bản ghi của lần đầu —
+        // im lặng, và `meta.limit` vẫn báo 6. Trang Blade luôn gọi với 4 nên
+        // không ai thấy; endpoint nhận `limit` làm nó lộ ra.
+        $this->getJson('/api/v2/screens/featured?limit=2')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $this->getJson('/api/v2/screens/featured?limit=6')
+            ->assertOk()
+            ->assertJsonCount(6, 'data');
+    }
+
+    public function test_owners_featured_cung_khong_dung_lai_cache_cua_limit_khac(): void
+    {
+        for ($i = 0; $i < 4; $i++) {
+            $this->ioOnlyScreen();
+        }
+
+        $this->getJson('/api/v2/owners/featured?limit=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $this->getJson('/api/v2/owners/featured?limit=4')
+            ->assertOk()
+            ->assertJsonCount(4, 'data');
+    }
 }

@@ -265,15 +265,40 @@ class FrontpageService
         });
     }
 
+    /**
+     * Màn hình nổi bật: công khai, có ảnh, và **có giá** ở bất kỳ mô hình bán nào.
+     *
+     * ══ Vì sao không chỉ `floor_cpm > 0` ══
+     *
+     * Bản cũ chỉ nhận màn hình có giá sàn CPM. Đo trên production ngày
+     * 05/10/2026: **0 trên 50** màn hình có `floor_cpm > 0` — cả kho bán theo
+     * kỳ (`io_rate`), còn `floor_cpm` để trống. Nên điều kiện đó loại hết, và
+     * trang chủ hiện "Chưa có inventory" ở mục nổi bật.
+     *
+     * Không ai thấy vì nó là một mục rỗng, không phải một lỗi. Nó lộ ra khi
+     * `/api/v2/screens/featured` trả `data: []` với 104 màn hình trong kho.
+     *
+     * Điều kiện đúng là "có giá", và giá nằm ở một trong hai cột tùy mô hình
+     * bán. Lọc theo một cột là ngầm giả định cả sàn bán theo CPM.
+     *
+     * ══ Khoá cache phải chứa `$limit` ══
+     *
+     * Bản cũ dùng khoá `fp:featured_screens` cố định trong khi `$limit` đi vào
+     * closure. Trang Blade luôn gọi với 4 nên không ai thấy, nhưng
+     * `/api/v2/screens/featured?limit=12` sẽ nhận lại 4 bản ghi của lần gọi
+     * trước — im lặng, và `meta.limit` vẫn báo 12.
+     */
     public function getFeaturedScreens(int $limit = 4): Collection
     {
-        return Cache::remember('fp:featured_screens', 900, function () use ($limit) {
+        return Cache::remember("fp:featured_screens:{$limit}", 900, function () use ($limit) {
             return Screen::publiclyVisible()
                 ->whereHas('spec', fn ($q) => $q->where(fn ($sq) =>
                     $sq->whereNotNull('photos')->where('photos', '!=', '[]')
                        ->orWhere(fn ($sq2) => $sq2->whereNotNull('photo_url')->where('photo_url', '!=', ''))
                 ))
-                ->whereHas('inventory', fn ($q) => $q->where('floor_cpm', '>', 0))
+                ->whereHas('inventory', fn ($q) => $q->where(fn ($iq) =>
+                    $iq->where('floor_cpm', '>', 0)->orWhere('io_rate', '>', 0)
+                ))
                 ->with([
                     'spec:screen_id,photo_url,photos,width_cm,height_cm',
                     'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day',
@@ -289,9 +314,15 @@ class FrontpageService
         });
     }
 
+    /**
+     * Khoá cache chứa `$limit`, cùng lý do như `getFeaturedScreens()`: bản cũ
+     * dùng khoá cố định trong khi `$limit` đi vào closure, nên
+     * `/api/v2/owners/featured?limit=24` nhận lại 6 bản ghi của lần gọi trước
+     * và `meta.limit` vẫn báo 24.
+     */
     public function getFeaturedOwners(int $limit = 6): Collection
     {
-        return Cache::remember('fp:featured_owners', 1800, function () use ($limit) {
+        return Cache::remember("fp:featured_owners:{$limit}", 1800, function () use ($limit) {
             $owners = Owner::where('status', 'active')
                 ->where('featured', true)
                 ->withCount(['screens as screen_count' => fn ($q) => $q->where('active', true)])
