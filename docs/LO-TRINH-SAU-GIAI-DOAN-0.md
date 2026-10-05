@@ -15,9 +15,9 @@ Nguyên tắc xuyên suốt: **đóng đường tiền trước, đổi giao di�
 | ~~1~~ | ~~Đóng đường tiền~~ **XONG 29/09** | XL | — |
 | ~~1b~~ | ~~Vá nốt phân quyền~~ **XONG 29/09** | M | — |
 | ~~2~~ | ~~Sửa đường ghi bằng chứng phát sóng~~ **XONG 29/09** | L | — |
-| ~~3~~ | ~~Hợp nhất quan hệ Màn hình ↔ Mạng lưới~~ **XONG 29/09** | M | Còn: chạy `networks:reconcile --dry-run` trên dữ liệu thật |
-| **4** | Dọn số liệu bịa trên trang công khai | S | Quyết định của anh |
-| **5** | API v2 + OpenAPI, Blade tự đọc qua API | M | 1–3 đã xong — sẵn sàng bắt đầu |
+| ~~3~~ | ~~Hợp nhất quan hệ Màn hình ↔ Mạng lưới~~ **XONG 29/09** | M | — (đã chạy `networks:reconcile` trên dữ liệu thật khi deploy 02/10: 2970→2970, 0 xung đột) |
+| ~~4~~ | ~~Dọn số liệu bịa trên trang công khai~~ **XONG 03/10** | S | — |
+| **5** | API v2 + OpenAPI, Blade tự đọc qua API | M | **Đang làm.** Mốc 1, 2 xong; mốc 3 còn nhóm đặt chỗ + thanh toán |
 | **6** | Next.js cho trang công khai | L | Xong 5 |
 | **7** | Dọn Blade công khai | S | Xong 6 |
 | **8** | *(hoãn)* Next.js cho khu người mua | L | Có thêm người |
@@ -109,6 +109,29 @@ Cần migration trên dữ liệu production: chạy thử, đối chiếu số 
 "30M+ lượt hiển thị", bộ đếm impression chạy bằng `Math.random()`, "AI Match 94%", "fill rate 40%", badge "Còn trống" in vô điều kiện, nút CTA không có hành vi. Với một sàn đang nộp hồ sơ TMĐT thì đây là rủi ro pháp lý chứ không phải chuyện thẩm mỹ.
 
 Nhỏ về công sức, nhưng cần anh quyết: thay bằng số thật (nếu có) hay gỡ hẳn.
+
+### Đã làm — hai đợt (29/09 và 03/10/2026)
+
+Đợt đầu gỡ "30M+ impressions", bộ đếm `Math.random()`, "AI Match 94%" và badge "Còn trống" in vô điều kiện.
+
+Đợt sau rà lại toàn bộ view công khai và tìm thêm sáu nhóm. Ba quyết định ngày 03/10:
+
+| Chỗ | Quyết | Vì sao |
+|---|---|---|
+| "Tăng fill rate lên 40%" | gỡ | Fill rate cần dữ liệu phát sóng; chưa có player nào gửi dữ liệu, nên không có con số nào để thay vào |
+| Hai ô `<select>` sắp xếp (/owners, /agency) | gỡ | `FrontpageService` không nhận tham số sắp xếp nào; làm chúng chạy là thêm tính năng mới vào Blade (CLAUDE.md mục 3) |
+| Ô tìm kiếm + chip lọc trên /owners | **nối vào** | `getOwnersPaginated()` đã nhận `q` và `type` — thiếu dây nối, không thiếu nghiệp vụ |
+| Chip lọc trên /agency | gỡ | `getAgencies()` cố định `type = 'agency'`, không có chỗ nào ở backend để trỏ tới |
+| 5 nút CTA trang chủ | gỡ | `<button>` trần, không đích. Không có route đăng ký owner; ba tên gói không xác nhận được là bản ghi thật |
+| "VERIFIED PARTNERS", "Đang còn trống" | đổi câu chữ | Truy vấn không đỡ được lời khẳng định; lọc thật thì làm ở Next.js khi có API v2 cho hai danh sách này |
+
+**Lỗi thật lộ ra khi nối dây.** Filter `type` của `getOwnersPaginated()` so **slug nhóm điểm đặt** với cột `screen_inventory.venue_type` — một cột chuỗi khác, giữ mã OpenOOH do Filament ghi. Hai từ vựng không giao nhau nên nó khớp không gì cả. `/explore` làm đúng: quy slug sang `vn_category_id`. Và vì `getOwnersPaginated()` dùng chung với `/api/v2/owners`, nơi `docs/openapi/v2.yaml` **đã công bố** tham số `type`, nên đây là một tham số có hợp đồng mà trả rỗng im lặng — không phải chuyện riêng của Blade.
+
+Chip lọc trước đây chưa phải link nên không ai gọi tới filter đó. Lỗi nằm im vì không có đường chạy — đúng kiểu CLAUDE.md mục 8 nói: có route, có tham số, có cả đặc tả, mà không có đường chạy thật.
+
+**Còn lại, cần xác nhận:** ba thẻ mô tả gói "City Launch" / "Retail Activation" / "Event Blitz" vẫn đứng trên trang chủ (chỉ gỡ nút). Nếu nội dung trong chúng không ứng với bản ghi nào trong bảng `products` thì đó là phần F-15 chưa dọn.
+
+12 test mới: `OwnersFilterTest` (9) và mở rộng `NoFabricatedMetricsTest` (3).
 
 ---
 
@@ -240,7 +263,7 @@ Khóa vẫn nằm trong lịch sử git tại `ed6665a`. Viết lại lịch s�
 
 ### Câu hỏi mới, phát sinh ngày 01/10/2026
 
-**Chính sách tỷ giá cho giá niêm yết ngoài VND.** Đã xác nhận dữ liệu thật có màn hình niêm yết bằng USD. Đường tiền không mang đơn vị (`cart_items.estimated_cost` và `booking_lines.estimated_cost` **không có cột currency**), nên nhánh CPM từng cho ra hóa đơn thấp hơn giá thật khoảng 25.000 lần. Hiện **chặn đặt trực tuyến** với giá ngoài VND, vì tự quy đổi là đặt ra một chính sách giá mà không ai duyệt.
+**Chính sách tỷ giá cho giá niêm yết ngoài VND.** ~~Đã xác nhận dữ liệu thật có màn hình niêm yết bằng USD.~~ **SỬA 03/10/2026: câu đó SAI.** Truy vấn trên production trả về `{"VND":104}` và `{"VND":1}` — **không có bản ghi USD nào**. Tôi viết câu đó mà không kiểm, và nó làm ba câu hỏi dưới đây trông cấp bách hơn thực tế. Phần chặn giá ngoài VND vẫn đúng như một chốt phòng ngừa, nhưng nó hiện **không chặn việc gì**. Đường tiền không mang đơn vị (`cart_items.estimated_cost` và `booking_lines.estimated_cost` **không có cột currency**), nên nhánh CPM từng cho ra hóa đơn thấp hơn giá thật khoảng 25.000 lần. Hiện **chặn đặt trực tuyến** với giá ngoài VND, vì tự quy đổi là đặt ra một chính sách giá mà không ai duyệt.
 
 Cần quyết ba điều trước khi mở lại: **tỷ giá lấy từ đâu** (cố định trong config, hay nguồn ngoài), **chụp lại lúc nào** (lúc thêm giỏ, lúc chốt đơn, hay lúc xuất hóa đơn), và **ai chịu rủi ro** khi tỷ giá đổi giữa hai mốc đó. `cart_items.rate_snapshot` đã có sẵn chỗ để chụp.
 
@@ -250,6 +273,10 @@ Phương án khác, tránh hẳn chuyện tỷ giá: yêu cầu media owner niê
 
 ## Đề xuất làm gì ngay
 
-1. **Trả lời câu hỏi 2** trước tiên — nó chặn việc đưa toàn bộ giai đoạn 0 lên production, mà code đã xong và xanh rồi.
-2. **Cho Codex review giai đoạn 0** (`audit-5-vung-2026-09-23/REVIEW-REQUEST-T3-T4-CLAUDE.md`), sửa xong thì merge và deploy.
-3. **Bắt đầu 1.1 giữ chỗ nguyên tử** — nguy hiểm nhất, và chỉ cần trả lời một câu hỏi.
+~~Ba mục cũ (trả lời câu hỏi 2, Codex review giai đoạn 0, bắt đầu 1.1) đã hết hạn: giai đoạn 0 và 1 đã lên production từ 01–02/10.~~ Cập nhật 03/10/2026:
+
+1. **Mốc 3 của giai đoạn 5 — nhóm đặt chỗ + thanh toán trên `/api/v2`.** Đây là cửa duy nhất mở sang giai đoạn 6, vì bảng tổng thể ghi giai đoạn 6 "Chặn bởi: Xong 5". Và nó quan trọng hơn hai mốc trước: phần đọc hiện cho `CatalogController` gọi thẳng `FrontpageService`, nên tầng DTO/phân trang/lỗi chỉ có test canh, không có lưu lượng thật chạy qua. Nhóm cần quyền là chỗ Next.js buộc phải đi qua HTTP thật.
+2. **Ban hành ba trang chính sách.** `quy-che-hoat-dong`, `chinh-sach-bao-mat`, `giai-quyet-tranh-chap` đang `effective_from = null`, tức bản nháp, trên một sàn đang nộp hồ sơ TMĐT. `bang-phi` thì đã ban hành. Phần code đã sẵn và `/api/v2/policies` phơi đúng trạng thái qua cờ `is_effective` — việc còn lại nằm ngoài code.
+3. **Cho Codex review khối từ R41 tới nay** (~35 commit): API v2, giỏ hàng, hoàn tiền, đường tiền. Đúng loại code nên có người thứ hai đọc.
+
+**Lưu ý thứ tự:** mốc SEO, sinh TypeScript và cấu hình proxy OpenLiteSpeed (01–03/10) đều thuộc **giai đoạn 6**, làm trước khi xong giai đoạn 5. Chúng không vô ích — mốc SEO là điều kiện "xong" của giai đoạn 6, và cấu hình proxy đã ghi lại hạ tầng thật khác với giả định Caddy trong lộ trình — nhưng chúng không đưa giai đoạn 5 tiến thêm bước nào.
