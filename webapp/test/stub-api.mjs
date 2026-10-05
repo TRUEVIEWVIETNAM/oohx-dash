@@ -89,6 +89,37 @@ const PRODUCT = {
     featured: true,
 };
 
+/**
+ * Hai trang chính sách, cố tình đối nghịch: một ĐÃ ban hành, một CÒN NHÁP.
+ *
+ * Ô cảnh báo bản nháp là thứ dễ mất im lặng nhất của nhóm trang này — mất nó
+ * thì trang vẫn hiện bình thường, chỉ là nó trình bày một bản nháp như văn bản
+ * đã có hiệu lực. Nên phép kiểm phải có cả hai trường hợp, không chỉ một.
+ *
+ * `body_html` chứa dấu `<` trong chữ và một thực thể HTML: nếu trang escape
+ * chuỗi này thay vì hiển thị như HTML thì `<h2>` sẽ ra chữ, và phép kiểm thấy
+ * `&lt;h2&gt;` trong HTML đã render.
+ */
+const CHINH_SACH_DA_BAN_HANH = {
+    slug: 'da-ban-hanh',
+    title: 'Bảng phí dịch vụ',
+    version: '1.0',
+    effective_from: '22/09/2026',
+    is_effective: true,
+    url: 'https://oohx.net/da-ban-hanh',
+    body_html: '<h2>1. Mức phí</h2>\n<p>Phí 6.668.000 đồng/năm, chưa gồm VAT.</p>',
+};
+
+const CHINH_SACH_BAN_NHAP = {
+    slug: 'ban-nhap',
+    title: 'Quy chế hoạt động',
+    version: '0.1-draft',
+    effective_from: null,
+    is_effective: false,
+    url: 'https://oohx.net/ban-nhap',
+    body_html: '<h2>1. Phạm vi</h2>\n<p>Áp dụng cho mọi bên &amp; mọi giao dịch &lt; 1 tỷ.</p>',
+};
+
 const PAGE_META = { page: 1, per_page: 24, total: 2, last_page: 1, max_per_page: 50 };
 const LIMIT_META = { returned: 1, limit: 4, max_limit: 12 };
 
@@ -113,6 +144,12 @@ const ROUTES = {
         data: [{ code: 'north', name: 'Miền Bắc', provinces: [{ code: 'hanoi', name: 'Hà Nội', count: 104 }] }],
     },
 
+    // Danh sách chỉ siêu dữ liệu — `generateStaticParams()` của trang chính
+    // sách đọc đúng endpoint này để biết có những slug nào.
+    '/api/v2/policies': {
+        data: [CHINH_SACH_DA_BAN_HANH, CHINH_SACH_BAN_NHAP].map(({ body_html, ...meta }) => meta),
+    },
+
     '/api/v2/filters': {
         data: {
             cities: [{ code: 'hanoi', name: 'Hà Nội', count: 104 }],
@@ -132,6 +169,12 @@ function chiTiet(pathname) {
 
     if (pathname === '/api/v2/screens/man-hinh-khong-gia') {
         return { data: { ...SCREEN_KHONG_GIA, availability: AVAILABILITY } };
+    }
+
+    for (const trang of [CHINH_SACH_DA_BAN_HANH, CHINH_SACH_BAN_NHAP]) {
+        if (pathname === '/api/v2/policies/' + trang.slug) {
+            return { data: trang };
+        }
     }
 
     if (pathname === '/api/v2/owners/owner-mot') {

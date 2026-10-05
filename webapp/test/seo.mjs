@@ -66,6 +66,15 @@ const TRANG = [
     { path: '/products', ogType: 'website' },
     { path: '/products/goi-mot', ogType: 'product', jsonLd: 'Product', coGia: true },
     { path: '/map', ogType: 'website' },
+
+    // Chính sách. `og:type` là `article`, không `website`: đây là một văn bản
+    // có phiên bản và ngày hiệu lực, không phải một trang của site.
+    //
+    // Hai slug này là của API giả, không phải slug thật — `generateStaticParams()`
+    // đọc danh sách từ API, nên test chứng minh được đúng điều cần: trang dựng
+    // ra từ dữ liệu API, không từ một danh sách viết cứng trong `webapp/`.
+    { path: '/da-ban-hanh', ogType: 'article', banNhap: false },
+    { path: '/ban-nhap', ogType: 'article', banNhap: true },
 ];
 
 const loi = [];
@@ -189,6 +198,40 @@ async function kiemTrang(base, trang) {
         }
     }
 
+    // ── Trang chính sách ──
+    if (trang.banNhap !== undefined) {
+        // `body_html` phải được hiển thị NHƯ HTML. Nếu React escape nó thì
+        // trang vẫn 200 và vẫn có đủ thẻ SEO — chỉ là người đọc thấy
+        // `<h2>1. Phạm vi</h2>` dưới dạng chữ. Một lỗi không ai báo, vì không
+        // có gì hỏng.
+        if (!/<article class="pol-body"><h2>/.test(html)) {
+            bao(trang.path, 'phần thân không được hiển thị như HTML (body_html bị escape?)');
+        }
+
+        if (html.includes('&lt;h2&gt;')) {
+            bao(trang.path, 'thấy &lt;h2&gt; trong HTML — body_html bị escape');
+        }
+
+        // Ô cảnh báo bản nháp: có đúng khi chưa ban hành, và KHÔNG có khi đã
+        // ban hành. Chỉ canh một chiều thì một trang luôn hiện cảnh báo vẫn
+        // qua được — và nó nói sai về một văn bản đã có hiệu lực.
+        const coCanhBao = html.includes('class="pol-draft"');
+
+        if (trang.banNhap && !coCanhBao) {
+            bao(trang.path, 'chưa ban hành mà không có ô cảnh báo bản nháp');
+        }
+
+        if (!trang.banNhap && coCanhBao) {
+            bao(trang.path, 'đã ban hành mà vẫn hiện ô cảnh báo bản nháp');
+        }
+
+        // Khối phiên bản. Người đọc cần biết họ đang xem bản nào — đó là lý do
+        // `version` tồn tại, và nó được đóng dấu vào từng bản ghi đồng ý.
+        if (!html.includes('class="pol-meta"')) {
+            bao(trang.path, 'thiếu khối phiên bản');
+        }
+    }
+
     // ── Khung trang: thiếu một trong hai là thiếu thông tin bắt buộc ──
     if (!html.includes('class="hdr"')) {
         bao(trang.path, 'thiếu thanh điều hướng');
@@ -206,7 +249,16 @@ async function kiemTrang(base, trang) {
 
 /** Slug lạ phải ra 404 thật, không phải 200 rỗng. */
 async function kiem404(base) {
-    for (const path of ['/explore/khong-ton-tai', '/owners/khong-ton-tai', '/products/khong-ton-tai']) {
+    for (const path of [
+        '/explore/khong-ton-tai',
+        '/owners/khong-ton-tai',
+        '/products/khong-ton-tai',
+
+        // `[slug]` ở gốc app nuốt mọi đường dẫn một cấp. `dynamicParams = false`
+        // là thứ chặn nó, và nếu ai bỏ dòng đó thì `/khong-ton-tai` ra 200 với
+        // một trang chính sách rỗng — URL đó rồi nằm trong chỉ mục mãi.
+        '/khong-ton-tai',
+    ]) {
         const response = await fetch(base + path);
 
         if (response.status !== 404) {

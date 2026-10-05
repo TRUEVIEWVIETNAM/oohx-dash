@@ -15,8 +15,9 @@ use Tests\TestCase;
  *
  * Bốn thứ test này canh:
  *
- *  1. Endpoint chính sách trả **siêu dữ liệu, không trả nội dung** — văn bản
- *     pháp lý chỉ có một nơi phát ra.
+ *  1. Endpoint chính sách danh sách trả **siêu dữ liệu**; endpoint chi tiết
+ *     trả thêm `body_html`, và `body_html` đó phải là ĐÚNG phần thân trang
+ *     Blade phát ra — văn bản pháp lý chỉ có một nguồn.
  *  2. Phản ánh chưa công bố **không** ra ngoài.
  *  3. Dữ liệu cá nhân người gửi **không bao giờ** ra ngoài.
  *  4. Đường ghi dùng chung bộ luật kiểm với trang Blade, kể cả bẫy mật.
@@ -70,18 +71,23 @@ class PublicContentApiTest extends TestCase
         }
     }
 
-    public function test_noi_dung_van_ban_khong_di_qua_api(): void
+    public function test_danh_sach_khong_mang_theo_than_van_ban(): void
     {
         $body = $this->getJson('/api/v2/policies')->assertOk()->getContent();
 
-        // Văn bản pháp lý chỉ có MỘT nơi phát ra. API dựng lại nó thành HTML là
-        // tạo đường render thứ hai cho cùng một văn bản, trong khi lộ trình yêu
-        // cầu "giữ nguyên văn bản và đường dẫn" cho nhóm trang này.
-        foreach (['content', 'body', 'html'] as $khong) {
+        // Đây KHÔNG còn là luật "nội dung không được đi qua API" — luật đó đã
+        // bỏ, và `GET /api/v2/policies/{slug}` trả `body_html`. Đây là luật về
+        // kích cỡ response: danh sách phục vụ liên kết chân trang, nên nhét thân
+        // của bốn văn bản vào đó là phát hàng trăm dòng HTML cho mọi lần render
+        // chân trang.
+        //
+        // Lý do "một nguồn" vẫn được canh, nhưng ở chỗ khác:
+        // `test_than_van_ban_la_dung_phan_than_trang_blade_phat_ra`.
+        foreach (['content', 'body_html', 'html'] as $khong) {
             $this->assertStringNotContainsString(
                 '"' . $khong . '"',
                 $body,
-                "Endpoint chính sách đang trả trường \"{$khong}\" — nội dung không được đi qua đây.",
+                "Danh sách chính sách đang trả trường \"{$khong}\" — thân văn bản thuộc endpoint chi tiết.",
             );
         }
     }
@@ -98,6 +104,124 @@ class PublicContentApiTest extends TestCase
                 ! empty($page['effective_from']),
                 $page['is_effective'],
                 "Trang {$page['slug']}: is_effective không khớp effective_from.",
+            );
+        }
+    }
+
+    // ── Chi tiết một trang chính sách: thân văn bản ─────────────────────────
+
+    /**
+     * Các slug lấy từ config, không liệt kê tay — thêm một trang chính sách mà
+     * quên khóa `body` thì nhóm test này phải đỏ ngay.
+     *
+     * Vì sao là hàm chứ không phải `#[DataProvider]`: data provider chạy TRƯỚC
+     * khi Laravel boot, nên `config()` chưa có gì. Và mỗi case của provider
+     * kéo theo một lượt `RefreshDatabase` — bốn lượt migrate MySQL cho một
+     * phép kiểm không dùng tới CSDL.
+     */
+    private function slugChinhSach(): array
+    {
+        return array_keys(config('policies.pages', []));
+    }
+
+    /**
+     * Phép kiểm QUAN TRỌNG NHẤT của nhóm này.
+     *
+     * Nó so `body_html` với HTML trang Blade thật sự phát ra. Nếu ai sau này
+     * cho endpoint tự dựng văn bản — đọc một partial khác, hay một bảng CSDL —
+     * test này đỏ. Không có nó thì "một nguồn" chỉ là một câu trong docblock.
+     *
+     * So cả chuỗi, không so vài từ khoá: một chỗ khác nhau trong văn bản pháp
+     * lý mà lọt lưới vì test chỉ canh ba chữ thì tệ hơn là không có test.
+     */
+    public function test_than_van_ban_la_dung_phan_than_trang_blade_phat_ra(): void
+    {
+        foreach ($this->slugChinhSach() as $slug) {
+            $than = $this->getJson("/api/v2/policies/{$slug}")
+                ->assertOk()
+                ->json('data.body_html');
+
+            $this->assertNotEmpty($than, "Trang {$slug} trả thân rỗng.");
+
+            $trangBlade = $this->get('/' . $slug)->assertOk()->getContent();
+
+            $this->assertStringContainsString(
+                trim($than),
+                $trangBlade,
+                "Thân `body_html` của {$slug} không có trong HTML trang Blade — hai bên đã trôi khỏi nhau.",
+            );
+        }
+    }
+
+    public function test_moi_trang_co_khoa_body_trong_config(): void
+    {
+        foreach ($this->slugChinhSach() as $slug) {
+            // Thiếu khóa `body` thì `policy()` nổ, không trả trang trống. Canh
+            // ở đây để lỗi chỉ đúng chỗ: config, không phải controller.
+            $this->assertNotEmpty(
+                config("policies.pages.{$slug}.body"),
+                "Trang {$slug} thiếu khóa `body` trong config/policies.php.",
+            );
+        }
+    }
+
+    public function test_than_van_ban_khong_chua_the_thuc_thi(): void
+    {
+        foreach ($this->slugChinhSach() as $slug) {
+            $than = $this->getJson("/api/v2/policies/{$slug}")->assertOk()->json('data.body_html');
+
+            // Bên tiêu thụ hiển thị chuỗi này như HTML
+            // (`dangerouslySetInnerHTML`). Hôm nay nội dung do repo này viết và
+            // đi qua git review, nên tin được. Nhưng nếu sau này ai đưa một
+            // biến người dùng nhập vào partial thân, nó chảy thẳng ra trình
+            // duyệt — và lúc đó không ai nhớ lại quyết định này nữa.
+            foreach (['<script', '<iframe', 'javascript:', 'onerror=', 'onload='] as $cam) {
+                $this->assertStringNotContainsStringIgnoringCase(
+                    $cam,
+                    $than,
+                    "Thân văn bản {$slug} chứa \"{$cam}\" — nó sẽ chảy thẳng vào dangerouslySetInnerHTML.",
+                );
+            }
+        }
+    }
+
+    public function test_chi_tiet_khop_sieu_du_lieu_trong_config(): void
+    {
+        foreach ($this->slugChinhSach() as $slug) {
+            $this->getJson("/api/v2/policies/{$slug}")
+                ->assertOk()
+                ->assertJsonPath('data.slug', $slug)
+                ->assertJsonPath('data.title', config("policies.pages.{$slug}.title"))
+                ->assertJsonPath('data.version', config("policies.pages.{$slug}.version"))
+                ->assertJsonPath('data.effective_from', config("policies.pages.{$slug}.effective_from"))
+                ->assertJsonPath('data.is_effective', ! empty(config("policies.pages.{$slug}.effective_from")))
+                ->assertJsonPath('data.url', url('/' . $slug));
+        }
+    }
+
+    public function test_slug_la_tra_404_dung_envelope(): void
+    {
+        $this->getJson('/api/v2/policies/khong-ton-tai')
+            ->assertStatus(404)
+            ->assertJsonPath('error', 'not_found')
+            ->assertJsonPath('code', 404)
+            ->assertJsonStructure(['error', 'message', 'code', 'details']);
+    }
+
+    public function test_slug_khong_duoc_dung_lam_duong_dan_config(): void
+    {
+        // `config("policies.pages.{$slug}")` coi dấu chấm là dấu phân cấp, và
+        // slug đến từ URL. `company` / `fees` / `trial_mode` nằm NGOÀI
+        // `pages` nên không với tới được — nhưng `quy-che-hoat-dong.view` thì
+        // với tới một giá trị CHUỖI bên trong một trang, và `$page['title']`
+        // trên một chuỗi không phải là 404.
+        foreach (['company', 'fees', 'trial_mode', 'quy-che-hoat-dong.view'] as $slug) {
+            $response = $this->getJson('/api/v2/policies/' . $slug);
+
+            $this->assertSame(
+                404,
+                $response->status(),
+                "Slug \"{$slug}\" không ra 404 — đường dẫn config bị dùng làm slug.",
             );
         }
     }

@@ -34,21 +34,26 @@ Ba lý do đặt trong repo này:
 
 **Stylesheet dùng chung.** `webapp/app/globals.css` nhập `resources/css/frontpage.css` — 2210 dòng CSS thuần, không directive Tailwind. Giai đoạn 6 chuyển từng đường dẫn trên cùng một tên miền, nên `/explore` (Next) và `/map` (Laravel) nằm cạnh nhau trong một lượt duyệt; hai stylesheet là hai giao diện cho cùng một trang web.
 
-### Đã chuyển
+### Trạng thái từng đường dẫn
 
-| Đường dẫn | Trạng thái |
-|---|---|
-| `/explore` | xong — danh sách, phân trang bằng thẻ `<a>` |
-| `/explore/{slug}` | xong — canonical, og:type=product, JSON-LD Product, 404 thật cho slug lạ |
-| `/owners`, `/owners/{slug}` | chưa |
-| `/products`, `/products/{slug}` | chưa |
-| `/map` | chưa |
-| `/` (trang chủ) | chưa |
-| 4 trang chính sách | **chuyển cuối cùng**, giữ nguyên văn bản |
+Hai cột khác nhau, và đừng đọc gộp: **dựng** là trang Next đã có và test xanh; **mở** là OpenLiteSpeed đang thật sự đưa người dùng tới đó.
 
-### Chưa dựng lại header/footer, có chủ ý
+| Đường dẫn | Dựng | Mở trên production |
+|---|---|---|
+| `/explore`, `/explore/{slug}` | xong | **có** |
+| `/owners`, `/owners/{slug}` | xong | **có** |
+| `/products`, `/products/{slug}` | xong | **có** |
+| `/map` | xong | khai trong `nextjs.conf`, chờ dán lên máy chủ |
+| `/` (trang chủ) | xong | **không** — xem ghi chú `context /` dưới |
+| 4 trang chính sách | xong | **không** — xem mục riêng dưới |
 
-`webapp/app/layout.tsx` không có thanh điều hướng. Dựng lại mà lệch một chữ so với `resources/views/frontpage/layouts/app.blade.php` thì người dùng thấy header nhảy khi bấm từ `/explore` sang `/map` — đúng kiểu lỗi lộ trình gọi là "hai giao diện lệch hành vi". Việc đó làm một lần cho tất cả trang đã chuyển, và phải đối chiếu HTML với bản Blade.
+Trang chủ không mở được bằng `context /`: OpenLiteSpeed khớp context theo **tiền tố**, nên một `context /` nuốt luôn `/api/v1`, `/cart`, `/sitemap.xml` và bốn slug chính sách. Nó cần một cách khác.
+
+### Header và chân trang: đã dựng lại
+
+Dựng ở lát 2 (PR #9): `webapp/components/SiteHeader.tsx` và `SiteFooter.tsx`.
+
+Một chỗ trong `SiteHeader.tsx` cần biết: `const TRONG_APP = new Set([...])` liệt kê những đường **đang được proxy**, và nó quyết định một mục nav dùng `<Link>` (điều hướng trong app, nhanh) hay `<a>` (tải lại cả trang). Mở thêm một context mà quên sửa set này thì người dùng vẫn tới đúng trang, chỉ là chậm hơn cần thiết — một lỗi không ai báo. Sửa cùng lượt với `nextjs.conf`.
 
 ## Cài đặt
 
@@ -166,6 +171,26 @@ curl -s -o /dev/null -w "/sitemap.xml    → %{http_code} %{time_total}s\n" http
 ```
 
 Bốn đường sau **phải vẫn do Laravel phục vụ**. `/explore` ra 200 từ Next.js thì mới mở `/owners`, `/products`, `/map` — mỗi lần một đường, bỏ dấu `#` trong `nextjs.conf`.
+
+### 3b. Bốn trang chính sách — mở riêng, không mở cùng nhóm khác
+
+Trang Next đã dựng (`webapp/app/(chinh-sach)/[slug]/page.tsx`). Nó **không** chứa văn bản: phần thân lấy từ `GET /api/v2/policies/{slug}`, và endpoint đó render đúng partial Blade mà trang Laravel render (`resources/views/frontpage/policies/bodies/*.blade.php`). Một nguồn, một bộ render — `PublicContentApiTest::test_than_van_ban_la_dung_phan_than_trang_blade_phat_ra` so `body_html` với HTML trang Blade thật sự phát ra.
+
+Bốn context để **đóng** trong `nextjs.conf`, dạng comment. Mở từng khối một, và sau mỗi khối kiểm **nội dung**, không chỉ mã trạng thái:
+
+```sh
+# Sau khi bỏ dấu # cho MỘT khối rồi copy conf + lswsctrl restart:
+curl -s https://oohx.net/quy-che-hoat-dong | grep -c 'class="pol-body"'   # phải 1
+curl -s https://oohx.net/quy-che-hoat-dong | grep -c 'class="pol-draft"'  # 1 khi còn nháp, 0 khi đã ban hành
+curl -s https://oohx.net/quy-che-hoat-dong | grep -c '&lt;h2&gt;'         # phải 0 — thân bị escape thì ra chữ
+
+# Ba đường này PHẢI vẫn là Laravel sau khi mở:
+curl -s -o /dev/null -w "/cart        → %{http_code}\n" https://oohx.net/cart
+curl -s -o /dev/null -w "/sitemap.xml → %{http_code}\n" https://oohx.net/sitemap.xml
+curl -s -o /dev/null -w "/phan-anh-to-chuc-xa-hoi → %{http_code}\n" https://oohx.net/phan-anh-to-chuc-xa-hoi
+```
+
+Vì sao nhóm này mở riêng chứ không đi kèm `/map`: văn bản pháp lý được đóng dấu `version` vào **từng bản ghi đồng ý** của người dùng. Một lỗi hiển thị ở đây không phải lỗi giao diện — nó là chữ mà người dùng được coi là đã đồng ý. Mở khi có người xem được kết quả, không trong một lượt deploy tự động.
 
 ### 4. Lùi lại
 

@@ -116,6 +116,10 @@ Route::prefix('v2')->group(function () {
     // Nội dung công khai ngoài danh mục, cho những route của giai đoạn 6 không
     // phải màn hình hay sản phẩm.
     Route::get ('policies',    [V2PublicContentController::class, 'policies']);
+    // Chi tiết kèm `body_html`. Slug chính sách là chuỗi cố định trong
+    // `config/policies.php`, không phải khóa CSDL — nên không có ràng buộc
+    // model binding ở đây, controller tự tra config và tự trả 404.
+    Route::get ('policies/{slug}', [V2PublicContentController::class, 'policy']);
     Route::get ('reflections', [V2PublicContentController::class, 'reflections']);
     // Gửi phản ánh có hạn mức RIÊNG, chặt hơn `api`: đây là đường ghi, mở cho
     // người lạ, và trang Blade tương ứng cũng đã có `throttle:5,60`.
