@@ -679,6 +679,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Người đang đăng nhập — chỉ những gì thanh điều hướng cần vẽ
+         * @description Tồn tại để trang công khai trên Next.js vẽ được header giống bản Blade.
+         *     Header Blade đọc `auth()->user()`, mà Next **không giải mã được session
+         *     của Laravel** — cookie có đó nhưng định dạng là của Laravel.
+         *
+         *     **Trạng thái đăng nhập không được render ở máy chủ bên Next.** Trang
+         *     `/explore` cache 60 giây, nên render tên và email vào HTML nghĩa là
+         *     bản cache đó phục vụ cho người tiếp theo — tên và email của người A
+         *     hiện ra cho người B. Vì vậy khung header render dưới dạng khách, rồi
+         *     một component client gọi endpoint này để điền.
+         *
+         *     **Không nằm sau middleware `buyer`.** Một người vừa đăng ký và chưa
+         *     tạo tổ chức vẫn cần header vẽ đúng; đặt endpoint này sau `buyer` là
+         *     trả 403 cho họ và header hiện ra như thể họ chưa đăng nhập.
+         *
+         *     **401 là câu trả lời, không phải sự cố.** Khách chưa đăng nhập nhận 401
+         *     với envelope thống nhất; client coi đó là "khách" và giữ nguyên khung
+         *     đã render. Không có nhánh nào trả 200 kèm `data: null`, vì khi đó bên
+         *     tiêu thụ phải phân biệt hai loại null.
+         *
+         *     Phạm vi hẹp có chủ ý: đây là endpoint mọi trang gọi tới trên mọi lượt
+         *     duyệt, nên nó chỉ trả đúng những gì header vẽ. Không có `id`, không có
+         *     danh sách tổ chức, không có vai trò.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["Me"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/cart": {
         parameters: {
             query?: never;
@@ -881,6 +945,402 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v2/campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tạo campaign từ giỏ hàng (bước 1 của đặt chỗ)
+         * @description Chuyển toàn bộ giỏ hàng hiện tại thành một campaign trạng thái `draft`
+         *     kèm `booking_lines`. Giỏ trống thì trả 422.
+         *
+         *     **Không nhận số tiền.** `total_budget` là ngân sách người mua tự ghi để
+         *     theo dõi, **không** phải số tiền phải trả và không đổi một đồng nào
+         *     trong `booking_lines`. Giá từng dòng do `CampaignService` tính lại từ
+         *     giỏ; số tiền phải trả ở `GET /api/v2/campaigns/{campaign}/payments`.
+         *
+         *     Hạn mức riêng 10 lần/phút: mỗi lần gọi tạo nghĩa vụ tiền và giữ suất.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        brand_name?: string | null;
+                        category?: string | null;
+                        objectives?: string[];
+                        /** @description Ngân sách dự kiến do người mua tự ghi. Không phải số tiền phải trả. */
+                        total_budget?: number | null;
+                        notes?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã tạo */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["BookingReview"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                422: components["responses"]["ValidationFailed"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/campaigns/{campaign}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ULID của campaign. */
+                campaign: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Xem lại campaign trước khi gửi (bước 2 của đặt chỗ)
+         * @description Trả campaign, các dòng đặt chỗ, nội dung đã tải lên, và **xung đột SOV
+         *     tính ngay lúc gọi** — không phải ảnh chụp lúc tạo.
+         *
+         *     **404 khi không được xem, 403 khi được xem nhưng không được làm.** Hai
+         *     câu trả lời khác nhau cho hai câu hỏi khác nhau: campaign của tổ chức
+         *     khác thì sự tồn tại của nó cũng là thông tin riêng, còn đồng nghiệp vai
+         *     trò `viewer` thì đang nhìn thấy đúng campaign đó và cần biết vấn đề là
+         *     quyền.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ULID của campaign. */
+                    campaign: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["BookingReview"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/campaigns/{campaign}/creatives": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tải nội dung quảng cáo lên (bước 2 của đặt chỗ)
+         * @description Đường **duy nhất** của `/api/v2` nhận tệp, nên gửi
+         *     `multipart/form-data` chứ không phải JSON.
+         *
+         *     Ba lớp kiểm, và không lớp nào thừa (CLAUDE.md mục 5 đòi kiểm mime,
+         *     phần mở rộng và dung lượng):
+         *
+         *     - phần mở rộng phải là jpg/jpeg/png/mp4/webm;
+         *     - **mime thật đọc từ nội dung tệp** phải khớp danh sách cho phép, nên
+         *       một tệp mp4 đổi tên thành .png không qua được;
+         *     - tối đa 50MB.
+         *
+         *     Tệp lưu trên disk riêng. Bản ghi tạo ra luôn ở `pending_review` —
+         *     nội dung tự lên sóng là chỗ nặng nhất có thể sai ở một sàn quảng cáo
+         *     ngoài trời, nên mặc định phải là đóng.
+         *
+         *     Hạn mức riêng 20 lần/10 phút: mỗi lần gọi có thể ghi 50MB vào đĩa.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    campaign: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        file: string;
+                        /** @description Bỏ trống thì lấy tên tệp gốc. */
+                        name?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã tải lên, chờ duyệt */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                creative: components["schemas"]["Creative"];
+                            } & components["schemas"]["BookingReview"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["ValidationFailed"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/campaigns/{campaign}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gửi campaign chờ duyệt (bước 3 của đặt chỗ)
+         * @description Hai ô xác nhận là bắt buộc. `PolicyConsentService` ghi lại việc đồng ý
+         *     kèm IP và thời điểm — đó là bằng chứng khi có tranh chấp, không phải
+         *     thủ tục giấy tờ.
+         *
+         *     Xung đột SOV được kiểm lại **ngay trước khi gửi**, không tin vào lần
+         *     kiểm ở bước xem lại: giữa hai lần gọi có thể có người khác đặt kín
+         *     suất. Có xung đột thì trả 422 với `error: sov_conflict`, và `details[]`
+         *     nói từng màn hình còn bao nhiêu phần trăm.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    campaign: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Xác nhận thông tin booking là chính xác. */
+                        confirm_accuracy: boolean;
+                        /** @description Đồng ý Quy chế hoạt động và Chính sách bảo mật. */
+                        accept_terms: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã gửi chờ duyệt */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["BookingReview"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                /** @description Lỗi kiểm dữ liệu, hoặc xung đột SOV (error = sov_conflict). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/campaigns/{campaign}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Công nợ theo từng media owner, và các khoản đã tạo
+         * @description **Công nợ tính theo từng owner, không phải theo tổng campaign.** Người
+         *     mua chuyển thẳng cho từng media owner, nên `is_fully_paid` chỉ đúng khi
+         *     **mọi** owner đã đủ — không phải khi tổng thu bằng tổng phải thu. Tổng
+         *     tiền che khuất công nợ từng owner là F07 trong `FINDINGS.md`.
+         *
+         *     Tiền bằng **VND số nguyên** ở mọi trường. VAT cộng một chỗ duy nhất
+         *     (`PaymentService::withVat()`).
+         *
+         *     **Không có thông tin ngân hàng ở đây.** `owner` chỉ có `id` và `name`;
+         *     CLAUDE.md mục 2 cấm lộ `bank_*` và `billing_info`.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    campaign: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["PaymentOverview"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        /**
+         * Xác nhận một khoản chuyển khoản cho một media owner
+         * @description **`amount` là đề nghị, không phải quyết định.** `PaymentService` quyết
+         *     số tiền: không gửi thì nó lấy đúng công nợ còn lại của owner đó, gửi
+         *     vượt công nợ thì trả 422 kèm số đúng, công nợ đã bằng 0 thì từ chối
+         *     tạo thêm. Client không đặt được số tiền mình muốn (CLAUDE.md mục 5).
+         *
+         *     Cần quyền `manage_payments` — **không phải** quyền xem. Vai trò
+         *     `viewer` xem được campaign nhưng nhận 403 ở đây.
+         *
+         *     Campaign phải ở trạng thái `approved` hoặc `active`.
+         *
+         *     `payment_nonce` là mã chống trùng của **chính lần gửi này**, không phải
+         *     token phiên: token phiên không đổi giữa các lần trả, nên trả một phần
+         *     rồi quay lại trả nốt sẽ nhận lại khoản cũ đã hoàn tất và không tạo được
+         *     khoản mới. Không gửi mã thì vẫn chạy — tầng service dùng lại khoản đang
+         *     chờ của cùng owner.
+         *
+         *     `method` cố tình chỉ có một giá trị: VNPay và MoMo chưa có đường chạy
+         *     nào, và một enum ba giá trị trong khi chỉ một hoạt động là nói sai về
+         *     năng lực của hệ thống (CLAUDE.md mục 8).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    campaign: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        method: "bank_transfer";
+                        /** @description Dùng cái này. Phải là owner có màn hình trong campaign. */
+                        owner_slug?: string;
+                        /** @description Khóa nội bộ — trang Blade dùng. Client ngoài nên gửi `owner_slug`. */
+                        owner_id?: string;
+                        /** @description Bỏ trống để trả đúng công nợ còn lại. */
+                        amount?: number | null;
+                        payment_nonce?: string | null;
+                        accept_terms: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã tạo khoản chờ xác nhận */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                payment: components["schemas"]["Payment"];
+                            } & components["schemas"]["PaymentOverview"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["ValidationFailed"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1069,6 +1529,19 @@ export interface components {
                 meta_description?: string | null;
             };
         };
+        Me: {
+            name: string;
+            /** Format: email */
+            email: string;
+            /** @description Chữ cái đầu của tên, cho ô avatar. Tính bằng mb_substr — tên tiếng Việt có ký tự nhiều byte. */
+            initial: string;
+            /** @description Tổ chức đang chọn. Null khi người dùng chưa thuộc tổ chức nào. Chỉ có tên — trả id ra là mời bên tiêu thụ dùng nó để gọi tiếp. */
+            organization: {
+                name: string;
+            } | null;
+            /** @description Số món trong giỏ, để vẽ badge. Lấy từ cùng hàm header Blade gọi. */
+            cart_count: number;
+        };
         /**
          * @description `rate_snapshot` **không** có trong DTO này. Đó là ảnh chụp cấu hình giá
          *     của media owner lúc thêm giỏ, dùng để phát hiện giá đổi trước khi chốt
@@ -1188,6 +1661,218 @@ export interface components {
                 message?: string;
             }[];
         };
+        /**
+         * @description Campaign của người mua. `floor_cpm_at_booking` và `io_rate_at_booking`
+         *     **không** có ở đây hay ở `BookingLine`: đó là giá sàn nội bộ của media
+         *     owner, mà CLAUDE.md mục 2 cấm lộ.
+         */
+        Campaign: {
+            id?: string;
+            code?: string;
+            name?: string;
+            brand_name?: string | null;
+            category?: string | null;
+            objectives?: string[];
+            period?: {
+                /** Format: date */
+                start_date?: string | null;
+                /** Format: date */
+                end_date?: string | null;
+            };
+            /** @enum {string} */
+            status?: "draft" | "pending_approval" | "approved" | "rejected" | "active" | "paused" | "completed" | "cancelled";
+            timeline?: {
+                /** Format: date-time */
+                submitted_at?: string | null;
+                /** Format: date-time */
+                approved_at?: string | null;
+                /** Format: date-time */
+                rejected_at?: string | null;
+                /** Format: date-time */
+                activated_at?: string | null;
+                /** Format: date-time */
+                completed_at?: string | null;
+            };
+            rejection_reason?: string | null;
+            totals?: {
+                /** @enum {string} */
+                currency?: "VND";
+                /** @description Ngân sách người mua tự ghi, không phải số phải trả. */
+                budget?: number | null;
+                screens?: number | null;
+                impressions?: number | null;
+            };
+            notes?: string | null;
+        };
+        BookingLine: {
+            id?: string;
+            screen?: components["schemas"]["ScreenSummary"];
+            period?: {
+                /** Format: date */
+                start_date?: string | null;
+                /** Format: date */
+                end_date?: string | null;
+            };
+            delivery?: {
+                /** @enum {string|null} */
+                pricing_model?: "cpm" | "io" | null;
+                share_of_voice_pct?: number | null;
+                spot_length?: number | null;
+                booked_cpms?: number | null;
+                kpi_spots_per_day?: number | null;
+                io_rate_unit?: string | null;
+            };
+            estimate?: {
+                /** @enum {string} */
+                currency?: "VND";
+                /** @description Số tiền CHƯA gồm VAT. */
+                cost?: number | null;
+                impressions?: number | null;
+                duration_discount_pct?: number | null;
+            };
+            status?: string;
+            rejected_reason?: string | null;
+        };
+        /**
+         * @description Nội dung quảng cáo đã tải lên.
+         *
+         *     **Không có `file_path`** — đó là đường dẫn trên đĩa, một chi tiết lưu
+         *     trữ. Thứ bên tiêu thụ cần là một cách lấy tệp, không phải vị trí của nó.
+         *
+         *     `download_url` là URL **ký hạn** tới tệp, sống theo
+         *     `CREATIVES_URL_TTL_MINUTES` (mặc định 60 phút). Route phía sau còn
+         *     kiểm `CreativePolicy` chứ không chỉ kiểm ký, nên URL rò ra ngoài vẫn
+         *     vô dụng với người không có quyền. Hết hạn thì gọi lại endpoint này để
+         *     lấy URL mới; đừng lưu nó vào CSDL hay cache lâu hơn chính cái hạn.
+         */
+        Creative: {
+            id?: string;
+            name?: string | null;
+            /** @enum {string} */
+            type?: "image" | "video";
+            dimensions?: {
+                width_px?: number | null;
+                height_px?: number | null;
+                duration_sec?: number | null;
+            };
+            file_size?: number | null;
+            /**
+             * Format: uri
+             * @description URL ký hạn. Null khi bản ghi chưa có tệp.
+             */
+            download_url?: string | null;
+            status?: string;
+            /** Format: date-time */
+            reviewed_at?: string | null;
+            /** Format: date-time */
+            created_at?: string | null;
+        };
+        /** @description Một dòng đặt chỗ xin nhiều thời lượng hơn phần còn trống. */
+        SovConflict: {
+            booking_line_id?: string;
+            screen_name?: string | null;
+            requested_pct?: number;
+            available_pct?: number;
+            /** @description Khoảng ngày dạng dd/mm → dd/mm. */
+            dates?: string;
+        };
+        /**
+         * @description Khối dữ liệu dùng chung cho cả ba bước đặt chỗ. Client vừa tạo campaign
+         *     cần đúng những gì bước xem lại cần, và sau khi gửi cũng vậy — trả ba
+         *     hình dạng cho cùng một tài nguyên là bắt bên tiêu thụ viết ba đường xử
+         *     lý cho một thứ.
+         */
+        BookingReview: {
+            campaign: components["schemas"]["Campaign"];
+            lines: components["schemas"]["BookingLine"][];
+            creatives: components["schemas"]["Creative"][];
+            conflicts: components["schemas"]["SovConflict"][];
+            summary: {
+                /** @enum {string} */
+                currency?: "VND";
+                line_count?: number;
+                /** @description Tổng CHƯA gồm VAT. VAT cộng một chỗ duy nhất, lúc tính công nợ. */
+                subtotal?: number;
+                impressions?: number;
+                /**
+                 * @description Do máy chủ trả lời, không để client tự suy từ `status` và
+                 *     `conflicts`. Giao diện ẩn nút không phải phân quyền, nhưng
+                 *     giao diện tự đoán điều kiện thì lệch là chắc chắn.
+                 */
+                can_submit?: boolean;
+            };
+        };
+        /**
+         * @description Một khoản thanh toán. **Không có** `metadata`, `idempotency_key`,
+         *     `gateway_ref`, `invoice_url` — xem `PaymentResource` để biết lý do từng
+         *     trường. `owner` chỉ có `id` và `name`: số tài khoản không đi qua đây.
+         */
+        Payment: {
+            id?: string;
+            owner?: {
+                id?: string;
+                name?: string;
+            } | null;
+            /** @enum {string} */
+            method?: "bank_transfer";
+            /** @enum {string} */
+            currency?: "VND";
+            amount?: number;
+            status?: string;
+            transaction_ref?: string | null;
+            invoice_number?: string | null;
+            /** Format: date */
+            due_date?: string | null;
+            /** Format: date-time */
+            paid_at?: string | null;
+            /** Format: date-time */
+            created_at?: string | null;
+        };
+        /** @description Công nợ với MỘT media owner. Tiền bằng VND số nguyên. */
+        OwnerDebt: {
+            owner?: {
+                id?: string;
+                name?: string;
+            };
+            /** @description Chưa gồm VAT. */
+            cost?: number;
+            vat?: number;
+            /** @description Đã gồm VAT — số phải trả cho owner này. */
+            total?: number;
+            /** @description Đã trả, đã trừ phần phân bổ cho dòng đã hủy. */
+            paid?: number;
+            refunded?: number;
+            /** @description Khoản đã tạo nhưng chưa xác nhận. */
+            pending?: number;
+            remaining?: number;
+            is_paid?: boolean;
+        };
+        PaymentOverview: {
+            campaign: {
+                id?: string;
+                code?: string;
+                status?: string;
+            };
+            summary: {
+                /** @enum {string} */
+                currency?: "VND";
+                total_cost?: number;
+                vat?: number;
+                total_cost_vat?: number;
+                total_paid?: number;
+                refunded?: number;
+                pending?: number;
+                remaining?: number;
+                /**
+                 * @description Đúng khi **mọi** owner đã nhận đủ, không phải khi tổng thu bằng
+                 *     tổng phải thu (F07).
+                 */
+                is_fully_paid?: boolean;
+            };
+            by_owner: components["schemas"]["OwnerDebt"][];
+            payments: components["schemas"]["Payment"][];
+            can_pay: boolean;
+        };
     };
     responses: {
         /** @description Không tìm thấy */
@@ -1217,6 +1902,19 @@ export interface components {
             headers: {
                 /** @description Số giây nên chờ trước khi gọi lại. */
                 "Retry-After"?: number;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /**
+         * @description Xem được nhưng không được làm. Khác 404: 404 nghĩa là bản ghi thuộc tổ
+         *     chức khác và sự tồn tại của nó cũng là thông tin riêng; 403 nghĩa là
+         *     bản ghi đang hiện trên màn hình người gọi, và thứ thiếu là quyền.
+         */
+        Forbidden: {
+            headers: {
                 [name: string]: unknown;
             };
             content: {

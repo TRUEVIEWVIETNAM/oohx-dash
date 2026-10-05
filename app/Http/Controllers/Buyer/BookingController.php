@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Booking\StoreCampaignRequest;
+use App\Http\Requests\Booking\SubmitCampaignRequest;
+use App\Http\Requests\Booking\UploadCreativeRequest;
 use App\Models\Campaign;
-use App\Models\Creative;
 use App\Models\PolicyConsent;
 use App\Services\AvailabilityService;
 use App\Services\CampaignService;
 use App\Services\CartService;
+use App\Services\CreativeService;
 use App\Services\PolicyConsentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +25,7 @@ class BookingController extends Controller
         private CartService $cartService,
         private AvailabilityService $availabilityService,
         private PolicyConsentService $consents,
+        private CreativeService $creatives,
     ) {}
 
     /**
@@ -45,16 +49,14 @@ class BookingController extends Controller
     /**
      * Step 1: POST /booking/create — Store campaign
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreCampaignRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'name'         => ['required', 'string', 'max:255'],
-            'brand_name'   => ['nullable', 'string', 'max:255'],
-            'category'     => ['nullable', 'string', 'max:100'],
-            'objectives'   => ['nullable', 'array'],
-            'total_budget' => ['nullable', 'numeric', 'min:0'],
-            'notes'        => ['nullable', 'string', 'max:2000'],
-        ]);
+        // Luật kiểm nằm ở `StoreCampaignRequest`, dùng chung với
+        // `Api\V2\BookingController`. Hai bộ luật cho cùng một đường tạo
+        // `booking_lines` là mở một cửa mà bên kia không có (CLAUDE.md mục 4
+        // nói về quyền, và lý lẽ y hệt cho luật kiểm — giỏ hàng đã làm vậy từ
+        // `App\Http\Requests\Cart\*`).
+        $data = $request->validated();
 
         $user = $request->user();
         $org = $user->currentOrganization ?? $user->organizations()->first();
@@ -91,28 +93,18 @@ class BookingController extends Controller
     /**
      * Step 2: POST /booking/{campaign}/creative — Upload file
      */
-    public function uploadCreative(Request $request, Campaign $campaign): RedirectResponse
+    public function uploadCreative(UploadCreativeRequest $request, Campaign $campaign): RedirectResponse
     {
         $this->authorizeCampaign($request, $campaign, 'uploadCreative');
 
-        $request->validate([
-            'file' => ['required', 'file', 'mimes:jpg,jpeg,png,mp4,webm', 'max:51200'], // 50MB
-            'name' => ['nullable', 'string', 'max:255'],
-        ]);
-
-        $file = $request->file('file');
-        $path = $file->store('creatives/' . $campaign->id, 'public');
-        $isVideo = in_array($file->getClientOriginalExtension(), ['mp4', 'webm']);
-
-        Creative::create([
-            'campaign_id'     => $campaign->id,
-            'organization_id' => $campaign->organization_id,
-            'name'            => $request->input('name', $file->getClientOriginalName()),
-            'type'            => $isVideo ? 'video' : 'image',
-            'file_path'       => $path,
-            'file_size'       => $file->getSize(),
-            'status'          => 'pending_review',
-        ]);
+        // Luật kiểm ở `UploadCreativeRequest`, việc lưu ở `CreativeService` —
+        // cả hai dùng chung với `Api\V2\BookingController`.
+        //
+        // Ba thứ trước đây nằm trong hàm này và sẽ bị nhân đôi khi có đường
+        // API: lưu vào disk nào, kiểu tệp là gì, trạng thái ban đầu. Nhân đôi
+        // chúng là cách chắc chắn để một ngày một đường lưu vào `public` và
+        // đường kia lưu vào `private`.
+        $this->creatives->store($campaign, $request->file('file'), $request->input('name'));
 
         return redirect()->route('buyer.booking.creative', $campaign)->with('success', 'Creative đã được upload');
     }
@@ -142,18 +134,13 @@ class BookingController extends Controller
     /**
      * Step 3: POST /booking/{campaign}/submit — Submit for approval
      */
-    public function submit(Request $request, Campaign $campaign): RedirectResponse
+    public function submit(SubmitCampaignRequest $request, Campaign $campaign): RedirectResponse
     {
         $this->authorizeCampaign($request, $campaign, 'submit');
 
-        $request->validate([
-            'confirm_accuracy' => ['accepted'],
-            'accept_terms'     => ['accepted'],
-        ], [
-            'confirm_accuracy.accepted' => 'Bạn cần xác nhận thông tin booking là chính xác.',
-            'accept_terms.accepted'     => 'Bạn cần đồng ý với Quy chế hoạt động và Chính sách bảo mật để gửi booking.',
-        ]);
-
+        // Luật kiểm ở `SubmitCampaignRequest`, dùng chung với `/api/v2`. Hai ô
+        // xác nhận không phải thủ tục: `PolicyConsentService` ghi lại việc đồng
+        // ý kèm IP và thời điểm, và đó là bằng chứng khi có tranh chấp.
         $conflicts = $this->availabilityService->validateCampaign($campaign->id);
         if (! empty($conflicts)) {
             return back()->withErrors(['conflicts' => 'Có ' . count($conflicts) . ' màn hình bị xung đột SOV. Vui lòng điều chỉnh.']);

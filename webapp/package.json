@@ -1,0 +1,22 @@
+{
+    "name": "oohx-webapp",
+    "private": true,
+    "comment-vi": "Trang công khai của oohx.net trên Next.js — giai đoạn 6. Nằm trong repo oohx-dash có chủ ý: kiểu TypeScript sinh từ docs/openapi/v2.yaml, CI và deploy.sh đều ở đây, nên ba thứ đó không phải đồng bộ qua hai repo.",
+    "scripts": {
+        "dev": "next dev --port 3001",
+        "build": "next build",
+        "start": "next start --port 3001 --hostname 127.0.0.1",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "next": "16.3.8",
+        "react": "19.3.0",
+        "react-dom": "19.3.0"
+    },
+    "devDependencies": {
+        "@types/node": "^24.0.0",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
+        "typescript": "^5.9.0"
+    }
+}

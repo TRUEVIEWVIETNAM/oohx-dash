@@ -20,34 +20,99 @@ người dùng → Cloudflare → litespeed :443 → PHP-FPM (lsphp84) → Larav
 
 **Cổng 3000 đã bị chiếm** bởi `nghttpx`. Next.js dùng **3001**.
 
-## Điều kiện tiên quyết, chưa đạt
+## App Next.js nằm trong repo này
 
-Cấu hình này **chưa kích hoạt được**, vì chưa có ứng dụng Next.js phục vụ `/explore`.
+Từ 03/10/2026, trang công khai trên Next.js sống ở **`webapp/`** trong chính repo `oohx-dash`, không ở repo riêng.
 
-`oohx-webapp` (repo `tuanna0703/oohx-webapp`) là một app Next.js nhưng:
+`oohx-webapp` cũ (repo `tuanna0703/oohx-webapp`) **không dùng**: Next 14.2.5 dừng từ 25/03, route là `/browse` `/screens` `/solutions` — không khớp `/explore` `/products` `/map`, và nó ra đời trước API v2 sáu tháng nên toàn bộ tầng gọi dữ liệu phải viết lại. Nó cũng commit `.next` vào git, 63MB.
 
-- Next **14.2.5**, đẩy lần cuối 25/03/2026
-- Route là `/browse`, `/screens`, `/solutions`, `/about`, `/how-it-works` — **không khớp** đường dẫn đang chạy (`/explore`, `/products`, `/map`)
-- Ra đời 21/03, tức **sớm hơn API v2 sáu tháng**, nên chưa nối vào hợp đồng ở `docs/openapi/v2.yaml`
-- `.next` (build output) bị commit vào git, 63MB
+Ba lý do đặt trong repo này:
 
-`CLAUDE.md` mục 3: *"Giữ nguyên đường dẫn cũ khi thay trang Blade"*. Nên phần route và phần gọi dữ liệu phải viết lại trước khi proxy có nghĩa.
+- **Kiểu dữ liệu** sinh từ `docs/openapi/v2.yaml` ra `resources/js/types/api-v2.d.ts`. `webapp/tsconfig.json` trỏ thẳng ra đó, nên đặc tả đổi mà code gọi API không đổi theo thì `next build` đỏ. Hai repo thì phải đồng bộ file kiểu bằng tay, và không gì báo khi nó trôi.
+- **CI** có sẵn. Job `Next.js (trang công khai)` trong `.github/workflows/tests.yml` sinh lại kiểu rồi build — phép kiểm duy nhất cho app đó.
+- **`deploy.sh`** có sẵn, và bước `[5b/9]` build `webapp/` rồi restart service — nhưng **chỉ khi** `/etc/systemd/system/oohx-webapp.service` tồn tại, nên nó inert cho tới khi được bật.
+
+**Stylesheet dùng chung.** `webapp/app/globals.css` nhập `resources/css/frontpage.css` — 2210 dòng CSS thuần, không directive Tailwind. Giai đoạn 6 chuyển từng đường dẫn trên cùng một tên miền, nên `/explore` (Next) và `/map` (Laravel) nằm cạnh nhau trong một lượt duyệt; hai stylesheet là hai giao diện cho cùng một trang web.
+
+### Đã chuyển
+
+| Đường dẫn | Trạng thái |
+|---|---|
+| `/explore` | xong — danh sách, phân trang bằng thẻ `<a>` |
+| `/explore/{slug}` | xong — canonical, og:type=product, JSON-LD Product, 404 thật cho slug lạ |
+| `/owners`, `/owners/{slug}` | chưa |
+| `/products`, `/products/{slug}` | chưa |
+| `/map` | chưa |
+| `/` (trang chủ) | chưa |
+| 4 trang chính sách | **chuyển cuối cùng**, giữ nguyên văn bản |
+
+### Chưa dựng lại header/footer, có chủ ý
+
+`webapp/app/layout.tsx` không có thanh điều hướng. Dựng lại mà lệch một chữ so với `resources/views/frontpage/layouts/app.blade.php` thì người dùng thấy header nhảy khi bấm từ `/explore` sang `/map` — đúng kiểu lỗi lộ trình gọi là "hai giao diện lệch hành vi". Việc đó làm một lần cho tất cả trang đã chuyển, và phải đối chiếu HTML với bản Blade.
 
 ## Cài đặt
 
 ### 1. Ứng dụng Next.js
 
-```sh
-# Đặt tại /www/wwwroot/oohx-webapp, thuộc deploy:www
-cd /www/wwwroot/oohx-webapp
-npm ci
-npm run build
+App nằm trong repo nên đã có sẵn trên máy chủ sau lần deploy đầu tiên.
 
-# Kiểm chạy được TRƯỚC khi dựng service
-PORT=3001 HOSTNAME=127.0.0.1 npm start &
-curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3001/explore   # phải 200
+```sh
+cd /www/wwwroot/dash.oohx.net/webapp
+sudo -u deploy -H npm ci
+sudo -u deploy -H npm run build
+
+# Kiểm chạy được TRƯỚC khi dựng service.
+sudo -u deploy -H env \
+  OOHX_API_BASE=https://oohx.net/api/v2 \
+  OOHX_PUBLIC_ORIGIN=https://oohx.net \
+  npx next start --port 3001 --hostname 127.0.0.1 &
+
+sleep 5
+curl -s -o /dev/null -w "/explore → %{http_code}\n" http://127.0.0.1:3001/explore
+curl -s http://127.0.0.1:3001/explore | grep -c 'rel="canonical"'   # phải 1
 kill %1
 ```
+
+### Hai biến môi trường, và vì sao cả hai đều cần
+
+**`OOHX_API_BASE` phải trỏ vào tên miền, không phải `127.0.0.1`.**
+
+Bản đầu của tài liệu này đặt `http://127.0.0.1/api/v2` với lý lẽ "gọi nội bộ,
+không vòng ra ngoài". Đo trên máy chủ ngày 03/10/2026: mọi lời gọi trả **403**
+kèm `body: null` — không phải envelope lỗi của Laravel mà là OpenLiteSpeed
+chặn ở tầng ngoài. Yêu cầu tới `127.0.0.1` mang `Host: 127.0.0.1`, không khớp
+virtual host `oohx.net`, nên nó **không vào tới Laravel lần nào**. Trang trả
+500.
+
+Cách chữa hiển nhiên — tự đặt `Host: oohx.net` khi gọi — **không làm được**:
+`fetch` của Node bỏ qua header `Host` do người gọi đặt và luôn gửi host của
+URL. Đã thử cả `Host` và `host`; cả ba lần máy chủ nhận đúng
+`127.0.0.1:<cổng>`.
+
+Nên trỏ vào tên miền thật, và cho tên đó phân giải về chính máy chủ:
+
+```sh
+grep -q 'oohx.net' /etc/hosts || echo '127.0.0.1  oohx.net' >> /etc/hosts
+
+# Kiểm: phải ra 200 và KHÔNG đi qua Cloudflare
+curl -s -o /dev/null -w 'api noi bo → %{http_code}\n' https://oohx.net/api/v2/stats
+curl -sI https://oohx.net/api/v2/stats | grep -ci 'cf-ray'    # phải 0
+```
+
+Khi đó `Host` và SNI đều đúng, kết nối vẫn không ra khỏi máy, và không vòng
+qua Cloudflare — không thêm độ trễ, không thêm điểm hỏng, không tính vào hạn
+mức tần suất của người dùng thật.
+
+Không thêm dòng `/etc/hosts` thì vẫn chạy, chỉ là mỗi lần dựng trang đi ra
+Cloudflare rồi quay lại.
+
+**`OOHX_PUBLIC_ORIGIN` dựng canonical, og:url và og:image.** Phải khai riêng:
+nếu canonical dựng từ `OOHX_API_BASE` thì khi biến đó trỏ nội bộ, mọi trang sẽ
+phát `<link rel="canonical" href="http://127.0.0.1/...">` — một URL không ai
+ngoài máy chủ mở được, và công cụ tìm kiếm coi đó là địa chỉ chuẩn của trang.
+Trang vẫn hiện bình thường, nên không ai thấy.
+
+Chạy bằng user `deploy`, không phải root: đó là user GitHub Actions deploy bằng, và `npm ci` chạy bằng root sẽ để lại `node_modules` thuộc root — lần deploy tự động sau đó không ghi được.
 
 ### 2. Service systemd
 
@@ -55,8 +120,27 @@ kill %1
 cp docs/deploy/nextjs-proxy/oohx-webapp.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now oohx-webapp
-systemctl status oohx-webapp --no-pager
-curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3001/explore
+systemctl is-active oohx-webapp
+
+# sleep TRƯỚC khi curl, và nó không phải tuỳ chọn.
+#
+# `systemctl is-active` trả `active` ngay khi systemd đã fork tiến trình, CHƯA
+# phải khi tiến trình mở cổng. Gọi curl ngay sau `enable --now` cho `000` —
+# không phải mã lỗi HTTP mà là không có kết nối nào.
+#
+# Ngày 03/10/2026 tôi mất một vòng chẩn đoán vì đúng chỗ này: thấy `active` mà
+# `000` nên đi tìm đường dẫn `node` sai trong unit, trong khi service hoàn toàn
+# bình thường và chỉ cần thêm vài giây.
+sleep 5
+curl -s -o /dev/null -w "qua service → %{http_code}\n" http://127.0.0.1:3001/explore
+```
+
+Ra `000` dù đã chờ thì mới cần đào, và chỗ nói rõ nhất là log:
+
+```sh
+journalctl -u oohx-webapp -n 40 --no-pager
+readlink -f "$(command -v node)"    # phải khớp ExecStart trong unit
+ss -ltnp | grep 3001
 ```
 
 Chưa ra 200 thì **dừng**. Chưa chạy được qua localhost thì thêm proxy chỉ làm trang công khai hỏng.

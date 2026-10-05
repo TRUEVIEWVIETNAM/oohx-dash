@@ -10,6 +10,7 @@ use App\Http\Controllers\Buyer\CancellationController as BuyerCancellationContro
 use App\Http\Controllers\Buyer\CartController;
 use App\Http\Controllers\Buyer\OwnerReviewController;
 use App\Http\Controllers\Buyer\PaymentController;
+use App\Http\Controllers\CreativeFileController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\PolicyController;
 use App\Http\Controllers\ProductController;
@@ -123,6 +124,26 @@ Route::domain($fpDomain)->group(function () {
     });
 
 });
+
+// ── Tệp nội dung quảng cáo (dùng được từ mọi domain) ──
+//
+// Không đặt trong nhóm domain nào, cùng lý do như `/geocode/search` dưới đây:
+// nó phải phát được cho khu người mua trên `oohx.net`, bảng duyệt nội dung của
+// Filament trên `dash.oohx.net`, và khu publisher.
+//
+// `route()` sinh URL theo host của request hiện tại, nên mỗi nơi nhận URL cùng
+// host với phiên của chính nó — `SESSION_DOMAIN` để trống nghĩa là cookie phiên
+// gắn theo từng host, và một URL trỏ sang host khác sẽ không mang theo phiên.
+//
+// Hai middleware, không phải một:
+//
+// - `signed` đặt hạn sống cho URL và chặn việc dò id. Thiếu nó thì
+//   `/creatives/{id}/file` là một mặt tiền để thử từng id.
+// - `auth` + `CreativePolicy` trong controller chặn người không có quyền.
+//   Thiếu nó thì một URL lộ ra ngoài là đường vào dùng được tới khi hết hạn.
+Route::get('/creatives/{creative}/file', CreativeFileController::class)
+    ->middleware(['auth', 'signed'])
+    ->name('creatives.file');
 
 // ── Geocode proxy (accessible from all domains — admin, publisher, frontpage) ──
 Route::get('/geocode/search', function () {

@@ -1,0 +1,49 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "ES2022"
+    ],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      // Kiểu dữ liệu SINH TỪ docs/openapi/v2.yaml (`npm run types:api` ở
+      // gốc repo), không chép tay — CLAUDE.md mục 2. Trỏ ra ngoài thư mục
+      // webapp có chủ ý: một bản sao trong này sẽ trôi khỏi đặc tả, và
+      // không có gì báo khi nó trôi.
+      "@api-types": [
+        "../resources/js/types/api-v2.d.ts"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "../resources/js/types/api-v2.d.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
