@@ -91,12 +91,24 @@ Route::prefix('v2')->group(function () {
 
     // `screens/map` phải đứng TRƯỚC `screens/{slug}`, nếu không Laravel khớp
     // "map" vào {slug} và endpoint bản đồ biến thành một lần tra slug hỏng.
-    Route::get('screens/map',     [V2CatalogController::class, 'map']);
-    Route::get('screens',         [V2CatalogController::class, 'screens']);
-    Route::get('screens/{slug}',  [V2CatalogController::class, 'screen']);
+    // THỨ TỰ QUAN TRỌNG: mọi đường cố định phải đứng trước `{slug}`.
+    //
+    // Laravel khớp route theo thứ tự khai. Đặt `screens/featured` sau
+    // `screens/{slug}` thì nó không bao giờ được gọi — thay vào đó
+    // `screen('featured')` chạy, không tìm thấy màn hình nào có slug đó, và
+    // trả 404. Một lỗi đọc log không ra nguyên nhân, vì 404 là câu trả lời
+    // hợp lệ của endpoint kia.
+    Route::get('screens/map',      [V2CatalogController::class, 'map']);
+    Route::get('screens/pins',     [V2CatalogController::class, 'pins']);
+    Route::get('screens/featured', [V2CatalogController::class, 'featuredScreens']);
+    Route::get('screens',          [V2CatalogController::class, 'screens']);
+    Route::get('screens/{slug}',   [V2CatalogController::class, 'screen']);
 
-    Route::get('owners',          [V2CatalogController::class, 'owners']);
-    Route::get('owners/{slug}',   [V2CatalogController::class, 'owner']);
+    Route::get('owners/featured',  [V2CatalogController::class, 'featuredOwners']);
+    Route::get('owners',           [V2CatalogController::class, 'owners']);
+    Route::get('owners/{slug}',    [V2CatalogController::class, 'owner']);
+
+    Route::get('locations',        [V2CatalogController::class, 'locations']);
 
     Route::get('products',        [V2CatalogController::class, 'products']);
     Route::get('products/{slug}', [V2CatalogController::class, 'product']);

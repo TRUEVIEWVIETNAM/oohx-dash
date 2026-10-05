@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V2\CityPinsRequest;
 use App\Http\Requests\Api\V2\MapViewportRequest;
 use App\Http\Requests\Api\V2\OwnerListingRequest;
 use App\Http\Requests\FrontpageListingRequest;
@@ -17,6 +18,7 @@ use App\Services\FrontpageService;
 use App\Services\InventoryHoldService;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * Danh mục công khai cho `/api/v2` — nguồn dữ liệu cho trang công khai.
@@ -43,6 +45,28 @@ class CatalogController extends Controller
     private const MAX_MAP_PINS = 500;
 
     private const DEFAULT_MAP_PINS = 300;
+
+    /**
+     * Giới hạn cho ba endpoint của trang chủ.
+     *
+     * Nhỏ hơn hẳn các endpoint danh sách, có lý do: đây là những khối trang chủ
+     * hiển thị cố định vài thẻ. Mở rộng giới hạn không giúp ai mà biến một
+     * endpoint duyệt nhanh thành một endpoint xuất dữ liệu.
+     */
+    private const MAX_FEATURED_SCREENS = 12;
+
+    private const DEFAULT_FEATURED_SCREENS = 4;
+
+    private const MAX_FEATURED_OWNERS = 24;
+
+    private const DEFAULT_FEATURED_OWNERS = 6;
+
+    private const MAX_CITY_PINS = 100;
+
+    private const DEFAULT_CITY_PINS = 50;
+
+    /** Khung thời gian tính suất còn lại, giống `/screens/{slug}`. */
+    private const AVAILABILITY_WINDOW_DAYS = 30;
 
     public function __construct(
         private readonly FrontpageService $catalog,
@@ -329,4 +353,177 @@ class CatalogController extends Controller
             'details' => [],
         ], 404);
     }
+    /**
+     * `GET /screens/featured` — vài màn hình nổi bật cho trang chủ.
+     *
+     * Dùng `getFeaturedScreens()`, đúng hàm trang chủ Blade gọi: lọc màn hình
+     * công khai **có ảnh** và **có giá sàn > 0**. Không viết truy vấn riêng ở
+     * đây — đó là lỗi R38 đã mắc một lần, khi truy vấn riêng nạp đủ cột network
+     * còn đường dùng chung thiếu `code`, nên cùng một màn hình trả dữ liệu khác
+     * nhau tùy endpoint.
+     *
+     * ══ Có `availability`, khác `/screens` ══
+     *
+     * Endpoint danh sách KHÔNG trả suất còn lại, có lý do: nó trả tới 50 bản
+     * ghi mỗi trang và phép tính suất là hai truy vấn tổng hợp trên tập id đó.
+     *
+     * Ở đây tập nhỏ và cố định (tối đa 12), nên chi phí có hạn. Và nó cần
+     * thiết: thẻ màn hình chỉ được in badge "Còn trống" khi CÓ dữ liệu suất —
+     * audit F-15, `NoFabricatedMetricsTest` canh đúng điều đó. Không trả suất
+     * thì trang chủ không in được badge, hoặc in bừa.
+     */
+    public function featuredScreens(Request $request): JsonResponse
+    {
+        $limit = min(
+            max(1, (int) $request->integer('limit', self::DEFAULT_FEATURED_SCREENS)),
+            self::MAX_FEATURED_SCREENS,
+        );
+
+        $screens = $this->catalog->getFeaturedScreens($limit);
+
+        $remaining = app(InventoryHoldService::class)->remainingSovForScreens(
+            $screens->pluck('id')->filter()->unique()->values()->all(),
+            now()->toDateString(),
+            now()->addDays(self::AVAILABILITY_WINDOW_DAYS)->toDateString(),
+        );
+
+        return response()->json([
+            'data' => $screens->map(function ($screen) use ($remaining) {
+                $pct = $remaining[$screen->id] ?? null;
+
+                return (new ScreenSummaryResource($screen))->resolve() + [
+                    // `null` khi không tính được, KHÔNG phải 0.
+                    //
+                    // 0 nghĩa là "đã đặt kín", còn `null` nghĩa là "chưa biết"
+                    // — hai điều khác nhau, và gộp chúng là cách in badge
+                    // "đã đầy" cho một màn hình không ai đặt.
+                    'availability' => $pct === null ? null : [
+                        'window_days'       => self::AVAILABILITY_WINDOW_DAYS,
+                        'remaining_sov_pct' => (int) $pct,
+                        'has_capacity'      => $pct > 0,
+                    ],
+                ];
+            })->values()->all(),
+            'meta' => [
+                'returned'  => $screens->count(),
+                'limit'     => $limit,
+                'max_limit' => self::MAX_FEATURED_SCREENS,
+            ],
+        ]);
+    }
+
+    /**
+     * `GET /owners/featured` — vài media owner nổi bật cho trang chủ.
+     *
+     * `getFeaturedOwners()` ưu tiên owner có cờ `featured`, và **lùi về** owner
+     * đang hoạt động nhiều màn hình nhất khi chưa ai được đánh dấu. Nên danh
+     * sách không bao giờ rỗng chỉ vì chưa ai bật cờ — một trang chủ trống vì
+     * thiếu một cờ quản trị là lỗi khó đoán nguyên nhân.
+     */
+    public function featuredOwners(Request $request): JsonResponse
+    {
+        $limit = min(
+            max(1, (int) $request->integer('limit', self::DEFAULT_FEATURED_OWNERS)),
+            self::MAX_FEATURED_OWNERS,
+        );
+
+        $owners = $this->catalog->getFeaturedOwners($limit);
+
+        return response()->json([
+            'data' => OwnerSummaryResource::collection($owners)->resolve(),
+            'meta' => [
+                'returned'  => $owners->count(),
+                'limit'     => $limit,
+                'max_limit' => self::MAX_FEATURED_OWNERS,
+            ],
+        ]);
+    }
+
+    /**
+     * `GET /screens/pins` — pin bản đồ cho MỘT thành phố.
+     *
+     * ══ `city` bắt buộc, cùng lý lẽ với khung nhìn ở `/screens/map` ══
+     *
+     * `MapViewportRequest` bắt buộc có khung nhìn vì thiếu nó thì "lấy pin bản
+     * đồ" nghĩa là lấy mọi màn hình có toạ độ — một lần xuất toàn bộ kho dưới
+     * một cái tên vô hại. Endpoint này dùng **thành phố** làm phạm vi thay cho
+     * khung nhìn, nên `city` cũng phải bắt buộc. Thiếu nó là mở lại đúng cái
+     * cửa kia.
+     *
+     * ══ Vì sao tách khỏi `/screens/map` ══
+     *
+     * Trang chủ có bộ chọn thành phố, không có bản đồ kéo được, nên nó không
+     * biết toạ độ biên của thành phố để dựng khung nhìn. Gộp hai phạm vi vào
+     * một endpoint nghĩa là hai nhóm tham số loại trừ nhau, mỗi nhóm bắt buộc
+     * theo điều kiện — một hợp đồng không khai được gọn trong OpenAPI, và
+     * không kiểm được bằng một FormRequest.
+     *
+     * Dùng lại `MapPinResource`, **không** chép hình dạng mà
+     * `getHomepageMapPins()` trả về: hàm đó trả `price` là số trần không kèm
+     * đơn vị tiền, đúng lỗi R39 mà DTO này được tạo ra để tránh.
+     */
+    public function pins(CityPinsRequest $request): JsonResponse
+    {
+        $limit = min(
+            max(1, (int) $request->integer('limit', self::DEFAULT_CITY_PINS)),
+            self::MAX_CITY_PINS,
+        );
+
+        $pins = $this->catalog->getCityMapPins($request->citySlug(), $limit);
+
+        return response()->json([
+            'data' => MapPinResource::collection($pins)->resolve(),
+            'meta' => [
+                'returned'  => $pins->count(),
+                'limit'     => $limit,
+                'max_limit' => self::MAX_CITY_PINS,
+                'city'      => $request->citySlug(),
+            ],
+        ]);
+    }
+
+    /**
+     * `GET /locations` — tỉnh thành có màn hình, nhóm theo vùng.
+     *
+     * ══ Trả MẢNG, không trả object khoá bằng tên vùng ══
+     *
+     * `getLocationsByRegion()` trả `['Miền Bắc' => [...], 'Miền Trung' => [...]]`
+     * — khoá là **chuỗi hiển thị tiếng Việt**. Dùng hình dạng đó làm hợp đồng
+     * API thì không gõ kiểu được, và đổi tên vùng trong `config/regions.php` là
+     * đổi khoá của response — tức một thay đổi hiển thị làm vỡ bên tiêu thụ.
+     *
+     * Nên ở đây mỗi vùng là một phần tử có `code` ổn định và `name` để hiển
+     * thị.
+     */
+    public function locations(): JsonResponse
+    {
+        $grouped = $this->catalog->getLocationsByRegion();
+        $config  = config('regions', []);
+
+        // Dò ngược từ tên hiển thị về code. `getLocationsByRegion()` chỉ trả
+        // tên, nên đây là chỗ duy nhất quy đổi được — và nó phải chịu được
+        // trường hợp tên không khớp config nào, thay vì ném lỗi.
+        $nameToCode = [];
+        foreach ($config as $code => $cfg) {
+            if (isset($cfg['name'])) {
+                $nameToCode[$cfg['name']] = $code;
+            }
+        }
+
+        $regions = [];
+        foreach ($grouped as $name => $provinces) {
+            $regions[] = [
+                'code'      => $nameToCode[$name] ?? null,
+                'name'      => $name,
+                'provinces' => array_map(fn (array $p) => [
+                    'code'  => $p['code'],
+                    'name'  => $p['name'],
+                    'count' => (int) $p['count'],
+                ], $provinces),
+            ];
+        }
+
+        return response()->json(['data' => $regions]);
+    }
+
 }

@@ -810,10 +810,36 @@ class FrontpageService
     }
 
     /**
-     * Get pins for the homepage mini-map, scoped to a city.
-     * Returns lightweight data for up to $limit screens.
+     * Những slug thành phố mà bộ chọn trang chủ nhận.
+     *
+     * Công khai vì `Api\V2\CityPinsRequest` kiểm tham số `city` theo đúng danh
+     * sách này. Để request tự khai một danh sách thứ hai là mở đúng cái cửa mà
+     * phép kiểm đó đang đóng: `resolveCityName()` trả `null` cho slug lạ, và
+     * khi đó `getCityMapPins()` KHÔNG áp filter thành phố nào — tức một slug
+     * sai cho ra pin của cả nước thay vì một lỗi.
+     *
+     * @return list<string>
      */
-    public function getHomepageMapPins(string $citySlug = 'hanoi', int $limit = 50): array
+    public static function citySlugs(): array
+    {
+        return array_keys(self::CITY_SLUG_MAP);
+    }
+
+    /**
+     * Màn hình có toạ độ trong một thành phố, trả về **model** chứ không phải
+     * mảng đã dựng sẵn.
+     *
+     * Tách ra khỏi `getHomepageMapPins()` để `/api/v2/screens/pins` dùng lại
+     * đúng truy vấn này rồi tự dựng DTO bằng `MapPinResource`. Nếu endpoint tự
+     * viết truy vấn riêng thì hai đường sẽ trôi khỏi nhau — đúng lỗi R38 đã
+     * mắc một lần, khi truy vấn riêng nạp đủ cột network còn đường dùng chung
+     * thiếu `code`.
+     *
+     * `inRandomOrder()` giữ nguyên theo bản Blade: bản đồ nhỏ trên trang chủ
+     * đổi pin mỗi lần tải là có chủ ý. Hệ quả cho bên tiêu thụ: thứ tự **không
+     * định trước**, nên đừng dựa vào nó để phân trang hay so sánh hai lần gọi.
+     */
+    public function getCityMapPins(string $citySlug, int $limit = 50): Collection
     {
         $cityName = $this->resolveCityName($citySlug);
 
@@ -825,11 +851,20 @@ class FrontpageService
             $this->applyCityFilter($query, $cityName);
         }
 
-        $screens = $query
+        return $query
             ->with(['spec:screen_id,photo_url,photos,width_cm,height_cm', 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day', 'inventory.vnCategory:id,thumb', 'owner:id,name,slug,logo_url,cover_url', 'site:id,network_id,name,lat,lon,city,address,banner', 'site.network:id,name,code,banner'])
             ->inRandomOrder()
             ->limit($limit)
             ->get();
+    }
+
+    /**
+     * Get pins for the homepage mini-map, scoped to a city.
+     * Returns lightweight data for up to $limit screens.
+     */
+    public function getHomepageMapPins(string $citySlug = 'hanoi', int $limit = 50): array
+    {
+        $screens = $this->getCityMapPins($citySlug, $limit);
 
         // Build screen-level data first (full fields for rich marker + popup)
         $vnCatLabels = $this->getVnCategoryLabels();
