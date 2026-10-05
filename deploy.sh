@@ -60,25 +60,25 @@ echo "Path   : $(pwd)"
 echo "Branch : $BRANCH"
 
 echo ""
-echo "[1/10] Enable maintenance mode"
+echo "[1/11] Enable maintenance mode"
 $PHP_BIN artisan down || true
 
 echo ""
-echo "[2/10] Save current commit for rollback"
+echo "[2/11] Save current commit for rollback"
 git rev-parse HEAD > .previous_deploy_commit || true
 echo "Saved previous commit: $(cat .previous_deploy_commit || true)"
 
 echo ""
-echo "[3/10] Update source"
+echo "[3/11] Update source"
 git fetch origin
 git reset --hard origin/$BRANCH
 
 echo ""
-echo "[4/10] Install composer dependencies"
+echo "[4/11] Install composer dependencies"
 $COMPOSER_BIN install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
 echo ""
-echo "[5/10] Build frontend assets"
+echo "[5/11] Build frontend assets"
 # KHÔNG có `|| true` ở đây, có chủ ý.
 #
 # Bản cũ không build gì cả và không ai biết, vì trang vẫn chạy với asset cũ.
@@ -95,7 +95,7 @@ npm ci
 npm run build
 
 echo ""
-echo "[6/10] Clear old caches"
+echo "[6/11] Clear old caches"
 # TRƯỚC migrate, không phải sau.
 #
 # Bản cũ migrate trước rồi mới xoá cache, nên migration đọc config đã cache của
@@ -103,18 +103,18 @@ echo "[6/10] Clear old caches"
 $PHP_BIN artisan optimize:clear
 
 echo ""
-echo "[7/10] Run migrations"
+echo "[7/11] Run migrations"
 $PHP_BIN artisan migrate --force
 
 echo ""
-echo "[8/10] Rebuild caches"
+echo "[8/11] Rebuild caches"
 $PHP_BIN artisan config:cache
 $PHP_BIN artisan route:cache
 $PHP_BIN artisan view:cache
 $PHP_BIN artisan event:cache || true
 
 echo ""
-echo "[9/10] Fix permissions and restart workers"
+echo "[9/11] Fix permissions and restart workers"
 # Thư mục và file đặt RIÊNG, không `chmod -R` cả cây.
 #
 # Bản cũ chạy `chmod -R 775 storage bootstrap/cache`. 775 lật bit thực thi lên
@@ -140,7 +140,7 @@ echo "Bring app back online"
 $PHP_BIN artisan up || true
 
 echo ""
-echo "[10/10] Build app Next.js — chỉ khi service đã được dựng"
+echo "[10/11] Build app Next.js — chỉ khi service đã được dựng"
 # Đặt ở CUỐI, sau khi Laravel đã online. Và có điều kiện.
 #
 # ══ Vì sao không nằm giữa, ở vị trí [5b] như bản đầu ══
@@ -211,6 +211,199 @@ if [ -f /etc/systemd/system/oohx-webapp.service ]; then
 else
     echo "Bỏ qua: /etc/systemd/system/oohx-webapp.service chưa tồn tại."
     echo "        Trang công khai vẫn do Laravel phục vụ toàn bộ."
+fi
+
+echo ""
+echo "[11/11] Đồng bộ cấu hình proxy OpenLiteSpeed"
+# Đưa `docs/deploy/nextjs-proxy/nextjs.conf` vào thư mục OpenLiteSpeed đọc, rồi
+# reload. Mục đích: chuyển thêm một đường dẫn sang Next.js chỉ còn là một lần
+# merge, không cần ai mở phiên SSH vào production.
+#
+# ══ Vì sao bước này đáng rủi ro, và rủi ro được chặn thế nào ══
+#
+# Nó cho script deploy quyền đổi cấu hình web server. Một file conf sai có thể
+# làm cả trang công khai 404 — ví dụ `context /` là khớp theo TIỀN TỐ, nên khai
+# nó biến Next thành catch-all và mọi đường Laravel (`/cart`, `/api/v1` của đối
+# tác, bốn trang chính sách qua route `/{slug}`, `sitemap.xml`) đi sang một app
+# không có chúng.
+#
+# Nên bước này không chỉ chép file. Nó:
+#
+#   1. bỏ qua nếu file không đổi — reload web server mỗi lần deploy là việc vô
+#      ích có rủi ro;
+#   2. kiểm file TRƯỚC khi cài: phải có `extprocessor`, phải có ít nhất một
+#      `context`, ngoặc phải cân;
+#   3. sao lưu bản đang chạy;
+#   4. cài, reload;
+#   5. chạy CANARY từ ngoài vào, và nếu đỏ thì **tự lùi lại** rồi reload lần
+#      nữa trước khi thoát.
+#
+# Canary quan trọng hơn cả bốn bước trên. Một cấu hình proxy sai không làm
+# OpenLiteSpeed báo lỗi — nó khởi động bình thường và trả 404 cho những đường
+# nó vừa chuyển sai. Không có canary thì deploy xanh và trang công khai chết.
+PROXY_DIR="/www/server/panel/vhost/openlitespeed/proxy/oohx.net"
+PROXY_CONF="$PROXY_DIR/nextjs.conf"
+REPO_CONF="docs/deploy/nextjs-proxy/nextjs.conf"
+# Hậu tố KHÔNG kết thúc bằng `.conf`, có chủ ý: thư mục này được nạp bằng
+# `include .../proxy/oohx.net/*.conf`, nên một bản sao lưu tên `*.conf` sẽ được
+# nạp song song với bản thật và khai trùng `extprocessor`.
+PROXY_BAK="$PROXY_CONF.truoc-deploy"
+
+sync_proxy_conf() {
+    if [ ! -d "$PROXY_DIR" ]; then
+        echo "Bỏ qua: $PROXY_DIR chưa tồn tại — proxy chưa được dựng lần nào."
+        return 0
+    fi
+
+    if [ -f "$PROXY_CONF" ] && cmp -s "$REPO_CONF" "$PROXY_CONF"; then
+        echo "Không đổi: cấu hình proxy đang chạy khớp repo."
+        return 0
+    fi
+
+    # ── Kiểm file trước khi cài ──
+    if ! grep -q '^extprocessor ' "$REPO_CONF"; then
+        echo "LỖI: $REPO_CONF không có khối extprocessor. Không cài."
+        return 1
+    fi
+
+    local so_context
+    so_context=$(grep -cE '^context ' "$REPO_CONF" || true)
+
+    if [ "$so_context" -lt 1 ]; then
+        echo "LỖI: $REPO_CONF không khai context nào. Cài vào là vô nghĩa."
+        return 1
+    fi
+
+    local mo dong
+    mo=$(grep -o '{' "$REPO_CONF" | wc -l)
+    dong=$(grep -o '}' "$REPO_CONF" | wc -l)
+
+    if [ "$mo" -ne "$dong" ]; then
+        echo "LỖI: ngoặc trong $REPO_CONF không cân ($mo mở, $dong đóng). Không cài."
+        return 1
+    fi
+
+    echo "Cài cấu hình mới: $so_context context."
+
+    if [ -f "$PROXY_CONF" ]; then
+        sudo -n cp "$PROXY_CONF" "$PROXY_BAK" || {
+            echo "LỖI: không sao lưu được cấu hình đang chạy. Không cài."
+            return 1
+        }
+    else
+        # Chưa có bản nào đang chạy: "lùi lại" nghĩa là XOÁ file, không phải
+        # phục hồi. Dùng một file mốc để nhánh lùi biết điều đó.
+        sudo -n rm -f "$PROXY_BAK" || true
+    fi
+
+    sudo -n cp "$REPO_CONF" "$PROXY_CONF" || {
+        echo "LỖI: không ghi được $PROXY_CONF."
+        echo ""
+        echo "     Cấp quyền cho user $(whoami), phạm vi hẹp:"
+        echo ""
+        echo "       cat > /etc/sudoers.d/oohx-proxy-conf <<'SUDO'"
+        echo "       $(whoami) ALL=(root) NOPASSWD: /usr/bin/cp $REPO_CONF $PROXY_CONF"
+        echo "       $(whoami) ALL=(root) NOPASSWD: /usr/bin/cp $PROXY_CONF $PROXY_BAK"
+        echo "       $(whoami) ALL=(root) NOPASSWD: /usr/bin/cp $PROXY_BAK $PROXY_CONF"
+        echo "       $(whoami) ALL=(root) NOPASSWD: /bin/rm -f $PROXY_CONF"
+        echo "       $(whoami) ALL=(root) NOPASSWD: /bin/rm -f $PROXY_BAK"
+        echo "       $(whoami) ALL=(root) NOPASSWD: /usr/local/lsws/bin/lswsctrl restart"
+        echo "       SUDO"
+        echo "       chmod 440 /etc/sudoers.d/oohx-proxy-conf"
+        echo "       visudo -c"
+        echo ""
+        return 1
+    }
+
+    reload_lsws || return 1
+
+    if canary_ok; then
+        echo "Proxy  : đã đồng bộ và canary xanh."
+        return 0
+    fi
+
+    echo ""
+    echo "CANARY ĐỎ — lùi lại cấu hình proxy."
+
+    if [ -f "$PROXY_BAK" ]; then
+        sudo -n cp "$PROXY_BAK" "$PROXY_CONF" || echo "     KHÔNG lùi được: $PROXY_CONF giữ bản mới."
+    else
+        sudo -n rm -f "$PROXY_CONF" || echo "     KHÔNG xoá được: $PROXY_CONF giữ bản mới."
+    fi
+
+    reload_lsws || true
+
+    if canary_ok; then
+        echo "     Đã lùi xong, trang công khai trở lại bình thường."
+    else
+        echo "     LÙI RỒI MÀ CANARY VẪN ĐỎ — nguyên nhân không phải cấu hình proxy."
+    fi
+
+    return 1
+}
+
+reload_lsws() {
+    sudo -n /usr/local/lsws/bin/lswsctrl restart || {
+        echo "LỖI: không reload được OpenLiteSpeed."
+        echo "     Cần quyền NOPASSWD cho lswsctrl restart (xem khối lệnh ở trên)."
+        return 1
+    }
+
+    # OpenLiteSpeed reload bằng SIGUSR1: tiến trình cũ phục vụ xong yêu cầu
+    # đang dở rồi mới nhường. Gọi canary ngay thì có thể còn đang nhận tiến
+    # trình cũ, tức canary đo cấu hình CŨ và xanh sai.
+    sleep 3
+}
+
+# ══ Canary ══
+#
+# Năm đường dẫn, chọn vì mỗi đường bắt một kiểu sai khác nhau:
+#
+#   /api/v2/stats        API còn sống. Proxy ăn /api là chết hợp đồng đối tác.
+#   /sitemap.xml         Laravel còn sinh được sitemap.
+#   /quy-che-hoat-dong   Trang chính sách đi qua route catch-all `/{slug}`, nên
+#                        nó là đường ĐẦU TIÊN chết khi ai khai `context /`.
+#   /cart                Đường chỉ Laravel có. 302 về login là đúng; 404 nghĩa
+#                        là nó bị chuyển sang Next.
+#   /                    Trang chủ.
+#
+# Và một phép kiểm ngược: nếu conf khai `context /explore` thì `/explore` PHẢI
+# do Next phục vụ. Thiếu phép này thì một file conf không có tác dụng gì vẫn
+# qua canary.
+canary_ok() {
+    local loi=0 u ma
+
+    for u in /api/v2/stats /sitemap.xml /quy-che-hoat-dong /; do
+        ma=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://oohx.net$u" || true)
+
+        if [ "$ma" != "200" ]; then
+            echo "     canary: $u trả $ma (cần 200)"
+            loi=1
+        fi
+    done
+
+    ma=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://oohx.net/cart" || true)
+
+    case "$ma" in
+        200|302) ;;
+        *) echo "     canary: /cart trả $ma (cần 200 hoặc 302)"; loi=1 ;;
+    esac
+
+    if grep -qE '^context /explore' "$PROXY_CONF" 2>/dev/null; then
+        if ! curl -s --max-time 15 "https://oohx.net/explore" | grep -q '_next/static'; then
+            echo "     canary: conf khai context /explore nhưng /explore không do Next phục vụ"
+            loi=1
+        fi
+    fi
+
+    return $loi
+}
+
+if ! sync_proxy_conf; then
+    echo ""
+    echo "LỖI: đồng bộ cấu hình proxy thất bại. Laravel đã deploy xong và đang"
+    echo "     online; chỉ phần định tuyến proxy là chưa đổi."
+    exit 1
 fi
 
 
