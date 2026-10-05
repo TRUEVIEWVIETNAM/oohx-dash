@@ -510,6 +510,230 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/screens/featured": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vài màn hình nổi bật cho trang chủ
+         * @description Dùng cùng đường truy vấn trang chủ Blade gọi: màn hình công khai **có
+         *     ảnh** và **có giá sàn > 0**.
+         *
+         *     **Khác `/screens`: có `availability`.** Endpoint danh sách không trả
+         *     suất còn lại vì nó trả tới 50 bản ghi mỗi trang và phép tính suất là
+         *     hai truy vấn tổng hợp. Ở đây tập nhỏ và cố định nên chi phí có hạn, và
+         *     nó cần thiết: thẻ màn hình chỉ được in badge "Còn trống" khi **có** dữ
+         *     liệu suất (audit F-15).
+         *
+         *     `availability` là `null` khi không tính được — **không** phải 0. `0`
+         *     nghĩa là đã đặt kín, `null` nghĩa là chưa biết; gộp hai thứ đó là cách
+         *     in badge "đã đầy" cho một màn hình không ai đặt.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: (components["schemas"]["ScreenSummary"] & {
+                                availability: components["schemas"]["Availability"] | null;
+                            })[];
+                            meta: components["schemas"]["LimitMeta"];
+                        };
+                    };
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/screens/pins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pin bản đồ của MỘT thành phố
+         * @description **`city` bắt buộc**, cùng lý lẽ với khung nhìn ở `/screens/map`: thiếu
+         *     phạm vi thì "lấy pin bản đồ" nghĩa là lấy mọi màn hình có toạ độ — một
+         *     lần xuất toàn bộ kho dưới một cái tên vô hại (CLAUDE.md mục 2).
+         *
+         *     Và `city` được kiểm theo **danh sách thật**, không chỉ `required`:
+         *     `FrontpageService::resolveCityName()` trả `null` cho slug không nhận
+         *     ra, và khi đó truy vấn **không áp filter thành phố nào**. Nên một giá
+         *     trị lạ phải là 422, không phải pin của cả nước.
+         *
+         *     **Vì sao tách khỏi `/screens/map`:** trang chủ có bộ chọn thành phố,
+         *     không có bản đồ kéo được, nên nó không biết toạ độ biên để dựng khung
+         *     nhìn. Gộp hai phạm vi vào một endpoint nghĩa là hai nhóm tham số loại
+         *     trừ nhau, mỗi nhóm bắt buộc theo điều kiện — một hợp đồng không khai
+         *     được gọn ở đây và không kiểm được bằng một FormRequest.
+         *
+         *     **Thứ tự không định trước.** Truy vấn dùng `inRandomOrder()`, giữ theo
+         *     bản Blade vì bản đồ nhỏ trên trang chủ đổi pin mỗi lần tải là có chủ ý.
+         *     Đừng dựa vào thứ tự để phân trang hay so sánh hai lần gọi.
+         */
+        get: {
+            parameters: {
+                query: {
+                    city: "hanoi" | "hcm" | "danang" | "haiphong" | "cantho";
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["MapPin"][];
+                            meta: components["schemas"]["LimitMeta"] & {
+                                city: string;
+                            };
+                        };
+                    };
+                };
+                422: components["responses"]["ValidationFailed"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/owners/featured": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vài media owner nổi bật cho trang chủ
+         * @description Ưu tiên owner có cờ `featured`, và **lùi về** owner đang hoạt động
+         *     nhiều màn hình nhất khi chưa ai được đánh dấu — nên danh sách không bao
+         *     giờ rỗng chỉ vì chưa ai bật cờ. Một trang chủ trống vì thiếu một cờ
+         *     quản trị là lỗi khó đoán nguyên nhân.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["OwnerSummary"][];
+                            meta: components["schemas"]["LimitMeta"];
+                        };
+                    };
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tỉnh thành có màn hình, nhóm theo vùng
+         * @description Trả **mảng**, không trả object khoá bằng tên vùng.
+         *
+         *     `FrontpageService::getLocationsByRegion()` trả
+         *     `{"Miền Bắc": [...], "Miền Trung": [...]}` — khoá là chuỗi hiển thị
+         *     tiếng Việt. Dùng hình dạng đó làm hợp đồng thì không gõ kiểu được, và
+         *     đổi tên vùng trong `config/regions.php` là đổi khoá của response: một
+         *     thay đổi hiển thị làm vỡ bên tiêu thụ.
+         *
+         *     Nên mỗi vùng là một phần tử có `code` ổn định và `name` để hiển thị.
+         *     `code` có thể `null` nếu tên vùng không khớp `config/regions.php` —
+         *     trả `null` thay vì bỏ qua, để chỗ lệch cấu hình nhìn thấy được.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["Region"][];
+                        };
+                    };
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/policies": {
         parameters: {
             query?: never;
@@ -1643,6 +1867,33 @@ export interface components {
             window_days: number;
             remaining_sov_pct: number;
             has_capacity: boolean;
+        };
+        /**
+         * @description Meta cho các endpoint trả một danh sách ngắn, cố định — không phân
+         *     trang. Khác `PageMeta`: không có `page` và `last_page`, vì không có
+         *     trang nào để đi tới.
+         */
+        LimitMeta: {
+            returned: number;
+            /** @description Giới hạn đã áp, sau khi kẹp về max_limit. */
+            limit: number;
+            max_limit: number;
+        };
+        Region: {
+            /**
+             * @description Mã vùng trong `config/regions.php` (`north`, `central`,
+             *     `south`). Null khi tên vùng không khớp cấu hình — trả null thay vì
+             *     bỏ qua, để chỗ lệch cấu hình nhìn thấy được.
+             */
+            code: string | null;
+            /** @description Tên vùng để hiển thị. */
+            name: string;
+            provinces: {
+                code: string;
+                name: string;
+                /** @description Số màn hình công khai trong tỉnh thành đó. */
+                count: number;
+            }[];
         };
         PageMeta: {
             page: number;
