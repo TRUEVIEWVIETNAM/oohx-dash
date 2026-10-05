@@ -45,6 +45,25 @@ import { LOGO_DATA_URI } from '@/lib/logo';
  */
 const TRONG_APP = new Set(['/explore', '/owners', '/map']);
 
+/**
+ * Logo, dùng cùng phép kiểm `TRONG_APP` như các mục nav.
+ *
+ * Viết cứng `<a href="/">` thì khi `/` được proxy sang Next, logo vẫn tải lại
+ * cả trang cho một điều hướng nội bộ — và không ai nhớ sửa thêm một dòng ở
+ * đây. Để nó đi qua cùng danh sách thì sửa một chỗ là đủ.
+ */
+function LogoLink({ children }: { children: React.ReactNode }) {
+    return TRONG_APP.has('/') ? (
+        <Link href="/" className="hdr-logo">
+            {children}
+        </Link>
+    ) : (
+        <a href="/" className="hdr-logo">
+            {children}
+        </a>
+    );
+}
+
 function NavLink({ href, active, children }: {
     href: string;
     active: boolean;
@@ -69,7 +88,13 @@ export function SiteHeader({ active = '' }: { active?: NavKey }) {
     return (
         <header className="hdr">
             <div className="hdr-in">
-                <a href="/" className="hdr-logo">
+                {/*
+                  Logo đi qua cùng phép kiểm `TRONG_APP` như các mục nav, không
+                  viết cứng `<a>`: khi `/` được proxy sang Next thì nó tự thành
+                  điều hướng phía client, và không ai phải nhớ sửa thêm một dòng
+                  ở đây.
+                */}
+                <LogoLink>
                     {/*
                       Logo nhúng sẵn trong HTML, không gán bằng JS sau khi tải.
 
@@ -81,7 +106,7 @@ export function SiteHeader({ active = '' }: { active?: NavKey }) {
                     */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={LOGO_DATA_URI} alt="OOHX" width={128} height={32} />
-                </a>
+                </LogoLink>
 
                 <nav className="hdr-nav">
                     <NavLink href="/explore" active={active === 'explore'}>
