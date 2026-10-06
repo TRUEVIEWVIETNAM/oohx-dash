@@ -29,9 +29,22 @@ name: Chẩn đoán proxy OpenLiteSpeed
 # Toàn bộ là `ls`, `grep`, `stat`, `sudo -n -l`. Không `cp`, không `mv`, không
 # `rm`, không `restart`. Chạy nó nhiều lần cũng vô hại.
 #
-# `|| true` ở sau hầu hết lệnh là CÓ Ý: `grep` không tìm thấy gì thì trả 1, và
-# `script_stop: true` sẽ dừng cả job ở đó — mất những khối sau, mà "không tìm
-# thấy" chính là một kết quả cần biết.
+# ══ `set +e`, và vì sao bản đầu thiếu nó là một lỗi thật ══
+#
+# Bản đầu chỉ dựa vào `|| true` ở từng lệnh, và nó **không đủ**: lần chạy
+# 37471490002 chết ở khối 4, nên khối 5 (service Next.js) và khối 6 (conf repo
+# khai gì) không bao giờ in ra. Một phép chẩn đoán dừng giữa đường thì tệ hơn
+# là không có — nó trả lời nửa câu rồi báo "failure", và người đọc không biết
+# nửa sau im lặng vì không có vấn đề hay vì script đã chết.
+#
+# `script_stop: true` của action thêm `set -e`. Với một script CHỈ ĐỌC thì
+# `set -e` là sai hướng: mọi lệnh ở đây đều có thể trả khác 0 một cách hợp lệ
+# (`grep` không khớp, `stat` không có quyền, `systemctl` không biết unit), và
+# mỗi cái đó là một KẾT QUẢ, không phải một sự cố. Nên tắt `set -e` cho phần
+# thân.
+#
+# Giữ `script_stop: true` vì nó vẫn còn tác dụng ở tầng ngoài: lỗi kết nối SSH
+# hay lỗi xác thực vẫn làm job đỏ, và đó mới là thứ đáng đỏ.
 
 on:
   workflow_dispatch:
@@ -50,6 +63,10 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script_stop: true
           script: |
+            # Xem khối ghi chú đầu file: mọi lệnh dưới đây có thể trả khác 0
+            # một cách hợp lệ, và mỗi cái là một kết quả cần in ra.
+            set +e
+
             echo "════ 1. CI đăng nhập bằng user nào, và có quyền sudo gì ════"
             echo "user: $(whoami)"
             echo
@@ -60,19 +77,35 @@ jobs:
             echo
             echo "════ 2. Conf nào đang thật sự phục vụ Next.js ════"
             echo "   Tìm theo cổng 3001 chứ không theo tên file: file có thể tên gì cũng được."
+            echo
+            echo "-- Thử với quyền thường --"
             grep -rl "127.0.0.1:3001" \
                 /www/server/panel/vhost/openlitespeed/ \
-                /usr/local/lsws/conf/ 2>/dev/null \
-                || echo "   KHÔNG tìm thấy — hoặc user này không đọc được những thư mục đó (xem mục 4)"
+                /usr/local/lsws/conf/ 2>&1 | sed 's/^/   /'
+
+            # Lần chạy 37471490002 cho "Permission denied" trên thư mục panel:
+            # cấu hình OpenLiteSpeed là root-only với user này. Nên "không tìm
+            # thấy" ở trên KHÔNG có nghĩa là conf không tồn tại — nó có nghĩa
+            # là không đọc được. Phân biệt hai thứ đó là việc của khối này.
+            echo
+            echo "-- Thử lại với sudo (để phân biệt 'không có' với 'không đọc được') --"
+            sudo -n grep -rl "127.0.0.1:3001" \
+                /www/server/panel/vhost/openlitespeed/ \
+                /usr/local/lsws/conf/ 2>&1 | sed 's/^/   /'
+            echo "   (dòng 'a password is required' nghĩa là CHƯA có quyền sudo cho lệnh này —"
+            echo "    đó là kết quả cần biết, không phải sự cố.)"
 
             echo
             echo "-- Những context từng file đó khai --"
-            for f in $(grep -rl "127.0.0.1:3001" \
-                           /www/server/panel/vhost/openlitespeed/ \
-                           /usr/local/lsws/conf/ 2>/dev/null); do
+            FILES=$(grep -rl "127.0.0.1:3001" \
+                        /www/server/panel/vhost/openlitespeed/ \
+                        /usr/local/lsws/conf/ 2>/dev/null)
+            if [ -z "$FILES" ]; then
+                echo "   (không có file nào đọc được — xem hai khối trên)"
+            fi
+            for f in $FILES; do
                 echo "   ┌─ $f"
-                grep -nE "^[[:space:]]*(extprocessor|context)" "$f" 2>/dev/null \
-                    | sed 's/^/   │ /' || echo "   │ (không đọc được)"
+                grep -nE "^[[:space:]]*(extprocessor|context)" "$f" 2>&1 | sed 's/^/   │ /'
                 echo "   └─"
             done
 
