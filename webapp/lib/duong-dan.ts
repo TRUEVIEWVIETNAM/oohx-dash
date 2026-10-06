@@ -24,6 +24,16 @@
  * thì phép kiểm không import được, và luật lại quay về làm ghi chú.
  */
 export const TRONG_APP: Set<string> = new Set([
+    // Trang chủ KHÔNG mở bằng `context /` — OpenLiteSpeed khớp context theo
+    // tiền tố nên một `context /` nuốt `/api/v1`, `/cart`, `/sitemap.xml`.
+    // Nó mở bằng một luật rewrite khớp đúng một đường dẫn
+    // (`docs/deploy/nextjs-proxy/urlrewrite-nextjs.conf`), và `kiemKhopConf`
+    // đọc cả file đó.
+    //
+    // `trongApp()` xử lý `/` riêng: nó KHÔNG tham gia phép so tiền tố, vì
+    // mọi đường dẫn đều bắt đầu bằng `/`.
+    '/',
+
     '/explore',
     '/owners',
     '/products',

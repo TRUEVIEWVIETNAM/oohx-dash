@@ -302,19 +302,44 @@ function kiemKhopConf() {
         'utf8',
     );
 
-    const trongConf = new Set(
-        conf
+    // Hai nguồn, vì có hai cách mở một đường dẫn và chúng không thay thế nhau:
+    //
+    //   `context /x`  — khớp TIỀN TỐ. Dùng cho một nhóm đường (`/explore` và
+    //                   mọi `/explore/...`).
+    //   RewriteRule   — khớp ĐÚNG một đường. Dùng cho trang chủ, thứ không mở
+    //                   được bằng context vì `context /` nuốt cả site.
+    //
+    // Bỏ sót nguồn thứ hai thì thêm `/` vào TRONG_APP sẽ làm test đỏ dù cấu
+    // hình hoàn toàn đúng — và người sửa sẽ đi gỡ `/` ra, tức sửa đúng thành
+    // sai.
+    const rewrite = readFileSync(
+        new URL('../../docs/deploy/nextjs-proxy/urlrewrite-nextjs.conf', import.meta.url),
+        'utf8',
+    );
+
+    const trongConf = new Set([
+        ...conf
             .split('\n')
             .filter((l) => /^context\s/.test(l))
-            .map((l) => l.trim().split(/\s+/)[1])
-            .filter((c) => c !== '/_next'),
-    );
+            .map((l) => l.trim().split(/\s+/)[1]),
+
+        // `^/?$` → `/`, `^/gioi-thieu$` → `/gioi-thieu`.
+        ...rewrite
+            .split('\n')
+            .filter((l) => /^\s*RewriteRule\s/.test(l))
+            .map((l) => l.trim().split(/\s+/)[1].replace(/^\^/, '').replace(/\$$/, ''))
+            .map((p) => (p === '' || p === '/?' ? '/' : p)),
+    ]);
+
+    // `/_next` là context asset của chính Next.js, không phải đường người dùng
+    // điều hướng tới — nó không thuộc TRONG_APP.
+    trongConf.delete('/_next');
 
     for (const duong of TRONG_APP) {
         if (!trongConf.has(duong)) {
             bao(
                 'TRONG_APP',
-                `"${duong}" có trong TRONG_APP mà KHÔNG có context trong nextjs.conf — ` +
+                `"${duong}" có trong TRONG_APP mà KHÔNG có context hay luật rewrite nào mở nó — ` +
                     'next/link sẽ hiện trang Next còn tải lại cùng URL ra trang Blade',
             );
         }
@@ -324,7 +349,7 @@ function kiemKhopConf() {
         if (!TRONG_APP.has(duong)) {
             bao(
                 'nextjs.conf',
-                `context "${duong}" đang mở mà thiếu trong TRONG_APP — ` +
+                `"${duong}" đang được mở mà thiếu trong TRONG_APP — ` +
                     'điều hướng nội bộ tải lại cả trang, chậm hơn mức cần',
             );
         }
@@ -391,7 +416,7 @@ async function chay() {
     if (loi.length === 0) {
         console.log(
             `SEO: ${TRANG.length} trang, tất cả thẻ bắt buộc có mặt và đúng giá trị. ` +
-                `TRONG_APP khớp ${TRONG_APP.size} context trong nextjs.conf.`,
+                `TRONG_APP khớp ${TRONG_APP.size} đường đang mở (context + luật rewrite).`,
         );
         process.exit(0);
     }

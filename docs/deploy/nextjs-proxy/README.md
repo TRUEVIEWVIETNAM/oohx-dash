@@ -45,9 +45,9 @@ Hai cột khác nhau, và đừng đọc gộp: **dựng** là trang Next đã c
 | `/products`, `/products/{slug}` | xong | có | **có** |
 | `/map` | xong | có | **có** (06/10/2026) |
 | 4 trang chính sách | xong | có | **có** (06/10/2026) |
-| `/` (trang chủ) | xong | không | không |
+| `/` (trang chủ) | xong | luật rewrite | **có** (07/10/2026) |
 
-Trang chủ không mở được bằng `context /`: OpenLiteSpeed khớp context theo **tiền tố**, nên một `context /` nuốt luôn `/api/v1`, `/cart`, `/sitemap.xml` và bốn slug chính sách. Nó cần một cách khác.
+Trang chủ không mở bằng `context` mà bằng một luật rewrite khớp đúng một đường dẫn — xem mục "Trang chủ: luật rewrite, không phải `context`" dưới đây.
 
 #### Đã đóng vòng — 06/10/2026
 
@@ -114,6 +114,59 @@ Bước 3 làm những việc sau, theo đúng thứ tự đó, và **dừng tr�
 | Kiểm đường canary dùng được (`/sitemap.xml` → 200) | không kiểm được thì không dán. Bỏ bước này thì một máy không probe được qua `--resolve` sẽ làm canary đỏ **toàn bộ**, và script lùi lại một thay đổi hoàn toàn đúng — tệ hơn cả không làm gì, vì log đọc như thể conf mới có vấn đề |
 | Tìm conf lạ đang trỏ `127.0.0.1:3001` | nếu file đó **không** phải conf proxy thuần (ai đã dán context thẳng vào file vhost) thì script **dừng** — đổi tên file đó sẽ làm sập site |
 | Dán + nạp lại + canary | canary đỏ → tự lùi lại, nạp lại, thoát khác 0 |
+
+### Trang chủ: luật rewrite, không phải `context`
+
+`context` của OpenLiteSpeed khớp theo **tiền tố**, nên `context /` là một luật bắt tất cả — nó nuốt `/api/v1` (hợp đồng với đối tác), `/cart`, `/sitemap.xml`, `/livewire`, và mọi đường chưa ai nghĩ tới. Cách duy nhất để dùng nó là liệt kê đủ đường Laravel bằng context dài hơn, và "liệt kê đủ" là thứ không ai bảo đảm được.
+
+Trang chủ thì là **một đường dẫn chính xác**, nên nó dùng một luật neo hai đầu:
+
+```
+RewriteRule ^/?$ http://nextjs/ [P]
+```
+
+`^/?$` khớp đúng `/` và không khớp gì khác. Đây không phải "an toàn hơn" — nó là một loại luật khác, và nó không cần biết Laravel có những đường nào.
+
+| Cách mở | Khớp | Dùng cho |
+|---|---|---|
+| `context /x` trong `nextjs.conf` | tiền tố — `/x` và mọi `/x/...` | một nhóm đường: `/explore`, `/owners`, … |
+| `RewriteRule` trong `urlrewrite-nextjs.conf` | đúng một đường | trang chủ |
+
+#### Hai thư mục, hai chỗ nạp — đừng dán nhầm
+
+```
+detail/oohx.net.conf
+  ├─ rewrite {
+  │    include .../proxy/oohx.net/urlrewrite/*.conf   ← luật rewrite TRẦN
+  │  }
+  └─ include .../proxy/oohx.net/*.conf                ← extprocessor + context
+```
+
+File rewrite nằm **trong** khối `rewrite { }`, nên nội dung của nó là directive trần — bọc thêm `rewrite { }` là lỗi cú pháp, và OpenLiteSpeed hỏng cả khối chứ không bỏ qua một dòng. File proxy nằm ở cấp vhost, nên nó chứa `extprocessor` và `context`.
+
+`oohx-sync-proxy` v3 đồng bộ **cả hai**, và kiểm `include` của cả hai trước khi dán. Thiếu dòng include nào thì file tương ứng dán vào im lặng không có tác dụng.
+
+#### Danh sách trắng cho luật rewrite chặt hơn cho context
+
+Một `RewriteRule` sai nguy hiểm hơn một `context` sai: `context /api` đọc bằng mắt còn thấy nó bắt gì, còn
+
+```
+RewriteRule ^/(.*)$ http://nextjs/$1 [P]
+```
+
+trông gần giống luật trang chủ nhưng nuốt **toàn bộ** site, và khác biệt chỉ vài ký tự. Nên `kiem_rewrite` đòi:
+
+- neo **hai đầu** (`^` và `$`) — không neo là quay lại đúng vấn đề của `context /`;
+- không có ký tự biểu thức bắt rộng (`.` `*` `+` `(` `)` `|` `[` `]`), trừ đúng cụm `/?` của luật trang chủ;
+- đích phải là `http://nextjs/…` — tên external app, không phải địa chỉ. Viết thẳng IP cũng chạy, nhưng khi ấy cổng bị khai hai nơi và hai nơi sẽ trôi khỏi nhau;
+- cờ đúng `[P]`;
+- `RewriteCond`, biến, backreference **không** được phép. Chúng cần cho luật phức tạp, mà luật phức tạp không nên nằm trong một file được dán tự động bởi một lượt merge.
+
+`tests/shell/thu-kiem-conf.sh` phần 3 chạy 22 trường hợp cho riêng phần này, trong đó ba trường hợp là đúng những biến thể nuốt cả site.
+
+#### Canary phải biết về luật rewrite
+
+Canary của v2 chỉ duyệt các dòng `context`. Một luật rewrite không có tác dụng vì thế vẫn qua được — trang chủ lặng lẽ ra Laravel và deploy báo xanh. v3 gộp hai nguồn, và với mỗi đường nó đòi **200 và đến từ Next.js**, không chỉ 200.
 
 ### aaPanel giữ nhiều bản sao — chỉ `*.conf` được nạp
 
