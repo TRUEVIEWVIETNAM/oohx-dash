@@ -43,23 +43,40 @@ Hai cột khác nhau, và đừng đọc gộp: **dựng** là trang Next đã c
 | `/explore`, `/explore/{slug}` | xong | có | **có** |
 | `/owners`, `/owners/{slug}` | xong | có | **có** |
 | `/products`, `/products/{slug}` | xong | có | **có** |
-| `/map` | xong | có | **chưa** |
-| 4 trang chính sách | xong | có | **chưa** |
+| `/map` | xong | có | **có** (06/10/2026) |
+| 4 trang chính sách | xong | có | **có** (06/10/2026) |
 | `/` (trang chủ) | xong | không | không |
 
 Trang chủ không mở được bằng `context /`: OpenLiteSpeed khớp context theo **tiền tố**, nên một `context /` nuốt luôn `/api/v1`, `/cart`, `/sitemap.xml` và bốn slug chính sách. Nó cần một cách khác.
 
-#### Vì sao cột 3 và cột 4 đang lệch nhau
+#### Đã đóng vòng — 06/10/2026
 
-`deploy.sh` bước `[11/11]` có nhiệm vụ đồng bộ `nextjs.conf` của repo sang máy chủ, nhưng nó chưa bao giờ làm được. Hai nguyên nhân, cả hai **đo được** ngày 06/10/2026 chứ không phải suy luận:
+Hai cột trên khớp nhau từ 06/10/2026. Trước đó chúng lệch suốt từ PR #11, và nguyên nhân mất ba vòng chẩn đoán mới ra, nên ghi lại cả đường đi:
 
-| Đo thấy | Ở đâu |
+| Tưởng là | Thật ra |
 |---|---|
-| `Bỏ qua: .../proxy/oohx.net chưa tồn tại` | log deploy `37395686591`, `37432830117` |
-| `grep: .../detail/oohx.net.conf: Permission denied` — user deploy **không đọc nổi** thư mục cấu hình OpenLiteSpeed | chẩn đoán `37471490002` |
-| Quyền sudo thật sự đang có: chỉ `/usr/bin/systemctl restart oohx-webapp` và một script không liên quan | cùng lần chạy đó |
+| `deploy.sh` nói thư mục proxy *"chưa tồn tại"* | Thư mục **đang có**, cùng `nextjs.conf` đang chạy. `[ -d ]` trả sai khi user deploy không duyệt được thư mục cha — nó không phân biệt "không có" với "không đọc được" |
+| Chẩn đoán nói *"KHÔNG tìm thấy conf"* | `Permission denied`. Cấu hình OpenLiteSpeed là root-only với user CI |
+| `detail/oohx.net.conf.txt` là conf cạnh tranh | aaPanel giữ `.conf.txt` cho trình soạn thảo. OpenLiteSpeed không nạp nó |
 
-Nguyên nhân thứ hai là cái quyết định **hình dạng** của cách chữa. Bước này cần **đọc** để `cmp -s` bản đang chạy, để sao lưu nó, và để tìm xem có file nào khác đang khai trùng `extprocessor nextjs`. Cấp cho user deploy quyền đọc cả thư mục cấu hình web server thì rộng hơn hẳn việc cần làm — nên toàn bộ phần đó chuyển vào một script chạy as-root.
+Cả ba đều là **một suy luận được trình bày như một quan sát**. Phép kiểm thì đúng; câu thông báo mới là chỗ sai. Giờ `deploy.sh` nói "không chạy được từ user này" thay vì "không tồn tại", và chẩn đoán thử lại bằng `sudo` để phân biệt hai khả năng.
+
+Chuỗi hoàn chỉnh sau khi cài: đổi `nextjs.conf` → merge → `deploy.sh [11/11]` → `sudo -n oohx-sync-proxy` → kiểm danh sách trắng → dán → `lswsctrl restart` → canary → xong (hoặc tự lùi).
+
+#### Cloudflare viết lại HTML — đừng so byte qua CDN
+
+Cloudflare bật **Email Address Obfuscation**: mọi `mailto:` trong HTML trả về bị thay bằng `/cdn-cgi/l/email-protection#...` kèm `<span class="__cf_email__">`.
+
+Nó không chạm vào JSON, nên một phép so `body_html` (từ API) với HTML trang (qua CDN) sẽ **trượt** ở đúng những chỗ có email — và trượt vì CDN, không vì Laravel và Next lệch nhau.
+
+So ở **origin** thì khớp nguyên văn:
+
+```sh
+curl -sk --resolve oohx.net:443:<IP-origin> https://oohx.net/bang-phi
+curl -s  --resolve oohx.net:443:<IP-origin> https://oohx.net/api/v2/policies/bang-phi
+```
+
+Đã đo 06/10/2026: HTML trang chứa nguyên văn 2309 ký tự `body_html` của API. Qua Cloudflare thì khớp 2212 ký tự đầu rồi lệch ở `mailto:`.
 
 ### Cài `oohx-sync-proxy` — một lần, cần root
 
