@@ -98,6 +98,25 @@ Bước 3 làm những việc sau, theo đúng thứ tự đó, và **dừng tr�
 | Tìm conf lạ đang trỏ `127.0.0.1:3001` | nếu file đó **không** phải conf proxy thuần (ai đã dán context thẳng vào file vhost) thì script **dừng** — đổi tên file đó sẽ làm sập site |
 | Dán + nạp lại + canary | canary đỏ → tự lùi lại, nạp lại, thoát khác 0 |
 
+### aaPanel giữ nhiều bản sao — chỉ `*.conf` được nạp
+
+Đo ngày 06/10/2026, chuỗi nạp thật của OpenLiteSpeed:
+
+```
+/usr/local/lsws/conf/httpd_config.conf  (dòng 256)
+  └─ include /www/server/panel/vhost/openlitespeed/*.conf
+       └─ oohx.net.conf                  ← cấp TRÊN, không phải detail/
+            └─ configFile → detail/oohx.net.conf
+                 └─ include proxy/oohx.net/*.conf   (dòng 67)
+                      └─ nextjs.conf     ← file sống
+```
+
+Cạnh mỗi file đó, aaPanel giữ `.conf.txt` (bản cho trình soạn thảo của panel), `.conf0` và `.conf0,v` (bản sao lưu/phiên bản), `.conf.backup`. **Không bản nào được nạp** — glob là `*.conf`, và `detail/` chỉ vào được qua `configFile` trỏ đích danh.
+
+Điều này đã làm `oohx-sync-proxy` v1 dừng nhầm ngay lần chạy đầu: nó tìm mọi file chứa `127.0.0.1:3001`, bắt được `detail/oohx.net.conf.txt`, thấy file đó có directive ngoài danh sách trắng và từ chối đi tiếp. v2 lọc theo đuôi tên, và `tests/shell/thu-kiem-conf.sh` phần 2 canh đúng chuyện đó — mẫu lọc nó dùng được **đọc ra từ script thật**.
+
+Một hệ quả cần biết: `detail/oohx.net.conf.txt` hiện vẫn còn bản sao **cũ** của khối proxy (4 context, thiếu `/map` và nhóm chính sách). Nó vô hại vì không được nạp, nhưng nếu sau này bạn sửa cài đặt site trong giao diện aaPanel thì panel có thể ghi bản đó đè lên file sống. Sau mỗi lần làm việc đó, kiểm lại dòng `include` ở `detail/oohx.net.conf`.
+
 ### Ranh giới quyền
 
 Script đọc conf từ `docs/deploy/nextjs-proxy/nextjs.conf`, và đường dẫn đó nằm trong cây mã nguồn mà user deploy **ghi được**. Nghĩa là: ai ghi được repo (hoặc merge được vào `main`) thì ảnh hưởng được tới cấu hình web server.

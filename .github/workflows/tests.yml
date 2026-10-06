@@ -66,7 +66,7 @@ jobs:
       # là TIỀN TỐ của nhóm cấm. Chiều cuối là một lỗ thật của bản đầu:
       # `context /ap` không trùng dòng nào trong danh sách cấm, nhưng
       # OpenLiteSpeed khớp theo tiền tố nên nó nuốt `/api/v1`.
-      - name: Danh sách trắng của script root
+      - name: Phép kiểm cho script root
         run: bash tests/shell/thu-kiem-conf.sh
 
   # Trang công khai trên Next.js (giai đoạn 6).

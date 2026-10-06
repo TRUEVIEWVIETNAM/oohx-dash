@@ -238,9 +238,19 @@ echo "[11/11] Đồng bộ cấu hình proxy OpenLiteSpeed"
 SYNC_BIN="/usr/local/sbin/oohx-sync-proxy"
 SYNC_SRC="docs/deploy/nextjs-proxy/oohx-sync-proxy.sh"
 
+# `-x` nói "không chạy được từ user này", KHÔNG nói "không tồn tại".
+#
+# Phân biệt đó quan trọng, và bản trước làm sai đúng chỗ này: câu cũ khẳng định
+# `$PROXY_DIR` "không tồn tại", trong khi thư mục ĐANG CÓ — user deploy chỉ
+# không duyệt qua được thư mục cha. Hai lượt deploy in câu đó, và nó dẫn cả
+# việc chẩn đoán đi sai hướng cho tới khi một lệnh chạy as root cho thấy file
+# vẫn nằm nguyên ở đó.
+#
+# Nên thông báo dưới đây nói đúng cái quan sát được, và để ngỏ khả năng kia.
 if [ ! -x "$SYNC_BIN" ]; then
-    echo "Bỏ qua đồng bộ: $SYNC_BIN chưa được cài."
-    echo "       Repo đang khai $(grep -cE '^context ' docs/deploy/nextjs-proxy/nextjs.conf) context mà máy chủ KHÔNG nhận."
+    echo "Bỏ qua đồng bộ: $SYNC_BIN không chạy được từ user $(whoami)."
+    echo "       (chưa cài, hoặc đã cài mà user này không thấy — hai thứ khác nhau)"
+    echo "       Repo đang khai $(grep -cE '^context ' docs/deploy/nextjs-proxy/nextjs.conf) context."
     echo ""
     echo "       Cài một lần, chạy AS ROOT:"
     echo ""
