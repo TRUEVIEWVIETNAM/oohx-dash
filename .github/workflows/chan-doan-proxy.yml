@@ -1,0 +1,122 @@
+name: Chẩn đoán proxy OpenLiteSpeed
+
+# CHỈ chạy tay, CHỈ đọc.
+#
+# ══ Vì sao cần một workflow riêng cho việc này ══
+#
+# Bước `[11/11]` của `deploy.sh` in ra:
+#
+#     Bỏ qua: /www/server/panel/vhost/openlitespeed/proxy/oohx.net chưa tồn tại
+#
+# nhưng `/explore`, `/owners`, `/products` vẫn đang chạy trên Next. Nghĩa là có
+# một file cấu hình proxy ở CHỖ KHÁC, dán tay, và không ai biết nó ở đâu. Mọi
+# thay đổi `nextjs.conf` trong repo vì thế không tới máy chủ — đó là lý do
+# `/map` vẫn là Laravel từ PR #11 dù conf đã khai nó.
+#
+# Bước tiếp theo (dán conf repo vào đúng thư mục) có một cách sai nguy hiểm:
+# giữ cả hai file thì HAI file cùng khai `extprocessor nextjs`, OpenLiteSpeed
+# nạp song song và hành vi không đoán được — có thể làm `/explore` chết, không
+# chỉ là không mở được trang mới. Nên phải biết file cũ ở đâu TRƯỚC khi dán.
+#
+# ══ Vì sao không gộp vào deploy.sh ══
+#
+# `deploy.sh` chạy trên mọi lần merge vào `main`. Một bước chẩn đoán in mười
+# khối văn bản ở đó sẽ bị trôi trong log và không ai đọc. Và việc này cần làm
+# một lần, không phải mỗi lần deploy.
+#
+# ══ Không có lệnh nào đổi gì ══
+#
+# Toàn bộ là `ls`, `grep`, `stat`, `sudo -n -l`. Không `cp`, không `mv`, không
+# `rm`, không `restart`. Chạy nó nhiều lần cũng vô hại.
+#
+# `|| true` ở sau hầu hết lệnh là CÓ Ý: `grep` không tìm thấy gì thì trả 1, và
+# `script_stop: true` sẽ dừng cả job ở đó — mất những khối sau, mà "không tìm
+# thấy" chính là một kết quả cần biết.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  chan-doan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Đọc trạng thái proxy trên VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script_stop: true
+          script: |
+            echo "════ 1. CI đăng nhập bằng user nào, và có quyền sudo gì ════"
+            echo "user: $(whoami)"
+            echo
+            echo "-- Quyền sudo không mật khẩu đang có --"
+            echo "   (đây là câu trả lời cho 'cần cấp thêm dòng nào'.)"
+            sudo -n -l 2>&1 || echo "   sudo -n -l không chạy được — có thể chưa có grant nào, hoặc sudoers chặn cả -l"
+
+            echo
+            echo "════ 2. Conf nào đang thật sự phục vụ Next.js ════"
+            echo "   Tìm theo cổng 3001 chứ không theo tên file: file có thể tên gì cũng được."
+            grep -rl "127.0.0.1:3001" \
+                /www/server/panel/vhost/openlitespeed/ \
+                /usr/local/lsws/conf/ 2>/dev/null \
+                || echo "   KHÔNG tìm thấy — hoặc user này không đọc được những thư mục đó (xem mục 4)"
+
+            echo
+            echo "-- Những context từng file đó khai --"
+            for f in $(grep -rl "127.0.0.1:3001" \
+                           /www/server/panel/vhost/openlitespeed/ \
+                           /usr/local/lsws/conf/ 2>/dev/null); do
+                echo "   ┌─ $f"
+                grep -nE "^[[:space:]]*(extprocessor|context)" "$f" 2>/dev/null \
+                    | sed 's/^/   │ /' || echo "   │ (không đọc được)"
+                echo "   └─"
+            done
+
+            echo
+            echo "════ 3. Vhost có nạp thư mục deploy.sh trông vào không ════"
+            echo "   Không có dòng include này thì dán conf vào đó là vô nghĩa."
+            grep -n "proxy/oohx.net" \
+                /www/server/panel/vhost/openlitespeed/detail/oohx.net.conf 2>&1 \
+                || echo "   KHÔNG có dòng include — phải thêm vào detail/oohx.net.conf trước"
+
+            echo
+            echo "-- Mọi dòng include của vhost --"
+            grep -nE "^[[:space:]]*include" \
+                /www/server/panel/vhost/openlitespeed/detail/oohx.net.conf 2>&1 \
+                || echo "   (không đọc được hoặc không có)"
+
+            echo
+            echo "════ 4. Quyền đọc/ghi của những thư mục liên quan ════"
+            echo "   Nếu mục 2 và 3 trống, rất có thể là do quyền, không phải do không tồn tại."
+            for d in /www/server/panel/vhost/openlitespeed \
+                     /www/server/panel/vhost/openlitespeed/detail \
+                     /www/server/panel/vhost/openlitespeed/proxy \
+                     /www/server/panel/vhost/openlitespeed/proxy/oohx.net; do
+                if [ -e "$d" ]; then
+                    echo "   $(stat -c '%A %U:%G' "$d" 2>/dev/null)  $d"
+                else
+                    echo "   (chưa tồn tại)            $d"
+                fi
+            done
+
+            echo
+            echo "════ 5. Service Next.js ════"
+            systemctl is-active oohx-webapp 2>&1 | sed 's/^/   is-active: /' || true
+            curl -s -o /dev/null -w "   cuc bo :3001/explore -> %{http_code}\n" \
+                http://127.0.0.1:3001/explore || true
+            curl -s -o /dev/null -w "   cuc bo :3001/bang-phi -> %{http_code}\n" \
+                http://127.0.0.1:3001/bang-phi || true
+
+            echo
+            echo "════ 6. conf trong repo đang khai gì ════"
+            echo "   Đây là trạng thái MONG MUỐN. So với mục 2 để thấy lệch ở đâu."
+            grep -nE "^context " \
+                /www/wwwroot/dash.oohx.net/docs/deploy/nextjs-proxy/nextjs.conf \
+                | sed 's/^/   /' || true
+
+            echo
+            echo "════ HẾT ════"
