@@ -1,0 +1,347 @@
+import { spawn } from 'node:child_process';
+import { startStubApi } from './stub-api.mjs';
+
+/**
+ * Kiểm thẻ SEO trên HTML **đã render** của từng trang Next.
+ *
+ * ══ Vì sao đo HTML, không unit-test `buildMetadata()` ══
+ *
+ * Lỗi SEO thật duy nhất tôi đã mắc trong giai đoạn 6: `metadata.other` phát
+ * `<meta name="og:type">` thay vì `property="og:type"`. Open Graph đòi
+ * `property=`, nên crawler bỏ qua thẻ đó hoàn toàn — trang vẫn hiện, thẻ vẫn
+ * nằm trong `<head>`, `next build` vẫn xanh.
+ *
+ * Một unit test gọi `buildMetadata()` rồi so object trả về **sẽ không bắt
+ * được** lỗi đó: object đúng, chỗ sai nằm ở cách Next render nó. Nên phép kiểm
+ * phải đọc HTML.
+ *
+ * ══ Vì sao lớp này cần tồn tại ══
+ *
+ * `tests/Feature/Frontpage/SeoBaselineTest.php` canh `/`, `/explore`,
+ * `/owners`, `/products`, `/map` — và bốn trong năm đường đó giờ do Next phục
+ * vụ trên production. Test đó vẫn xanh vì PHPUnit gọi vào Laravel, nên nó canh
+ * những trang người dùng **không còn thấy**.
+ *
+ * Điều kiện hoàn thành giai đoạn 6 theo lộ trình là "SEO không tụt", và lớp
+ * này là thứ biến câu đó thành phép kiểm chạy được trên bản đang chạy thật.
+ *
+ * Chạy:  node test/seo.mjs
+ * CI gọi nó sau khi build với API giả.
+ */
+
+const PORT = Number(process.env.SEO_TEST_PORT ?? 4999);
+const ORIGIN = 'https://oohx.net';
+
+/**
+ * Thẻ bắt buộc, chép từ `resources/views/frontpage/partials/seo-meta.blade.php`.
+ *
+ * Thiếu một thẻ ở đây là "tụt" theo đúng nghĩa lộ trình nói — và không có gì
+ * báo cho tới khi ai đó mở công cụ kiểm SEO.
+ */
+const THE_BAT_BUOC = [
+    ['canonical', /<link rel="canonical" href="([^"]+)"/],
+    ['description', /<meta name="description" content="([^"]*)"/],
+    ['og:title', /<meta property="og:title" content="([^"]*)"/],
+    ['og:description', /<meta property="og:description" content="([^"]*)"/],
+    ['og:url', /<meta property="og:url" content="([^"]+)"/],
+    ['og:image', /<meta property="og:image" content="([^"]+)"/],
+    ['og:site_name', /<meta property="og:site_name" content="([^"]+)"/],
+    ['og:locale', /<meta property="og:locale" content="([^"]+)"/],
+    // `property=`, KHÔNG `name=`. Đây là thẻ đã từng sai, nên biểu thức này
+    // cố tình chặt.
+    ['og:type', /<meta property="og:type" content="([^"]+)"/],
+    ['twitter:card', /<meta name="twitter:card" content="([^"]+)"/],
+    ['twitter:title', /<meta name="twitter:title" content="([^"]*)"/],
+    ['twitter:description', /<meta name="twitter:description" content="([^"]*)"/],
+    ['twitter:image', /<meta name="twitter:image" content="([^"]+)"/],
+];
+
+const TRANG = [
+    { path: '/', ogType: 'website', jsonLd: 'WebSite' },
+    { path: '/explore', ogType: 'website' },
+    { path: '/explore/man-hinh-co-gia', ogType: 'product', jsonLd: 'Product', coGia: true },
+    { path: '/explore/man-hinh-khong-gia', ogType: 'product', jsonLd: 'Product', coGia: false },
+    { path: '/owners', ogType: 'website' },
+    { path: '/owners/owner-mot', ogType: 'website', jsonLd: 'Organization' },
+    { path: '/products', ogType: 'website' },
+    { path: '/products/goi-mot', ogType: 'product', jsonLd: 'Product', coGia: true },
+    { path: '/map', ogType: 'website' },
+
+    // Chính sách. `og:type` là `article`, không `website`: đây là một văn bản
+    // có phiên bản và ngày hiệu lực, không phải một trang của site.
+    //
+    // Hai slug này là của API giả, không phải slug thật — `generateStaticParams()`
+    // đọc danh sách từ API, nên test chứng minh được đúng điều cần: trang dựng
+    // ra từ dữ liệu API, không từ một danh sách viết cứng trong `webapp/`.
+    { path: '/da-ban-hanh', ogType: 'article', banNhap: false },
+    { path: '/ban-nhap', ogType: 'article', banNhap: true },
+];
+
+const loi = [];
+
+function bao(trang, thong_diep) {
+    loi.push(`${trang}: ${thong_diep}`);
+}
+
+async function kiemTrang(base, trang) {
+    const response = await fetch(base + trang.path);
+
+    if (response.status !== 200) {
+        bao(trang.path, `trả ${response.status}, cần 200`);
+
+        return;
+    }
+
+    const html = await response.text();
+
+    // ── Thẻ bắt buộc ──
+    for (const [ten, re] of THE_BAT_BUOC) {
+        const m = html.match(re);
+
+        if (!m) {
+            bao(trang.path, `thiếu thẻ ${ten}`);
+            continue;
+        }
+
+        // Mô tả rỗng là lỗi riêng, không phải thiếu thẻ: bản Blade có
+        // `test_mo_ta_khong_bao_gio_rong` canh đúng chuyện này.
+        if (ten === 'description' && m[1].trim() === '') {
+            bao(trang.path, 'description rỗng');
+        }
+    }
+
+    // ── Canonical phải trỏ đúng chính nó, trên tên miền công khai ──
+    //
+    // Đây là chỗ một biến môi trường sai làm cả site phát canonical trỏ vào
+    // `http://127.0.0.1/...` — một URL không ai ngoài máy chủ mở được, và công
+    // cụ tìm kiếm coi đó là địa chỉ chuẩn của trang. Trang vẫn hiện bình
+    // thường, nên không ai thấy.
+    const canonical = html.match(THE_BAT_BUOC[0][1])?.[1];
+
+    // Trang chủ: `https://oohx.net` và `https://oohx.net/` đều hợp lệ và chỉ
+    // cùng một tài nguyên. Nhận cả hai, có lý do đo được: bản Blade trên
+    // production phát `https://oohx.net` **không** có gạch chéo cuối
+    // (`url()->current()` của Laravel bỏ nó), và Next cũng vậy — nên hai bản
+    // khớp nhau.
+    //
+    // Lần đầu tôi viết phép kiểm này đòi đúng `ORIGIN + path`, tức
+    // `https://oohx.net/`, và nó đỏ. Code không sai; phép kiểm sai. Ghi lại vì
+    // một test đòi sai giá trị thì tệ hơn không có test: nó đẩy người sửa đi
+    // đổi code đang đúng.
+    const mongDoi =
+        trang.path === '/' ? [ORIGIN, ORIGIN + '/'] : [ORIGIN + trang.path];
+
+    if (canonical && !mongDoi.includes(canonical)) {
+        bao(trang.path, `canonical là "${canonical}", cần một trong ${mongDoi.join(' hoặc ')}`);
+    }
+
+    // ── og:type đúng giá trị ──
+    const ogType = html.match(/<meta property="og:type" content="([^"]+)"/)?.[1];
+
+    if (ogType && ogType !== trang.ogType) {
+        bao(trang.path, `og:type là "${ogType}", cần "${trang.ogType}"`);
+    }
+
+    // `name="og:type"` là lỗi đã từng xảy ra. Canh riêng, vì thẻ đúng có thể
+    // tồn tại song song với thẻ sai và phép kiểm trên vẫn qua.
+    if (/<meta name="og:type"/.test(html)) {
+        bao(trang.path, 'có <meta name="og:type"> — Open Graph đòi property=');
+    }
+
+    // ── JSON-LD ──
+    if (trang.jsonLd) {
+        const khoi = html.match(
+            /<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/,
+        )?.[1];
+
+        if (!khoi) {
+            bao(trang.path, 'thiếu khối JSON-LD');
+        } else {
+            let data;
+
+            try {
+                data = JSON.parse(khoi);
+            } catch (e) {
+                bao(trang.path, `JSON-LD không phân tích được: ${e.message}`);
+            }
+
+            if (data) {
+                if (data['@context'] !== 'https://schema.org') {
+                    bao(trang.path, `JSON-LD @context là "${data['@context']}"`);
+                }
+
+                if (data['@type'] !== trang.jsonLd) {
+                    bao(trang.path, `JSON-LD @type là "${data['@type']}", cần "${trang.jsonLd}"`);
+                }
+
+                // `offers` CHỈ khi có giá.
+                //
+                // Bản Blade viết `'price' => ... ?? 0`, nên màn hình chưa niêm
+                // yết giá phát ra `{"price":0}` — với schema.org nghĩa là MIỄN
+                // PHÍ. Cùng loại lỗi audit F-15: một con số không có nguồn,
+                // nói sai, và không ai thấy vì JSON-LD không hiện trên trang.
+                if (trang.coGia === true && !data.offers) {
+                    bao(trang.path, 'có giá mà JSON-LD không khai offers');
+                }
+
+                if (trang.coGia === false && data.offers) {
+                    bao(
+                        trang.path,
+                        `không có giá mà JSON-LD vẫn khai offers: ${JSON.stringify(data.offers)}`,
+                    );
+                }
+
+                if (data.offers && !(data.offers.price > 0)) {
+                    bao(trang.path, `offers.price là ${data.offers.price} — 0 nghĩa là miễn phí`);
+                }
+            }
+        }
+    }
+
+    // ── Trang chính sách ──
+    if (trang.banNhap !== undefined) {
+        // `body_html` phải được hiển thị NHƯ HTML. Nếu React escape nó thì
+        // trang vẫn 200 và vẫn có đủ thẻ SEO — chỉ là người đọc thấy
+        // `<h2>1. Phạm vi</h2>` dưới dạng chữ. Một lỗi không ai báo, vì không
+        // có gì hỏng.
+        if (!/<article class="pol-body"><h2>/.test(html)) {
+            bao(trang.path, 'phần thân không được hiển thị như HTML (body_html bị escape?)');
+        }
+
+        if (html.includes('&lt;h2&gt;')) {
+            bao(trang.path, 'thấy &lt;h2&gt; trong HTML — body_html bị escape');
+        }
+
+        // Ô cảnh báo bản nháp: có đúng khi chưa ban hành, và KHÔNG có khi đã
+        // ban hành. Chỉ canh một chiều thì một trang luôn hiện cảnh báo vẫn
+        // qua được — và nó nói sai về một văn bản đã có hiệu lực.
+        const coCanhBao = html.includes('class="pol-draft"');
+
+        if (trang.banNhap && !coCanhBao) {
+            bao(trang.path, 'chưa ban hành mà không có ô cảnh báo bản nháp');
+        }
+
+        if (!trang.banNhap && coCanhBao) {
+            bao(trang.path, 'đã ban hành mà vẫn hiện ô cảnh báo bản nháp');
+        }
+
+        // Khối phiên bản. Người đọc cần biết họ đang xem bản nào — đó là lý do
+        // `version` tồn tại, và nó được đóng dấu vào từng bản ghi đồng ý.
+        if (!html.includes('class="pol-meta"')) {
+            bao(trang.path, 'thiếu khối phiên bản');
+        }
+    }
+
+    // ── Khung trang: thiếu một trong hai là thiếu thông tin bắt buộc ──
+    if (!html.includes('class="hdr"')) {
+        bao(trang.path, 'thiếu thanh điều hướng');
+    }
+
+    if (!html.includes('class="ft-legal"')) {
+        bao(trang.path, 'thiếu khối thông tin pháp lý ở chân trang');
+    }
+
+    // ── lang="vi" ──
+    if (!/<html[^>]*lang="vi"/.test(html)) {
+        bao(trang.path, 'thiếu lang="vi"');
+    }
+}
+
+/** Slug lạ phải ra 404 thật, không phải 200 rỗng. */
+async function kiem404(base) {
+    for (const path of [
+        '/explore/khong-ton-tai',
+        '/owners/khong-ton-tai',
+        '/products/khong-ton-tai',
+
+        // `[slug]` ở gốc app nuốt mọi đường dẫn một cấp. `dynamicParams = false`
+        // là thứ chặn nó, và nếu ai bỏ dòng đó thì `/khong-ton-tai` ra 200 với
+        // một trang chính sách rỗng — URL đó rồi nằm trong chỉ mục mãi.
+        '/khong-ton-tai',
+    ]) {
+        const response = await fetch(base + path);
+
+        if (response.status !== 404) {
+            bao(path, `trả ${response.status}, cần 404 — một trang 200 rỗng để URL đó nằm trong chỉ mục mãi`);
+        }
+    }
+}
+
+/** Dữ liệu riêng của owner không được lộ ra trang công khai. */
+async function kiemKhongLo(base) {
+    const html = await (await fetch(base + '/owners/owner-mot')).text();
+
+    for (const camKy of ['khong-duoc-lo@example.com', '0900000001', 'contact']) {
+        if (html.includes(camKy)) {
+            bao('/owners/owner-mot', `để lộ "${camKy}"`);
+        }
+    }
+}
+
+async function chay() {
+    const { server, port: apiPort } = await startStubApi();
+    const apiBase = `http://127.0.0.1:${apiPort}/api/v2`;
+
+    const next = spawn(
+        process.execPath,
+        ['node_modules/next/dist/bin/next', 'start', '--port', String(PORT), '--hostname', '127.0.0.1'],
+        {
+            env: { ...process.env, OOHX_API_BASE: apiBase, OOHX_PUBLIC_ORIGIN: ORIGIN },
+            stdio: ['ignore', 'pipe', 'pipe'],
+        },
+    );
+
+    let log = '';
+    next.stdout.on('data', (d) => (log += d));
+    next.stderr.on('data', (d) => (log += d));
+
+    const base = `http://127.0.0.1:${PORT}`;
+
+    // Chờ sẵn sàng bằng cách thử gọi, không bằng một `sleep` cố định: máy chậm
+    // thì sleep ngắn làm test đỏ vì lý do không liên quan, còn sleep dài làm
+    // mọi lần chạy đều chậm.
+    let san_sang = false;
+
+    for (let i = 0; i < 60; i++) {
+        try {
+            await fetch(base + '/explore');
+            san_sang = true;
+            break;
+        } catch {
+            await new Promise((r) => setTimeout(r, 500));
+        }
+    }
+
+    if (!san_sang) {
+        console.error('Next không khởi động được trong 30 giây. Log:\n' + log);
+        next.kill();
+        server.close();
+        process.exit(1);
+    }
+
+    try {
+        for (const trang of TRANG) {
+            await kiemTrang(base, trang);
+        }
+
+        await kiem404(base);
+        await kiemKhongLo(base);
+    } finally {
+        next.kill();
+        server.close();
+    }
+
+    if (loi.length === 0) {
+        console.log(`SEO: ${TRANG.length} trang, tất cả thẻ bắt buộc có mặt và đúng giá trị.`);
+        process.exit(0);
+    }
+
+    console.error(`SEO: ${loi.length} lỗi\n`);
+    for (const l of loi) console.error('  ' + l);
+    process.exit(1);
+}
+
+chay().catch((e) => {
+    console.error(e);
+    process.exit(1);
+});

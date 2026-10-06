@@ -743,15 +743,10 @@ export interface paths {
         };
         /**
          * Danh sách trang chính sách (siêu dữ liệu)
-         * @description **Chỉ siêu dữ liệu, không trả nội dung.** Văn bản bốn trang chính sách
-         *     nằm trong Blade, và `PolicyController` ghi rõ lý do: bản nào đang có
-         *     hiệu lực phải truy được bằng lịch sử git, không phải một hàng trong
-         *     bảng mà ai đó sửa xong không còn dấu vết.
-         *
-         *     API dựng lại văn bản pháp lý thành HTML sẽ tạo **hai** đường render cho
-         *     cùng một văn bản, trong khi lộ trình yêu cầu "giữ nguyên văn bản và
-         *     đường dẫn" cho nhóm trang này. Nên endpoint trả `url` trỏ về trang
-         *     Laravel đang phục vụ; văn bản vẫn do một nơi duy nhất phát ra.
+         * @description **Chỉ siêu dữ liệu.** Đủ để dựng liên kết chân trang và điều hướng.
+         *     Phần thân văn bản lấy ở `GET /api/v2/policies/{slug}` — nhét thân của
+         *     bốn văn bản vào một response là phát hàng trăm dòng HTML cho một việc
+         *     không ai cần.
          *
          *     `effective_from` rỗng nghĩa là **chưa ban hành** — nội dung còn là bản
          *     nháp, và bên tiêu thụ phải thấy được điều đó.
@@ -783,6 +778,80 @@ export interface paths {
                         };
                     };
                 };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/policies/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Một trang chính sách, kèm phần thân HTML
+         * @description Trả siêu dữ liệu **và** `body_html`.
+         *
+         *     Nó không dựng lại văn bản pháp lý. Nó render đúng partial mà trang Blade
+         *     render (`config('policies.pages.*.body')`): một nguồn, một bộ render.
+         *     Nhờ vậy Laravel và Next.js không thể hiện ra chữ khác nhau — mà khác
+         *     nhau ở văn bản được đóng dấu `version` vào từng bản ghi đồng ý thì
+         *     nghĩa là mất bằng chứng, không phải lỗi hiển thị.
+         *
+         *     Vì cùng lý do đó: **đừng chép `body_html` sang template của bên tiêu
+         *     thụ.** Hiển thị nó như HTML, lấy mới mỗi lần triển khai.
+         *
+         *     `effective_from` rỗng nghĩa là **chưa ban hành**. Bên tiêu thụ phải
+         *     hiện ra điều đó, không trình bày bản nháp như văn bản đã có hiệu lực.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /**
+                     * @description Slug của trang, đúng như đường dẫn công khai — ví dụ
+                     *     `quy-che-hoat-dong`. Danh sách lấy ở `GET /api/v2/policies`.
+                     */
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                slug: string;
+                                title: string | null;
+                                version?: string | null;
+                                effective_from?: string | null;
+                                is_effective: boolean;
+                                url: string;
+                                /**
+                                 * @description Phần thân văn bản, đã render, KHÔNG gồm tiêu đề và
+                                 *     khối phiên bản — bên tiêu thụ tự dựng phần đó từ
+                                 *     `title`, `version`, `effective_from`.
+                                 */
+                                body_html: string;
+                            };
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
                 429: components["responses"]["TooManyRequests"];
             };
         };

@@ -209,6 +209,37 @@ export function getProduct(slug: string) {
     });
 }
 
+// ── Trang chính sách ────────────────────────────────────────────────────────
+
+export type PolicyListResult =
+    paths['/api/v2/policies']['get']['responses'][200]['content']['application/json'];
+
+export type PolicyPage =
+    paths['/api/v2/policies/{slug}']['get']['responses'][200]['content']['application/json']['data'];
+
+/**
+ * `revalidate` dài hơn hẳn danh mục, và đó là chủ ý.
+ *
+ * Văn bản pháp lý đổi theo tháng, không theo ngày — hỏi API mỗi phút cho một
+ * thứ đổi mỗi quý là trả giá cho một thứ không ai cần. Nhưng cũng KHÔNG đặt
+ * `revalidate: false`: khi ban hành một bản mới thì nó phải tự ra, không chờ
+ * một lượt deploy.
+ */
+const CHINH_SACH_REVALIDATE = 3600;
+
+export function listPolicies(): Promise<PolicyListResult> {
+    return get<PolicyListResult>('/policies', { revalidate: CHINH_SACH_REVALIDATE });
+}
+
+export async function getPolicy(slug: string): Promise<PolicyPage | null> {
+    const body = await getOrNull<{ data: PolicyPage }>(
+        `/policies/${encodeURIComponent(slug)}`,
+        { revalidate: CHINH_SACH_REVALIDATE },
+    );
+
+    return body?.data ?? null;
+}
+
 export async function getFilters(): Promise<Filters> {
     const body = await get<{ data: Filters }>('/filters', { revalidate: 900 });
 

@@ -14,22 +14,32 @@ use Illuminate\Http\Request;
  * Đây là phần `/api/v2` mà giai đoạn 6 cần cho những route không phải màn hình
  * hay sản phẩm.
  *
- * ## Vì sao endpoint chính sách chỉ trả SIÊU DỮ LIỆU, không trả nội dung
+ * ## Văn bản pháp lý: MỘT nguồn, MỘT bộ render
  *
  * Nội dung bốn trang chính sách nằm trong Blade, và `PolicyController` ghi rõ
  * lý do: *"bản chính sách nào đang có hiệu lực là chuyện phải truy được bằng
  * lịch sử git, không phải một hàng trong bảng mà ai đó sửa xong không còn dấu
  * vết."*
  *
- * Nếu API dựng lại văn bản pháp lý thành HTML rồi Next.js hiển thị, ta có
- * **hai** đường render cho cùng một văn bản — và lộ trình yêu cầu "giữ nguyên
- * văn bản và đường dẫn" cho nhóm trang này. Hai đường render là hai cơ hội để
- * chúng khác nhau, mà khác nhau ở văn bản pháp lý thì không phải lỗi hiển thị.
+ * Điều đó đặt ra một ràng buộc cho mọi đường đọc văn bản: **không bên nào được
+ * dựng lại nó**. Nếu API tự tổ chức lại văn bản pháp lý thành HTML, hoặc app
+ * Next.js chép nội dung sang component riêng, ta có hai bản — và với tài liệu
+ * được đóng dấu `version` vào từng bản ghi đồng ý thì hai bản trôi khỏi nhau
+ * nghĩa là mất bằng chứng, không phải lỗi hiển thị.
  *
- * Nên endpoint này trả danh sách kèm `url` trỏ về trang Laravel đang phục vụ.
- * Next.js dùng nó để dựng liên kết chân trang và điều hướng; văn bản vẫn do
- * một nơi duy nhất phát ra. Lộ trình cũng đã xếp nhóm trang pháp lý chuyển
- * **cuối cùng**, nên đây đúng là thứ tự hợp lý.
+ * Cách giữ ràng buộc đó:
+ *
+ * - Phần thân mỗi văn bản nằm ở MỘT partial: `policies.pages.*.body`.
+ * - Trang Blade `@include` partial đó; `policy()` `view()` đúng partial đó.
+ *   Một nguồn, một bộ render — Laravel và Next.js không thể hiện ra chữ khác
+ *   nhau vì chúng chạy cùng một template.
+ * - Luật *"bump `version` ở cùng commit đổi văn bản"* vẫn neo vào file Blade,
+ *   vì văn bản vẫn ở file Blade.
+ *
+ * `policies()` (danh sách) chỉ trả siêu dữ liệu: nó phục vụ liên kết chân
+ * trang, và nhét thân của bốn văn bản vào một response là phát hàng trăm dòng
+ * HTML cho một việc không ai cần. `policy()` (chi tiết) trả thêm
+ * `body_html`.
  */
 class PublicContentController extends Controller
 {
@@ -63,6 +73,92 @@ class PublicContentController extends Controller
             ->all();
 
         return response()->json(['data' => $pages]);
+    }
+
+    /**
+     * `GET /policies/{slug}` — siêu dữ liệu **và** phần thân văn bản.
+     *
+     * ══ Vì sao endpoint danh sách không trả nội dung mà endpoint này thì có ══
+     *
+     * Nguyên tắc đã đặt ở `policies()` là *"văn bản pháp lý chỉ có MỘT nơi phát
+     * ra; API dựng lại nó thành HTML là tạo đường render thứ hai"*. Nguyên tắc
+     * đó **vẫn giữ**, và endpoint này không vi phạm nó:
+     *
+     * - Nó KHÔNG dựng lại văn bản. Nó render đúng partial mà trang Blade
+     *   render (`config('policies.pages.*.body')`), nên vẫn một bộ render và
+     *   một nguồn.
+     * - Danh sách vẫn chỉ có siêu dữ liệu: trả thân của bốn văn bản trong một
+     *   response là phát ra hàng trăm dòng HTML cho một việc không ai cần.
+     *
+     * Thứ thay đổi là phần thân **đọc được qua HTTP**, và nó cần đọc được vì
+     * app Next.js phải dựng trang chính sách mà không chép văn bản sang một
+     * component riêng. Chép là tạo bản thứ hai, và với tài liệu được đóng dấu
+     * phiên bản vào từng bản ghi đồng ý thì hai bản trôi khỏi nhau nghĩa là
+     * mất bằng chứng.
+     *
+     * ══ Cái neo của luật `version` vẫn còn ══
+     *
+     * `config/policies.php` ghi: bump `version` ở CÙNG commit đổi file Blade.
+     * Luật đó neo vào file Blade, và sau thay đổi này văn bản vẫn nằm trong
+     * file Blade — chỉ thêm một đường đọc nó.
+     *
+     * ══ `body_html` là HTML tin được, nhưng không phải vì nó của mình ══
+     *
+     * Nội dung do chính repo này viết và đi qua git review, nên không có dữ
+     * liệu người dùng trong đó. Nhưng bên tiêu thụ không nên tin điều đó một
+     * cách mặc nhiên: nếu sau này ai đưa một biến người dùng nhập vào partial
+     * thân, nó sẽ chảy thẳng vào `dangerouslySetInnerHTML`. Có test canh phần
+     * thân không chứa `<script`.
+     *
+     * ══ Liên kết trong thân là URL TUYỆT ĐỐI, nên `APP_URL` phải đúng ══
+     *
+     * `bodies/terms.blade.php` có `route('fp.policy', 'giai-quyet-tranh-chap')`,
+     * và `route()` sinh URL tuyệt đối theo host của request đang xử lý. Khi
+     * Next gọi vào `https://oohx.net/api/v2` thì liên kết ra đúng
+     * `https://oohx.net/...`.
+     *
+     * Nhưng nếu ai đổi `OOHX_API_BASE` thành `http://127.0.0.1/api/v2` thì
+     * những liên kết đó thành `http://127.0.0.1/...` và **được nướng vào HTML
+     * tĩnh** của trang Next — một liên kết không ai ngoài máy chủ mở được,
+     * trên một trang vẫn hiện bình thường. `webapp/lib/api.ts` ghi rõ vì sao
+     * base phải là tên miền; đây là hệ quả thứ hai của cùng quy tắc đó.
+     */
+    public function policy(string $slug): JsonResponse
+    {
+        // Tra trong mảng, KHÔNG dùng `config("policies.pages.{$slug}")`.
+        //
+        // `config()` coi dấu chấm là dấu phân cấp, và `$slug` đến thẳng từ URL
+        // (route param mặc định khớp cả dấu chấm). Với đường dẫn, slug
+        // `quy-che-hoat-dong.view` tra ra chuỗi `"frontpage.policies.terms"` —
+        // không rỗng, nên đi qua được chốt 404, rồi `$page['title']` trên một
+        // chuỗi nổ TypeError 500. Người gọi nhận 500 cho một slug sai.
+        $page = config('policies.pages', [])[$slug] ?? null;
+
+        if (! is_array($page)) {
+            return response()->json([
+                'error'   => 'not_found',
+                'message' => "Không có trang chính sách '{$slug}'.",
+                'code'    => 404,
+                'details' => [],
+            ], 404);
+        }
+
+        return response()->json([
+            'data' => [
+                'slug'           => $slug,
+                'title'          => $page['title'] ?? null,
+                'version'        => $page['version'] ?? null,
+                'effective_from' => $page['effective_from'] ?? null,
+                'is_effective'   => ! empty($page['effective_from']),
+                'url'            => url('/' . $slug),
+
+                // Render đúng partial trang Blade dùng. Thiếu khóa `body` trong
+                // config là lỗi cấu hình, không phải trường hợp hợp lệ — trả
+                // chuỗi rỗng ở đây là để một trang chính sách trống đi ra ngoài
+                // mà không ai báo.
+                'body_html' => view($page['body'])->render(),
+            ],
+        ]);
     }
 
     /**

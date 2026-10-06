@@ -73,11 +73,39 @@ jobs:
       - name: Kiểu đã commit không được trôi khỏi đặc tả
         run: git diff --exit-code -- resources/js/types/api-v2.d.ts
 
-      - name: Build
+      # Build với API GIẢ, không với API production.
+      #
+      # Trước đây bước này không khai `OOHX_API_BASE`, nên nó dùng mặc định
+      # `https://oohx.net/api/v2` — tức **CI gọi vào production**. Hai hệ quả:
+      # build lấy dữ liệu khác nhau mỗi lần chạy (và trang chủ prerender tĩnh
+      # nên dữ liệu đó bị nướng vào HTML), và không test được một trường hợp dữ
+      # liệu cụ thể nếu kho thật không có nó.
+      #
+      # `webapp/test/stub-api.mjs` dựng dữ liệu của chính nó, gồm cả hai
+      # trường hợp đối nghịch mà phép kiểm SEO cần: một màn hình CÓ giá và một
+      # màn hình KHÔNG có giá.
+      - name: Build với API giả
         working-directory: webapp
         run: |
           npm ci
-          npm run build
+          node -e "import('./test/stub-api.mjs').then(async ({startStubApi})=>{await startStubApi(4998);setInterval(()=>{},1000)})" &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:4998/api/v2/stats && break || sleep 1; done
+          OOHX_API_BASE=http://127.0.0.1:4998/api/v2 OOHX_PUBLIC_ORIGIN=https://oohx.net npm run build
+
+      # Phép kiểm SEO cho các trang Next, đo trên HTML ĐÃ RENDER.
+      #
+      # Vì sao không unit-test `buildMetadata()`: lỗi SEO thật duy nhất của
+      # giai đoạn 6 là `metadata.other` phát `<meta name="og:type">` thay vì
+      # `property=`. Object trả về đúng; chỗ sai nằm ở cách Next render nó.
+      # Một unit test so object sẽ xanh. Và `next build` cũng xanh — đã thử.
+      #
+      # Vì sao lớp này cần tồn tại: `SeoBaselineTest` canh `/`, `/explore`,
+      # `/owners`, `/products`, `/map`, nhưng bốn trong năm đường đó giờ do
+      # Next phục vụ trên production. Test đó vẫn xanh vì PHPUnit gọi vào
+      # Laravel — nó canh những trang người dùng KHÔNG CÒN THẤY.
+      - name: Thẻ SEO trên HTML đã render
+        working-directory: webapp
+        run: npm run test:seo
 
   phpunit:
     name: PHPUnit (MySQL 8)

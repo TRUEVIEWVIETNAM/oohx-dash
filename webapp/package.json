@@ -6,7 +6,9 @@
         "dev": "next dev --port 3001",
         "build": "next build",
         "start": "next start --port 3001 --hostname 127.0.0.1",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "test:seo": "node test/seo.mjs",
+        "// test:seo": "Kiem the SEO tren HTML da render. Can build truoc, va build phai dung API gia (OOHX_API_BASE tro vao stub) de du lieu dinh truoc."
     },
     "dependencies": {
         "leaflet": "^1.9.4",

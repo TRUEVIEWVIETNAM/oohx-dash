@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { LOGO_DATA_URI } from '@/lib/logo';
+import { CONG_TY as CO } from '@/lib/company';
 
 /**
  * Chân trang, dựng lại từ `resources/views/frontpage/partials/footer.blade.php`
@@ -12,9 +13,9 @@ import { LOGO_DATA_URI } from '@/lib/logo';
  * quan nhà nước. Một trang công khai thiếu khối đó là một trang thiếu thông
  * tin bắt buộc — nên nó phải có trên mọi trang đã chuyển, không phải "làm sau".
  *
- * Giá trị đọc từ biến môi trường, không viết cứng: nguồn sự thật vẫn là
- * `config/policies.php` của Laravel, và unit systemd truyền sang. Viết cứng ở
- * đây là tạo bản thứ hai của thông tin pháp lý, và hai bản sẽ lệch.
+ * Giá trị lấy từ `lib/company.ts` — một chỗ cho cả chân trang và ô cảnh báo
+ * bản nháp của trang chính sách. Viết cứng ở đây là tạo bản thứ hai của thông
+ * tin pháp lý, và hai bản sẽ lệch.
  *
  * ══ Bốn liên kết `href="#"` của bản Blade KHÔNG được chép sang ══
  *
@@ -31,20 +32,6 @@ import { LOGO_DATA_URI } from '@/lib/logo';
  * Hệ quả: cột "Thị trường" và một vài mục trong cột khác **không có** ở bản
  * này. Chân trang hai bản khác nhau cho tới khi bản Blade được dọn nốt.
  */
-
-const CO = {
-    legalName: process.env.OOHX_CO_LEGAL_NAME ?? 'CÔNG TY TNHH TRUEVIEW',
-    businessCode: process.env.OOHX_CO_BUSINESS_CODE ?? '0109944503',
-    businessCodeBy: process.env.OOHX_CO_BUSINESS_CODE_BY ?? 'Sở Tài Chính thành phố Hà Nội',
-    businessCodeOn: process.env.OOHX_CO_BUSINESS_CODE_ON ?? '24/3/2022',
-    address:
-        process.env.OOHX_CO_ADDRESS ??
-        'Số 110 đường Lạc Long Quân, Phường Tây Hồ, Thành phố Hà Nội, Việt Nam.',
-    legalRep: process.env.OOHX_CO_LEGAL_REP ?? 'NGUYỄN ANH TUẤN',
-    authorizedContact: process.env.OOHX_CO_AUTHORIZED_CONTACT ?? 'NGUYỄN ANH TUẤN',
-    hotline: process.env.OOHX_CO_HOTLINE ?? '0943668996',
-    email: process.env.OOHX_CO_EMAIL ?? 'tuan.nguyen@attvietnam.vn',
-};
 
 const CHINH_SACH = [
     ['quy-che-hoat-dong', 'Quy chế hoạt động'],

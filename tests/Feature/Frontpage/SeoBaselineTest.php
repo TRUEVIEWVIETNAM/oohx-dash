@@ -15,6 +15,24 @@ use Tests\TestCase;
 /**
  * Mốc SEO của trang công khai — ghi lại TRƯỚC khi chuyển sang Next.js.
  *
+ * ## ĐỌC TRƯỚC: lớp này không còn che production cho bốn đường
+ *
+ * Từ 03–05/10/2026, `/explore`, `/owners`, `/products` và `/map` do **Next.js**
+ * phục vụ trên production. PHPUnit gọi vào Laravel, nên bốn ca ở đây vẫn xanh
+ * — nhưng chúng canh trang Blade mà **người dùng không còn thấy**.
+ *
+ * Nghĩa là: lớp này xanh KHÔNG đủ để kết luận "SEO không tụt". Phép kiểm cho
+ * bản đang chạy nằm ở `webapp/test/seo.mjs`, đo thẻ trên HTML đã render của
+ * app Next, chạy trong CI ở job "Next.js (trang công khai)".
+ *
+ * Lớp này vẫn có giá trị, và đó là lý do nó không bị xoá: bản Blade là **đích
+ * lùi lại** nếu tắt proxy (`rm` một file conf rồi reload OpenLiteSpeed). Một
+ * mốc SEO của đích lùi lại thì phải còn sống.
+ *
+ * Khi một đường dẫn được chuyển, thêm nó vào danh sách trên và thêm ca tương
+ * ứng vào `webapp/test/seo.mjs` — hai lớp phải cộng lại thành đủ, không lớp
+ * nào một mình đủ.
+ *
  * ## Vì sao lớp này tồn tại
  *
  * Lộ trình đặt điều kiện hoàn thành giai đoạn 6 là *"đối chiếu SEO không tụt,
