@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { AuthState } from './AuthState';
+import { AppLink } from './AppLink';
 import { LOGO_DATA_URI } from '@/lib/logo';
 
 /**
@@ -17,50 +17,27 @@ import { LOGO_DATA_URI } from '@/lib/logo';
  *
  * ══ `<a>` chứ không `next/link` cho đường Laravel phục vụ ══
  *
- * Giai đoạn 6 chuyển từng đường dẫn, nên `/map`, `/agency`, `/` vẫn do Laravel
- * phục vụ. `next/link` sẽ thử điều hướng phía client và không tìm thấy route —
- * người dùng thấy trang 404 của Next cho một trang có thật. Chỉ `/explore` và
- * `/owners` dùng `next/link`, vì chúng nằm trong app này.
+ * Giai đoạn 6 chuyển từng đường dẫn, nên `/agency` và `/` vẫn do Laravel phục
+ * vụ. `next/link` tới một đường như thế sẽ thử điều hướng phía client và không
+ * tìm thấy route — người dùng thấy trang 404 của Next cho một trang có thật.
  *
- * Khi chuyển thêm đường nào thì đổi `<a>` thành `<Link>` ở đúng dòng đó. Danh
- * sách `TRONG_APP` dưới đây là chỗ duy nhất phải sửa.
+ * Không dòng nào ở đây phải sửa khi chuyển thêm một đường: mọi liên kết đi qua
+ * `AppLink`, và danh sách `TRONG_APP` ở `lib/duong-dan.ts` là chỗ duy nhất
+ * phải sửa — chỗ đó dùng chung với chân trang.
  */
 
 /**
- * Những đường dẫn app này phục vụ.
- *
- * ══ Danh sách này PHẢI khớp các context đang mở trong nextjs.conf ══
- *
- * Không phải "nên", mà là phải, và lệch theo chiều nào cũng sai một kiểu:
- *
- * - Có ở đây mà proxy CHƯA mở: `next/link` điều hướng phía client và hiện
- *   trang của app Next, nhưng tải lại cùng URL đó thì OpenLiteSpeed đưa về
- *   Laravel và hiện trang Blade. **Hai trang khác nhau cho một URL**, tuỳ cách
- *   người dùng tới — và không có gì báo.
- * - Proxy đã mở mà thiếu ở đây: `<a>` gây tải lại cả trang cho một điều hướng
- *   nội bộ. Chậm hơn, nhưng không sai.
- *
- * Nên khi mở thêm một context trong `docs/deploy/nextjs-proxy/nextjs.conf`,
- * sửa luôn dòng này trong cùng commit.
- */
-const TRONG_APP = new Set(['/explore', '/owners', '/map']);
-
-/**
- * Logo, dùng cùng phép kiểm `TRONG_APP` như các mục nav.
+ * Logo, đi qua cùng phép kiểm `AppLink` như các mục nav.
  *
  * Viết cứng `<a href="/">` thì khi `/` được proxy sang Next, logo vẫn tải lại
  * cả trang cho một điều hướng nội bộ — và không ai nhớ sửa thêm một dòng ở
- * đây. Để nó đi qua cùng danh sách thì sửa một chỗ là đủ.
+ * đây.
  */
 function LogoLink({ children }: { children: React.ReactNode }) {
-    return TRONG_APP.has('/') ? (
-        <Link href="/" className="hdr-logo">
+    return (
+        <AppLink href="/" className="hdr-logo">
             {children}
-        </Link>
-    ) : (
-        <a href="/" className="hdr-logo">
-            {children}
-        </a>
+        </AppLink>
     );
 }
 
@@ -69,16 +46,10 @@ function NavLink({ href, active, children }: {
     active: boolean;
     children: React.ReactNode;
 }) {
-    const className = active ? 'ac' : undefined;
-
-    return TRONG_APP.has(href) ? (
-        <Link href={href} className={className}>
+    return (
+        <AppLink href={href} className={active ? 'ac' : undefined}>
             {children}
-        </Link>
-    ) : (
-        <a href={href} className={className}>
-            {children}
-        </a>
+        </AppLink>
     );
 }
 

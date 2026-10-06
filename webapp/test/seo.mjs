@@ -1,5 +1,7 @@
 import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { startStubApi } from './stub-api.mjs';
+import { TRONG_APP } from '../lib/duong-dan.ts';
 
 /**
  * Kiểm thẻ SEO trên HTML **đã render** của từng trang Next.
@@ -278,6 +280,57 @@ async function kiemKhongLo(base) {
     }
 }
 
+/**
+ * `TRONG_APP` phải khớp các context đang mở trong `nextjs.conf`.
+ *
+ * ══ Vì sao đây là phép kiểm, không phải một dòng ghi chú ══
+ *
+ * `lib/duong-dan.ts` nói rõ luật này, và luật đó **đã bị vi phạm** một lần:
+ * `/map` có trong `TRONG_APP` từ PR #11 trong khi proxy chưa mở nó. Hệ quả là
+ * một URL cho hai trang — bấm từ thanh điều hướng thì ra trang Next, tải lại
+ * cùng URL thì ra trang Blade. Không có gì báo, vì cả hai đều trả 200.
+ *
+ * Một ghi chú trong docblock không chặn được chuyện đó. Phép kiểm này đọc
+ * thẳng file conf, nên hai bên không thể lệch mà CI vẫn xanh.
+ *
+ * `/_next` bị bỏ ra: nó là context phát asset của chính Next.js, không phải
+ * một đường người dùng điều hướng tới, nên nó không thuộc `TRONG_APP`.
+ */
+function kiemKhopConf() {
+    const conf = readFileSync(
+        new URL('../../docs/deploy/nextjs-proxy/nextjs.conf', import.meta.url),
+        'utf8',
+    );
+
+    const trongConf = new Set(
+        conf
+            .split('\n')
+            .filter((l) => /^context\s/.test(l))
+            .map((l) => l.trim().split(/\s+/)[1])
+            .filter((c) => c !== '/_next'),
+    );
+
+    for (const duong of TRONG_APP) {
+        if (!trongConf.has(duong)) {
+            bao(
+                'TRONG_APP',
+                `"${duong}" có trong TRONG_APP mà KHÔNG có context trong nextjs.conf — ` +
+                    'next/link sẽ hiện trang Next còn tải lại cùng URL ra trang Blade',
+            );
+        }
+    }
+
+    for (const duong of trongConf) {
+        if (!TRONG_APP.has(duong)) {
+            bao(
+                'nextjs.conf',
+                `context "${duong}" đang mở mà thiếu trong TRONG_APP — ` +
+                    'điều hướng nội bộ tải lại cả trang, chậm hơn mức cần',
+            );
+        }
+    }
+}
+
 async function chay() {
     const { server, port: apiPort } = await startStubApi();
     const apiBase = `http://127.0.0.1:${apiPort}/api/v2`;
@@ -320,6 +373,10 @@ async function chay() {
     }
 
     try {
+        // Phép kiểm này không cần máy chủ Next, nhưng để trong `try` để nó
+        // cùng chịu `finally` dọn tiến trình.
+        kiemKhopConf();
+
         for (const trang of TRANG) {
             await kiemTrang(base, trang);
         }
@@ -332,7 +389,10 @@ async function chay() {
     }
 
     if (loi.length === 0) {
-        console.log(`SEO: ${TRANG.length} trang, tất cả thẻ bắt buộc có mặt và đúng giá trị.`);
+        console.log(
+            `SEO: ${TRANG.length} trang, tất cả thẻ bắt buộc có mặt và đúng giá trị. ` +
+                `TRONG_APP khớp ${TRONG_APP.size} context trong nextjs.conf.`,
+        );
         process.exit(0);
     }
 

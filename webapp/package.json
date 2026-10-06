@@ -1,6 +1,9 @@
 {
     "name": "oohx-webapp",
     "private": true,
+
+    "// type": "ESM. Cần vì test/seo.mjs import TRONG_APP từ lib/duong-dan.ts; thiếu khóa này Node cảnh báo MODULE_TYPELESS_PACKAGE_JSON và phải phân tích lại file. Không có file .js CommonJS nào trong webapp/ nên nó không làm hỏng gì.",
+    "type": "module",
     "comment-vi": "Trang công khai của oohx.net trên Next.js — giai đoạn 6. Nằm trong repo oohx-dash có chủ ý: kiểu TypeScript sinh từ docs/openapi/v2.yaml, CI và deploy.sh đều ở đây, nên ba thứ đó không phải đồng bộ qua hai repo.",
     "scripts": {
         "dev": "next dev --port 3001",
