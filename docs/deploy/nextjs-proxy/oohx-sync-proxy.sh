@@ -70,7 +70,7 @@
 #
 set -e
 
-VERSION=1
+VERSION=2
 
 # In số phiên bản rồi thoát — `deploy.sh` dùng cái này để so với bản trong repo.
 # Không cần quyền gì, nên để trước mọi phép kiểm khác.
@@ -407,6 +407,10 @@ fi
 # Làm TRƯỚC khi đổi tên conf cũ. Nếu include không có mà ta đã cách ly conf cũ
 # thì kết quả là KHÔNG CÒN conf nào có tác dụng — `/explore` rơi về Laravel,
 # tức tự tay làm hỏng thứ đang chạy.
+# `$VHOST_CONF` là `detail/oohx.net.conf`, và đó ĐÚNG là file giữ dòng include
+# (xác nhận 06/10/2026: dòng 67 của nó). Nó không nằm trong glob nào — nó được
+# nạp vì `/www/server/panel/vhost/openlitespeed/oohx.net.conf` ở cấp trên trỏ
+# `configFile` vào đúng nó. Đừng đổi sang file cấp trên: dòng include nằm ở đây.
 echo "[3/7] Kiểm vhost có include thư mục proxy"
 if [ ! -f "$VHOST_CONF" ]; then
     echo "LỖI: không có $VHOST_CONF. Không đoán tiếp." >&2
@@ -455,13 +459,36 @@ echo "   nền: /sitemap.xml → 200."
 # hành vi không đoán được. Phải cách ly, nhưng CHỈ cách ly file là "conf proxy
 # thuần" — nếu ai đã dán context thẳng vào file vhost do panel sinh ra thì đổi
 # tên file đó là làm sập cả site.
+# ══ CHỈ xét file OpenLiteSpeed thật sự nạp, tức tên kết thúc bằng `.conf` ══
+#
+# Bản v1 tìm mọi file chứa `$NEXT_ADDR` và nó DỪNG NHẦM ngay lần chạy đầu trên
+# máy thật (06/10/2026): nó bắt được
+# `detail/oohx.net.conf.txt`, thấy file đó có directive ngoài danh sách trắng,
+# và từ chối đi tiếp.
+#
+# Nhưng file đó OpenLiteSpeed **không bao giờ nạp**. Chuỗi nạp thật, đọc từ
+# `/usr/local/lsws/conf/httpd_config.conf` dòng 256:
+#
+#     httpd_config.conf
+#       └─ include /www/server/panel/vhost/openlitespeed/*.conf
+#            └─ oohx.net.conf                  ← cấp TRÊN, không phải detail/
+#                 └─ configFile → detail/oohx.net.conf
+#                      └─ include proxy/oohx.net/*.conf
+#                           └─ nextjs.conf     ← file sống
+#
+# Glob là `*.conf`, và `detail/` chỉ vào được qua `configFile` trỏ đích danh.
+# aaPanel thì giữ một loạt bản sao cho trình soạn thảo và cho phiên bản:
+# `.conf.txt`, `.conf0`, `.conf0,v`, `.conf.backup`. Không bản nào được nạp.
+#
+# Nên phép lọc đúng là theo ĐUÔI TÊN, không theo nội dung: một bản sao nhắc
+# tới địa chỉ Next.js không phải một conf cạnh tranh.
 echo "[4/7] Tìm conf khác đang trỏ $NEXT_ADDR"
 LA=()
 while read -r f; do
     [ -z "$f" ] && continue
     [ "$f" = "$PROXY_CONF" ] && continue
     LA+=("$f")
-done < <(grep -rl "$NEXT_ADDR" "$OLS_VHOST_DIR" /usr/local/lsws/conf 2>/dev/null || true)
+done < <(grep -rl --include='*.conf' "$NEXT_ADDR" "$OLS_VHOST_DIR" /usr/local/lsws/conf 2>/dev/null || true)
 
 if [ "${#LA[@]}" -eq 0 ]; then
     echo "   không có file nào khác."

@@ -1,5 +1,9 @@
 #!/bin/bash
-# Thử hàm `kiem_conf` của oohx-sync-proxy.sh ngoài VPS.
+# Thử oohx-sync-proxy.sh ở những phần chạy được ngoài VPS.
+#
+# Phần 1: hàm `kiem_conf` — danh sách trắng, thứ duy nhất ngăn một conf độc
+#         hại được dán vào cấu hình web server.
+# Phần 2: mẫu lọc chọn file — chỗ v1 dừng nhầm trên máy thật.
 #
 # Lấy đúng hàm đó ra khỏi script thật (từ dòng `kiem_conf() {` tới dòng `}` ở
 # cột 0 đầu tiên sau nó) chứ không chép lại — chép lại thì thử một bản khác.
@@ -182,6 +186,63 @@ thu handler-khac tu-choi
 
 # File không tồn tại
 thu khong-ton-tai tu-choi
+
+# ════════════════════════════════════════════════════════════════════════════
+# Phần 2: script CHỌN file nào để xét là "conf cạnh tranh"
+# ════════════════════════════════════════════════════════════════════════════
+#
+# Đây là chỗ v1 dừng nhầm trên máy thật (06/10/2026). Nó tìm mọi file chứa địa
+# chỉ Next.js và bắt được `detail/oohx.net.conf.txt` — một bản sao aaPanel giữ
+# cho trình soạn thảo, OpenLiteSpeed không bao giờ nạp.
+#
+# Chuỗi nạp thật (httpd_config.conf dòng 256):
+#     include /www/server/panel/vhost/openlitespeed/*.conf
+# nên chỉ file kết thúc bằng `.conf` mới vào được. aaPanel giữ thêm
+# `.conf.txt`, `.conf0`, `.conf0,v`, `.conf.backup`.
+#
+# Lấy mẫu lọc ĐỌC TỪ SCRIPT THẬT, không viết lại — viết lại là thử một bản khác.
+
+echo
+echo "── chọn file: chỉ xét thứ OpenLiteSpeed nạp ──"
+
+MAU=$(grep -oE "\-\-include='[^']+'" "$SRC" | head -1 | sed "s/--include='//; s/'$//")
+
+if [ -z "$MAU" ]; then
+    echo "  SAI   script không dùng --include — nó sẽ xét cả bản sao của panel"
+    so_sai=$((so_sai + 1))
+else
+    echo "  mẫu lọc đọc từ script: $MAU"
+
+    CAY="${TMPDIR:-/tmp}/cay-ols-$"
+    mkdir -p "$CAY/detail" "$CAY/proxy/oohx.net"
+
+    # File OLS THẬT SỰ nạp.
+    printf 'extprocessor nextjs {\n  address 127.0.0.1:3001\n}\ncontext /explore {\n}\n' \
+        > "$CAY/proxy/oohx.net/nextjs.conf"
+
+    # Những bản sao aaPanel giữ. Tất cả đều nhắc địa chỉ Next.js, và KHÔNG
+    # bản nào được nạp.
+    for ten in "proxy/oohx.net/nextjs.conf0" \
+               "detail/oohx.net.conf.txt" \
+               "detail/oohx.net.conf0" \
+               "detail/oohx.net.conf0,v" \
+               "detail/oohx.net.conf.backup"; do
+        cp "$CAY/proxy/oohx.net/nextjs.conf" "$CAY/$ten"
+    done
+
+    THAY=$(grep -rl --include="$MAU" "127.0.0.1:3001" "$CAY" | sed "s|$CAY/||" | sort | tr '\n' ' ')
+    CAN="proxy/oohx.net/nextjs.conf "
+
+    if [ "$THAY" = "$CAN" ]; then
+        printf '  OK    %-34s chi file OLS nap\n' "chon-file"
+        so_dung=$((so_dung + 1))
+    else
+        printf '  SAI   %-34s thay [%s], can [%s]\n' "chon-file" "$THAY" "$CAN"
+        so_sai=$((so_sai + 1))
+    fi
+
+    rm -rf "$CAY"
+fi
 
 echo
 echo "── tổng: $so_dung đúng, $so_sai sai ──"
