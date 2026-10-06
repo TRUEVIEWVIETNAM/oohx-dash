@@ -251,7 +251,23 @@ PROXY_BAK="$PROXY_CONF.truoc-deploy"
 
 sync_proxy_conf() {
     if [ ! -d "$PROXY_DIR" ]; then
-        echo "Bỏ qua: $PROXY_DIR chưa tồn tại — proxy chưa được dựng lần nào."
+        # Câu cũ ở đây là "proxy chưa được dựng lần nào", và nó SAI — một suy
+        # luận, không phải một quan sát. Proxy đang chạy thật (/explore do Next
+        # phục vụ); chỉ là conf nằm ở chỗ khác, dán tay. Và vì câu đó nghe như
+        # "chưa làm gì", nó che mất chuyện mọi thay đổi nextjs.conf trong repo
+        # đều không tới máy chủ — /map khai trong conf từ PR #11 mà vẫn là
+        # Laravel suốt từ đó.
+        #
+        # KHÔNG tự mkdir rồi dán vào: nếu conf cũ còn đó thì hai file cùng khai
+        # `extprocessor nextjs`, OpenLiteSpeed nạp song song và hành vi không
+        # đoán được — có thể làm /explore chết, không chỉ là không mở được
+        # trang mới. Phải biết conf cũ ở đâu trước, và đó là việc của workflow
+        # chẩn đoán.
+        echo "Bỏ qua đồng bộ: $PROXY_DIR không tồn tại."
+        echo "       Repo đang khai $(grep -cE '^context ' "$REPO_CONF") context mà máy chủ KHÔNG nhận."
+        echo "       Chạy workflow 'Chẩn đoán proxy OpenLiteSpeed' (tab Actions) để"
+        echo "       biết conf đang chạy nằm đâu, rồi làm theo README.md mục"
+        echo "       'Vì sao cột 3 và cột 4 đang lệch nhau'."
         return 0
     fi
 
