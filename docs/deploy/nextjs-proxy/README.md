@@ -38,22 +38,87 @@ Ba lý do đặt trong repo này:
 
 Hai cột khác nhau, và đừng đọc gộp: **dựng** là trang Next đã có và test xanh; **mở** là OpenLiteSpeed đang thật sự đưa người dùng tới đó.
 
-| Đường dẫn | Dựng | Mở trên production |
-|---|---|---|
-| `/explore`, `/explore/{slug}` | xong | **có** |
-| `/owners`, `/owners/{slug}` | xong | **có** |
-| `/products`, `/products/{slug}` | xong | **có** |
-| `/map` | xong | khai trong `nextjs.conf`, chờ dán lên máy chủ |
-| `/` (trang chủ) | xong | **không** — xem ghi chú `context /` dưới |
-| 4 trang chính sách | xong | **không** — xem mục riêng dưới |
+| Đường dẫn | Dựng | Khai trong `nextjs.conf` | Mở trên production |
+|---|---|---|---|
+| `/explore`, `/explore/{slug}` | xong | có | **có** |
+| `/owners`, `/owners/{slug}` | xong | có | **có** |
+| `/products`, `/products/{slug}` | xong | có | **có** |
+| `/map` | xong | có | **chưa** |
+| 4 trang chính sách | xong | có | **chưa** |
+| `/` (trang chủ) | xong | không | không |
 
 Trang chủ không mở được bằng `context /`: OpenLiteSpeed khớp context theo **tiền tố**, nên một `context /` nuốt luôn `/api/v1`, `/cart`, `/sitemap.xml` và bốn slug chính sách. Nó cần một cách khác.
+
+#### Vì sao cột 3 và cột 4 đang lệch nhau
+
+`deploy.sh` bước `[11/11]` có nhiệm vụ đồng bộ `nextjs.conf` của repo sang máy chủ, nhưng log deploy ngày 06/10/2026 nói:
+
+```
+[11/11] Đồng bộ cấu hình proxy OpenLiteSpeed
+Bỏ qua: /www/server/panel/vhost/openlitespeed/proxy/oohx.net chưa tồn tại — proxy chưa được dựng lần nào.
+```
+
+Nghĩa là `/explore`, `/owners`, `/products` đang chạy từ một conf dán tay **ở chỗ khác**, không phải thư mục bước này trông vào. Nên mọi thay đổi `nextjs.conf` trong repo đều không tới máy chủ, và cột 3 đi trước cột 4 vô thời hạn.
+
+Chữa một lần, rồi nó tự đồng bộ mãi:
+
+```sh
+# 1. Tìm conf đang thật sự chạy. Đừng đoán — tìm theo cổng 3001.
+grep -rl "127.0.0.1:3001" /www/server/panel/vhost/openlitespeed/ /usr/local/lsws/conf/ 2>/dev/null
+
+# 2. Xem nó, để biết nó khai những context nào.
+#    (thay ĐƯỜNG_DẪN bằng kết quả bước 1)
+grep -E "^\s*(extprocessor|context)" ĐƯỜNG_DẪN
+
+# 3. Dựng thư mục deploy.sh trông vào, và dán conf của repo vào đó.
+mkdir -p /www/server/panel/vhost/openlitespeed/proxy/oohx.net
+cp /www/wwwroot/dash.oohx.net/docs/deploy/nextjs-proxy/nextjs.conf \
+   /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf
+
+# 4. XOÁ conf cũ ở bước 1. Giữ cả hai là hai file khai trùng `extprocessor nextjs`
+#    — OpenLiteSpeed nạp song song và hành vi không đoán được.
+#    Đổi tên thành .bak chứ không xoá hẳn, và .bak KHÔNG khớp *.conf nên nó
+#    không còn được nạp.
+mv ĐƯỜNG_DẪN ĐƯỜNG_DẪN.truoc-dong-bo
+
+# 5. Kiểm vhost có nạp thư mục mới không. Nếu dòng include này không có thì
+#    bước 3 vô nghĩa và phải thêm nó vào detail/oohx.net.conf.
+grep -n "proxy/oohx.net" /www/server/panel/vhost/openlitespeed/detail/oohx.net.conf
+
+/usr/local/lsws/bin/lswsctrl restart
+```
+
+Và cấp quyền sudo cho `deploy` để bước `[11/11]` ghi được. Bảy dòng dưới đây là **nguyên văn** những gì `deploy.sh` in ra khi thiếu quyền — nếu log deploy in khác thì tin log, không tin file này:
+
+```sh
+visudo -f /etc/sudoers.d/oohx-deploy
+```
+```
+deploy ALL=(root) NOPASSWD: /usr/bin/cp docs/deploy/nextjs-proxy/nextjs.conf /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf
+deploy ALL=(root) NOPASSWD: /usr/bin/cp /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf.truoc-deploy
+deploy ALL=(root) NOPASSWD: /usr/bin/cp /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf.truoc-deploy /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf
+deploy ALL=(root) NOPASSWD: /bin/rm -f /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf
+deploy ALL=(root) NOPASSWD: /bin/rm -f /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf.truoc-deploy
+deploy ALL=(root) NOPASSWD: /usr/local/lsws/bin/lswsctrl restart
+deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart oohx-webapp
+```
+
+Dòng đầu có đường dẫn **tương đối** (`docs/deploy/...`), và đó không phải lỗi gõ: `deploy.sh` gọi `sudo -n cp "$REPO_CONF" ...` với `REPO_CONF="docs/deploy/nextjs-proxy/nextjs.conf"`, và sudoers so khớp đối số đúng như lúc gọi. Viết thành đường dẫn tuyệt đối thì luật không khớp và bước đó vẫn bị từ chối.
 
 ### Header và chân trang: đã dựng lại
 
 Dựng ở lát 2 (PR #9): `webapp/components/SiteHeader.tsx` và `SiteFooter.tsx`.
 
-Một chỗ trong `SiteHeader.tsx` cần biết: `const TRONG_APP = new Set([...])` liệt kê những đường **đang được proxy**, và nó quyết định một mục nav dùng `<Link>` (điều hướng trong app, nhanh) hay `<a>` (tải lại cả trang). Mở thêm một context mà quên sửa set này thì người dùng vẫn tới đúng trang, chỉ là chậm hơn cần thiết — một lỗi không ai báo. Sửa cùng lượt với `nextjs.conf`.
+`TRONG_APP` ở `webapp/lib/duong-dan.ts` liệt kê những đường **đang được proxy**, và `AppLink` dùng nó để chọn `<Link>` (điều hướng trong app) hay `<a>` (tải lại cả trang). Cả thanh điều hướng và chân trang đi qua `AppLink`, nên mở thêm một context thì chỉ sửa một danh sách.
+
+Lệch theo chiều nào cũng sai, nhưng **hai kiểu khác nhau**:
+
+| Lệch | Hệ quả |
+|---|---|
+| Có trong `TRONG_APP`, proxy chưa mở | `<Link>` hiện trang Next, tải lại cùng URL ra trang Blade — **hai trang cho một URL**, cả hai đều 200 nên không gì báo |
+| Proxy đã mở, thiếu trong `TRONG_APP` | `<a>` tải lại cả trang cho một điều hướng nội bộ. Chậm hơn, không sai |
+
+Chiều thứ nhất **đã xảy ra**: `/map` nằm trong `TRONG_APP` từ PR #11 trong khi proxy chưa mở nó. Nên luật này giờ có phép kiểm — `webapp/test/seo.mjs::kiemKhopConf()` đọc thẳng `nextjs.conf` và so, chứ không chỉ là một dòng ghi chú.
 
 ## Cài đặt
 
@@ -176,7 +241,9 @@ Bốn đường sau **phải vẫn do Laravel phục vụ**. `/explore` ra 200 t
 
 Trang Next đã dựng (`webapp/app/(chinh-sach)/[slug]/page.tsx`). Nó **không** chứa văn bản: phần thân lấy từ `GET /api/v2/policies/{slug}`, và endpoint đó render đúng partial Blade mà trang Laravel render (`resources/views/frontpage/policies/bodies/*.blade.php`). Một nguồn, một bộ render — `PublicContentApiTest::test_than_van_ban_la_dung_phan_than_trang_blade_phat_ra` so `body_html` với HTML trang Blade thật sự phát ra.
 
-Bốn context để **đóng** trong `nextjs.conf`, dạng comment. Mở từng khối một, và sau mỗi khối kiểm **nội dung**, không chỉ mã trạng thái:
+Bốn context đã **khai** trong `nextjs.conf` (duyệt ngày 06/10/2026), và `TRONG_APP` ở `webapp/lib/duong-dan.ts` đã khớp — có phép kiểm đọc thẳng file conf nên hai bên không lệch được mà CI vẫn xanh.
+
+Còn lại là đưa conf lên máy chủ (xem "Vì sao cột 3 và cột 4 đang lệch nhau" ở trên). Sau khi lên, kiểm **nội dung**, không chỉ mã trạng thái:
 
 ```sh
 # Sau khi bỏ dấu # cho MỘT khối rồi copy conf + lswsctrl restart:
@@ -190,7 +257,9 @@ curl -s -o /dev/null -w "/sitemap.xml → %{http_code}\n" https://oohx.net/sitem
 curl -s -o /dev/null -w "/phan-anh-to-chuc-xa-hoi → %{http_code}\n" https://oohx.net/phan-anh-to-chuc-xa-hoi
 ```
 
-Vì sao nhóm này mở riêng chứ không đi kèm `/map`: văn bản pháp lý được đóng dấu `version` vào **từng bản ghi đồng ý** của người dùng. Một lỗi hiển thị ở đây không phải lỗi giao diện — nó là chữ mà người dùng được coi là đã đồng ý. Mở khi có người xem được kết quả, không trong một lượt deploy tự động.
+Vì sao nhóm này được duyệt riêng chứ không đi kèm `/map`: văn bản pháp lý được đóng dấu `version` vào **từng bản ghi đồng ý** của người dùng. Một lỗi hiển thị ở đây không phải lỗi giao diện — nó là chữ mà người dùng được coi là đã đồng ý.
+
+Ba trong bốn văn bản hiện vẫn là **bản nháp** (`effective_from = null`), và trang Next hiện ô `pol-draft` đúng cho chúng. Phép kiểm `test:seo` canh ô đó **cả hai chiều** — có khi còn nháp, không có khi đã ban hành. Chỉ canh một chiều thì một trang luôn hiện cảnh báo vẫn qua được, và nó nói sai về văn bản đã có hiệu lực.
 
 ### 4. Lùi lại
 

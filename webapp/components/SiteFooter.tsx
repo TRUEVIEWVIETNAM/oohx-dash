@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { AppLink } from './AppLink';
 import { LOGO_DATA_URI } from '@/lib/logo';
 import { CONG_TY as CO } from '@/lib/company';
 
@@ -81,16 +81,16 @@ export function SiteFooter() {
                         <h4>Khám phá</h4>
                         <ul className="ft-ls">
                             <li>
-                                <Link href="/explore">Toàn bộ màn hình</Link>
+                                <AppLink href="/explore">Toàn bộ màn hình</AppLink>
                             </li>
                             <li>
-                                <Link href="/owners">Chủ sở hữu màn hình</Link>
+                                <AppLink href="/owners">Chủ sở hữu màn hình</AppLink>
                             </li>
                             <li>
-                                <Link href="/products">Gói sản phẩm</Link>
+                                <AppLink href="/products">Gói sản phẩm</AppLink>
                             </li>
                             <li>
-                                <Link href="/map">Bản đồ</Link>
+                                <AppLink href="/map">Bản đồ</AppLink>
                             </li>
                         </ul>
                     </div>
@@ -100,16 +100,18 @@ export function SiteFooter() {
                         <ul className="ft-ls">
                             {CHINH_SACH.map(([slug, label]) => (
                                 <li key={slug}>
-                                    <a href={`/${slug}`}>{label}</a>
+                                    <AppLink href={`/${slug}`}>{label}</AppLink>
                                 </li>
                             ))}
                             <li>
-                                <a href="/phan-anh-to-chuc-xa-hoi">Tiếp nhận phản ánh của TCXH</a>
+                                <AppLink href="/phan-anh-to-chuc-xa-hoi">
+                                    Tiếp nhận phản ánh của TCXH
+                                </AppLink>
                             </li>
                             <li>
-                                <a href="/phan-anh-to-chuc-xa-hoi/danh-sach">
+                                <AppLink href="/phan-anh-to-chuc-xa-hoi/danh-sach">
                                     Danh sách phản ánh của TCXH
-                                </a>
+                                </AppLink>
                             </li>
                         </ul>
                     </div>
@@ -118,9 +120,15 @@ export function SiteFooter() {
                 <div className="ft-btm">
                     <div>Bản quyền &copy; {new Date().getFullYear()} OOHX. Bảo lưu mọi quyền.</div>
                     <div className="ft-bls">
-                        <a href="/quy-che-hoat-dong">Quy chế hoạt động</a>
-                        <a href="/chinh-sach-bao-mat">Chính sách bảo mật</a>
-                        <a href="/phan-anh-to-chuc-xa-hoi">Liên hệ</a>
+                        <AppLink href="/quy-che-hoat-dong">Quy chế hoạt động</AppLink>
+                        <AppLink href="/chinh-sach-bao-mat">Chính sách bảo mật</AppLink>
+                        {/*
+                          `/phan-anh-to-chuc-xa-hoi` CHƯA chuyển sang Next, nên
+                          `AppLink` sẽ tự chọn `<a>`. Để nó đi qua đây thay vì
+                          viết cứng `<a>` nghĩa là khi trang đó chuyển, không ai
+                          phải nhớ sửa dòng này.
+                        */}
+                        <AppLink href="/phan-anh-to-chuc-xa-hoi">Liên hệ</AppLink>
                     </div>
                 </div>
             </div>
