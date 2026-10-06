@@ -215,211 +215,94 @@ fi
 
 echo ""
 echo "[11/11] Đồng bộ cấu hình proxy OpenLiteSpeed"
-# Đưa `docs/deploy/nextjs-proxy/nextjs.conf` vào thư mục OpenLiteSpeed đọc, rồi
-# reload. Mục đích: chuyển thêm một đường dẫn sang Next.js chỉ còn là một lần
-# merge, không cần ai mở phiên SSH vào production.
+# Gọi script root `oohx-sync-proxy`, không tự chép file.
 #
-# ══ Vì sao bước này đáng rủi ro, và rủi ro được chặn thế nào ══
+# ══ Vì sao đổi cách làm ══
 #
-# Nó cho script deploy quyền đổi cấu hình web server. Một file conf sai có thể
-# làm cả trang công khai 404 — ví dụ `context /` là khớp theo TIỀN TỐ, nên khai
-# nó biến Next thành catch-all và mọi đường Laravel (`/cart`, `/api/v1` của đối
-# tác, bốn trang chính sách qua route `/{slug}`, `sitemap.xml`) đi sang một app
-# không có chúng.
+# Bản trước tự `sudo -n cp` và tự chạy canary, và nó KHÔNG BAO GIỜ chạy được:
+# đo ngày 06/10/2026 (lần chạy CI 37471490002), user deploy không ĐỌC nổi thư
+# mục cấu hình OpenLiteSpeed —
 #
-# Nên bước này không chỉ chép file. Nó:
+#     grep: /www/server/panel/vhost/openlitespeed/detail/oohx.net.conf: Permission denied
 #
-#   1. bỏ qua nếu file không đổi — reload web server mỗi lần deploy là việc vô
-#      ích có rủi ro;
-#   2. kiểm file TRƯỚC khi cài: phải có `extprocessor`, phải có ít nhất một
-#      `context`, ngoặc phải cân;
-#   3. sao lưu bản đang chạy;
-#   4. cài, reload;
-#   5. chạy CANARY từ ngoài vào, và nếu đỏ thì **tự lùi lại** rồi reload lần
-#      nữa trước khi thoát.
+# Mà bước này cần đọc để `cmp -s` bản đang chạy, để sao lưu, và để tìm xem có
+# file nào khác khai trùng `extprocessor`. Cấp quyền đọc cả thư mục cấu hình
+# web server cho user deploy thì rộng hơn hẳn việc cần làm.
 #
-# Canary quan trọng hơn cả bốn bước trên. Một cấu hình proxy sai không làm
-# OpenLiteSpeed báo lỗi — nó khởi động bình thường và trả 404 cho những đường
-# nó vừa chuyển sai. Không có canary thì deploy xanh và trang công khai chết.
-PROXY_DIR="/www/server/panel/vhost/openlitespeed/proxy/oohx.net"
-PROXY_CONF="$PROXY_DIR/nextjs.conf"
-REPO_CONF="docs/deploy/nextjs-proxy/nextjs.conf"
-# Hậu tố KHÔNG kết thúc bằng `.conf`, có chủ ý: thư mục này được nạp bằng
-# `include .../proxy/oohx.net/*.conf`, nên một bản sao lưu tên `*.conf` sẽ được
-# nạp song song với bản thật và khai trùng `extprocessor`.
-PROXY_BAK="$PROXY_CONF.truoc-deploy"
+# Nên toàn bộ phần đó chuyển vào `/usr/local/sbin/oohx-sync-proxy` chạy
+# as-root, và sudoers chỉ cần MỘT dòng. Bước này còn ba việc: kiểm script đã
+# cài chưa, cảnh báo nếu bản đã cài lệch bản trong repo, và gọi nó.
+#
+# Phần kiểm conf và canary KHÔNG lặp lại ở đây — nó nằm trong script root, và
+# `tests/shell/thu-kiem-conf.sh` kiểm nó trong CI (41 trường hợp).
+SYNC_BIN="/usr/local/sbin/oohx-sync-proxy"
+SYNC_SRC="docs/deploy/nextjs-proxy/oohx-sync-proxy.sh"
 
-sync_proxy_conf() {
-    if [ ! -d "$PROXY_DIR" ]; then
-        # Câu cũ ở đây là "proxy chưa được dựng lần nào", và nó SAI — một suy
-        # luận, không phải một quan sát. Proxy đang chạy thật (/explore do Next
-        # phục vụ); chỉ là conf nằm ở chỗ khác, dán tay. Và vì câu đó nghe như
-        # "chưa làm gì", nó che mất chuyện mọi thay đổi nextjs.conf trong repo
-        # đều không tới máy chủ — /map khai trong conf từ PR #11 mà vẫn là
-        # Laravel suốt từ đó.
-        #
-        # KHÔNG tự mkdir rồi dán vào: nếu conf cũ còn đó thì hai file cùng khai
-        # `extprocessor nextjs`, OpenLiteSpeed nạp song song và hành vi không
-        # đoán được — có thể làm /explore chết, không chỉ là không mở được
-        # trang mới. Phải biết conf cũ ở đâu trước, và đó là việc của workflow
-        # chẩn đoán.
-        echo "Bỏ qua đồng bộ: $PROXY_DIR không tồn tại."
-        echo "       Repo đang khai $(grep -cE '^context ' "$REPO_CONF") context mà máy chủ KHÔNG nhận."
-        echo "       Chạy workflow 'Chẩn đoán proxy OpenLiteSpeed' (tab Actions) để"
-        echo "       biết conf đang chạy nằm đâu, rồi làm theo README.md mục"
-        echo "       'Vì sao cột 3 và cột 4 đang lệch nhau'."
-        return 0
-    fi
-
-    if [ -f "$PROXY_CONF" ] && cmp -s "$REPO_CONF" "$PROXY_CONF"; then
-        echo "Không đổi: cấu hình proxy đang chạy khớp repo."
-        return 0
-    fi
-
-    # ── Kiểm file trước khi cài ──
-    if ! grep -q '^extprocessor ' "$REPO_CONF"; then
-        echo "LỖI: $REPO_CONF không có khối extprocessor. Không cài."
-        return 1
-    fi
-
-    local so_context
-    so_context=$(grep -cE '^context ' "$REPO_CONF" || true)
-
-    if [ "$so_context" -lt 1 ]; then
-        echo "LỖI: $REPO_CONF không khai context nào. Cài vào là vô nghĩa."
-        return 1
-    fi
-
-    local mo dong
-    mo=$(grep -o '{' "$REPO_CONF" | wc -l)
-    dong=$(grep -o '}' "$REPO_CONF" | wc -l)
-
-    if [ "$mo" -ne "$dong" ]; then
-        echo "LỖI: ngoặc trong $REPO_CONF không cân ($mo mở, $dong đóng). Không cài."
-        return 1
-    fi
-
-    echo "Cài cấu hình mới: $so_context context."
-
-    if [ -f "$PROXY_CONF" ]; then
-        sudo -n cp "$PROXY_CONF" "$PROXY_BAK" || {
-            echo "LỖI: không sao lưu được cấu hình đang chạy. Không cài."
-            return 1
-        }
-    else
-        # Chưa có bản nào đang chạy: "lùi lại" nghĩa là XOÁ file, không phải
-        # phục hồi. Dùng một file mốc để nhánh lùi biết điều đó.
-        sudo -n rm -f "$PROXY_BAK" || true
-    fi
-
-    sudo -n cp "$REPO_CONF" "$PROXY_CONF" || {
-        echo "LỖI: không ghi được $PROXY_CONF."
-        echo ""
-        echo "     Cấp quyền cho user $(whoami), phạm vi hẹp:"
-        echo ""
-        echo "       cat > /etc/sudoers.d/oohx-proxy-conf <<'SUDO'"
-        echo "       $(whoami) ALL=(root) NOPASSWD: /usr/bin/cp $REPO_CONF $PROXY_CONF"
-        echo "       $(whoami) ALL=(root) NOPASSWD: /usr/bin/cp $PROXY_CONF $PROXY_BAK"
-        echo "       $(whoami) ALL=(root) NOPASSWD: /usr/bin/cp $PROXY_BAK $PROXY_CONF"
-        echo "       $(whoami) ALL=(root) NOPASSWD: /bin/rm -f $PROXY_CONF"
-        echo "       $(whoami) ALL=(root) NOPASSWD: /bin/rm -f $PROXY_BAK"
-        echo "       $(whoami) ALL=(root) NOPASSWD: /usr/local/lsws/bin/lswsctrl restart"
-        echo "       SUDO"
-        echo "       chmod 440 /etc/sudoers.d/oohx-proxy-conf"
-        echo "       visudo -c"
-        echo ""
-        return 1
-    }
-
-    reload_lsws || return 1
-
-    if canary_ok; then
-        echo "Proxy  : đã đồng bộ và canary xanh."
-        return 0
-    fi
-
+if [ ! -x "$SYNC_BIN" ]; then
+    echo "Bỏ qua đồng bộ: $SYNC_BIN chưa được cài."
+    echo "       Repo đang khai $(grep -cE '^context ' docs/deploy/nextjs-proxy/nextjs.conf) context mà máy chủ KHÔNG nhận."
     echo ""
-    echo "CANARY ĐỎ — lùi lại cấu hình proxy."
-
-    if [ -f "$PROXY_BAK" ]; then
-        sudo -n cp "$PROXY_BAK" "$PROXY_CONF" || echo "     KHÔNG lùi được: $PROXY_CONF giữ bản mới."
-    else
-        sudo -n rm -f "$PROXY_CONF" || echo "     KHÔNG xoá được: $PROXY_CONF giữ bản mới."
-    fi
-
-    reload_lsws || true
-
-    if canary_ok; then
-        echo "     Đã lùi xong, trang công khai trở lại bình thường."
-    else
-        echo "     LÙI RỒI MÀ CANARY VẪN ĐỎ — nguyên nhân không phải cấu hình proxy."
-    fi
-
-    return 1
-}
-
-reload_lsws() {
-    sudo -n /usr/local/lsws/bin/lswsctrl restart || {
-        echo "LỖI: không reload được OpenLiteSpeed."
-        echo "     Cần quyền NOPASSWD cho lswsctrl restart (xem khối lệnh ở trên)."
-        return 1
-    }
-
-    # OpenLiteSpeed reload bằng SIGUSR1: tiến trình cũ phục vụ xong yêu cầu
-    # đang dở rồi mới nhường. Gọi canary ngay thì có thể còn đang nhận tiến
-    # trình cũ, tức canary đo cấu hình CŨ và xanh sai.
-    sleep 3
-}
-
-# ══ Canary ══
-#
-# Năm đường dẫn, chọn vì mỗi đường bắt một kiểu sai khác nhau:
-#
-#   /api/v2/stats        API còn sống. Proxy ăn /api là chết hợp đồng đối tác.
-#   /sitemap.xml         Laravel còn sinh được sitemap.
-#   /quy-che-hoat-dong   Trang chính sách đi qua route catch-all `/{slug}`, nên
-#                        nó là đường ĐẦU TIÊN chết khi ai khai `context /`.
-#   /cart                Đường chỉ Laravel có. 302 về login là đúng; 404 nghĩa
-#                        là nó bị chuyển sang Next.
-#   /                    Trang chủ.
-#
-# Và một phép kiểm ngược: nếu conf khai `context /explore` thì `/explore` PHẢI
-# do Next phục vụ. Thiếu phép này thì một file conf không có tác dụng gì vẫn
-# qua canary.
-canary_ok() {
-    local loi=0 u ma
-
-    for u in /api/v2/stats /sitemap.xml /quy-che-hoat-dong /; do
-        ma=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://oohx.net$u" || true)
-
-        if [ "$ma" != "200" ]; then
-            echo "     canary: $u trả $ma (cần 200)"
-            loi=1
-        fi
-    done
-
-    ma=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://oohx.net/cart" || true)
-
-    case "$ma" in
-        200|302) ;;
-        *) echo "     canary: /cart trả $ma (cần 200 hoặc 302)"; loi=1 ;;
-    esac
-
-    if grep -qE '^context /explore' "$PROXY_CONF" 2>/dev/null; then
-        if ! curl -s --max-time 15 "https://oohx.net/explore" | grep -q '_next/static'; then
-            echo "     canary: conf khai context /explore nhưng /explore không do Next phục vụ"
-            loi=1
-        fi
-    fi
-
-    return $loi
-}
-
-if ! sync_proxy_conf; then
+    echo "       Cài một lần, chạy AS ROOT:"
     echo ""
-    echo "LỖI: đồng bộ cấu hình proxy thất bại. Laravel đã deploy xong và đang"
-    echo "     online; chỉ phần định tuyến proxy là chưa đổi."
-    exit 1
+    echo "         install -o root -g root -m 0755 \\"
+    echo "             $(pwd)/$SYNC_SRC \\"
+    echo "             $SYNC_BIN"
+    echo "         echo '$(whoami) ALL=(root) NOPASSWD: $SYNC_BIN \"\"' \\"
+    echo "             > /etc/sudoers.d/oohx-sync-proxy"
+    echo "         chmod 440 /etc/sudoers.d/oohx-sync-proxy"
+    echo "         visudo -c"
+    echo ""
+    echo "       Hai dấu nháy rỗng ở cuối KHÔNG phải lỗi gõ: trong sudoers, một"
+    echo "       lệnh không kèm đối số nghĩa là CHO PHÉP MỌI ĐỐI SỐ. Dấu \"\" là"
+    echo "       cách viết 'đúng không đối số nào'."
+    echo "       Chi tiết và ranh giới quyền: docs/deploy/nextjs-proxy/README.md"
+else
+    # ══ Bản đã cài KHÔNG tự cập nhật theo repo ══
+    #
+    # `$SYNC_BIN` thuộc root; sửa file trong repo không đổi nó. Đó là chủ ý —
+    # nếu nó tự cập nhật thì danh sách trắng bên trong vô nghĩa, vì ai sửa được
+    # repo sẽ sửa luôn phần kiểm.
+    #
+    # Nhưng đó cũng là một cái bẫy đã sập ở dự án này theo kiểu khác (bash nạp
+    # script trước khi bước 3 thay nó — "một lượt deploy chậm hơn một nhịp").
+    # Nên so phiên bản và nói ra, thay vì để nó im lặng chạy bản cũ.
+    ban_cai=$("$SYNC_BIN" --version 2>/dev/null || echo "?")
+    ban_repo=$(grep -m1 '^VERSION=' "$SYNC_SRC" | cut -d= -f2)
+
+    if [ "$ban_cai" != "$ban_repo" ]; then
+        echo "CẢNH BÁO: $SYNC_BIN là v$ban_cai, repo có v$ban_repo."
+        echo "          Bản ĐANG CHẠY là v$ban_cai. Cài lại as root nếu muốn bản mới:"
+        echo "            install -o root -g root -m 0755 $(pwd)/$SYNC_SRC $SYNC_BIN"
+    fi
+
+    if sudo -n "$SYNC_BIN"; then
+        echo "Proxy  : đã đồng bộ (script root v$ban_cai)."
+    else
+        ma_loi=$?
+        echo ""
+
+        if [ "$ma_loi" -eq 1 ] && ! sudo -n -l "$SYNC_BIN" >/dev/null 2>&1; then
+            echo "LỖI: chưa có quyền sudo cho $SYNC_BIN."
+            echo ""
+            echo "     Cấp một lần, chạy AS ROOT:"
+            echo "       echo '$(whoami) ALL=(root) NOPASSWD: $SYNC_BIN \"\"' \\"
+            echo "           > /etc/sudoers.d/oohx-sync-proxy"
+            echo "       chmod 440 /etc/sudoers.d/oohx-sync-proxy"
+            echo "       visudo -c"
+            echo ""
+            echo "     Hai dấu nháy rỗng ở cuối là 'đúng không đối số nào' —"
+            echo "     thiếu chúng thì sudoers cho phép MỌI đối số."
+        else
+            echo "LỖI: $SYNC_BIN thoát với mã $ma_loi — xem log của nó ở trên."
+            echo "     Script tự lùi lại khi canary đỏ, nên định tuyến đang là bản"
+            echo "     TRƯỚC khi đồng bộ, không phải một trạng thái nửa vời."
+        fi
+
+        echo ""
+        echo "     Laravel đã deploy xong và đang online; chỉ phần định tuyến"
+        echo "     proxy là chưa đổi."
+        exit 1
+    fi
 fi
 
 

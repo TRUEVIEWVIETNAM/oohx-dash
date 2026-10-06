@@ -12,9 +12,15 @@ on:
 # riêng của MySQL (SHOW INDEX, UPDATE ... JOIN, ALTER TABLE ... PARTITION BY),
 # nên bộ test không dựng nổi schema trên SQLite.
 jobs:
-  # Hai script deploy có quyền thay toàn bộ mã nguồn production và chạy
-  # migration. Chúng không có test nào canh, và năm lỗi trong chúng đều tìm ra
-  # bằng đọc mắt chứ không bằng CI. Job này canh hai loại lỗi đã thật sự xảy ra.
+  # Ba script shell có quyền rất rộng trên production: `deploy.sh` và
+  # `rollback.sh` thay được toàn bộ mã nguồn và chạy migration, còn
+  # `oohx-sync-proxy.sh` chạy AS ROOT và đổi được cấu hình web server. Chúng
+  # không có test nào canh, và năm lỗi trong chúng đều tìm ra bằng đọc mắt chứ
+  # không bằng CI.
+  #
+  # Job này canh ba thứ: cú pháp, lỗi backtick đã xảy ra hai lần, và — cho
+  # script root — danh sách trắng của nó, vì đó là thứ duy nhất ngăn một conf
+  # độc hại được dán vào cấu hình web server.
   shell:
     name: Script deploy
     runs-on: ubuntu-latest
@@ -23,7 +29,9 @@ jobs:
 
       - name: Cú pháp bash
         run: |
-          for f in deploy.sh rollback.sh; do
+          for f in deploy.sh rollback.sh \
+                   docs/deploy/nextjs-proxy/oohx-sync-proxy.sh \
+                   tests/shell/thu-kiem-conf.sh; do
             bash -n "$f" && echo "OK  $f"
           done
 
@@ -35,7 +43,8 @@ jobs:
         # trong khối đang báo người dùng ĐỪNG lùi. Lần thứ hai cùng một lỗi
         # trong cùng một file, nên nó thành phép kiểm thay vì một lời nhắc.
         run: |
-          if grep -nE '^[^#]*"[^"]*`' deploy.sh rollback.sh; then
+          if grep -nE '^[^#]*"[^"]*`' deploy.sh rollback.sh \
+                 docs/deploy/nextjs-proxy/oohx-sync-proxy.sh; then
             echo ""
             echo "LỖI: backtick trong chuỗi nháy đôi ở các dòng trên."
             echo "     Bash sẽ chạy phần trong backtick như một lệnh."
@@ -43,6 +52,22 @@ jobs:
             exit 1
           fi
           echo "OK  không có backtick trong chuỗi nháy đôi"
+
+      # Danh sách trắng của script root là thứ DUY NHẤT ngăn một conf độc hại
+      # được dán vào cấu hình web server.
+      #
+      # `oohx-sync-proxy.sh` đọc conf từ cây mã nguồn, mà cây đó user deploy
+      # ghi được. Nên "ai merge được vào main thì ảnh hưởng được cấu hình web
+      # server" — và cái chặn duy nhất là hàm `kiem_conf`.
+      #
+      # Bộ thử này trích đúng hàm đó ra khỏi script thật (không chép lại, vì
+      # chép lại là thử một bản khác) rồi chạy 41 trường hợp: địa chỉ trỏ ra
+      # ngoài máy, `context /`, nhóm cấm, và — quan trọng nhất — những đường
+      # là TIỀN TỐ của nhóm cấm. Chiều cuối là một lỗ thật của bản đầu:
+      # `context /ap` không trùng dòng nào trong danh sách cấm, nhưng
+      # OpenLiteSpeed khớp theo tiền tố nên nó nuốt `/api/v1`.
+      - name: Danh sách trắng của script root
+        run: bash tests/shell/thu-kiem-conf.sh
 
   # Trang công khai trên Next.js (giai đoạn 6).
   #

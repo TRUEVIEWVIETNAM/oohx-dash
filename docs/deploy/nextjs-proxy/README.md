@@ -51,59 +51,72 @@ Trang chủ không mở được bằng `context /`: OpenLiteSpeed khớp contex
 
 #### Vì sao cột 3 và cột 4 đang lệch nhau
 
-`deploy.sh` bước `[11/11]` có nhiệm vụ đồng bộ `nextjs.conf` của repo sang máy chủ, nhưng log deploy ngày 06/10/2026 nói:
+`deploy.sh` bước `[11/11]` có nhiệm vụ đồng bộ `nextjs.conf` của repo sang máy chủ, nhưng nó chưa bao giờ làm được. Hai nguyên nhân, cả hai **đo được** ngày 06/10/2026 chứ không phải suy luận:
 
-```
-[11/11] Đồng bộ cấu hình proxy OpenLiteSpeed
-Bỏ qua: /www/server/panel/vhost/openlitespeed/proxy/oohx.net chưa tồn tại — proxy chưa được dựng lần nào.
-```
+| Đo thấy | Ở đâu |
+|---|---|
+| `Bỏ qua: .../proxy/oohx.net chưa tồn tại` | log deploy `37395686591`, `37432830117` |
+| `grep: .../detail/oohx.net.conf: Permission denied` — user deploy **không đọc nổi** thư mục cấu hình OpenLiteSpeed | chẩn đoán `37471490002` |
+| Quyền sudo thật sự đang có: chỉ `/usr/bin/systemctl restart oohx-webapp` và một script không liên quan | cùng lần chạy đó |
 
-Nghĩa là `/explore`, `/owners`, `/products` đang chạy từ một conf dán tay **ở chỗ khác**, không phải thư mục bước này trông vào. Nên mọi thay đổi `nextjs.conf` trong repo đều không tới máy chủ, và cột 3 đi trước cột 4 vô thời hạn.
+Nguyên nhân thứ hai là cái quyết định **hình dạng** của cách chữa. Bước này cần **đọc** để `cmp -s` bản đang chạy, để sao lưu nó, và để tìm xem có file nào khác đang khai trùng `extprocessor nextjs`. Cấp cho user deploy quyền đọc cả thư mục cấu hình web server thì rộng hơn hẳn việc cần làm — nên toàn bộ phần đó chuyển vào một script chạy as-root.
 
-Chữa một lần, rồi nó tự đồng bộ mãi:
+### Cài `oohx-sync-proxy` — một lần, cần root
 
-```sh
-# 1. Tìm conf đang thật sự chạy. Đừng đoán — tìm theo cổng 3001.
-grep -rl "127.0.0.1:3001" /www/server/panel/vhost/openlitespeed/ /usr/local/lsws/conf/ 2>/dev/null
-
-# 2. Xem nó, để biết nó khai những context nào.
-#    (thay ĐƯỜNG_DẪN bằng kết quả bước 1)
-grep -E "^\s*(extprocessor|context)" ĐƯỜNG_DẪN
-
-# 3. Dựng thư mục deploy.sh trông vào, và dán conf của repo vào đó.
-mkdir -p /www/server/panel/vhost/openlitespeed/proxy/oohx.net
-cp /www/wwwroot/dash.oohx.net/docs/deploy/nextjs-proxy/nextjs.conf \
-   /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf
-
-# 4. XOÁ conf cũ ở bước 1. Giữ cả hai là hai file khai trùng `extprocessor nextjs`
-#    — OpenLiteSpeed nạp song song và hành vi không đoán được.
-#    Đổi tên thành .bak chứ không xoá hẳn, và .bak KHÔNG khớp *.conf nên nó
-#    không còn được nạp.
-mv ĐƯỜNG_DẪN ĐƯỜNG_DẪN.truoc-dong-bo
-
-# 5. Kiểm vhost có nạp thư mục mới không. Nếu dòng include này không có thì
-#    bước 3 vô nghĩa và phải thêm nó vào detail/oohx.net.conf.
-grep -n "proxy/oohx.net" /www/server/panel/vhost/openlitespeed/detail/oohx.net.conf
-
-/usr/local/lsws/bin/lswsctrl restart
-```
-
-Và cấp quyền sudo cho `deploy` để bước `[11/11]` ghi được. Bảy dòng dưới đây là **nguyên văn** những gì `deploy.sh` in ra khi thiếu quyền — nếu log deploy in khác thì tin log, không tin file này:
+Sau bước này, mọi thay đổi `nextjs.conf` về sau đi qua CI. Không cần mở SSH nữa.
 
 ```sh
-visudo -f /etc/sudoers.d/oohx-deploy
-```
-```
-deploy ALL=(root) NOPASSWD: /usr/bin/cp docs/deploy/nextjs-proxy/nextjs.conf /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf
-deploy ALL=(root) NOPASSWD: /usr/bin/cp /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf.truoc-deploy
-deploy ALL=(root) NOPASSWD: /usr/bin/cp /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf.truoc-deploy /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf
-deploy ALL=(root) NOPASSWD: /bin/rm -f /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf
-deploy ALL=(root) NOPASSWD: /bin/rm -f /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf.truoc-deploy
-deploy ALL=(root) NOPASSWD: /usr/local/lsws/bin/lswsctrl restart
-deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart oohx-webapp
+# 1. Cài script. Nó thuộc root và user deploy KHÔNG ghi được — xem "Ranh giới
+#    quyền" dưới đây để biết vì sao điều đó quan trọng.
+install -o root -g root -m 0755 \
+    /www/wwwroot/dash.oohx.net/docs/deploy/nextjs-proxy/oohx-sync-proxy.sh \
+    /usr/local/sbin/oohx-sync-proxy
+
+# 2. Một dòng sudoers. Thay <user> bằng user mà CI đăng nhập — deploy.sh in
+#    sẵn dòng đầy đủ khi thiếu quyền, và khối 1 của workflow chẩn đoán cũng
+#    in tên user đó.
+#    Hai dấu nháy rỗng ở cuối KHÔNG phải lỗi gõ. Trong sudoers, một lệnh không
+#    kèm đối số nghĩa là CHO PHÉP MỌI ĐỐI SỐ; dấu "" là cách viết "đúng không
+#    đối số nào". Script cũng tự từ chối đối số, nên đây là lớp thứ hai.
+echo '<user> ALL=(root) NOPASSWD: /usr/local/sbin/oohx-sync-proxy ""' \
+    > /etc/sudoers.d/oohx-sync-proxy
+chmod 440 /etc/sudoers.d/oohx-sync-proxy
+visudo -c
+
+# 3. Chạy thử ngay, as root. Nó tự lùi lại nếu canary đỏ.
+/usr/local/sbin/oohx-sync-proxy
 ```
 
-Dòng đầu có đường dẫn **tương đối** (`docs/deploy/...`), và đó không phải lỗi gõ: `deploy.sh` gọi `sudo -n cp "$REPO_CONF" ...` với `REPO_CONF="docs/deploy/nextjs-proxy/nextjs.conf"`, và sudoers so khớp đối số đúng như lúc gọi. Viết thành đường dẫn tuyệt đối thì luật không khớp và bước đó vẫn bị từ chối.
+Bước 3 làm những việc sau, theo đúng thứ tự đó, và **dừng trước khi đổi gì** nếu một phép kiểm trượt:
+
+| Bước | Dừng ở đây nghĩa là |
+|---|---|
+| Kiểm conf repo theo danh sách trắng | conf có directive không cho phép — không dán gì |
+| So với bản đang chạy | không đổi thì thoát, không nạp lại web server vô ích |
+| Kiểm vhost có `include` thư mục proxy | **làm trước khi cách ly conf cũ** — thiếu bước này mà đã cách ly thì không còn conf nào có tác dụng, tức tự tay làm `/explore` rơi về Laravel |
+| Kiểm đường canary dùng được (`/sitemap.xml` → 200) | không kiểm được thì không dán. Bỏ bước này thì một máy không probe được qua `--resolve` sẽ làm canary đỏ **toàn bộ**, và script lùi lại một thay đổi hoàn toàn đúng — tệ hơn cả không làm gì, vì log đọc như thể conf mới có vấn đề |
+| Tìm conf lạ đang trỏ `127.0.0.1:3001` | nếu file đó **không** phải conf proxy thuần (ai đã dán context thẳng vào file vhost) thì script **dừng** — đổi tên file đó sẽ làm sập site |
+| Dán + nạp lại + canary | canary đỏ → tự lùi lại, nạp lại, thoát khác 0 |
+
+### Ranh giới quyền
+
+Script đọc conf từ `docs/deploy/nextjs-proxy/nextjs.conf`, và đường dẫn đó nằm trong cây mã nguồn mà user deploy **ghi được**. Nghĩa là: ai ghi được repo (hoặc merge được vào `main`) thì ảnh hưởng được tới cấu hình web server.
+
+Đó không phải quyền mới hoàn toàn — người đó vốn đã thay được toàn bộ mã nguồn PHP qua `deploy.sh`. Nhưng cấu hình web server rộng hơn mã ứng dụng, nên script **không dán nguyên xi** những gì nó đọc. Nó kiểm theo danh sách trắng:
+
+- chỉ chấp nhận đúng những directive của một proxy conf (`extprocessor`, `context`, `type`, `address`, `handler`, `maxConns`, `initTimeout`, `retryTimeout`, `respBuffer`, `addDefaultCharset`) — gặp dòng nào khác thì dừng;
+- `extprocessor` phải tên `nextjs`, `type proxy`, địa chỉ phải đúng `127.0.0.1:3001` — không cho trỏ ra ngoài máy;
+- `context` phải là đường dẫn chữ-số-gạch, không chứa `..`, và so **hai chiều** với nhóm cấm.
+
+Chiều thứ hai của phép so đó là một lỗ thật của bản đầu: danh sách cấm so bằng đúng, trong khi OpenLiteSpeed khớp theo **tiền tố** — nên `context /ap` không trùng dòng nào trong danh sách, nhưng nó nuốt `/api/v1`, tức hợp đồng với đối tác. `tests/shell/thu-kiem-conf.sh` chạy 41 trường hợp trong CI, và nó **trích đúng hàm kiểm ra khỏi script thật** chứ không chép lại — chép lại là thử một bản khác.
+
+Kịch bản xấu nhất một conf độc hại làm được, sau danh sách trắng: mở thêm hoặc bớt một đường dẫn công khai trỏ vào chính tiến trình Next.js trên máy này. Không chạy được lệnh, không trỏ ra máy khác, không đọc được file khác.
+
+### Bản đã cài không tự cập nhật theo repo
+
+`/usr/local/sbin/oohx-sync-proxy` thuộc root. Sửa file trong repo **không** đổi nó, cho tới khi root cài lại.
+
+Đó là chủ ý: nếu nó tự cập nhật từ repo thì danh sách trắng vô nghĩa, vì ai sửa được repo sẽ sửa luôn phần kiểm. Nhưng nó cũng là một cái bẫy đã sập ở dự án này theo kiểu khác — bash nạp script trước khi bước 3 thay nó, nên một sửa đổi chỉ có tác dụng ở lượt deploy **sau**. Nên script có `VERSION`, và `deploy.sh` so hai bản rồi **cảnh báo** khi lệch thay vì im lặng chạy bản cũ.
 
 ### Header và chân trang: đã dựng lại
 
@@ -215,46 +228,38 @@ ss -ltnp | grep 3001
 
 Chưa ra 200 thì **dừng**. Chưa chạy được qua localhost thì thêm proxy chỉ làm trang công khai hỏng.
 
-### 3. Proxy — mở một đường, kiểm, rồi mới mở tiếp
+### 3. Proxy — một lần cài, sau đó đi qua CI
 
-```sh
-mkdir -p /www/server/panel/vhost/openlitespeed/proxy/oohx.net
-cp docs/deploy/nextjs-proxy/nextjs.conf \
-   /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf
+Lần đầu: xem "Cài `oohx-sync-proxy` — một lần, cần root" ở trên. Sau đó **không chép tay nữa** — đổi `nextjs.conf` trong repo rồi merge, `deploy.sh` bước `[11/11]` gọi script root và script tự kiểm, dán, nạp lại, canary, lùi lại khi đỏ.
 
-/usr/local/lsws/bin/lswsctrl restart
-```
+Chép tay vẫn chạy, nhưng đừng: lượt deploy sau sẽ thấy bản đang chạy khác repo và dán lại bản của repo lên. Tức một thay đổi chép tay sống được tới lần merge kế tiếp, rồi mất không báo.
 
-Kiểm **từ ngoài vào**, không phải từ máy chủ:
+Kiểm **từ ngoài vào**, sau khi đã lên:
 
 ```sh
 curl -s -o /dev/null -w "/explore        → %{http_code} %{time_total}s\n" https://oohx.net/explore
-curl -s -o /dev/null -w "/               → %{http_code} %{time_total}s\n" https://oohx.net/
 curl -s -o /dev/null -w "/products       → %{http_code} %{time_total}s\n" https://oohx.net/products
+curl -s -o /dev/null -w "/map            → %{http_code} %{time_total}s\n" https://oohx.net/map
 curl -s -o /dev/null -w "/api/v2/stats   → %{http_code} %{time_total}s\n" https://oohx.net/api/v2/stats
 curl -s -o /dev/null -w "/sitemap.xml    → %{http_code} %{time_total}s\n" https://oohx.net/sitemap.xml
+curl -s -o /dev/null -w "/cart           → %{http_code} %{time_total}s\n" https://oohx.net/cart
 ```
 
-Bốn đường sau **phải vẫn do Laravel phục vụ**. `/explore` ra 200 từ Next.js thì mới mở `/owners`, `/products`, `/map` — mỗi lần một đường, bỏ dấu `#` trong `nextjs.conf`.
+Ba đường sau **phải vẫn do Laravel phục vụ**. Script root canary đúng những đường này từ trong máy, nên nếu nó báo xanh mà lệnh trên cho kết quả khác thì khác biệt nằm ở Cloudflare, không ở OpenLiteSpeed.
 
-### 3b. Bốn trang chính sách — mở riêng, không mở cùng nhóm khác
+### 3b. Bốn trang chính sách
 
 Trang Next đã dựng (`webapp/app/(chinh-sach)/[slug]/page.tsx`). Nó **không** chứa văn bản: phần thân lấy từ `GET /api/v2/policies/{slug}`, và endpoint đó render đúng partial Blade mà trang Laravel render (`resources/views/frontpage/policies/bodies/*.blade.php`). Một nguồn, một bộ render — `PublicContentApiTest::test_than_van_ban_la_dung_phan_than_trang_blade_phat_ra` so `body_html` với HTML trang Blade thật sự phát ra.
 
-Bốn context đã **khai** trong `nextjs.conf` (duyệt ngày 06/10/2026), và `TRONG_APP` ở `webapp/lib/duong-dan.ts` đã khớp — có phép kiểm đọc thẳng file conf nên hai bên không lệch được mà CI vẫn xanh.
+Bốn context đã khai trong `nextjs.conf` (duyệt ngày 06/10/2026), và `TRONG_APP` ở `webapp/lib/duong-dan.ts` đã khớp — có phép kiểm đọc thẳng file conf nên hai bên không lệch được mà CI vẫn xanh.
 
-Còn lại là đưa conf lên máy chủ (xem "Vì sao cột 3 và cột 4 đang lệch nhau" ở trên). Sau khi lên, kiểm **nội dung**, không chỉ mã trạng thái:
+Sau khi conf lên máy chủ, kiểm **nội dung**, không chỉ mã trạng thái. Script root canary đã kiểm "ra 200 **và** đến từ Next.js", nhưng nó không biết nội dung đúng hay không:
 
 ```sh
-# Sau khi bỏ dấu # cho MỘT khối rồi copy conf + lswsctrl restart:
 curl -s https://oohx.net/quy-che-hoat-dong | grep -c 'class="pol-body"'   # phải 1
 curl -s https://oohx.net/quy-che-hoat-dong | grep -c 'class="pol-draft"'  # 1 khi còn nháp, 0 khi đã ban hành
 curl -s https://oohx.net/quy-che-hoat-dong | grep -c '&lt;h2&gt;'         # phải 0 — thân bị escape thì ra chữ
-
-# Ba đường này PHẢI vẫn là Laravel sau khi mở:
-curl -s -o /dev/null -w "/cart        → %{http_code}\n" https://oohx.net/cart
-curl -s -o /dev/null -w "/sitemap.xml → %{http_code}\n" https://oohx.net/sitemap.xml
-curl -s -o /dev/null -w "/phan-anh-to-chuc-xa-hoi → %{http_code}\n" https://oohx.net/phan-anh-to-chuc-xa-hoi
+curl -s https://oohx.net/bang-phi          | grep -c 'class="pol-draft"'  # phải 0 — bản này đã ban hành
 ```
 
 Vì sao nhóm này được duyệt riêng chứ không đi kèm `/map`: văn bản pháp lý được đóng dấu `version` vào **từng bản ghi đồng ý** của người dùng. Một lỗi hiển thị ở đây không phải lỗi giao diện — nó là chữ mà người dùng được coi là đã đồng ý.
@@ -263,12 +268,18 @@ Ba trong bốn văn bản hiện vẫn là **bản nháp** (`effective_from = nu
 
 ### 4. Lùi lại
 
+Cách nhanh nhất, và **không cần SSH**: bỏ context khỏi `nextjs.conf` trong repo rồi merge. Lượt deploy sẽ dán bản mới và canary lại.
+
+Cần lùi ngay, as root:
+
 ```sh
 rm /www/server/panel/vhost/openlitespeed/proxy/oohx.net/nextjs.conf
 /usr/local/lsws/bin/lswsctrl restart
 ```
 
 Toàn bộ quay về Laravel. Không mất dữ liệu, không migration nào phải lùi.
+
+Nhưng nó chỉ sống tới lần merge kế tiếp: `deploy.sh` thấy máy chủ khác repo và dán lại bản repo lên. Nên sau khi lùi gấp, phải sửa cả `nextjs.conf` trong repo — nếu không thì lần deploy sau tự bật lại đúng cái vừa tắt.
 
 ## Sau khi chuyển: đối chiếu SEO
 
