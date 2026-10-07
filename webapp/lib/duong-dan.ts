@@ -45,6 +45,10 @@ export const TRONG_APP: Set<string> = new Set([
     '/chinh-sach-bao-mat',
     '/giai-quyet-tranh-chap',
     '/bang-phi',
+
+    // Một mục phủ cả trang gửi lẫn '/danh-sach' — trongApp() khớp tiền tố,
+    // giống cách OpenLiteSpeed khớp context.
+    '/phan-anh-to-chuc-xa-hoi',
 ]);
 
 /**

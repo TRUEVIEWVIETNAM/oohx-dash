@@ -245,3 +245,21 @@ export async function getFilters(): Promise<Filters> {
 
     return body.data;
 }
+
+// ── Phản ánh của tổ chức xã hội ─────────────────────────────────────────────
+
+export type ReflectionListResult =
+    paths['/api/v2/reflections']['get']['responses'][200]['content']['application/json'];
+
+export type Reflection = ReflectionListResult['data'][number];
+
+/**
+ * `revalidate` ngắn hơn trang chính sách, dài hơn danh mục.
+ *
+ * Danh sách này chỉ đổi khi quản trị viên công bố một phản ánh — tức theo
+ * ngày, không theo giờ. Nhưng nó cũng là trang người gửi quay lại tra kết quả,
+ * nên để một giờ thì họ thấy trang cũ sau khi đã được phản hồi.
+ */
+export function listReflections(query: FetchOptions['query'] = {}) {
+    return get<ReflectionListResult>('/reflections', { query, revalidate: 300 });
+}

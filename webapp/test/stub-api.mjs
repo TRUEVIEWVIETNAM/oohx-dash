@@ -150,6 +150,41 @@ const ROUTES = {
         data: [CHINH_SACH_DA_BAN_HANH, CHINH_SACH_BAN_NHAP].map(({ body_html, ...meta }) => meta),
     },
 
+    // Hai bản ghi đối nghịch: một ĐÃ xử lý (có resolution + resolved_at), một
+    // còn đang xem xét. Khối `rfl-res` chỉ hiện ở bản đầu, nên phép kiểm có
+    // cả hai chiều.
+    //
+    // KHÔNG có contact_email / internal_notes / submitted_ip ở đây, giống
+    // endpoint thật — nên nếu trang vô tình in cả đối tượng ra thì cũng không
+    // lộ được gì. Phép kiểm lộ dữ liệu nằm ở phía PHP.
+    '/api/v2/reflections': {
+        data: [
+            {
+                code: 'PA-202610-001',
+                organization_name: 'Hội Bảo vệ Người tiêu dùng',
+                subject: 'Phản ánh đã xử lý',
+                content: 'Nội dung phản ánh thứ nhất, đủ dài để hiển thị.',
+                status: 'resolved',
+                status_label: 'Đã xử lý',
+                resolution: 'Sàn đã gỡ nội dung vi phạm.',
+                received_at: '2026-10-01T03:00:00+00:00',
+                resolved_at: '2026-10-03T09:30:00+00:00',
+            },
+            {
+                code: 'PA-202610-002',
+                organization_name: 'Hội Tiêu chuẩn <test>',
+                subject: 'Phản ánh đang xem xét',
+                content: 'Nội dung phản ánh thứ hai.',
+                status: 'in_review',
+                status_label: 'Đang xem xét',
+                resolution: null,
+                received_at: '2026-10-05T03:00:00+00:00',
+                resolved_at: null,
+            },
+        ],
+        meta: { page: 1, per_page: 20, total: 2, last_page: 1, max_per_page: 50 },
+    },
+
     '/api/v2/filters': {
         data: {
             cities: [{ code: 'hanoi', name: 'Hà Nội', count: 104 }],
