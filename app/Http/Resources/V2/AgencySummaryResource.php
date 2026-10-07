@@ -21,6 +21,11 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *   thứ ba, đặt trên một trang ai cũng mở được. Bản Blade có in nó; tôi không
  *   mang sang và ghi ra đây để người quyết thấy — nếu cần thì thêm lại một
  *   dòng, còn gỡ một dữ liệu đã công khai thì không thu lại được.
+ *
+ *   Cạnh nó, bảng còn có `credit_limit`, `tax_id`, `billing_address`,
+ *   `billing_email`, `billing_phone`. Hạn mức tín dụng của một khách hàng lọt
+ *   ra trang công khai thì nặng hơn hẳn mọi trường còn lại — nên danh sách
+ *   trắng ở đây là một phép CHẶN, không phải một phép sắp xếp.
  * - "Rating", luôn hiển thị `—`. Một ô số không có dữ liệu phía sau là đúng
  *   thứ audit F-15 gọi tên.
  * - Ảnh bìa dựng từ `placehold.co`. Nó là ảnh bịa của một dịch vụ ngoài, và

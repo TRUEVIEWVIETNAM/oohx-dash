@@ -65,9 +65,13 @@ class CatalogAgencyApiTest extends TestCase
         $this->assertNotContains('Bên Mua Khác', $ten);
     }
 
-    public function test_khong_tra_to_chuc_ngung_hoat_dong(): void
+    public function test_khong_tra_to_chuc_bi_dinh_chi(): void
     {
-        $this->agency(['name' => 'Đã Ngưng', 'status' => 'inactive']);
+        // enum `status` của bảng `organizations` chỉ có `active` và
+        // `suspended`. Bản đầu tôi viết `inactive` và MySQL trả "Data
+        // truncated for column 'status'" — một thông báo không nói ra rằng
+        // giá trị đó không tồn tại trong enum.
+        $this->agency(['name' => 'Bị Đình Chỉ', 'status' => 'suspended']);
 
         $this->assertSame([], $this->getJson('/api/v2/agencies')->assertOk()->json('data'));
     }
@@ -76,27 +80,36 @@ class CatalogAgencyApiTest extends TestCase
 
     public function test_khong_bao_gio_lo_truong_nhay_cam(): void
     {
+        // Tên cột lấy từ migration, không đoán. Bản đầu tôi viết `tax_code` —
+        // tên ở bảng `owners` — và MySQL trả "Unknown column". Bảng
+        // `organizations` dùng `tax_id`, và nó còn mang `credit_limit`:
+        // HẠN MỨC TÍN DỤNG của bên mua, thứ nặng hơn hẳn mọi trường tôi đoán.
         $org = $this->agency();
         $org->forceFill([
-            'tax_code'            => '0101010101',
-            'payment_terms_days'  => 45,
+            'tax_id'             => '0101010101',
+            'billing_address'    => 'Số 1 Đường Kín',
+            'billing_email'      => 'ke-toan-rieng@example.com',
+            'billing_phone'      => '0900000009',
+            'credit_limit'       => 500000000,
+            'payment_terms_days' => 45,
         ])->saveQuietly();
 
         $than = $this->getJson('/api/v2/agencies')->assertOk()->getContent();
 
-        // Liệt kê TÊN TRƯỜNG, không đếm số khoá: một DTO vô tình thêm trường
-        // nhạy cảm vẫn giữ nguyên "hình dạng" với người đọc lướt.
+        // Liệt kê TÊN TRƯỜNG **và** GIÁ TRỊ. Chỉ canh tên thì một DTO đổi tên
+        // khoá mà vẫn trả giá trị sẽ lọt; chỉ canh giá trị thì một khoá rỗng
+        // nhưng có tên vẫn nói cho người đọc biết sàn lưu gì về khách hàng.
         foreach ([
-            'tax_code',
-            '0101010101',
-            'billing_info',
-            'payment_terms_days',
-            'bank_',
-            'revenue_share_pct',
-            'id',
+            'tax_id', '0101010101',
+            'billing_address', 'Số 1 Đường Kín',
+            'billing_email', 'ke-toan-rieng@example.com',
+            'billing_phone', '0900000009',
+            'credit_limit', '500000000',
+            'payment_terms_days', '45',
+            'slug',
         ] as $cam) {
             $this->assertStringNotContainsString(
-                '"' . $cam,
+                $cam,
                 $than,
                 "Danh sách agency để lộ \"{$cam}\" — đây là dữ liệu của bên MUA.",
             );

@@ -33,7 +33,7 @@
             <div class="ft-col">
                 <h4>Đại lý</h4>
                 <ul class="ft-ls">
-                    <li><a href="{{ route('fp.agency') }}">Bảng điều khiển</a></li>
+                    <li><a href="{{ url('/agency') }}">Bảng điều khiển</a></li>
                     <li><a href="#">So sánh</a></li>
                     <li><a href="#">API</a></li>
                 </ul>
