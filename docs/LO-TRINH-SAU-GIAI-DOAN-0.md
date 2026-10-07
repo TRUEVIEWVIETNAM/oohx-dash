@@ -186,29 +186,65 @@ Hai thứ rút ra, ghi lại để không lặp:
 
 ---
 
-## Giai đoạn 6 — Next.js cho trang công khai
+## Giai đoạn 6 — Next.js cho trang công khai — **ĐÃ XONG 07/10/2026**
 
-Khoảng 15–18 route: trang chủ, danh sách, bản đồ, chi tiết màn hình, owner, sản phẩm, 5 trang chính sách, 2 trang phản ánh, đăng nhập/đăng ký.
+13 đường dẫn công khai chạy trên Next, đo từ ngoài qua Cloudflare:
 
-Vì chỉ có **một người làm Next.js**, phạm vi đã thu hẹp và cách làm là **chuyển từng phần**: Caddy định tuyến theo đường dẫn, đường nào đã có bên Next.js thì trỏ sang Node, còn lại về Laravel. Không chờ xong hết mới đổi.
+| Nhóm | Đường dẫn |
+|---|---|
+| Danh mục | `/`, `/explore`, `/explore/{slug}`, `/owners`, `/owners/{slug}`, `/products`, `/products/{slug}`, `/map` |
+| Pháp lý | `/quy-che-hoat-dong`, `/chinh-sach-bao-mat`, `/giai-quyet-tranh-chap`, `/bang-phi` |
+| Phản ánh TCXH | `/phan-anh-to-chuc-xa-hoi`, `/phan-anh-to-chuc-xa-hoi/danh-sach` |
+| Xác thực | `/login`, `/register` |
 
-```
-oohx.net/explore*   → Next.js   (chuyển trước)
-oohx.net/owners*    → Next.js
-oohx.net/*          → Laravel   (phần chưa chuyển)
-api.oohx.net/*      → Laravel
-dash.oohx.net/*     → Laravel (Filament)
-```
+Ranh giới với Laravel còn nguyên: `/api/v1/screens` → 401 (hợp đồng đối tác), `/api/v2/stats`, `/sitemap.xml`, `/robots.txt` → Laravel, `/cart` và `/my` → 302.
 
-Trang pháp lý chuyển **cuối cùng**, giữ nguyên văn bản và đường dẫn.
+**Điều kiện "xong" của lộ trình, và phép đo cho từng điều:**
 
-**Xong khi:** đối chiếu SEO không tụt, sitemap và canonical giữ nguyên, thời gian phản hồi tốt hơn hiện tại.
+- *SEO không tụt* — `webapp/test/seo.mjs` đo HTML **đã render** của 15 trang, 13 thẻ bắt buộc mỗi trang, cộng canonical tự trỏ, giá trị `og:type`, JSON-LD phân tích được.
+- *sitemap và canonical giữ nguyên* — `sitemap.xml` và `robots.txt` vẫn do Laravel sinh, không proxy. Canonical trang chủ phát `https://oohx.net` không gạch chéo cuối, khớp bản Blade.
+- *thời gian phản hồi tốt hơn* — `/` 0,28s (Blade ~1,1s), `/explore` 0,24s.
+
+**Hạ tầng khác với giả định "Caddy" trong lộ trình.** Thực tế là OpenLiteSpeed sau aaPanel, và điều đó đổi cách làm theo hai hướng:
+
+- `context` khớp theo **tiền tố**, nên `context /` là luật bắt tất cả — trang chủ phải mở bằng một luật rewrite khớp đúng một đường dẫn.
+- Đổi định tuyến đi qua `oohx-sync-proxy` chạy as-root, gọi từ `deploy.sh`. Sau một lần cài, mọi thay đổi `nextjs.conf` chỉ còn là một lần merge.
+
+Chi tiết ở `docs/deploy/nextjs-proxy/README.md`.
+
+**Một việc chưa kiểm được và cần người làm bằng tay:** đăng nhập thật ở `/login` rồi xem có vào thẳng `/my` không. `EnsureFrontendRequestsAreStateful` chỉ bật phiên khi `Origin` khớp `config('sanctum.stateful')`, mà danh sách đó suy ra từ `APP_URL` trên production. Sai thì đăng nhập **trả 200 mà không đặt phiên**, người dùng quay lại trang đăng nhập và không thấy lỗi gì.
 
 ---
 
 ## Giai đoạn 7 — Dọn Blade công khai
 
 Gỡ view cũ, route cũ, phần render của `FrontpageService`. Laravel còn lại làm API và Filament admin.
+
+### Khảo sát 07/10/2026 — giai đoạn này nhỏ hơn và lớn hơn tên gọi của nó
+
+**Nhỏ hơn:** mã *thật sự chết* chỉ có hai file, và đã xoá — `partials/network-card.blade.php`, `partials/site-card.blade.php`. Mọi method của `FrontpageController` vẫn có route trỏ tới, mọi view còn lại vẫn có controller render.
+
+**Và `FrontpageService` KHÔNG phải lớp render.** Nó đang được `Api\V2\CatalogController`, `Api\V2\BookingController`, `CampaignPolicy`, `AvailabilityService`, `CreativeService` dùng — nó là lớp truy vấn dùng chung. Câu "gỡ phần render của FrontpageService" trong lộ trình chỉ đúng với một phần nhỏ, và gỡ nhầm là làm hỏng API.
+
+`policies/bodies/*.blade.php` cũng **không phải view cũ**: `Api\V2\PublicContentController::policy()` render chúng. Chúng là nguồn văn bản pháp lý.
+
+**Lớn hơn:** phần còn lại không phải dọn rác. Nó là **bỏ đường lùi về Laravel**.
+
+Đường lùi đang có, ghi ở `docs/deploy/nextjs-proxy/README.md`: xoá `nextjs.conf` rồi `lswsctrl restart` là toàn bộ trang công khai quay về Blade. Xoá view Blade đi thì lệnh đó cho 404 thay vì trang cũ.
+
+### Hai nhánh, mỗi nhánh kéo theo việc riêng
+
+**A. Giữ đường lùi thêm một thời gian.** Khi ấy nó phải thật sự dùng được, mà hiện tại nó mang hai khiếm khuyết đã biết — vô hại hôm nay vì không ai thấy những trang đó, nhưng chúng là thứ hiện ra đúng lúc phải lùi:
+
+- `detail.blade.php:21` và `FrontpageController.php:182` phát `'price' => 0` cho màn hình chưa niêm yết giá. Với schema.org, 0 nghĩa là **miễn phí**. Bản Next đã sửa (`offers` chỉ xuất hiện khi có giá), bản Blade thì chưa.
+- Chân trang Blade còn **8** liên kết `href="#"`. Cùng loại khiếm khuyết F-15 đã dọn khỏi bản Next.
+
+**B. Bỏ đường lùi và xoá.** Rẻ hơn về công, nhưng từ lúc đó một sự cố ở tầng Next không còn chỗ lùi nào ngoài việc sửa tiếp.
+
+### Điều kiện nên có trước khi chọn B
+
+- Luồng đăng nhập đã được kiểm bằng tay một lần (xem ghi chú cuối giai đoạn 6). Đây là flow **duy nhất** chưa có bằng chứng chạy thật, và cũng là flow mà `buyer/auth/*.blade.php` đang làm đường lùi.
+- Các đường đã chuyển chạy đủ lâu để lưu lượng thật đi qua mọi nhánh, không chỉ qua phép đo.
 
 ---
 
