@@ -58,6 +58,27 @@ const THE_BAT_BUOC = [
     ['twitter:image', /<meta name="twitter:image" content="([^"]+)"/],
 ];
 
+/**
+ * Thông tin đơn vị đăng ký sàn với Bộ Công Thương, phải có trên MỌI trang.
+ *
+ * Chép từ `config/policies.php` — nguồn sự thật — và cố ý chép tay: nếu đọc
+ * động từ `lib/company.ts` thì phép kiểm so một hằng số với chính nó và luôn
+ * xanh, kể cả khi cả hai cùng sai.
+ *
+ * Lệch giữa hai nơi là một lỗi THẬT cần biết: `lib/company.ts` ghi rõ rằng
+ * unit systemd chưa truyền biến sang, nên bản Next đang chạy giá trị mặc định
+ * chép tay. Ngày nào hai bên lệch, ca này đỏ.
+ */
+const PHAP_NHAN = [
+    ['tên pháp nhân', 'CÔNG TY TNHH TRUEVIEW'],
+    ['mã số doanh nghiệp', '0109944503'],
+    ['nơi cấp', 'Sở Tài Chính thành phố Hà Nội'],
+    ['ngày cấp', '24/3/2022'],
+    ['người đại diện', 'NGUYỄN ANH TUẤN'],
+    ['hotline', '0943668996'],
+    ['email', 'tuan.nguyen@attvietnam.vn'],
+];
+
 const TRANG = [
     { path: '/', ogType: 'website', jsonLd: 'WebSite' },
     { path: '/explore', ogType: 'website' },
@@ -87,6 +108,10 @@ const TRANG = [
     // Trang xác thực: noindex, nhưng vẫn phải đủ thẻ chia sẻ.
     { path: '/login', ogType: 'website', noindex: true },
     { path: '/register', ogType: 'website', noindex: true },
+
+    // Trang công khai cuối rời Blade. Nó mang bốn khiếm khuyết F-15 mà bản
+    // Next cố ý không chép sang, nên có phép kiểm riêng ở dưới.
+    { path: '/agency', ogType: 'website', agency: true },
 ];
 
 const loi = [];
@@ -311,6 +336,47 @@ async function kiemTrang(base, trang) {
         }
     }
 
+    // ── Trang agency: bốn khiếm khuyết F-15 KHÔNG được chép sang ──
+    if (trang.agency) {
+        // 1. Thẻ agency không phải liên kết chết. Bản Blade dùng
+        //    `<a href="#">` vì chưa có trang chi tiết agency.
+        if (/<a[^>]+href="#"/.test(html)) {
+            bao(trang.path, 'có thẻ <a href="#"> — liên kết không đi đâu');
+        }
+
+        // 2. Nút giả: <span> mang class nút. Bản Blade có hai cái ở chân thẻ
+        //    agency — "Xem chi tiết" và "Liên hệ" — trông bấm được mà không
+        //    có hành vi.
+        //
+        //    Kiểm DẤU HIỆU, không kiểm chữ: bản đầu tôi tìm chuỗi "Liên hệ"
+        //    và nó đỏ vì chân trang có một liên kết THẬT mang đúng chữ đó.
+        //    Một phép kiểm đỏ vì lý do sai thì đẩy người sửa đi gỡ thứ đang
+        //    đúng.
+        if (/<span[^>]+class="[^"]*btn/.test(html)) {
+            bao(trang.path, 'có <span> mang class nút — nút giả, trông bấm được mà không có hành vi');
+        }
+
+        if (html.includes('oc-card-foot')) {
+            bao(trang.path, 'còn khối oc-card-foot — chân thẻ chứa hai nút giả của bản Blade');
+        }
+
+        // 3. Ô "Rating" luôn rỗng — một ô số không có dữ liệu phía sau.
+        if (html.includes('Rating')) {
+            bao(trang.path, 'có ô Rating — nó không có dữ liệu phía sau');
+        }
+
+        // 4. Ô tìm kiếm phải NẰM TRONG form. Bản Blade có `name="q"` mà
+        //    không có form bọc, nên gõ xong bấm Enter thì không gì xảy ra.
+        if (!/<form[^>]*>[\s\S]*?name="q"[\s\S]*?<\/form>/.test(html)) {
+            bao(trang.path, 'ô tìm kiếm q không nằm trong <form> — gõ xong không gửi được');
+        }
+
+        // Và placehold.co: ảnh bịa, lại gửi tên agency sang bên thứ ba.
+        if (html.includes('placehold.co')) {
+            bao(trang.path, 'dùng placehold.co — ảnh bịa, và nó gửi tên agency ra ngoài');
+        }
+    }
+
     // ── Khung trang: thiếu một trong hai là thiếu thông tin bắt buộc ──
     if (!html.includes('class="hdr"')) {
         bao(trang.path, 'thiếu thanh điều hướng');
@@ -318,6 +384,28 @@ async function kiemTrang(base, trang) {
 
     if (!html.includes('class="ft-legal"')) {
         bao(trang.path, 'thiếu khối thông tin pháp lý ở chân trang');
+    }
+
+    // ── Và khối đó phải có ĐỦ NỘI DUNG, không chỉ có mặt ──
+    //
+    // Phép kiểm trên chỉ đòi cái thẻ tồn tại. Một `<div class="ft-legal">`
+    // rỗng cũng qua được — và đó đúng là cách thông tin bắt buộc biến mất mà
+    // không ai thấy.
+    //
+    // Bảy mục dưới đây là thông tin đơn vị đăng ký sàn với Bộ Công Thương.
+    // `PolicyPagesTest` từng canh chúng trên chân trang Blade; giai đoạn 7 gỡ
+    // trang Blade cuối cùng (07/10/2026) nên phép kiểm chuyển về đây, đo trên
+    // HTML bản Next thật sự phát ra.
+    for (const [ten, can] of PHAP_NHAN) {
+        if (!html.includes(can)) {
+            bao(trang.path, `chân trang thiếu ${ten}: "${can}"`);
+        }
+    }
+
+    // Pop-up thử nghiệm: website chưa hoàn tất đăng ký với Bộ Công Thương thì
+    // phải nói ra. Mặc định `OOHX_TRIAL_MODE` là bật, giống Laravel.
+    if (!html.includes('chế độ thử nghiệm')) {
+        bao(trang.path, 'thiếu thông báo chế độ thử nghiệm');
     }
 
     // ── lang="vi" ──

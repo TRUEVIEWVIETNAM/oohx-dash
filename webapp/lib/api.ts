@@ -263,3 +263,14 @@ export type Reflection = ReflectionListResult['data'][number];
 export function listReflections(query: FetchOptions['query'] = {}) {
     return get<ReflectionListResult>('/reflections', { query, revalidate: 300 });
 }
+
+// ── Agency / brand ──────────────────────────────────────────────────────────
+
+export type AgencyListResult =
+    paths['/api/v2/agencies']['get']['responses'][200]['content']['application/json'];
+
+export type AgencySummary = components['schemas']['AgencySummary'];
+
+export function listAgencies(query: FetchOptions['query'] = {}) {
+    return get<AgencyListResult>('/agencies', { query, revalidate: 300 });
+}

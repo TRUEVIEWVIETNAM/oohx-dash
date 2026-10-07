@@ -10,6 +10,8 @@ use App\Http\Requests\FrontpageListingRequest;
 use App\Http\Requests\ProductListingRequest;
 use App\Http\Resources\V2\MapPinResource;
 use App\Http\Resources\V2\OwnerDetailResource;
+use App\Http\Requests\Api\V2\AgencyListingRequest;
+use App\Http\Resources\V2\AgencySummaryResource;
 use App\Http\Resources\V2\OwnerSummaryResource;
 use App\Http\Resources\V2\ProductDetailResource;
 use App\Http\Resources\V2\ProductSummaryResource;
@@ -242,6 +244,42 @@ class CatalogController extends Controller
                     'min'      => (int) round((float) ($aggregates['min_price'] ?? 0)),
                     'max'      => (int) round((float) ($aggregates['max_price'] ?? 0)),
                 ],
+            ],
+        ]);
+    }
+
+    /**
+     * `GET /agencies` — agency và brand đang dùng sàn.
+     *
+     * ══ Khác `/owners` về BẢN CHẤT, không chỉ về dữ liệu ══
+     *
+     * `/owners` là media owner — bên BÁN, và họ công khai kho màn hình để
+     * được tìm thấy. Danh sách này là `Organization` loại `agency` — bên MUA.
+     *
+     * Vì thế DTO ở đây hẹp hơn hẳn: bảng đó mang `billing_info`, `tax_code`
+     * và điều khoản thanh toán. Xem `AgencySummaryResource` để biết ba trường
+     * của bản Blade cố ý không mang sang.
+     *
+     * `withCount` nằm trong service, không ở đây — thiếu nó thì
+     * `campaign_count` là null, và null KHÁC 0.
+     */
+    public function agencies(AgencyListingRequest $request): JsonResponse
+    {
+        $perPage = min(
+            max(1, (int) $request->integer('per_page', self::DEFAULT_PER_PAGE)),
+            self::MAX_PER_PAGE,
+        );
+
+        $page = $this->catalog->getAgenciesPaginated($request, $perPage);
+
+        return response()->json([
+            'data' => AgencySummaryResource::collection($page->getCollection())->resolve(),
+            'meta' => [
+                'page'         => $page->currentPage(),
+                'per_page'     => $page->perPage(),
+                'total'        => $page->total(),
+                'last_page'    => $page->lastPage(),
+                'max_per_page' => self::MAX_PER_PAGE,
             ],
         ]);
     }

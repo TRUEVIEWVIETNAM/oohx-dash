@@ -111,6 +111,10 @@ Route::prefix('v2')->group(function () {
 
     Route::get('locations',        [V2CatalogController::class, 'locations']);
 
+    // Agency/brand — bên MUA, khác hẳn /owners là bên bán. DTO hẹp hơn vì
+    // nguồn là bảng Organization; xem AgencySummaryResource.
+    Route::get('agencies',         [V2CatalogController::class, 'agencies']);
+
     Route::get('products',        [V2CatalogController::class, 'products']);
     Route::get('products/{slug}', [V2CatalogController::class, 'product']);
 

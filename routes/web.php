@@ -12,7 +12,6 @@ use App\Http\Controllers\Buyer\OwnerReviewController;
 use App\Http\Controllers\Buyer\PaymentController;
 use App\Http\Controllers\CreativeFileController;
 use App\Http\Controllers\InvitationController;
-use App\Http\Controllers\FrontpageController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -38,25 +37,14 @@ Route::domain($fpDomain)->group(function () {
     // Sitemap
     Route::get('/sitemap.xml',        [SitemapController::class, 'index'])->name('sitemap');
 
-    // ── Trang công khai còn lại trên Blade ──────────────────────────────
+    // ── Không còn trang công khai nào trên Blade ────────────────────────
     //
-    // Chỉ còn MỘT. Giai đoạn 7 (07/10/2026) gỡ `/`, `/explore`,
-    // `/explore/{screen}`, `/map`, `/owners`, `/owners/{owner}`,
-    // `/products`, `/products/{slug}`, bốn trang chính sách và hai trang
-    // phản ánh — Next.js phục vụ chúng từ giai đoạn 6.
+    // Giai đoạn 7 xong 07/10/2026. Next.js phục vụ cả 14 đường công khai;
+    // Laravel ở nhóm này chỉ còn sinh `sitemap.xml` và `robots.txt`.
     //
-    // `/agency` ở lại vì nó CHƯA được chuyển: không có context nào cho nó
-    // trong `nextjs.conf`, không có trang nào cho nó trong `webapp/`.
-    //
-    // ══ Vì sao gỡ hẳn, không giữ làm đường lùi ══
-    //
-    // Đường lùi "xoá nextjs.conf là mọi thứ về Blade" mất đi từ đây, và đó là
-    // một đánh đổi được chọn chứ không phải bỏ sót. Giữ hai bản song song
-    // nghĩa là giữ hai nơi có thể trôi khỏi nhau, và bản Blade đã trôi thật:
-    // nó còn phát `'price' => 0` trong JSON-LD cho màn hình chưa niêm yết giá
-    // (schema.org đọc là MIỄN PHÍ) và 8 liên kết `href="#"` ở chân trang. Một
-    // đường lùi mang lỗi không phải một đường lùi.
-    Route::get('/agency', [FrontpageController::class, 'agency'])->name('fp.agency');
+    // `frontpage/layouts/app.blade.php` và các partial khung VẪN Ở LẠI, và
+    // đó không phải sót: khu người mua (`/my`, `/cart`, `/booking/*`) còn là
+    // Blade và `@extends` đúng layout đó. Giai đoạn 8 đang hoãn.
 
     // ── Buyer auth ──────────────────────────────────────────────────────
     //

@@ -38,6 +38,7 @@ export const TRONG_APP: Set<string> = new Set([
     '/owners',
     '/products',
     '/map',
+    '/agency',
 
     // Bốn trang chính sách. Giữ nguyên thứ tự và cách viết như trong
     // `config/policies.php` để đối chiếu bằng mắt được.

@@ -260,68 +260,18 @@ class SeoBaselineTest extends TestCase
 
     // ── canonical và thẻ chia sẻ ────────────────────────────────────────────
 
-    // ── Thẻ SEO: chỉ còn MỘT trang Blade để đo ──────────────────────────────
+    // ── Thẻ SEO: không còn trang Blade nào để đo ────────────────────────
     //
-    // Giai đoạn 7 (07/10/2026) gỡ `/`, `/explore`, `/map`, `/owners`,
-    // `/products` và các trang chi tiết khỏi Laravel — Next.js phục vụ chúng.
+    // `test_trang_blade_con_lai_co_canonical_tro_dung_chinh_no`,
+    // `test_trang_blade_con_lai_co_mo_ta_va_the_chia_se` và
+    // `test_mo_ta_khong_bao_gio_rong` đã gỡ: `/agency` là trang cuối rời
+    // Blade (07/10/2026), và Laravel giờ không phục vụ HTML công khai nào.
     //
-    // Ba phép kiểm dưới đây TRƯỚC ĐÂY duyệt bảy đường dẫn đó, và chúng vẫn
-    // xanh suốt giai đoạn 6 **trong khi người dùng không còn thấy những trang
-    // ấy**. Đó là lý do `webapp/test/seo.mjs` ra đời: nó đo HTML đã render của
-    // bản Next, tức đo đúng thứ người dùng nhận.
+    // Cả ba có bản thay chặt hơn ở `webapp/test/seo.mjs`, đo HTML ĐÃ RENDER
+    // của 16 trang Next: 13 thẻ bắt buộc mỗi trang, canonical tự trỏ, giá trị
+    // `og:type`, và mô tả không rỗng.
     //
-    // Phần còn lại ở đây đo `/agency` — trang công khai duy nhất Laravel còn
-    // phục vụ. Giữ nó có nghĩa: nếu ai sửa `seo-meta.blade.php` hay
-    // `layouts/app.blade.php` cho hỏng, phép kiểm này bắt được.
-
-    public function test_trang_blade_con_lai_co_canonical_tro_dung_chinh_no(): void
-    {
-        $body = $this->get($this->url('/agency'))->assertOk()->getContent();
-
-        $this->assertMatchesRegularExpression(
-            '#<link rel="canonical" href="[^"]+"#',
-            $body,
-            'Trang /agency thiếu thẻ canonical.',
-        );
-    }
-
-    public function test_trang_blade_con_lai_co_mo_ta_va_the_chia_se(): void
-    {
-        $body = $this->get($this->url('/agency'))->assertOk()->getContent();
-
-        foreach (['name="description"', 'property="og:title"', 'property="og:image"', 'property="og:url"', 'name="twitter:card"'] as $tag) {
-            $this->assertStringContainsString($tag, $body, "Trang /agency thiếu {$tag}.");
-        }
-    }
-
-    public function test_mo_ta_khong_bao_gio_rong(): void
-    {
-        $body = $this->get($this->url('/agency'))->assertOk()->getContent();
-
-        preg_match('#<meta name="description" content="([^"]*)"#', $body, $m);
-
-        $this->assertNotEmpty($m[1] ?? '', 'Thẻ description có mặt nhưng rỗng — tệ hơn là không có.');
-    }
-
-    // ── Hai phép kiểm đã chuyển sang webapp/test/seo.mjs ────────────────────
-    //
-    // `test_trang_chi_tiet_man_hinh_co_json_ld` và
-    // `test_bon_trang_chinh_sach_con_tai_duoc_o_dung_duong_dan` gỡ ở giai đoạn
-    // 7, vì những trang chúng đo không còn trong Laravel.
-    //
-    // Chúng KHÔNG mất, mà chuyển sang `seo.mjs` — và bản mới chặt hơn ở đúng
-    // chỗ bản cũ lỏng:
-    //
-    //   JSON-LD   bản cũ chỉ đòi `@context` và `@type` có mặt. Bản Blade phát
-    //             `'price' => 0` cho màn hình chưa niêm yết giá, mà với
-    //             schema.org 0 nghĩa là MIỄN PHÍ — phép kiểm cũ vẫn xanh.
-    //             `seo.mjs` đòi `offers` CHỈ xuất hiện khi có giá, và
-    //             `offers.price > 0`.
-    //
-    //   Chính sách bản cũ chỉ đòi 200 và có chữ "canonical". Bản mới đo cả ô
-    //             cảnh báo bản nháp theo HAI CHIỀU, và đòi phần thân không bị
-    //             escape.
-    //
-    // Đường dẫn bốn trang chính sách vẫn được canh ở đây, qua sitemap:
-    // `test_sitemap_co_trang_chinh_sach_va_phan_anh`.
+    // Những gì lớp này CÒN đo thì không đổi chỗ, vì Laravel vẫn sinh chúng:
+    // `sitemap.xml` và `robots.txt`. Đó cũng là lý do lớp này không bị xoá
+    // hẳn — hai thứ đó là tài sản SEO thật và không có ai khác canh.
 }

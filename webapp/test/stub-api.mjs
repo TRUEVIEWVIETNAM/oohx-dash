@@ -185,6 +185,28 @@ const ROUTES = {
         meta: { page: 1, per_page: 20, total: 2, last_page: 1, max_per_page: 50 },
     },
 
+    // Hai agency: một có logo + website, một không — để nhánh chữ viết tắt
+    // và nhánh thiếu website đều được render ít nhất một lần.
+    '/api/v2/agencies': {
+        data: [
+            {
+                name: 'Agency Mot',
+                type: 'agency',
+                website_host: 'agency-mot.vn',
+                logo_url: 'https://oohx.net/storage/agencies/a.jpg',
+                campaign_count: 7,
+            },
+            {
+                name: 'Thuong Hieu Hai',
+                type: 'agency',
+                website_host: null,
+                logo_url: null,
+                campaign_count: 0,
+            },
+        ],
+        meta: { page: 1, per_page: 12, total: 2, last_page: 1, max_per_page: 50 },
+    },
+
     '/api/v2/filters': {
         data: {
             cities: [{ code: 'hanoi', name: 'Hà Nội', count: 104 }],

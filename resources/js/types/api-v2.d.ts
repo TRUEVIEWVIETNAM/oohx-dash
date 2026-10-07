@@ -929,6 +929,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/agencies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Agency và brand đang dùng sàn
+         * @description Danh sách `Organization` loại `agency`, trạng thái `active`.
+         *
+         *     **Khác `/owners` về bản chất.** `/owners` là media owner — bên **bán**,
+         *     và họ công khai kho màn hình để được tìm thấy. Danh sách này là bên
+         *     **mua**.
+         *
+         *     Vì thế DTO hẹp hơn hẳn: bảng nguồn mang `billing_info`, `tax_code` và
+         *     điều khoản thanh toán. Ba trường của trang Blade cũ **không** có ở đây:
+         *
+         *     - `payment_terms_days` — điều khoản thương mại của một bên thứ ba, đặt
+         *       trên một trang ai cũng mở được;
+         *     - `rating` — luôn rỗng, tức một ô số không có dữ liệu phía sau;
+         *     - ảnh bìa dựng từ `placehold.co` — ảnh bịa, và nó gửi tên agency sang
+         *       một dịch vụ ngoài ở mỗi lượt tải trang.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Lọc theo tên, khớp một phần. */
+                    q?: string;
+                    page?: number;
+                    /** @description Trần cứng 50; giá trị lớn hơn bị kẹp xuống. */
+                    per_page?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["AgencySummary"][];
+                            meta: components["schemas"]["PageMeta"];
+                        };
+                    };
+                };
+                422: components["responses"]["ValidationFailed"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/policies": {
         parameters: {
             query?: never;
@@ -2175,6 +2238,25 @@ export interface components {
             total: number;
             last_page: number;
             max_per_page: number;
+        };
+        /**
+         * @description Danh sách trắng cho một agency/brand. Nguồn là bảng của bên MUA, nên
+         *     mọi trường không liệt kê ở đây đều KHÔNG ra ngoài.
+         */
+        AgencySummary: {
+            name: string | null;
+            type: string | null;
+            /**
+             * @description Chỉ TÊN MIỀN, không phải URL đầy đủ — một URL đầy đủ có thể mang
+             *     tham số theo dõi mà agency không định công khai.
+             */
+            website_host?: string | null;
+            logo_url?: string | null;
+            /**
+             * @description Đếm thật từ CSDL. `null` nghĩa là KHÔNG ĐẾM (thiếu `withCount`),
+             *     khác hẳn `0` nghĩa là đếm rồi và không có cái nào.
+             */
+            campaign_count?: number | null;
         };
         /**
          * @description Danh sách trắng, không phải model. `User` có `password`,
