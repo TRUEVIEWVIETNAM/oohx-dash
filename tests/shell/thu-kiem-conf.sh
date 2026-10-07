@@ -230,7 +230,21 @@ else
         cp "$CAY/proxy/oohx.net/nextjs.conf" "$CAY/$ten"
     done
 
-    THAY=$(grep -rl --include="$MAU" "127.0.0.1:3001" "$CAY" | sed "s|$CAY/||" | sort | tr '\n' ' ')
+    # File rewrite do CHÍNH script cài. Nó có đuôi `.conf` và phần ghi chú của
+    # nó nhắc `127.0.0.1:3001`, nên phép lọc theo đuôi tên KHÔNG loại được nó —
+    # phải loại theo đường dẫn.
+    #
+    # Đây là lỗi v3 thật: nó chỉ loại trừ file proxy, nên từ lần chạy THỨ HAI
+    # nó bắt được file rewrite của chính mình, đưa qua `kiem_conf` (phép kiểm
+    # dành cho conf proxy) rồi dừng. Lần chạy tay đầu tiên qua được vì file
+    # chưa tồn tại — loại lỗi chỉ lộ ra khi có người chạy lần thứ hai.
+    mkdir -p "$CAY/proxy/oohx.net/urlrewrite"
+    printf '# nextjs = 127.0.0.1:3001\nRewriteRule ^/?$ http://nextjs/ [P]\n' \
+        > "$CAY/proxy/oohx.net/urlrewrite/nextjs.conf"
+
+    THAY=$(grep -rl --include="$MAU" "127.0.0.1:3001" "$CAY" \
+               | grep -v "/urlrewrite/" \
+               | sed "s|$CAY/||" | sort | tr '\n' ' ')
     CAN="proxy/oohx.net/nextjs.conf "
 
     if [ "$THAY" = "$CAN" ]; then

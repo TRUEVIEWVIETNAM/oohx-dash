@@ -672,10 +672,28 @@ echo "   nền: /sitemap.xml → 200."
 # Nên phép lọc đúng là theo ĐUÔI TÊN, không theo nội dung: một bản sao nhắc
 # tới địa chỉ Next.js không phải một conf cạnh tranh.
 echo "[4/7] Tìm conf khác đang trỏ $NEXT_ADDR"
+# ══ Bỏ qua CẢ THƯ MỤC rewrite, không chỉ file proxy ══
+#
+# v3 chỉ loại trừ `$PROXY_CONF`, và nó hỏng từ LẦN CHẠY THỨ HAI: file rewrite
+# do chính script cài có nhắc `127.0.0.1:3001` trong phần ghi chú, nên bước này
+# bắt được nó, đưa nó qua `kiem_conf` — một phép kiểm dành cho conf proxy, mà
+# nó là file rewrite — rồi dừng.
+#
+# Lần chạy tay đầu tiên qua được vì file chưa tồn tại. Lượt deploy sau đó đỏ.
+# Đó là loại lỗi "chạy được một lần", và nó chỉ lộ ra khi có người chạy lần
+# thứ hai.
+#
+# Thư mục rewrite bị loại theo ĐƯỜNG DẪN, không theo nội dung: mọi file trong
+# đó là luật rewrite theo định nghĩa, và chúng được kiểm bằng `kiem_rewrite`.
 LA=()
 while read -r f; do
     [ -z "$f" ] && continue
     [ "$f" = "$PROXY_CONF" ] && continue
+
+    case "$f" in
+        "$REWRITE_DIR"/*) continue ;;
+    esac
+
     LA+=("$f")
 done < <(grep -rl --include='*.conf' "$NEXT_ADDR" "$OLS_VHOST_DIR" /usr/local/lsws/conf 2>/dev/null || true)
 
