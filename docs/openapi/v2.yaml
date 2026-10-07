@@ -638,6 +638,53 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /api/v2/agencies:
+    get:
+      tags: [catalog]
+      summary: Agency và brand đang dùng sàn
+      description: |
+        Danh sách `Organization` loại `agency`, trạng thái `active`.
+
+        **Khác `/owners` về bản chất.** `/owners` là media owner — bên **bán**,
+        và họ công khai kho màn hình để được tìm thấy. Danh sách này là bên
+        **mua**.
+
+        Vì thế DTO hẹp hơn hẳn: bảng nguồn mang `billing_info`, `tax_code` và
+        điều khoản thanh toán. Ba trường của trang Blade cũ **không** có ở đây:
+
+        - `payment_terms_days` — điều khoản thương mại của một bên thứ ba, đặt
+          trên một trang ai cũng mở được;
+        - `rating` — luôn rỗng, tức một ô số không có dữ liệu phía sau;
+        - ảnh bìa dựng từ `placehold.co` — ảnh bịa, và nó gửi tên agency sang
+          một dịch vụ ngoài ở mỗi lượt tải trang.
+      parameters:
+        - name: q
+          in: query
+          description: Lọc theo tên, khớp một phần.
+          schema: { type: string, maxLength: 100 }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1 }
+        - name: per_page
+          in: query
+          description: Trần cứng 50; giá trị lớn hơn bị kẹp xuống.
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AgencySummary' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /api/v2/policies:
     get:
       tags: [catalog]
@@ -1647,6 +1694,27 @@ components:
         total:        { type: integer }
         last_page:    { type: integer }
         max_per_page: { type: integer }
+
+    AgencySummary:
+      type: object
+      required: [name, type]
+      description: |
+        Danh sách trắng cho một agency/brand. Nguồn là bảng của bên MUA, nên
+        mọi trường không liệt kê ở đây đều KHÔNG ra ngoài.
+      properties:
+        name: { type: [string, 'null'] }
+        type: { type: [string, 'null'] }
+        website_host:
+          type: [string, 'null']
+          description: |
+            Chỉ TÊN MIỀN, không phải URL đầy đủ — một URL đầy đủ có thể mang
+            tham số theo dõi mà agency không định công khai.
+        logo_url: { type: [string, 'null'] }
+        campaign_count:
+          type: [integer, 'null']
+          description: |
+            Đếm thật từ CSDL. `null` nghĩa là KHÔNG ĐẾM (thiếu `withCount`),
+            khác hẳn `0` nghĩa là đếm rồi và không có cái nào.
 
     AuthUser:
       type: object

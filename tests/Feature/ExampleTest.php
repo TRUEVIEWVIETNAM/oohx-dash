@@ -7,16 +7,14 @@ use Tests\TestCase;
 class ExampleTest extends TestCase
 {
     /**
-     * Phép kiểm khói: ứng dụng dựng được và phục vụ được một trang.
+     * Phép kiểm khói: ứng dụng dựng được và phục vụ được một yêu cầu.
      *
-     * Trước đây gọi `/`. Giai đoạn 7 (07/10/2026) chuyển trang chủ sang Next,
-     * nên Laravel không còn route cho nó — `/agency` là trang công khai duy
-     * nhất Laravel còn phục vụ.
+     * Đã đổi đích hai lần: `/` → `/agency` → `/api/v2/stats`. Giai đoạn 7 xong
+     * (07/10/2026) nên Laravel không còn phục vụ trang HTML công khai nào —
+     * điểm vào công khai duy nhất còn lại là API.
      */
     public function test_the_application_returns_a_successful_response(): void
     {
-        $response = $this->get('http://' . config('domains.frontpage', 'oohx.net') . '/agency');
-
-        $response->assertStatus(200);
+        $this->getJson('/api/v2/stats')->assertStatus(200);
     }
 }

@@ -129,62 +129,31 @@ class PolicyPagesTest extends TestCase
         );
     }
 
-    // ── Mục 2: thông tin pháp nhân dưới chân trang ──────────────────────────
+    // ── Mục 1 và 2 đã chuyển sang webapp/test/seo.mjs ───────────────────
     //
-    // Đo ở `/agency` — trang công khai duy nhất Laravel còn phục vụ. Chân trang
-    // bản Next có phép kiểm riêng ở `webapp/test/seo.mjs` (`class="ft-legal"`
-    // trên mọi trang).
-
-    public function test_chan_trang_co_day_du_thong_tin_phap_nhan(): void
-    {
-        $response = $this->get_('/agency');
-
-        $response->assertOk();
-        $response->assertSee('CÔNG TY TNHH TRUEVIEW');
-        $response->assertSee('0109944503');
-        $response->assertSee('Sở Tài Chính thành phố Hà Nội');
-        $response->assertSee('24/3/2022');
-        $response->assertSee('Số 110 đường Lạc Long Quân, Phường Tây Hồ, Thành phố Hà Nội, Việt Nam.', false);
-        $response->assertSee('NGUYỄN ANH TUẤN');
-        $response->assertSee('0943668996');
-        $response->assertSee('tuan.nguyen@attvietnam.vn');
-    }
-
-    public function test_chan_trang_co_du_nam_link_chinh_sach(): void
-    {
-        $response = $this->get_('/agency');
-
-        $response->assertSee('Quy chế hoạt động');
-        $response->assertSee('Chính sách bảo mật');
-        $response->assertSee('Cơ chế giải quyết tranh chấp, khiếu nại, phản ánh');
-        $response->assertSee('Tiếp nhận phản ánh của TCXH');
-        $response->assertSee('Danh sách phản ánh của TCXH');
-    }
-
-    public function test_chan_trang_khong_con_link_chet(): void
-    {
-        $html = $this->get_('/agency')->getContent();
-
-        // Trước fix: <a href="#">Điều khoản</a> — có chữ mà bấm không ra gì.
-        $this->assertStringNotContainsString('<a href="#">Điều khoản</a>', $html);
-        $this->assertStringNotContainsString('<a href="#">Bảo mật</a>', $html);
-    }
-
-    // ── Mục 1: pop-up thử nghiệm ────────────────────────────────────────────
-
-    public function test_pop_up_thu_nghiem_hien_tren_trang_blade_con_lai(): void
-    {
-        config(['policies.trial_mode' => true]);
-
-        $this->get_('/agency')->assertSee(
-            'Website đang hoạt động ở chế độ thử nghiệm, đang thực hiện đăng ký với Bộ Công Thương.'
-        );
-    }
-
-    public function test_tat_trial_mode_thi_pop_up_bien_mat(): void
-    {
-        config(['policies.trial_mode' => false]);
-
-        $this->get_('/agency')->assertDontSee('chế độ thử nghiệm');
-    }
+    // Năm ca gỡ ở đây: chân trang có đủ thông tin pháp nhân, có đủ năm liên
+    // kết chính sách, không còn liên kết chết; pop-up thử nghiệm hiện và tắt
+    // được.
+    //
+    // Chúng đo khung trang Blade, và `/agency` — trang cuối cùng dùng khung
+    // đó — rời Blade ngày 07/10/2026.
+    //
+    // ══ Đây là chỗ coverage THẬT SỰ mỏng đi, nói thẳng ══
+    //
+    // `seo.mjs` canh `class="ft-legal"` CÓ MẶT trên mọi trang Next, nhưng
+    // KHÔNG canh nội dung bên trong nó: mã số doanh nghiệp, nơi cấp, ngày
+    // cấp, địa chỉ, người đại diện, hotline, email. Nó cũng không canh pop-up
+    // thử nghiệm.
+    //
+    // ĐÃ LẤP trong cùng lát này: `seo.mjs` giờ canh bảy mục pháp nhân (tên,
+    // mã số, nơi cấp, ngày cấp, người đại diện, hotline, email) cùng thông
+    // báo chế độ thử nghiệm, trên MỌI trang Next.
+    //
+    // Bảy mục đó chép tay từ `config/policies.php` chứ không đọc từ
+    // `lib/company.ts`: đọc động thì phép kiểm so một hằng số với chính nó và
+    // luôn xanh. Chép tay thì ngày nào hai nơi lệch, nó đỏ — mà hai nơi ĐANG
+    // có thể lệch, vì unit systemd chưa truyền biến sang.
+    //
+    // Phần văn bản pháp lý (bốn ca ở trên) thì không mỏng đi: nó đo
+    // `body_html` của API, tức đo ở nơi chữ thật sự phát ra.
 }

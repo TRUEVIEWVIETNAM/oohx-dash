@@ -47,6 +47,7 @@ Hai cột khác nhau, và đừng đọc gộp: **dựng** là trang Next đã c
 | 4 trang chính sách | xong | có | **có** (06/10/2026) |
 | 2 trang phản ánh TCXH | xong | có | chờ deploy |
 | `/login`, `/register` | xong | có | chờ deploy |
+| `/agency` | xong | có | chờ deploy |
 | `/` (trang chủ) | xong | luật rewrite | **có** (07/10/2026) |
 
 Trang chủ không mở bằng `context` mà bằng một luật rewrite khớp đúng một đường dẫn — xem mục "Trang chủ: luật rewrite, không phải `context`" dưới đây.

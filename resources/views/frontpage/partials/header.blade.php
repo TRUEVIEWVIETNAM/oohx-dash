@@ -5,7 +5,7 @@
             <a href="{{ url('/explore') }}" @class(['ac' => ($activeNav ?? '') === 'explore'])>Khám phá</a>
             <a href="{{ url('/map') }}" @class(['ac' => ($activeNav ?? '') === 'map'])>Bản đồ</a>
             <a href="{{ url('/owners') }}" @class(['ac' => ($activeNav ?? '') === 'owners'])>Chủ sở hữu màn hình</a>
-            <a href="{{ route('fp.agency') }}" @class(['ac' => ($activeNav ?? '') === 'agency'])>Đại lý</a>
+            <a href="{{ url('/agency') }}" @class(['ac' => ($activeNav ?? '') === 'agency'])>Đại lý</a>
         </nav>
         <div class="hdr-acts">
             @auth
