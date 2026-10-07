@@ -112,7 +112,7 @@
                                     <input type="checkbox" name="accept_terms" value="1" required>
                                     <span>
                                         Bằng cách thanh toán, tôi đồng ý với
-                                        <a href="{{ route('fp.policy', 'quy-che-hoat-dong') }}" target="_blank" rel="noopener">Quy chế hoạt động</a>
+                                        <a href="{{ url('/quy-che-hoat-dong') }}" target="_blank" rel="noopener">Quy chế hoạt động</a>
                                     </span>
                                 </label>
 

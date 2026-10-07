@@ -1,10 +1,10 @@
 <header class="hdr">
     <div class="hdr-in">
-        <a href="{{ route('fp.index') }}" class="hdr-logo"><img id="logo" src="" alt="OOHX"></a>
+        <a href="{{ url('/') }}" class="hdr-logo"><img id="logo" src="" alt="OOHX"></a>
         <nav class="hdr-nav">
-            <a href="{{ route('fp.listing') }}" @class(['ac' => ($activeNav ?? '') === 'explore'])>Khám phá</a>
-            <a href="{{ route('fp.map') }}" @class(['ac' => ($activeNav ?? '') === 'map'])>Bản đồ</a>
-            <a href="{{ route('fp.owners') }}" @class(['ac' => ($activeNav ?? '') === 'owners'])>Chủ sở hữu màn hình</a>
+            <a href="{{ url('/explore') }}" @class(['ac' => ($activeNav ?? '') === 'explore'])>Khám phá</a>
+            <a href="{{ url('/map') }}" @class(['ac' => ($activeNav ?? '') === 'map'])>Bản đồ</a>
+            <a href="{{ url('/owners') }}" @class(['ac' => ($activeNav ?? '') === 'owners'])>Chủ sở hữu màn hình</a>
             <a href="{{ route('fp.agency') }}" @class(['ac' => ($activeNav ?? '') === 'agency'])>Đại lý</a>
         </nav>
         <div class="hdr-acts">
@@ -75,25 +75,25 @@
 {{-- Slide menu — full screen overlay for mobile/tablet --}}
 <div class="slide-menu" id="slide-menu">
     <div class="slide-menu-head">
-        <a href="{{ route('fp.index') }}" class="hdr-logo"><img id="logo-menu" src="" alt="OOHX"></a>
+        <a href="{{ url('/') }}" class="hdr-logo"><img id="logo-menu" src="" alt="OOHX"></a>
         <button class="slide-menu-close" id="slide-menu-close" aria-label="Đóng">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
     </div>
     <nav class="slide-menu-nav">
-        <a href="{{ route('fp.index') }}" @class(['on' => ($activeNav ?? '') === 'home'])>
+        <a href="{{ url('/') }}" @class(['on' => ($activeNav ?? '') === 'home'])>
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
             Trang chủ
         </a>
-        <a href="{{ route('fp.listing') }}" @class(['on' => ($activeNav ?? '') === 'explore'])>
+        <a href="{{ url('/explore') }}" @class(['on' => ($activeNav ?? '') === 'explore'])>
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
             Khám phá
         </a>
-        <a href="{{ route('fp.map') }}" @class(['on' => ($activeNav ?? '') === 'map'])>
+        <a href="{{ url('/map') }}" @class(['on' => ($activeNav ?? '') === 'map'])>
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
             Bản đồ
         </a>
-        <a href="{{ route('fp.owners') }}" @class(['on' => ($activeNav ?? '') === 'owners'])>
+        <a href="{{ url('/owners') }}" @class(['on' => ($activeNav ?? '') === 'owners'])>
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
             Chủ sở hữu màn hình
         </a>

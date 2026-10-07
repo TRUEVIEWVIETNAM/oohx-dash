@@ -112,7 +112,7 @@ class PublicContentController extends Controller
      *
      * ══ Liên kết trong thân là URL TUYỆT ĐỐI, nên `APP_URL` phải đúng ══
      *
-     * `bodies/terms.blade.php` có `route('fp.policy', 'giai-quyet-tranh-chap')`,
+     * `bodies/terms.blade.php` có `url('/giai-quyet-tranh-chap')`,
      * và `route()` sinh URL tuyệt đối theo host của request đang xử lý. Khi
      * Next gọi vào `https://oohx.net/api/v2` thì liên kết ra đúng
      * `https://oohx.net/...`.

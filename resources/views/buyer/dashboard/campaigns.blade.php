@@ -6,7 +6,7 @@
 <div class="w" style="padding-top:24px;padding-bottom:64px">
     <div class="buyer-welcome">
         <div><h1 class="buyer-welcome-title">Chiến dịch</h1></div>
-        <a href="{{ route('fp.listing') }}" class="btn btn-p btn-sm">
+        <a href="{{ url('/explore') }}" class="btn btn-p btn-sm">
             <svg viewBox="0 0 24 24" fill="#fff" style="width:14px;height:14px"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
             Tạo mới
         </a>
@@ -15,7 +15,7 @@
     @if($campaigns->isEmpty())
     <div class="buyer-empty">
         <div style="font-size:15px;font-weight:600;color:var(--t2);margin-bottom:16px">Chưa có campaign nào</div>
-        <a href="{{ route('fp.listing') }}" class="btn btn-p btn-sm">Khám phá Inventory</a>
+        <a href="{{ url('/explore') }}" class="btn btn-p btn-sm">Khám phá Inventory</a>
     </div>
     @else
     <div class="buyer-campaign-list">
