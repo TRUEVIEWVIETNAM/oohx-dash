@@ -82,7 +82,19 @@ set -e
 # cộng `/api/v1` sai đường phải ra 404 từ Laravel. v5 chỉ canh được một chiều
 # ("đường tôi khai có chạy không"), nên một luật bắt-tất-cả nuốt `/api/v1`,
 # `/cart` và `/sitemap.xml` vẫn làm canary xanh hết.
-VERSION=6
+#
+# v7 = v6 + canary chạy cả khi conf KHÔNG đổi.
+#
+# v6 thoát sớm ở bước [2/7] khi hai conf khớp repo, nên năm phép kiểm 404 nó
+# vừa thêm nằm yên không chạy lần nào — conf proxy ít khi đổi. Giả định ngầm
+# "conf không đổi → hành vi không đổi" cũng sai: PR #30 đổi hành vi 404 của
+# toàn site mà không chạm dòng conf nào.
+#
+# Đổi này kéo theo hai thứ không tách được khỏi nó: `ma`/`la_next` thử lại một
+# lần khi KHÔNG NỐI ĐƯỢC (canary giờ chạy mọi lượt deploy, nên một lần curl
+# hỏng tạm sẽ làm đỏ một deploy đúng), và nhánh không-đổi KHÔNG lùi lại khi đỏ
+# (không có lần dán nào để lùi).
+VERSION=7
 
 # In số phiên bản rồi thoát — `deploy.sh` dùng cái này để so với bản trong repo.
 # Không cần quyền gì, nên để trước mọi phép kiểm khác.
@@ -542,14 +554,79 @@ bi_phu() {
 # trả 403 trước khi tới Laravel. `curl` tôn trọng `--resolve`; `fetch` của Node
 # thì bỏ qua header Host do người gọi đặt, nên ở đây dùng curl.
 # ═════════════════════════════════════════════════════════════════════════════
+# ══ Thử lại MỘT lần khi không nối được, và chỉ khi đó ══
+#
+# Từ v7 canary chạy ở MỌI lượt deploy, kể cả lượt không đổi conf. Nghĩa là một
+# lần `curl` hỏng tạm thời giờ làm đỏ một deploy hoàn toàn đúng — rủi ro đó
+# trước đây chỉ có ở lượt đổi conf, và nó đã nhỏ vì lượt đó hiếm.
+#
+# Thử lại chỉ áp cho `000`: đó là "curl không nối được / hết thời gian", và nó
+# KHÔNG BAO GIỜ là một câu trả lời hợp lệ của máy chủ. Mọi mã khác — kể cả 404
+# và 500 — là câu trả lời thật và được giữ nguyên, không thử lại. Thử lại một
+# câu trả lời thật là cách làm yếu phép kiểm cho tới khi nó hết nghĩa.
 ma() {
-    curl -s -k -o /dev/null -w '%{http_code}' --max-time 15 \
-        --resolve "oohx.net:443:127.0.0.1" "https://oohx.net$1" 2>/dev/null || echo "000"
+    local m
+    m=$(curl -s -k -o /dev/null -w '%{http_code}' --max-time 15 \
+        --resolve "oohx.net:443:127.0.0.1" "https://oohx.net$1" 2>/dev/null) || m="000"
+
+    if [ -z "$m" ] || [ "$m" = "000" ]; then
+        sleep 2
+        m=$(curl -s -k -o /dev/null -w '%{http_code}' --max-time 15 \
+            --resolve "oohx.net:443:127.0.0.1" "https://oohx.net$1" 2>/dev/null) || m="000"
+    fi
+
+    echo "${m:-000}"
 }
 
+# Cùng lý do, nhưng ở đây hậu quả của một lần hỏng tạm NẶNG HƠN: thân rỗng cho
+# ra 0 lần khớp, và 0 nghĩa là "không phải từ Next.js" — tức một đường đã khai
+# sẽ bị báo "luật không có tác dụng" trong khi luật hoàn toàn đúng. Thân rỗng
+# không phân biệt được với trang không chứa `/_next/static`, nên thử lại khi
+# rỗng là cách duy nhất tách hai trường hợp đó.
 la_next() {
-    curl -s -k --max-time 15 --resolve "oohx.net:443:127.0.0.1" \
-        "https://oohx.net$1" 2>/dev/null | grep -c '/_next/static' || true
+    local than
+    than=$(curl -s -k --max-time 15 --resolve "oohx.net:443:127.0.0.1" \
+        "https://oohx.net$1" 2>/dev/null) || than=""
+
+    if [ -z "$than" ]; then
+        sleep 2
+        than=$(curl -s -k --max-time 15 --resolve "oohx.net:443:127.0.0.1" \
+            "https://oohx.net$1" 2>/dev/null) || than=""
+    fi
+
+    printf '%s' "$than" | grep -c '/_next/static' || true
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# `kiem_nen` — đường canary có dùng được từ máy này không?
+#
+# Phải chạy TRƯỚC mọi phép kiểm khác, và lý do nằm ở hậu quả khi bỏ nó. Canary
+# gọi `https://oohx.net` qua `--resolve` về 127.0.0.1. Nếu cách đó không chạy
+# được trên máy này — tường lửa chỉ cho IP Cloudflare vào 443, cổng khác, TLS
+# từ chối — thì MỌI đường trong canary trả `000` và canary đỏ TOÀN BỘ. Ở nhánh
+# đổi conf, script sẽ lùi lại một thay đổi hoàn toàn đúng; ở nhánh không đổi,
+# nó làm đỏ một deploy hoàn toàn đúng. Cả hai đều tệ hơn không làm gì, vì log
+# đọc như thể cấu hình có vấn đề.
+#
+# `/sitemap.xml` do Laravel sinh và không phụ thuộc conf proxy, nên nó là phép
+# đo nền đúng: 200 ở đây nghĩa là đường canary dùng được.
+#
+# Là HÀM, không phải đoạn mã lặp lại: từ v7 có hai nhánh cần nó, và hai bản của
+# cùng một phép kiểm là hai bản sẽ trôi khỏi nhau.
+# ─────────────────────────────────────────────────────────────────────────────
+kiem_nen() {
+    local nen
+    nen=$(ma /sitemap.xml)
+    if [ "$nen" != "200" ]; then
+        echo "LỖI: canary không chạy được ở máy này — /sitemap.xml trả $nen qua" >&2
+        echo "      --resolve oohx.net:443:127.0.0.1, trong khi nó phải 200 bất kể" >&2
+        echo "      conf proxy thế nào (Laravel sinh nó)." >&2
+        echo "      KHÔNG kết luận gì về định tuyến: không đo được thì không nói." >&2
+        echo "      Kiểm tay: curl -ski --resolve oohx.net:443:127.0.0.1 https://oohx.net/sitemap.xml | head" >&2
+        return 1
+    fi
+    echo "   nền: /sitemap.xml → 200."
+    return 0
 }
 
 canary() {
@@ -725,7 +802,56 @@ echo "[2/7] So với bản đang chạy"
 if [ -f "$PROXY_CONF" ] && cmp -s "$REPO_CONF" "$PROXY_CONF" \
     && [ -f "$REWRITE_CONF" ] && cmp -s "$REPO_REWRITE" "$REWRITE_CONF"; then
     echo "   Không đổi: cả conf proxy lẫn luật rewrite đang chạy đều khớp repo."
-    exit 0
+
+    # ══ Nhưng VẪN canary (v7) ══
+    #
+    # Tới v6 nhánh này `exit 0` ngay, và giả định ngầm là "conf không đổi →
+    # hành vi không đổi". Giả định đó SAI, và nó sai ngay trong chính dự án
+    # này: PR #30 đổi hành vi 404 của toàn site mà không chạm vào một dòng conf
+    # proxy nào. Cùng kiểu: một conf cạnh tranh ai đó dán tay vào panel, một
+    # luật ở tầng khác, Next.js chết và không ai thấy — không thứ nào làm `cmp`
+    # lệch, nên không thứ nào bị phát hiện.
+    #
+    # Hậu quả cụ thể của giả định đó: năm phép kiểm 404 thêm ở v6 nằm yên
+    # không chạy lần nào, vì conf proxy ít khi đổi. Một lớp bảo vệ chỉ chạy khi
+    # có người sửa đúng file nó canh thì gần như không chạy.
+    echo "[2b/7] Canary trên bản đang chạy"
+    kiem_nen || exit 1
+
+    if canary; then
+        echo "   canary xanh."
+        echo "Proxy  : không đổi, canary xanh."
+        exit 0
+    fi
+
+    # ══ Đỏ ở nhánh này KHÔNG được lùi lại ══
+    #
+    # Đây là điểm khác biệt quan trọng nhất giữa hai nhánh, và gộp chúng là một
+    # lỗi nghiêm trọng. `lui_lai` trả conf về bản sao lưu trước khi dán — nhưng
+    # ở nhánh này KHÔNG CÓ lần dán nào, và conf trên đĩa đã bằng conf repo. Lùi
+    # lại ở đây là phục hồi chính file đang có: không sửa được gì, mà lại in ra
+    # một câu nói rằng đã lùi — một log nói sai về việc nó vừa làm.
+    #
+    # Nên chẩn đoán phải nói đúng chuyện: không phải "đồng bộ thất bại" mà là
+    # "không có gì cần đồng bộ, và production đang sai sẵn". Hai chuyện cần hai
+    # hành động khác nhau, và một chẩn đoán sai trong log đã khiến chặng này
+    # mất nhiều vòng.
+    echo "" >&2
+    echo "LỖI: canary đỏ TRONG KHI conf không đổi." >&2
+    echo "     KHÔNG lùi lại, và đó là chủ ý: conf trên đĩa đã bằng conf repo," >&2
+    echo "     nên không có bản nào để lùi về. Lùi ở đây là phục hồi chính file" >&2
+    echo "     đang có." >&2
+    echo "" >&2
+    echo "     Nghĩa là nguyên nhân KHÔNG nằm trong hai file script này quản:" >&2
+    echo "       - Next.js chết hoặc không nghe ở 127.0.0.1:3001" >&2
+    echo "         systemctl status oohx-next; ss -ltnp | grep 3001" >&2
+    echo "       - một conf khác đang khai context/rewrite chồng lên" >&2
+    echo "         grep -rn 'context /' /www/server/panel/vhost/openlitespeed/ --include='*.conf'" >&2
+    echo "       - hành vi 404 của Laravel đổi (fallback, route, middleware)" >&2
+    echo "       - OpenLiteSpeed đang chạy cấu hình cũ: lswsctrl restart" >&2
+    echo "" >&2
+    echo "     Định tuyến KHÔNG bị script này đổi lần chạy vừa rồi." >&2
+    exit 1
 fi
 
 # ── 3. Vhost có nạp thư mục này không ───────────────────────────────────────
@@ -780,16 +906,7 @@ echo "   có include thư mục rewrite."
 # `/sitemap.xml` do Laravel sinh và không phụ thuộc conf proxy, nên nó là phép
 # đo nền đúng: 200 ở đây nghĩa là đường canary dùng được.
 echo "[3b/7] Kiểm đường canary dùng được"
-NEN=$(ma /sitemap.xml)
-if [ "$NEN" != "200" ]; then
-    echo "LỖI: canary không chạy được ở máy này — /sitemap.xml trả $NEN qua" >&2
-    echo "      --resolve oohx.net:443:127.0.0.1, trong khi nó phải 200 bất kể" >&2
-    echo "      conf proxy thế nào (Laravel sinh nó)." >&2
-    echo "      KHÔNG đổi gì: không kiểm được thì không dám dán." >&2
-    echo "      Kiểm tay: curl -ski --resolve oohx.net:443:127.0.0.1 https://oohx.net/sitemap.xml | head" >&2
-    exit 1
-fi
-echo "   nền: /sitemap.xml → 200."
+kiem_nen || exit 1
 
 # ── 4. Tìm conf lạ đang khai cùng extprocessor ──────────────────────────────
 #
@@ -917,6 +1034,18 @@ lui_lai() {
 }
 
 echo "[5/7] Cài conf mới"
+
+# ══ ĐỪNG dời dòng `trap` này lên phía trên ══
+#
+# Nó phải ở SAU nhánh "không đổi" của bước [2/7]. Nhánh đó cũng chạy canary từ
+# v7 và cũng `exit 1` khi đỏ — nhưng ở đó KHÔNG được lùi lại, vì không có lần
+# dán nào để lùi và conf trên đĩa đã bằng conf repo. Dời trap lên trước nhánh
+# đó thì mỗi lần canary đỏ ở lượt không-đổi sẽ gọi `lui_lai`, phục hồi chính
+# file đang có, rồi in ra một câu nói rằng đã lùi — một log nói sai về việc nó
+# vừa làm, ở đúng lúc người đọc cần log nói thật.
+#
+# Cờ `DA_DOI` là lớp chắn thứ hai cho cùng chuyện đó, nhưng vị trí dòng này là
+# lớp thứ nhất và nó rõ ràng hơn: trap không tồn tại thì không có gì phải chặn.
 trap 'if [ "$DA_DOI" -eq 1 ]; then lui_lai; fi' ERR
 
 mkdir -p "$PROXY_DIR" "$REWRITE_DIR"
