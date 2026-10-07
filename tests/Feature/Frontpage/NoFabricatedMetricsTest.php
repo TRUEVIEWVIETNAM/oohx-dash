@@ -63,6 +63,43 @@ class NoFabricatedMetricsTest extends TestCase
 
     // ── Số bịa không được quay lại ──────────────────────────────────────────
 
+    /**
+     * Bán kín 100% suất trong khoảng bao trùm cửa sổ 30 ngày.
+     *
+     * Helper này từng nằm CUỐI lớp, sau các ca test. Nhát cắt gỡ 11 ca ở
+     * giai đoạn 7 mang nó đi theo, và CI bắt được bằng "Call to undefined
+     * method" — một lỗi chỉ lộ ra khi chạy, không khi đọc diff.
+     */
+    private function sellOut(Screen $screen): void
+    {
+        $org  = Organization::factory()->create(['status' => 'active']);
+        $user = User::factory()->create(['current_organization_id' => $org->id]);
+
+        $campaign = Campaign::create([
+            'organization_id' => $org->id,
+            'created_by'      => $user->id,
+            'code'            => 'CD-' . uniqid(),
+            'name'            => 'Đã bán',
+            'start_date'      => now()->subDay()->toDateString(),
+            'end_date'        => now()->addDays(40)->toDateString(),
+            'currency'        => 'VND',
+            'status'          => Campaign::STATUS_ACTIVE,
+        ]);
+
+        BookingLine::create([
+            'campaign_id'        => $campaign->id,
+            'screen_id'          => $screen->id,
+            'owner_id'           => $screen->owner_id,
+            'start_date'         => now()->subDay()->toDateString(),
+            'end_date'           => now()->addDays(40)->toDateString(),
+            'spot_length'        => 15,
+            'share_of_voice_pct' => 100,
+            'estimated_cost'     => 1_000_000,
+            'status'             => 'active',
+            'pricing_model'      => 'io',
+        ]);
+    }
+
     // ══ Hai ca GIỮ, chuyển sang API ═══════════════════════════════════════
     //
     // Chúng là phần có sức nặng nhất của lớp này: chúng chứng minh con số suất
