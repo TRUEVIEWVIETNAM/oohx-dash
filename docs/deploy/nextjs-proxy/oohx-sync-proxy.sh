@@ -70,7 +70,7 @@
 #
 set -e
 
-VERSION=2
+VERSION=3
 
 # In số phiên bản rồi thoát — `deploy.sh` dùng cái này để so với bản trong repo.
 # Không cần quyền gì, nên để trước mọi phép kiểm khác.
@@ -102,6 +102,16 @@ OLS_VHOST_DIR="/www/server/panel/vhost/openlitespeed"
 VHOST_CONF="$OLS_VHOST_DIR/detail/oohx.net.conf"
 PROXY_DIR="$OLS_VHOST_DIR/proxy/oohx.net"
 PROXY_CONF="$PROXY_DIR/nextjs.conf"
+
+# Luật rewrite: thư mục RIÊNG, và nó được nạp từ TRONG khối `rewrite { }` của
+# vhost (dòng 60 của detail/oohx.net.conf), khác hẳn thư mục proxy ở trên —
+# thư mục kia được nạp ở cấp vhost (dòng 67). Hai chỗ nạp khác nhau nghĩa là
+# nội dung hai file phải khác nhau: file proxy chứa `extprocessor`/`context`,
+# file rewrite chứa directive rewrite TRẦN. Dán nhầm chỗ thì OpenLiteSpeed
+# hỏng cả khối, không phải bỏ qua một dòng.
+REWRITE_DIR="$PROXY_DIR/urlrewrite"
+REWRITE_CONF="$REWRITE_DIR/nextjs.conf"
+REPO_REWRITE="$REPO_ROOT/docs/deploy/nextjs-proxy/urlrewrite-nextjs.conf"
 # Hậu tố KHÔNG kết thúc bằng `.conf`: thư mục được nạp bằng `*.conf`, nên một
 # bản lưu tên `nextjs.conf.bak` vẫn bị nạp song song. Đây đúng là cái bẫy
 # `deploy.sh` đã tránh một lần.
@@ -194,7 +204,7 @@ kiem_conf() {
 
                 # Chỉ chữ, số, gạch ngang, gạch dưới, gạch chéo và dấu chấm.
                 # Chặn khoảng trắng, dấu nháy, `..`, ký tự lạ.
-                if ! printf '%s' "$duong" | grep -qE '^/[A-Za-z0-9._/-]*$'; then
+                if ! printf '%s\n' "$duong" | grep -qE '^/[A-Za-z0-9._/-]*$'; then
                     echo "   $nhan dòng $so_dong: context '$duong' có ký tự không cho phép." >&2
                     return 1
                 fi
@@ -311,6 +321,144 @@ kiem_conf() {
     return 0
 }
 
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Kiểm file luật rewrite theo danh sách trắng RIÊNG, chặt hơn `kiem_conf`.
+#
+# ══ Vì sao chặt hơn ══
+#
+# Một `RewriteRule` sai nguy hiểm hơn một `context` sai. `context /api` ít nhất
+# còn đọc được bằng mắt là nó bắt gì. Còn `RewriteRule ^/(.*)$ http://nextjs/$1`
+# trông gần giống luật trang chủ nhưng nuốt TOÀN BỘ site — kể cả `/api/v1` của
+# đối tác — và khác biệt chỉ là vài ký tự.
+#
+# Nên luật ở đây phải là ĐƯỜNG DẪN CỐ ĐỊNH, neo hai đầu:
+#
+#   - bắt đầu `^`, kết thúc `$` — không neo thì nó khớp theo tiền tố, tức quay
+#     lại đúng vấn đề của `context /`;
+#   - không chứa ký tự biểu thức chính quy có sức bắt rộng: `.` `*` `+` `(` `)`
+#     `|` `[` `]` `{` `}` `\`. Dấu `?` chỉ cho phép trong đúng cụm `/?$` của
+#     luật trang chủ;
+#   - đích phải là `http://nextjs/...`, không địa chỉ khác — cổng và máy đích
+#     chỉ được khai MỘT nơi, là `extprocessor` trong nextjs.conf;
+#   - cờ phải đúng `[P]`.
+#
+# Những gì KHÔNG cho phép ở đây, có chủ ý: `RewriteCond`, biến, backreference.
+# Chúng cần thiết cho luật phức tạp, mà luật phức tạp là thứ không nên nằm
+# trong một file được dán tự động bởi lượt merge.
+# ═════════════════════════════════════════════════════════════════════════════
+kiem_rewrite() {
+    local f="$1"
+    local nhan="$2"
+    local so_dong=0 so_luat=0
+    local dong_txt mau dich co
+
+    if [ ! -f "$f" ]; then
+        echo "   $nhan: không phải file thường." >&2
+        return 1
+    fi
+
+    while IFS= read -r dong_txt || [ -n "$dong_txt" ]; do
+        so_dong=$((so_dong + 1))
+
+        dong_txt="${dong_txt#"${dong_txt%%[![:space:]]*}"}"
+        dong_txt="${dong_txt%"${dong_txt##*[![:space:]]}"}"
+
+        [ -z "$dong_txt" ] && continue
+        case "$dong_txt" in '#'*) continue ;; esac
+
+        # Đúng ba trường: RewriteRule <mẫu> <đích> <cờ>
+        # shellcheck disable=SC2086
+        set -- $dong_txt
+
+        if [ "$#" -ne 4 ] || [ "$1" != "RewriteRule" ]; then
+            echo "   $nhan dòng $so_dong: chỉ cho phép 'RewriteRule <mẫu> <đích> [P]', nhận '$dong_txt'." >&2
+            return 1
+        fi
+
+        mau="$2"
+        dich="$3"
+        co="$4"
+
+        if [ "$co" != "[P]" ]; then
+            echo "   $nhan dòng $so_dong: cờ phải là đúng '[P]', nhận '$co'." >&2
+            return 1
+        fi
+
+        case "$mau" in
+            '^'*) ;;
+            *) echo "   $nhan dòng $so_dong: mẫu '$mau' không neo đầu bằng '^' — nó sẽ khớp theo tiền tố." >&2; return 1 ;;
+        esac
+
+        case "$mau" in
+            *'$') ;;
+            *) echo "   $nhan dòng $so_dong: mẫu '$mau' không neo cuối bằng '\$' — nó sẽ khớp theo tiền tố." >&2; return 1 ;;
+        esac
+
+        # Bỏ hai dấu neo rồi soi phần giữa. `/?` của luật trang chủ được tha,
+        # và CHỈ cụm đó.
+        local giua="${mau#^}"
+        giua="${giua%$}"
+        giua="${giua%/\?}"
+
+        # `\n` không thừa: với luật trang chủ, `$giua` rỗng sau khi bỏ hai dấu
+        # neo và cụm `/?`. `printf '%s'` của một chuỗi rỗng không phát ra DÒNG
+        # nào, nên `grep` không có gì để khớp và trả 1 — tức luật đúng bị coi
+        # là sai. Thêm xuống dòng để grep thấy một dòng rỗng.
+        if ! printf '%s\n' "$giua" | grep -qE '^/?[A-Za-z0-9._/-]*$'; then
+            echo "   $nhan dòng $so_dong: mẫu '$mau' chứa ký tự biểu thức có sức bắt rộng." >&2
+            echo "      Luật ở đây phải là đường dẫn cố định, neo hai đầu." >&2
+            return 1
+        fi
+
+        case "$giua" in
+            *..*) echo "   $nhan dòng $so_dong: mẫu '$mau' chứa '..'." >&2; return 1 ;;
+        esac
+
+        case "$dich" in
+            'http://nextjs/'*) ;;
+            *)
+                echo "   $nhan dòng $so_dong: đích phải bắt đầu bằng 'http://nextjs/', nhận '$dich'." >&2
+                echo "      Tên khác hoặc địa chỉ thẳng là khai cổng ở hai nơi." >&2
+                return 1
+                ;;
+        esac
+
+        # Đường dẫn luật này bắt, dùng cho canary và cho phép so với TRONG_APP.
+        local duong="/${giua#/}"
+        [ "$giua" = "" ] && duong="/"
+
+        local c
+        for c in "${CAM[@]}"; do
+            [ "$c" = "/" ] && continue
+
+            case "$duong" in
+                "$c"*) echo "   $nhan dòng $so_dong: '$duong' nằm trong vùng CẤM '$c'." >&2; return 1 ;;
+            esac
+        done
+
+        so_luat=$((so_luat + 1))
+    done < "$f"
+
+    if [ "$so_luat" -lt 1 ]; then
+        echo "   $nhan: không có luật nào. Dán vào là vô nghĩa." >&2
+        return 1
+    fi
+
+    echo "   $nhan: hợp lệ — $so_luat luật rewrite."
+    return 0
+}
+
+# Những đường dẫn file rewrite bắt, mỗi dòng một đường. Dùng cho canary.
+duong_rewrite() {
+    local f="$1"
+    [ -f "$f" ] || return 0
+
+    grep -E '^[[:space:]]*RewriteRule[[:space:]]' "$f" 2>/dev/null \
+        | awk '{print $2}' \
+        | sed 's/^\^//; s/\$$//; s|/?$||' \
+        | sed 's|^$|/|; s|^\([^/]\)|/\1|'
+}
 # ═════════════════════════════════════════════════════════════════════════════
 # Canary: kiểm qua ĐÚNG virtual host, từ chính máy này.
 #
@@ -360,6 +508,10 @@ canary() {
     #
     # Chỉ kiểm mã 200 là không đủ: trước khi dán conf, `/bang-phi` cũng đã 200
     # — từ Laravel. Một canary như thế xanh cả khi conf không có tác dụng gì.
+    # Gộp hai nguồn: đường khai bằng `context`, và đường khai bằng luật
+    # rewrite. Bản v2 chỉ duyệt `context`, nên một luật rewrite không có tác
+    # dụng vẫn qua được canary — trang chủ lặng lẽ ra Laravel và deploy báo
+    # xanh. Đó đúng là loại hỏng im lặng mà canary tồn tại để bắt.
     local duong
     while read -r duong; do
         [ -z "$duong" ] && continue
@@ -373,10 +525,13 @@ canary() {
         fi
 
         if [ "$(la_next "$duong")" = "0" ]; then
-            echo "   LỖI canary: $duong ra 200 nhưng KHÔNG phải từ Next.js — context không có tác dụng." >&2
+            echo "   LỖI canary: $duong ra 200 nhưng KHÔNG phải từ Next.js — luật không có tác dụng." >&2
             loi=$((loi + 1))
         fi
-    done < <(grep -E '^context ' "$PROXY_CONF" | awk '{print $2}')
+    done < <(
+        grep -E '^context ' "$PROXY_CONF" | awk '{print $2}'
+        duong_rewrite "$REWRITE_CONF"
+    )
 
     return "$loi"
 }
@@ -395,10 +550,24 @@ kiem_conf "$REPO_CONF" "repo" || {
     exit 1
 }
 
+if [ ! -f "$REPO_REWRITE" ]; then
+    echo "LỖI: không có $REPO_REWRITE." >&2
+    exit 1
+fi
+kiem_rewrite "$REPO_REWRITE" "rewrite" || {
+    echo "LỖI: file rewrite trong repo không qua được phép kiểm. KHÔNG dán gì." >&2
+    exit 1
+}
+
 # ── 2. Không đổi gì thì dừng sớm ────────────────────────────────────────────
+#
+# CẢ HAI file phải khớp mới được bỏ qua. Chỉ so file proxy thì một thay đổi ở
+# luật rewrite sẽ không bao giờ tới máy chủ, và lượt deploy vẫn báo "không đổi"
+# — đúng kiểu hỏng im lặng mà cả chặng này đã mất nhiều vòng vì nó.
 echo "[2/7] So với bản đang chạy"
-if [ -f "$PROXY_CONF" ] && cmp -s "$REPO_CONF" "$PROXY_CONF"; then
-    echo "   Không đổi: bản đang chạy khớp repo. Không nạp lại."
+if [ -f "$PROXY_CONF" ] && cmp -s "$REPO_CONF" "$PROXY_CONF" \
+    && [ -f "$REWRITE_CONF" ] && cmp -s "$REPO_REWRITE" "$REWRITE_CONF"; then
+    echo "   Không đổi: cả conf proxy lẫn luật rewrite đang chạy đều khớp repo."
     exit 0
 fi
 
@@ -428,6 +597,18 @@ if ! grep -q "proxy/oohx.net" "$VHOST_CONF"; then
     exit 1
 fi
 echo "   có include."
+
+# Thư mục rewrite được nạp từ TRONG khối `rewrite { }`, nên nó là một dòng
+# include KHÁC và phải kiểm riêng. Thiếu nó thì file luật dán vào im lặng
+# không có tác dụng — trang chủ vẫn ra Laravel và không gì báo.
+if ! grep -q "proxy/oohx.net/urlrewrite" "$VHOST_CONF"; then
+    echo "LỖI: $VHOST_CONF KHÔNG include $REWRITE_DIR." >&2
+    echo "      Luật rewrite dán vào đó sẽ không có tác dụng gì." >&2
+    echo "      Thêm dòng này vào TRONG khối 'rewrite { }' của $VHOST_CONF:" >&2
+    echo "          include $REWRITE_DIR/*.conf" >&2
+    exit 1
+fi
+echo "   có include thư mục rewrite."
 
 # ── 3b. Canary có chạy được ở máy này không ─────────────────────────────────
 #
@@ -520,21 +701,33 @@ fi
 # cho mọi lỗi sau đó. `lui_lai` tự tắt trap để nó không gọi lại chính mình khi
 # một lệnh trong đó thất bại.
 CO_BAN_CU=0
+CO_REWRITE_CU=0
 DA_CACH_LY=()
 DA_DOI=0
+
+# Trả lại MỘT file: về bản cũ nếu trước đó có, xoá hẳn nếu trước đó không có.
+# Hai trường hợp đó khác nhau, và gộp chúng là cách để lần cài đầu tiên lùi
+# xong vẫn còn một file lạ nằm lại.
+tra_lai_mot() {
+    local dich="$1"
+    local co_cu="$2"
+
+    if [ "$co_cu" -eq 1 ]; then
+        mv -f "$dich$BAK_SUFFIX" "$dich" \
+            && echo "   trả lại bản cũ của $dich" >&2 \
+            || echo "   KHÔNG trả lại được bản cũ của $dich — cần xem tay." >&2
+    else
+        rm -f "$dich"
+        echo "   xoá $dich (trước đó không có)" >&2
+    fi
+}
 
 lui_lai() {
     trap - ERR
     echo "── LÙI LẠI ──" >&2
 
-    if [ "$CO_BAN_CU" -eq 1 ]; then
-        mv -f "$PROXY_CONF$BAK_SUFFIX" "$PROXY_CONF" \
-            && echo "   trả lại bản cũ của $PROXY_CONF" >&2 \
-            || echo "   KHÔNG trả lại được bản cũ của $PROXY_CONF — cần xem tay." >&2
-    else
-        rm -f "$PROXY_CONF"
-        echo "   xoá $PROXY_CONF (trước đó không có)" >&2
-    fi
+    tra_lai_mot "$PROXY_CONF" "$CO_BAN_CU"
+    tra_lai_mot "$REWRITE_CONF" "$CO_REWRITE_CU"
 
     local f
     for f in "${DA_CACH_LY[@]}"; do
@@ -551,13 +744,18 @@ lui_lai() {
 echo "[5/7] Cài conf mới"
 trap 'if [ "$DA_DOI" -eq 1 ]; then lui_lai; fi' ERR
 
-mkdir -p "$PROXY_DIR"
+mkdir -p "$PROXY_DIR" "$REWRITE_DIR"
 
 DA_DOI=1
 
 if [ -f "$PROXY_CONF" ]; then
     cp -p "$PROXY_CONF" "$PROXY_CONF$BAK_SUFFIX"
     CO_BAN_CU=1
+fi
+
+if [ -f "$REWRITE_CONF" ]; then
+    cp -p "$REWRITE_CONF" "$REWRITE_CONF$BAK_SUFFIX"
+    CO_REWRITE_CU=1
 fi
 
 for f in "${LA[@]}"; do
@@ -570,6 +768,11 @@ cp "$REPO_CONF" "$PROXY_CONF"
 chown root:root "$PROXY_CONF"
 chmod 644 "$PROXY_CONF"
 echo "   đã dán $PROXY_CONF ($(grep -cE '^context ' "$PROXY_CONF") context)."
+
+cp "$REPO_REWRITE" "$REWRITE_CONF"
+chown root:root "$REWRITE_CONF"
+chmod 644 "$REWRITE_CONF"
+echo "   đã dán $REWRITE_CONF ($(duong_rewrite "$REWRITE_CONF" | tr '\n' ' '))."
 
 # ── 6. Nạp lại ──────────────────────────────────────────────────────────────
 echo "[6/7] Nạp lại OpenLiteSpeed"

@@ -244,6 +244,130 @@ else
     rm -rf "$CAY"
 fi
 
+
+# ════════════════════════════════════════════════════════════════════════════
+# Phần 3: `kiem_rewrite` — danh sách trắng cho luật viết lại URL
+# ════════════════════════════════════════════════════════════════════════════
+#
+# Chặt hơn phần 1 có lý do: một `RewriteRule` sai nguy hiểm hơn một `context`
+# sai. `context /api` ít nhất đọc bằng mắt còn thấy nó bắt gì. Còn
+# `RewriteRule ^/(.*)$ http://nextjs/$1 [P]` trông gần giống luật trang chủ
+# nhưng nuốt TOÀN BỘ site — kể cả `/api/v1` của đối tác — và khác biệt chỉ vài
+# ký tự.
+
+{
+    echo 'NEXT_ADDR="127.0.0.1:3001"'
+    sed -n '/^CAM=(/,/^)/p' "$SRC"
+    sed -n '/^kiem_rewrite() {/,/^}/p' "$SRC"
+    sed -n '/^duong_rewrite() {/,/^}/p' "$SRC"
+} > "$TMP.rw"
+
+bash -n "$TMP.rw" || { echo "HAM REWRITE TRICH RA KHONG HOP LE"; exit 1; }
+# shellcheck disable=SC1090
+. "$TMP.rw"
+
+R="${TMPDIR:-/tmp}/rw-thu-$$"
+mkdir -p "$R"
+
+thu_rw() {
+    local ten="$1"
+    local mong_doi="$2"
+    local f="$R/$ten"
+    local ket_qua
+    if kiem_rewrite "$f" "$ten" >/dev/null 2>&1; then ket_qua=nhan; else ket_qua=tu-choi; fi
+
+    if [ "$ket_qua" = "$mong_doi" ]; then
+        printf '  OK    %-38s %s\n' "$ten" "$ket_qua"
+        so_dung=$((so_dung + 1))
+    else
+        printf '  SAI   %-38s duoc %s, can %s\n' "$ten" "$ket_qua" "$mong_doi"
+        so_sai=$((so_sai + 1))
+    fi
+}
+
+luat() { printf '%s\n' "$2" > "$R/$1"; }
+
+echo
+echo "── luật rewrite: file thật của repo ──"
+cp docs/deploy/nextjs-proxy/urlrewrite-nextjs.conf "$R/that"
+thu_rw that nhan
+kiem_rewrite "$R/that" "that" | sed 's/^/  /'
+
+echo
+echo "── phải NHẬN ──"
+luat trang-chu       'RewriteRule ^/?$ http://nextjs/ [P]'
+thu_rw trang-chu nhan
+luat duong-co-dinh   'RewriteRule ^/gioi-thieu$ http://nextjs/gioi-thieu [P]'
+thu_rw duong-co-dinh nhan
+
+echo
+echo "── phải TỪ CHỐI ──"
+
+# Nuốt cả site. Đây là thứ phép kiểm này tồn tại để chặn.
+luat nuot-tat-ca     'RewriteRule ^/(.*)$ http://nextjs/$1 [P]'
+thu_rw nuot-tat-ca tu-choi
+luat sao-cuoi        'RewriteRule ^/.*$ http://nextjs/ [P]'
+thu_rw sao-cuoi tu-choi
+luat cham-cong       'RewriteRule ^/.+$ http://nextjs/ [P]'
+thu_rw cham-cong tu-choi
+
+# Không neo -> khớp theo tiền tố, đúng vấn đề của `context /`.
+luat khong-neo-dau   'RewriteRule /gi-do$ http://nextjs/ [P]'
+thu_rw khong-neo-dau tu-choi
+luat khong-neo-cuoi  'RewriteRule ^/gi-do http://nextjs/ [P]'
+thu_rw khong-neo-cuoi tu-choi
+
+# Nhóm, lựa chọn, lớp ký tự.
+luat co-nhom         'RewriteRule ^/(a|b)$ http://nextjs/ [P]'
+thu_rw co-nhom tu-choi
+luat co-lop          'RewriteRule ^/[a-z]$ http://nextjs/ [P]'
+thu_rw co-lop tu-choi
+
+# Đích sai: trỏ ra ngoài máy, hoặc khai cổng lần thứ hai.
+luat dich-ngoai      'RewriteRule ^/?$ http://10.0.0.9:3001/ [P]'
+thu_rw dich-ngoai tu-choi
+luat dich-ip         'RewriteRule ^/?$ http://127.0.0.1:3001/ [P]'
+thu_rw dich-ip tu-choi
+luat dich-ten-khac   'RewriteRule ^/?$ http://khac/ [P]'
+thu_rw dich-ten-khac tu-choi
+
+# Cờ sai.
+luat co-sai          'RewriteRule ^/?$ http://nextjs/ [R=301]'
+thu_rw co-sai tu-choi
+luat thieu-co        'RewriteRule ^/?$ http://nextjs/'
+thu_rw thieu-co tu-choi
+
+# Directive ngoài danh sách trắng.
+luat co-cond         'RewriteCond %{HTTP_HOST} ^oohx'
+thu_rw co-cond tu-choi
+luat co-base         'RewriteBase /'
+thu_rw co-base tu-choi
+
+# Vùng cấm.
+luat vung-cam-api    'RewriteRule ^/api$ http://nextjs/api [P]'
+thu_rw vung-cam-api tu-choi
+luat vung-cam-cart   'RewriteRule ^/cart$ http://nextjs/cart [P]'
+thu_rw vung-cam-cart tu-choi
+
+# Rỗng / không tồn tại.
+: > "$R/rong"
+thu_rw rong tu-choi
+thu_rw khong-co-file tu-choi
+
+echo
+echo "── duong_rewrite trích đúng đường ──"
+luat ba-luat 'RewriteRule ^/?$ http://nextjs/ [P]'
+printf 'RewriteRule ^/gioi-thieu$ http://nextjs/gioi-thieu [P]\n' >> "$R/ba-luat"
+GOT=$(duong_rewrite "$R/ba-luat" | tr '\n' ' ')
+if [ "$GOT" = "/ /gioi-thieu " ]; then
+    printf '  OK    %-38s %s\n' "duong_rewrite" "$GOT"
+    so_dung=$((so_dung + 1))
+else
+    printf '  SAI   %-38s duoc [%s], can [/ /gioi-thieu ]\n' "duong_rewrite" "$GOT"
+    so_sai=$((so_sai + 1))
+fi
+
+rm -rf "$R" "$TMP.rw"
 echo
 echo "── tổng: $so_dung đúng, $so_sai sai ──"
 rm -rf "$D" "$TMP"
