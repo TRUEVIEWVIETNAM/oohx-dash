@@ -82,6 +82,27 @@ class OwnersFilterTest extends TestCase
         return $owner;
     }
 
+    // ── Ngữ nghĩa lọc: đo ở /api/v2/owners ──────────────────────────────
+    //
+    // Bốn ca dưới đây từng đo HTML của `/owners` trên Blade. Giai đoạn 7
+    // (07/10/2026) gỡ trang đó — Next.js phục vụ `/owners`, và nó lấy dữ liệu
+    // qua `/api/v2/owners`.
+    //
+    // Bất biến thì không đổi, và nó là bất biến đã từng sai: filter `type` so
+    // SLUG nhóm điểm đặt với một cột giữ mã OpenOOH, hai từ vựng không giao
+    // nhau nên nó khớp không gì cả. Lỗi im lặng — chỉ trả rỗng, không báo gì.
+    //
+    // `CatalogFiltersAndOwnerApiTest` phủ hình dạng, trường nhạy cảm, 404 và
+    // kiểu input của endpoint này; nó KHÔNG phủ ngữ nghĩa lọc. Đó là chỗ bốn
+    // ca này lấp.
+
+    private function tenOwners(string $query = ''): array
+    {
+        return collect(
+            $this->getJson($this->url('/api/v2/owners' . $query))->assertOk()->json('data')
+        )->pluck('name')->all();
+    }
+
     public function test_loc_theo_slug_nhom_diem_dat_tra_dung_owner(): void
     {
         $banLe    = $this->category(1, 'retail', 'Ban le');
@@ -90,10 +111,10 @@ class OwnersFilterTest extends TestCase
         $this->ownerWithScreenIn($banLe, 'Owner Ban Le');
         $this->ownerWithScreenIn($trungTam, 'Owner Trung Tam');
 
-        $response = $this->get($this->url('/owners?type=retail'))->assertOk();
+        $ten = $this->tenOwners('?type=retail');
 
-        $response->assertSee('Owner Ban Le', false);
-        $response->assertDontSee('Owner Trung Tam', false);
+        $this->assertContains('Owner Ban Le', $ten);
+        $this->assertNotContains('Owner Trung Tam', $ten);
     }
 
     public function test_khong_loc_thi_thay_het(): void
@@ -101,19 +122,20 @@ class OwnersFilterTest extends TestCase
         $this->ownerWithScreenIn($this->category(1, 'retail', 'Ban le'), 'Owner Ban Le');
         $this->ownerWithScreenIn($this->category(2, 'mall', 'Trung tam'), 'Owner Trung Tam');
 
-        $this->get($this->url('/owners'))
-            ->assertOk()
-            ->assertSee('Owner Ban Le', false)
-            ->assertSee('Owner Trung Tam', false);
+        $ten = $this->tenOwners();
+
+        $this->assertContains('Owner Ban Le', $ten);
+        $this->assertContains('Owner Trung Tam', $ten);
     }
 
     public function test_slug_la_thi_bo_qua_filter_giong_explore(): void
     {
         $this->ownerWithScreenIn($this->category(1, 'retail', 'Ban le'), 'Owner Ban Le');
 
-        $this->get($this->url('/owners?type=khong-ton-tai'))
-            ->assertOk()
-            ->assertSee('Owner Ban Le', false);
+        // Slug không có trong từ vựng thì BỎ QUA bộ lọc, không trả rỗng — giống
+        // cách `/explore` xử lý. Trả rỗng cho một slug gõ sai là nói với người
+        // dùng rằng không có owner nào, điều đó không đúng.
+        $this->assertContains('Owner Ban Le', $this->tenOwners('?type=khong-ton-tai'));
     }
 
     public function test_o_tim_kiem_loc_theo_ten(): void
@@ -121,60 +143,29 @@ class OwnersFilterTest extends TestCase
         $this->ownerWithScreenIn($this->category(1, 'retail', 'Ban le'), 'Quang Cao Phuong Nam');
         $this->ownerWithScreenIn($this->category(2, 'mall', 'Trung tam'), 'Truyen Thong Bac Ha');
 
-        $this->get($this->url('/owners?q=Phuong+Nam'))
-            ->assertOk()
-            ->assertSee('Quang Cao Phuong Nam', false)
-            ->assertDontSee('Truyen Thong Bac Ha', false);
+        $ten = $this->tenOwners('?q=Phuong+Nam');
+
+        $this->assertContains('Quang Cao Phuong Nam', $ten);
+        $this->assertNotContains('Truyen Thong Bac Ha', $ten);
     }
 
-    public function test_o_tim_kiem_gui_duoc_vi_co_name_va_nam_trong_form(): void
-    {
-        $this->ownerWithScreenIn($this->category(1, 'retail', 'Ban le'), 'Owner Ban Le');
-
-        $html = $this->get($this->url('/owners'))->assertOk()->getContent();
-
-        $this->assertStringContainsString('name="q"', $html);
-        $this->assertStringContainsString('<form', $html);
-    }
-
-    public function test_tim_kiem_giu_lai_nhom_dang_chon(): void
-    {
-        $this->ownerWithScreenIn($this->category(1, 'retail', 'Ban le'), 'Owner Ban Le');
-
-        $html = $this->get($this->url('/owners?type=retail'))->assertOk()->getContent();
-
-        $this->assertStringContainsString('name="type"', $html);
-        $this->assertStringContainsString('value="retail"', $html);
-    }
-
-    public function test_chip_la_link_chu_khong_phai_div(): void
-    {
-        $this->ownerWithScreenIn($this->category(1, 'retail', 'Ban le'), 'Owner Ban Le');
-
-        $html = $this->get($this->url('/owners'))->assertOk()->getContent();
-
-        $this->assertStringContainsString('<a class="cat-chip', $html);
-        $this->assertStringNotContainsString('<div class="cat-chip"', $html);
-        $this->assertStringContainsString('type=retail', $html);
-    }
-
-    public function test_chip_dang_chon_khop_voi_danh_sach_dang_hien(): void
-    {
-        $this->ownerWithScreenIn($this->category(1, 'retail', 'Ban le'), 'Owner Ban Le');
-
-        $khongLoc = $this->get($this->url('/owners'))->assertOk()->getContent();
-        $this->assertMatchesRegularExpression('/cat-chip[^"]*\bon\b[^"]*"[^>]*>\s*T/u', $khongLoc);
-
-        $coLoc = $this->get($this->url('/owners?type=retail'))->assertOk()->getContent();
-        $this->assertMatchesRegularExpression('/cat-chip[^"]*\bon\b[^"]*"[^>]*>\s*Ban le/u', $coLoc);
-    }
-
-    public function test_khong_con_js_doi_class_cho_chip(): void
-    {
-        $this->ownerWithScreenIn($this->category(1, 'retail', 'Ban le'), 'Owner Ban Le');
-
-        $html = $this->get($this->url('/owners'))->assertOk()->getContent();
-
-        $this->assertStringNotContainsString("classList.add('on')", $html);
-    }
+    // ── Năm ca về markup Blade: GỠ ──────────────────────────────────────
+    //
+    // `test_o_tim_kiem_gui_duoc_vi_co_name_va_nam_trong_form`,
+    // `test_tim_kiem_giu_lai_nhom_dang_chon`,
+    // `test_chip_la_link_chu_khong_phai_div`,
+    // `test_chip_dang_chon_khop_voi_danh_sach_dang_hien`,
+    // `test_khong_con_js_doi_class_cho_chip`.
+    //
+    // Chúng đo HTML của trang Blade — `name="q"`, `<a class="cat-chip">`,
+    // không còn JS đổi class. Trang đó không còn, nên chúng không đo được gì.
+    //
+    // Và chúng KHÔNG có bản thay: bản Next của `/owners` hiện **chưa có giao
+    // diện lọc**. Đó là một khoảng trống thật, đang nằm trong danh sách việc
+    // còn tồn ("filter UI cho các trang danh sách Next"), không phải một thứ
+    // đã được phủ ở chỗ khác.
+    //
+    // Ghi ra đây thay vì xoá lặng, để người làm giao diện lọc bản Next biết
+    // năm điều cần canh lại — nhất là "chip là link chứ không phải div", vì
+    // đó là khác biệt giữa một bộ lọc dùng được và một bộ lọc chỉ đổi màu.
 }

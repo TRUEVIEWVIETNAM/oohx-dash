@@ -41,20 +41,42 @@ class PolicyConsentTest extends TestCase
 
     // ── Đăng ký ──────────────────────────────────────────────────────────────
 
+    /**
+     * Gửi đăng ký qua `/api/v2/auth/register`.
+     *
+     * Đường `POST /register` của Blade đã gỡ ở giai đoạn 7 (07/10/2026).
+     * Nghiệp vụ không đổi chỗ: cả hai đường vào vốn gọi chung
+     * `BuyerRegistrationService` và `RegisterBuyerRequest`, nên bản ghi chấp
+     * thuận vẫn do đúng một đoạn mã ghi ra.
+     *
+     * `Origin` là bắt buộc: `EnsureFrontendRequestsAreStateful` chỉ bật
+     * middleware phiên khi header đó khớp `config('sanctum.stateful')`. Thiếu
+     * nó thì `Auth::login()` trong controller ném "Session store not set".
+     */
+    private function dangKy(array $payload)
+    {
+        return $this->postJson(
+            'http://' . $this->domain() . '/api/v2/auth/register',
+            $payload,
+            ['Origin' => config('app.url')],
+        );
+    }
+
     public function test_dang_ky_khong_tick_dong_y_thi_bi_tu_choi(): void
     {
         $payload = $this->registerPayload();
         unset($payload['accept_privacy']); // checkbox không tick = trình duyệt không gửi gì
 
-        $response = $this->post('http://' . $this->domain() . '/register', $payload);
+        $this->dangKy($payload)
+            ->assertStatus(422)
+            ->assertJsonPath('error', 'validation_failed');
 
-        $response->assertSessionHasErrors('accept_privacy');
         $this->assertDatabaseMissing('users', ['email' => 'a@example.com']);
     }
 
     public function test_dang_ky_co_tick_thi_ghi_lai_bang_chung_chap_thuan(): void
     {
-        $this->post('http://' . $this->domain() . '/register', $this->registerPayload());
+        $this->dangKy($this->registerPayload());
 
         $user = User::where('email', 'a@example.com')->first();
         $this->assertNotNull($user);
@@ -70,7 +92,7 @@ class PolicyConsentTest extends TestCase
     {
         config(['policies.pages.chinh-sach-bao-mat.version' => '2.7']);
 
-        $this->post('http://' . $this->domain() . '/register', $this->registerPayload());
+        $this->dangKy($this->registerPayload());
 
         $this->assertSame('2.7', PolicyConsent::first()->policy_version);
     }
@@ -80,7 +102,7 @@ class PolicyConsentTest extends TestCase
         // Email trùng -> validate chặn trước, không có gì được ghi.
         User::factory()->create(['email' => 'a@example.com']);
 
-        $this->post('http://' . $this->domain() . '/register', $this->registerPayload());
+        $this->dangKy($this->registerPayload());
 
         $this->assertSame(0, PolicyConsent::count());
     }

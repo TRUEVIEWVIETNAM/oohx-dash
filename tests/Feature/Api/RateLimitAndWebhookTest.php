@@ -79,13 +79,19 @@ class RateLimitAndWebhookTest extends TestCase
 
     public function test_dang_nhap_sai_nhieu_lan_bi_chan(): void
     {
-        $url = 'http://' . config('domains.frontpage', 'oohx.net') . '/login';
+        // POST /login cua Blade da go o giai doan 7. Duong dang nhap gio la
+        // /api/v2/auth/login, va no mang CUNG han muc throttle:login.
+        //
+        // Origin la bat buoc: nhom auth cua v2 chi bat middleware phien khi
+        // header do khop config(sanctum.stateful).
+        $url = 'http://' . config('domains.frontpage', 'oohx.net') . '/api/v2/auth/login';
+        $header = ['Origin' => config('app.url')];
 
         for ($i = 0; $i < 5; $i++) {
-            $this->post($url, ['email' => 'ai@do.vn', 'password' => 'sai']);
+            $this->postJson($url, ['email' => 'ai@do.vn', 'password' => 'sai'], $header);
         }
 
-        $this->post($url, ['email' => 'ai@do.vn', 'password' => 'sai'])->assertStatus(429);
+        $this->postJson($url, ['email' => 'ai@do.vn', 'password' => 'sai'], $header)->assertStatus(429);
     }
 
     // ── Chặn SSRF ────────────────────────────────────────────────────────────

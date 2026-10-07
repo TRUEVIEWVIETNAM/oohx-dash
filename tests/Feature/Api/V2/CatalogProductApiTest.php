@@ -317,23 +317,28 @@ class CatalogProductApiTest extends TestCase
             ->assertJson(['error' => 'not_found', 'code' => 404, 'details' => []]);
     }
 
-    // ── Trang Blade cũng phải thôi trả 500 ──────────────────────────────────
-
-    public function test_trang_products_blade_tu_choi_q_dang_mang(): void
-    {
-        $this->product();
-
-        // Cùng lớp lỗi R40, chỉ khác chỗ. Sửa một nửa rồi để nửa kia nguyên là
-        // biết lỗi mà bỏ đó.
-        $this->get('http://' . config('domains.frontpage', 'oohx.net') . '/products?q[]=x')
-            ->assertStatus(302);
-    }
-
-    public function test_trang_products_blade_van_chay_binh_thuong(): void
-    {
-        $this->product();
-
-        $this->get('http://' . config('domains.frontpage', 'oohx.net') . '/products')
-            ->assertOk();
-    }
+    // ── Hai ca về trang Blade /products: GỠ ─────────────────────────────
+    //
+    // `test_trang_products_blade_van_chay_binh_thuong` và
+    // `test_trang_products_blade_tu_choi_q_dang_mang` canh rằng thêm
+    // `/api/v2/products` không làm hỏng trang Blade đang chạy. Đúng cho giai
+    // đoạn hai bản song song.
+    //
+    // Giai đoạn 7 (07/10/2026) gỡ trang Blade đó; Next.js phục vụ `/products`
+    // và nó lấy dữ liệu từ CHÍNH endpoint này. Quan hệ đã lật: không còn hai
+    // bản để giữ cho khỏi đá nhau, chỉ còn một đường — và mọi ca khác trong
+    // lớp này canh đúng đường đó.
+    //
+    // ══ Ca thứ hai còn một lý do riêng để gỡ ══
+    //
+    // Nó đòi `/products?q[]=x` trả **302**. Sau khi route bị gỡ, app có
+    // `Route::fallback()` đẩy mọi đường lạ về trang chủ — cũng **302**. Tức
+    // nó vẫn xanh, nhưng xanh vì fallback chứ không vì input sai bị từ chối.
+    //
+    // Một ca xanh vì lý do sai thì tệ hơn không có ca: nó báo rằng một bảo
+    // đảm đang được canh trong khi nó không còn được canh.
+    //
+    // Bảo đảm thật — `q` dạng mảng bị từ chối thay vì trả 500 — vẫn được canh
+    // ở `test_tu_choi_q_dang_mang_thay_vi_tra_500` của chính lớp này, trên
+    // endpoint API.
 }
