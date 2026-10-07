@@ -171,6 +171,28 @@ trông gần giống luật trang chủ nhưng nuốt **toàn bộ** site, và k
 
 Canary của v2 chỉ duyệt các dòng `context`. Một luật rewrite không có tác dụng vì thế vẫn qua được — trang chủ lặng lẽ ra Laravel và deploy báo xanh. v3 gộp hai nguồn, và với mỗi đường nó đòi **200 và đến từ Next.js**, không chỉ 200.
 
+#### Canary phải kiểm cả đường KHÔNG khai (v6)
+
+Tới v5 canary chỉ hỏi được một chiều: *"đường tôi khai có chạy không?"*. Nó không nói gì về đường **không** khai — và đó là nửa quan trọng hơn. Một `context /` nuốt `/api/v1`, `/cart` và `/sitemap.xml`, mà mọi phép kiểm của v5 vẫn xanh hết: các đường đã khai đều ra 200 từ Next.js, đúng như nó đòi.
+
+v6 thêm mặt đối. Một nhóm đường **chưa khai** phải ra **404 và không từ Next.js**:
+
+| Đường | Vì sao chọn nó |
+|---|---|
+| `/oohx-canary-404-khong-bao-gio-khai` | tổng hợp, không ai khai bao giờ — nên nó chỉ bị phủ bởi một luật bắt-tất-cả |
+| `/gioi-thieu`, `/lien-he`, `/blog/bai-1` | đo được trên production 07/10/2026, cả ba từng ra 302 về `/` |
+| `/api/v1/khong-ton-tai` | hợp đồng đối tác: `context /api` sẽ đưa cả `/api/v1` sang Next.js, nơi không có endpoint nào của họ |
+
+Hai điều kiện, không phải một. **Mã phải 404, và thân không được chứa `/_next/static`** — vì trang 404 của Next.js cũng trả 404. Chỉ canh mã thì một catch-all trỏ sang Next vẫn lọt.
+
+`kiem_conf` đã cấm `context /` bằng danh sách trắng, nhưng đó là phép đọc **chữ** trong file. Phép này đo **hành vi** của máy chủ đang chạy, nên nó bắt được cả thứ danh sách trắng không thấy: một conf cạnh tranh script không tìm ra, một luật ở tầng khác, một thay đổi ai đó dán tay vào panel.
+
+**Và một cái bẫy trong chính phép kiểm này.** Đường thử chỉ chứng minh được gì khi nó chưa được khai, nên `bi_phu` bỏ qua đường nào đã có luật nhận — ngày `/gioi-thieu` thành trang thật thì nó tự rời nhóm thử, không chặn một thay đổi đúng. Nhưng `bi_phu` phải **tách** hai nguồn: `context` khớp theo tiền tố, còn luật rewrite khớp đúng một đường (danh sách trắng đòi neo cả hai đầu, nên `^/?$` là `/` và chỉ là `/`). Bản đầu gộp chúng và so cả hai theo tiền tố — chuỗi `/` của luật trang chủ phủ mọi đường, canary mất hết đường để thử và sẽ **đỏ ở mọi lần deploy** trong khi không có gì sai. Cùng một chuỗi `/`, hai ý nghĩa, và chỉ một cái là lỗi.
+
+Phép đếm `con` đóng vòng lại: nếu **mọi** đường thử đều bị phủ thì canary báo lỗi, vì cách duy nhất điều đó xảy ra là có một luật phủ tất cả.
+
+`tests/shell/thu-kiem-conf.sh` phần 4 kiểm `bi_phu` (17 trường hợp, gồm đúng cái bẫy trên), phần 5 chạy chính hàm `canary` với phần mạng thay bằng bản giả — một ca xanh và bốn ca phải đỏ, vì một canary luôn xanh vô dụng hơn không có canary.
+
 ### Hai nhóm `/api/v2`, hai mức yêu cầu
 
 | Nhóm | Middleware | CSRF | Ví dụ |

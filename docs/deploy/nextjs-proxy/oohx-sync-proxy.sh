@@ -77,7 +77,12 @@ set -e
 # phân biệt được hai bản khác nhau, tức phép cảnh báo lệch của deploy.sh mất
 # tác dụng đúng lúc cần nhất. Nhảy lên 5 cho một bản gộp là rẻ hơn nhiều so
 # với một con số nói dối.
-VERSION=5
+#
+# v6 = v5 + mặt đối của canary: đường CHƯA khai phải ra 404 và không từ Next.js,
+# cộng `/api/v1` sai đường phải ra 404 từ Laravel. v5 chỉ canh được một chiều
+# ("đường tôi khai có chạy không"), nên một luật bắt-tất-cả nuốt `/api/v1`,
+# `/cart` và `/sitemap.xml` vẫn làm canary xanh hết.
+VERSION=6
 
 # In số phiên bản rồi thoát — `deploy.sh` dùng cái này để so với bản trong repo.
 # Không cần quyền gì, nên để trước mọi phép kiểm khác.
@@ -474,6 +479,56 @@ duong_rewrite() {
         | sed 's/^\^//; s/\$$//; s|/?$||' \
         | sed 's|^$|/|; s|^\([^/]\)|/\1|'
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# `bi_phu <đường> <danh sách context> <danh sách luật rewrite>`
+#   — đường này có bị một luật nào nhận?
+#
+# Dùng để canh phép kiểm 404: một đường chỉ chứng minh được điều gì khi nó
+# KHÔNG được khai. Nếu sau này ai thêm `context /gioi-thieu` thì `/gioi-thieu`
+# thành đường sống, và một canary cứ đòi nó 404 sẽ chặn một thay đổi hoàn toàn
+# đúng — đúng loại "lỗi chạy được một lần" mà v3 đã mắc.
+#
+# ══ Hai danh sách, vì hai ngữ nghĩa khớp khác nhau ══
+#
+# Gộp chúng làm một là một cái bẫy, và bản đầu của hàm này rơi vào đúng nó.
+# `context` khớp theo TIỀN TỐ. Nhưng luật rewrite thì `kiem_rewrite` bắt buộc
+# neo CẢ HAI đầu, nên `^/?$` khớp ĐÚNG `/` và không khớp gì khác —
+# `duong_rewrite` rút nó ra thành chuỗi `/`.
+#
+# Gộp lại rồi so theo tiền tố thì chuỗi `/` của luật trang chủ phủ mọi đường,
+# `con` xuống 0, và canary đỏ ở MỌI lần deploy trong khi không có gì sai.
+#
+# Tách ra thì `context /` vẫn bị bắt đúng như ý định: nó vào danh sách context,
+# `/` là tiền tố của mọi thứ, mọi đường thử thành "đã khai", `con` xuống 0 và
+# phép đếm dưới đây kêu. Cùng một chuỗi `/`, hai ý nghĩa, và chỉ một cái là lỗi.
+#
+# Context so theo tiền tố CHUỖI, rộng hơn thực tế: đo trên production
+# 07/10/2026 thì OpenLiteSpeed có tôn trọng biên đoạn (`context /explore` KHÔNG
+# nuốt `/explores` — cả hai cùng tồn tại và `/explores` ra 404). So rộng là
+# phía an toàn ở đây: nó chỉ làm BỎ QUA nhiều hơn, và phép đếm mới là chỗ bắt
+# lỗi. So hẹp lại thì ngược — một context thật có thể lọt qua và canary đòi 404
+# ở một đường đang sống.
+# ─────────────────────────────────────────────────────────────────────────────
+bi_phu() {
+    local duong="$1" khai
+
+    # Context: khớp theo tiền tố.
+    while read -r khai; do
+        [ -z "$khai" ] && continue
+        case "$duong" in
+            "$khai"*) return 0 ;;
+        esac
+    done <<< "$2"
+
+    # Luật rewrite: khớp đúng một đường.
+    while read -r khai; do
+        [ -z "$khai" ] && continue
+        [ "$duong" = "$khai" ] && return 0
+    done <<< "$3"
+
+    return 1
+}
 # ═════════════════════════════════════════════════════════════════════════════
 # Canary: kiểm qua ĐÚNG virtual host, từ chính máy này.
 #
@@ -499,6 +554,20 @@ la_next() {
 
 canary() {
     local loi=0 m
+
+    # Danh sách đường ĐÃ KHAI, tính MỘT lần và dùng cho cả hai mặt của canary.
+    #
+    # Hai mặt đó soi ngược nhau — "đã khai phải ra Next" và "chưa khai phải ra
+    # 404" — nên chúng buộc phải đọc cùng một danh sách. Tính hai lần là mở
+    # đường cho hai bản trôi khỏi nhau, và khi đó cả hai mặt đều báo xanh trong
+    # khi không mặt nào còn đúng.
+    # Giữ RIÊNG hai nguồn: `bi_phu` cần phân biệt chúng (xem chú thích ở đó).
+    # `DA_KHAI` là hợp của hai, dùng cho vòng kiểm 200 — vòng đó chỉ cần biết
+    # "đường nào đã được khai", không cần biết khai bằng cách nào.
+    local KHAI_CTX KHAI_RW DA_KHAI
+    KHAI_CTX=$(grep -E '^context ' "$PROXY_CONF" | awk '{print $2}')
+    KHAI_RW=$(duong_rewrite "$REWRITE_CONF")
+    DA_KHAI=$(printf '%s\n%s\n' "$KHAI_CTX" "$KHAI_RW")
 
     # ── Những đường PHẢI do Laravel phục vụ ──
     for p in /api/v2/stats /sitemap.xml /robots.txt; do
@@ -543,10 +612,83 @@ canary() {
             echo "   LỖI canary: $duong ra 200 nhưng KHÔNG phải từ Next.js — luật không có tác dụng." >&2
             loi=$((loi + 1))
         fi
-    done < <(
-        grep -E '^context ' "$PROXY_CONF" | awk '{print $2}'
-        duong_rewrite "$REWRITE_CONF"
-    )
+    done <<< "$DA_KHAI"
+
+    # ── Mặt đối: đường CHƯA khai phải ra 404, và không từ Next.js ───────────
+    #
+    # Phần trên chỉ canh được một chiều: "đường tôi khai có chạy không". Nó
+    # không nói gì về đường tôi KHÔNG khai, và đó là nửa quan trọng hơn — một
+    # `context /` nuốt `/api/v1`, `/cart` và `/sitemap.xml` thì mọi phép kiểm
+    # phía trên vẫn xanh hết.
+    #
+    # `kiem_conf` đã cấm `context /` bằng danh sách trắng, nhưng đó là phép đọc
+    # CHỮ trong file. Phép dưới đây đo HÀNH VI của máy chủ đang chạy, nên nó
+    # bắt được cả thứ danh sách trắng không thấy: một conf cạnh tranh script
+    # không tìm ra, một luật rewrite ở tầng khác, một thay đổi ai đó dán tay
+    # vào panel.
+    #
+    # Hai điều kiện, không phải một. Mã phải là 404, VÀ thân không được chứa
+    # `/_next/static` — vì trang 404 của Next.js cũng là một trang Next.js và
+    # cũng trả 404. Chỉ canh mã thì một catch-all trỏ sang Next vẫn qua được.
+    local chet con=0
+    for chet in \
+        /oohx-canary-404-khong-bao-gio-khai \
+        /gioi-thieu \
+        /lien-he \
+        /blog/bai-1
+    do
+        # Đường đã được khai thì không chứng minh được gì — bỏ qua, không báo
+        # lỗi. Ngày nào `/gioi-thieu` thành trang thật thì nó rời nhóm này một
+        # cách im lặng, và canary không chặn một thay đổi đúng.
+        if bi_phu "$chet" "$KHAI_CTX" "$KHAI_RW"; then
+            echo "   canary bỏ qua $chet: đã có luật khai nó." >&2
+            continue
+        fi
+        con=$((con + 1))
+
+        m=$(ma "$chet")
+        if [ "$m" != "404" ]; then
+            echo "   LỖI canary: $chet trả $m, cần 404." >&2
+            echo "          302 ở đây nghĩa là fallback của Laravel đang đẩy URL chết" >&2
+            echo "          về trang chủ (Google đọc là soft 404). 200 thì nặng hơn:" >&2
+            echo "          có một luật bắt-tất-cả đang nuốt mọi đường." >&2
+            loi=$((loi + 1))
+            continue
+        fi
+
+        if [ "$(la_next "$chet")" != "0" ]; then
+            echo "   LỖI canary: $chet ra 404 nhưng từ Next.js — có luật bắt-tất-cả." >&2
+            loi=$((loi + 1))
+        fi
+    done
+
+    # Không còn đường nào để thử nghĩa là mọi đường đều "đã khai", và cách duy
+    # nhất điều đó xảy ra là có một luật phủ tất cả. Đường tổng hợp
+    # `/oohx-canary-404-khong-bao-gio-khai` ở trên tồn tại đúng để chỗ này có
+    # nghĩa: không ai khai nó bao giờ, nên nó chỉ bị phủ bởi một catch-all.
+    if [ "$con" = 0 ]; then
+        echo "   LỖI canary: mọi đường thử 404 đều bị một luật nhận — có luật bắt-tất-cả." >&2
+        loi=$((loi + 1))
+    fi
+
+    # ── /api/v1 sai đường: 404 JSON, tuyệt đối không phải Next.js ───────────
+    #
+    # Tách khỏi nhóm trên vì nó canh một thứ khác: hợp đồng với đối tác.
+    # `context /api` sẽ đưa toàn bộ `/api/v1` sang Next.js — nơi không có
+    # endpoint nào của đối tác — và làm hỏng code của họ mà không báo trước.
+    #
+    # `/api/v1/screens` không dùng được cho phép kiểm này: nó trả 401 khi không
+    # có token, và 401 cũng là thứ một proxy sai có thể trả. Một đường SAI thì
+    # chỉ Laravel biết là 404; Next.js sẽ trả 404 của nó, và `la_next` phân biệt
+    # được hai cái.
+    m=$(ma /api/v1/khong-ton-tai)
+    if [ "$m" != "404" ]; then
+        echo "   LỖI canary: /api/v1/khong-ton-tai trả $m, cần 404." >&2
+        loi=$((loi + 1))
+    elif [ "$(la_next /api/v1/khong-ton-tai)" != "0" ]; then
+        echo "   LỖI canary: /api/v1 do Next.js phục vụ — hợp đồng đối tác bị cắt." >&2
+        loi=$((loi + 1))
+    fi
 
     return "$loi"
 }
