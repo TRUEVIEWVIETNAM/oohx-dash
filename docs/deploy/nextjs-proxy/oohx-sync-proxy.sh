@@ -70,7 +70,14 @@
 #
 set -e
 
-VERSION=4
+# v5 = v4 (bỏ qua thư mục rewrite) + bỏ /login,/register khỏi danh sách cấm.
+#
+# Hai thay đổi đó làm trên hai nhánh song song và CẢ HAI đặt VERSION=4. Git
+# gộp im lặng vì hai dòng giống hệt nhau — nhưng số phiên bản khi ấy không còn
+# phân biệt được hai bản khác nhau, tức phép cảnh báo lệch của deploy.sh mất
+# tác dụng đúng lúc cần nhất. Nhảy lên 5 cho một bản gộp là rẻ hơn nhiều so
+# với một con số nói dối.
+VERSION=5
 
 # In số phiên bản rồi thoát — `deploy.sh` dùng cái này để so với bản trong repo.
 # Không cần quyền gì, nên để trước mọi phép kiểm khác.
@@ -135,8 +142,16 @@ CAM=(
     "/robots.txt"
     "/admin"
     "/publisher"
-    "/login"
-    "/register"
+
+    # `/logout` ở lại danh sách cấm sau khi `/login` và `/register` rời nó
+    # (07/10/2026). Không phải sót — ba đường này khác nhau về bản chất:
+    #
+    #   /login, /register  là trang NGƯỜI DÙNG MỞ. Chúng đã dựng trên Next, và
+    #                      biểu mẫu của chúng gửi sang `/api/v2/auth/*`.
+    #   /logout            là một route POST từ khu người mua trên Blade, không
+    #                      phải trang. Proxy nó sang Next là trả 405 cho nút
+    #                      đăng xuất — và khu đó vẫn là Blade, giai đoạn 8 đang
+    #                      hoãn.
     "/logout"
 )
 

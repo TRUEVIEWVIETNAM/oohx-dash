@@ -49,6 +49,11 @@ export const TRONG_APP: Set<string> = new Set([
     // Một mục phủ cả trang gửi lẫn '/danh-sach' — trongApp() khớp tiền tố,
     // giống cách OpenLiteSpeed khớp context.
     '/phan-anh-to-chuc-xa-hoi',
+
+    // Trang xác thực. /logout KHÔNG có ở đây: nó là POST từ khu người mua
+    // trên Blade và không phải một đường điều hướng.
+    '/login',
+    '/register',
 ]);
 
 /**

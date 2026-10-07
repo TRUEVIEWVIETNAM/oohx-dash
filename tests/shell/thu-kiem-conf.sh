@@ -94,7 +94,7 @@ printf 'context / {\n  type proxy\n  handler nextjs\n}\n' >> "$D/context-goc"
 thu context-goc tu-choi
 
 # Nhóm cấm
-for c in /api /cart /livewire /sitemap.xml /admin; do
+for c in /api /cart /livewire /sitemap.xml /admin /logout; do
     ten="cam$(echo "$c" | tr -d '/.')"
     hop_le "$ten"
     printf 'context %s {\n  type proxy\n  handler nextjs\n}\n' "$c" >> "$D/$ten"
@@ -127,7 +127,7 @@ for c in /api/v1 /cart/abc /livewire/x /admin/y; do
 done
 
 # Van phai NHAN: khong lien quan vung cam nao.
-for c in /explore /owners /products /map /bang-phi /quy-che-hoat-dong /_next /giai-quyet-tranh-chap; do
+for c in /explore /owners /products /map /bang-phi /quy-che-hoat-dong /_next /giai-quyet-tranh-chap /phan-anh-to-chuc-xa-hoi /login /register; do
     ten="nhan$(echo "$c" | tr -d "/.")"
     hop_le "$ten"
     printf "context %s {
