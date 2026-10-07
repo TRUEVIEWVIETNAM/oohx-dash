@@ -618,6 +618,156 @@ la_next() {
 thu_cn catch-all-khong-lot-qua-duoc do
 
 rm -rf "$C" "$TMP.cn"
+
+# ═════════════════════════════════════════════════════════════════════════════
+# PHẦN 6: kiem_nen và phép thử lại khi không nối được (v7)
+#
+# Từ v7 canary chạy ở MỌI lượt deploy, kể cả lượt không đổi conf. Hai thứ đi
+# kèm thay đổi đó, và cả hai đều là loại sai chỉ hiện ra trên máy thật:
+#
+#   - `ma`/`la_next` thử lại một lần khi KHÔNG NỐI ĐƯỢC. Thiếu nó thì một lần
+#     curl hỏng tạm làm đỏ một deploy hoàn toàn đúng — và giờ mọi deploy đều
+#     chạy canary, nên rủi ro đó không còn nhỏ như khi chỉ lượt đổi conf chạy.
+#   - thử lại CHỈ cho `000`. Thử lại một câu trả lời thật (404, 500) là cách
+#     làm yếu phép kiểm cho tới khi nó hết nghĩa.
+# ═════════════════════════════════════════════════════════════════════════════
+echo
+echo "── PHẦN 6: kiem_nen + thử lại ──"
+
+N="${TMPDIR:-/tmp}/nen-thu-$$"
+mkdir -p "$N"
+
+{
+    sed -n '/^kiem_nen() {/,/^}/p' "$SRC"
+} > "$TMP.nn"
+bash -n "$TMP.nn" || { echo "HAM kiem_nen TRICH RA KHONG HOP LE"; exit 1; }
+
+thu_nen() {
+    local ten="$1" mong_doi="$2" ket_qua
+    (
+        # shellcheck disable=SC1090
+        . "$TMP.nn"
+        kiem_nen >/dev/null 2>&1
+    ) && ket_qua=xanh || ket_qua=do
+
+    if [ "$ket_qua" = "$mong_doi" ]; then
+        printf '  OK    %-38s %s\n' "$ten" "$ket_qua"
+        so_dung=$((so_dung + 1))
+    else
+        printf '  SAI   %-38s duoc %s, can %s\n' "$ten" "$ket_qua" "$mong_doi"
+        so_sai=$((so_sai + 1))
+    fi
+}
+
+ma() { echo 200; }
+thu_nen nen-200-thi-do-duoc            xanh
+ma() { echo 000; }
+thu_nen nen-000-khong-do-duoc          do
+ma() { echo 403; }
+thu_nen nen-403-host-khong-khop-vhost  do
+ma() { echo 404; }
+thu_nen nen-404-sitemap-mat            do
+
+# ── Phép thử lại: chỉ `000`, không phải mọi mã ─────────────────────────────
+#
+# Thay `curl` bằng một bản giả đếm số lần gọi và trả theo kịch bản. Đây là chỗ
+# duy nhất kiểm được "có thử lại đúng một lần" mà không cần mạng.
+echo
+echo "── thử lại chỉ khi không nối được ──"
+
+{
+    sed -n '/^ma() {/,/^}/p' "$SRC"
+    sed -n '/^la_next() {/,/^}/p' "$SRC"
+} > "$TMP.rt"
+bash -n "$TMP.rt" || { echo "HAM ma/la_next TRICH RA KHONG HOP LE"; exit 1; }
+
+thu_rt() {
+    local ten="$1" mong_ma="$2" mong_lan="$3"
+    local got_ma got_lan
+    got_ma=$(
+        # shellcheck disable=SC1090
+        . "$TMP.rt"
+        sleep() { :; }   # không chờ thật trong test
+        ma /gi-do
+    )
+    # `wc -l`, không phải `cat`: bản đầu tôi đọc thẳng file và so "x" với "1".
+    # Mã HTTP đã đúng cả năm ca, chỉ phép đếm của test là sai — đúng kiểu một
+    # ca đỏ vì lý do không liên quan đến thứ nó định canh.
+    got_lan=$(wc -l < "$N/dem" | tr -d ' ')
+    : > "$N/dem"
+
+    if [ "$got_ma" = "$mong_ma" ] && [ "$got_lan" = "$mong_lan" ]; then
+        printf '  OK    %-38s ma=%s lan=%s\n' "$ten" "$got_ma" "$got_lan"
+        so_dung=$((so_dung + 1))
+    else
+        printf '  SAI   %-38s duoc ma=%s lan=%s, can ma=%s lan=%s\n' \
+            "$ten" "$got_ma" "$got_lan" "$mong_ma" "$mong_lan"
+        so_sai=$((so_sai + 1))
+    fi
+}
+
+# `curl` giả: ghi một dòng vào $N/dem mỗi lần được gọi, in theo $KICH_BAN.
+curl() {
+    echo x >> "$N/dem"
+    local lan
+    lan=$(wc -l < "$N/dem" | tr -d ' ')
+    echo "$KICH_BAN" | cut -d, -f"$lan"
+}
+: > "$N/dem"
+
+KICH_BAN='200,200'; thu_rt ma-200-goi-dung-mot-lan        200 1
+KICH_BAN='404,404'; thu_rt ma-404-la-cau-tra-loi-that     404 1
+KICH_BAN='500,500'; thu_rt ma-500-cung-khong-thu-lai      500 1
+KICH_BAN='000,200'; thu_rt ma-000-thu-lai-roi-duoc-200    200 2
+KICH_BAN='000,000'; thu_rt ma-000-hai-lan-thi-chiu        000 2
+
+
+# ── la_next cũng phải thử lại, và ở đây hậu quả nặng hơn ───────────────────
+#
+# Thân rỗng cho ra 0 lần khớp, và 0 nghĩa là "không phải từ Next.js" — tức một
+# đường ĐÃ KHAI sẽ bị báo "luật không có tác dụng" trong khi luật hoàn toàn
+# đúng. Ở nhánh đổi conf, script sẽ lùi lại một thay đổi đúng vì chuyện đó.
+#
+# Thân rỗng không phân biệt được với một trang thật không chứa
+# `/_next/static`, nên thử lại khi rỗng là cách duy nhất tách hai trường hợp.
+echo
+echo "── la_next thử lại khi thân rỗng ──"
+
+thu_rt_next() {
+    local ten="$1" mong_dem="$2" mong_lan="$3"
+    local got_dem got_lan
+    got_dem=$(
+        # shellcheck disable=SC1090
+        . "$TMP.rt"
+        sleep() { :; }
+        la_next /gi-do
+    )
+    got_lan=$(wc -l < "$N/dem" | tr -d ' ')
+    : > "$N/dem"
+
+    if [ "$got_dem" = "$mong_dem" ] && [ "$got_lan" = "$mong_lan" ]; then
+        printf '  OK    %-38s dem=%s lan=%s\n' "$ten" "$got_dem" "$got_lan"
+        so_dung=$((so_dung + 1))
+    else
+        printf '  SAI   %-38s duoc dem=%s lan=%s, can dem=%s lan=%s\n' \
+            "$ten" "$got_dem" "$got_lan" "$mong_dem" "$mong_lan"
+        so_sai=$((so_sai + 1))
+    fi
+}
+
+# Trang CÓ dấu Next.js: lấy được ngay, không thử lại.
+KICH_BAN='<link href=/_next/static/x.css>,<link href=/_next/static/x.css>'
+thu_rt_next next-co-dau-goi-mot-lan 1 1
+
+# Trang thật KHÔNG có dấu Next.js — đây là câu trả lời hợp lệ, không thử lại.
+KICH_BAN='<html>trang Laravel</html>,<html>trang Laravel</html>'
+thu_rt_next laravel-khong-thu-lai 0 1
+
+# Thân rỗng lần đầu, lần hai lấy được: phải ra 1, không phải 0.
+KICH_BAN=',<link href=/_next/static/x.css>'
+thu_rt_next than-rong-thu-lai-roi-duoc 1 2
+unset -f curl
+rm -rf "$N" "$TMP.nn" "$TMP.rt"
 echo
 echo "── tổng: $so_dung đúng, $so_sai sai ──"
 rm -rf "$D" "$TMP"

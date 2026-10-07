@@ -193,6 +193,39 @@ Phép đếm `con` đóng vòng lại: nếu **mọi** đường thử đều b�
 
 `tests/shell/thu-kiem-conf.sh` phần 4 kiểm `bi_phu` (17 trường hợp, gồm đúng cái bẫy trên), phần 5 chạy chính hàm `canary` với phần mạng thay bằng bản giả — một ca xanh và bốn ca phải đỏ, vì một canary luôn xanh vô dụng hơn không có canary.
 
+#### Canary chạy cả khi conf KHÔNG đổi (v7)
+
+v6 thoát sớm ở bước `[2/7]` khi cả hai conf khớp repo, nên **năm phép kiểm 404 nó vừa thêm nằm yên không chạy lần nào** — conf proxy ít khi đổi. Một lớp bảo vệ chỉ chạy khi có người sửa đúng file nó canh thì gần như không chạy.
+
+Giả định ngầm của lối thoát sớm — *"conf không đổi → hành vi không đổi"* — cũng sai, và nó sai ngay trong dự án này: PR #30 đổi hành vi 404 của toàn site mà không chạm một dòng conf proxy nào. Cùng kiểu: một conf cạnh tranh ai đó dán tay vào panel, một luật ở tầng khác, Next.js chết. Không thứ nào làm `cmp` lệch, nên không thứ nào bị phát hiện.
+
+v7 thêm bước `[2b/7]`: nhánh không-đổi vẫn chạy `kiem_nen` rồi `canary`, và chỉ `exit 0` khi canary xanh.
+
+**Đỏ ở nhánh này KHÔNG được lùi lại.** Đây là khác biệt quan trọng nhất giữa hai nhánh. `lui_lai` trả conf về bản sao lưu trước khi dán — nhưng ở nhánh không-đổi **không có lần dán nào**, và conf trên đĩa đã bằng conf repo. Lùi ở đây là phục hồi chính file đang có: không sửa được gì, mà lại in ra một câu nói rằng đã lùi — một log nói sai về việc nó vừa làm, ở đúng lúc người đọc cần log nói thật.
+
+Nên chẩn đoán phải nói đúng chuyện: không phải *"đồng bộ thất bại"* mà là *"không có gì cần đồng bộ, và production đang sai sẵn"*. Hai chuyện cần hai hành động khác nhau, và nguyên nhân khi ấy nằm **ngoài** hai file script này quản — Next.js chết, conf cạnh tranh, hành vi 404 của Laravel đổi, hoặc OpenLiteSpeed đang chạy cấu hình cũ. Thông báo lỗi liệt kê đúng bốn hướng đó kèm lệnh kiểm.
+
+Dòng `trap ... ERR` vì thế **phải ở sau** nhánh này (hiện ở bước `[5/7]`). Dời nó lên trước thì mỗi lần canary đỏ ở lượt không-đổi sẽ gọi `lui_lai`. Cờ `DA_DOI` là lớp chắn thứ hai cho cùng chuyện đó, nhưng vị trí dòng trap là lớp thứ nhất và rõ ràng hơn.
+
+#### Thử lại một lần, và chỉ khi không nối được (v7)
+
+Canary giờ chạy ở **mọi** lượt deploy, nên một lần `curl` hỏng tạm thời làm đỏ một deploy hoàn toàn đúng — rủi ro trước đây chỉ có ở lượt đổi conf, và nó nhỏ vì lượt đó hiếm.
+
+`ma` và `la_next` thử lại **một** lần, và chỉ khi **không nối được**:
+
+| Trường hợp | Số lần gọi |
+|---|---|
+| `ma` ra 200 / 404 / 500 — câu trả lời thật của máy chủ | 1 |
+| `ma` ra `000` — không nối được / hết thời gian | 2 |
+| `la_next` lấy được thân (có hoặc không có dấu Next.js) | 1 |
+| `la_next` thân rỗng | 2 |
+
+Thử lại một **câu trả lời thật** (404, 500) là cách làm yếu phép kiểm cho tới khi nó hết nghĩa, nên 404 và 500 không bao giờ được thử lại.
+
+Với `la_next` hậu quả của một lần hỏng tạm nặng hơn: thân rỗng cho ra 0 lần khớp, và 0 nghĩa là *"không phải từ Next.js"* — tức một đường đã khai bị báo "luật không có tác dụng" trong khi luật hoàn toàn đúng, và ở nhánh đổi conf script sẽ **lùi lại một thay đổi đúng** vì chuyện đó. Thân rỗng không phân biệt được với một trang thật không chứa `/_next/static`, nên thử lại khi rỗng là cách duy nhất tách hai trường hợp.
+
+Phần 6 của bộ test thay `curl` bằng bản giả đếm số lần gọi — đó là chỗ duy nhất kiểm được "có thử lại đúng một lần" mà không cần mạng.
+
 ### Hai nhóm `/api/v2`, hai mức yêu cầu
 
 | Nhóm | Middleware | CSRF | Ví dụ |
