@@ -234,7 +234,12 @@ echo "[11/11] Đồng bộ cấu hình proxy OpenLiteSpeed"
 # cài chưa, cảnh báo nếu bản đã cài lệch bản trong repo, và gọi nó.
 #
 # Phần kiểm conf và canary KHÔNG lặp lại ở đây — nó nằm trong script root, và
-# `tests/shell/thu-kiem-conf.sh` kiểm nó trong CI (41 trường hợp).
+# `tests/shell/thu-kiem-conf.sh` kiểm nó trong CI (job "Script deploy").
+#
+# Chú thích này từng ghi "41 trường hợp". Bộ test lớn lên mà con số ở lại, nên
+# nó nói sai suốt một thời gian — và một con số sai trong chú thích tệ hơn
+# không có con số, vì người đọc tin nó. Giờ chỉ tên job: chỗ đó luôn nói đúng
+# số hiện tại.
 SYNC_BIN="/usr/local/sbin/oohx-sync-proxy"
 SYNC_SRC="docs/deploy/nextjs-proxy/oohx-sync-proxy.sh"
 
