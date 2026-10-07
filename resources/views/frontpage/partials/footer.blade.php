@@ -15,10 +15,10 @@
             <div class="ft-col">
                 <h4>Khám phá</h4>
                 <ul class="ft-ls">
-                    <li><a href="{{ route('fp.listing') }}">Toàn bộ màn hình</a></li>
-                    <li><a href="{{ route('fp.listing') }}">Biển quảng cáo</a></li>
-                    <li><a href="{{ route('fp.listing') }}">LED ngoài trời</a></li>
-                    <li><a href="{{ route('fp.listing') }}">LCD trung tâm thương mại</a></li>
+                    <li><a href="{{ url('/explore') }}">Toàn bộ màn hình</a></li>
+                    <li><a href="{{ url('/explore') }}">Biển quảng cáo</a></li>
+                    <li><a href="{{ url('/explore') }}">LED ngoài trời</a></li>
+                    <li><a href="{{ url('/explore') }}">LCD trung tâm thương mại</a></li>
                 </ul>
             </div>
             <div class="ft-col">
@@ -41,7 +41,7 @@
             <div class="ft-col">
                 <h4>Chủ sở hữu</h4>
                 <ul class="ft-ls">
-                    <li><a href="{{ route('fp.owners') }}">Danh sách màn hình</a></li>
+                    <li><a href="{{ url('/owners') }}">Danh sách màn hình</a></li>
                     <li><a href="#">Bảng điều khiển</a></li>
                     <li><a href="#">Hỗ trợ</a></li>
                 </ul>
@@ -49,21 +49,21 @@
             <div class="ft-col">
                 <h4>Chính sách</h4>
                 <ul class="ft-ls">
-                    <li><a href="{{ route('fp.policy', 'quy-che-hoat-dong') }}">Quy chế hoạt động</a></li>
-                    <li><a href="{{ route('fp.policy', 'chinh-sach-bao-mat') }}">Chính sách bảo mật</a></li>
-                    <li><a href="{{ route('fp.policy', 'giai-quyet-tranh-chap') }}">Cơ chế giải quyết tranh chấp, khiếu nại, phản ánh</a></li>
-                    <li><a href="{{ route('fp.policy', 'bang-phi') }}">Bảng phí dịch vụ</a></li>
-                    <li><a href="{{ route('fp.reflections.create') }}">Tiếp nhận phản ánh của TCXH</a></li>
-                    <li><a href="{{ route('fp.reflections.index') }}">Danh sách phản ánh của TCXH</a></li>
+                    <li><a href="{{ url('/quy-che-hoat-dong') }}">Quy chế hoạt động</a></li>
+                    <li><a href="{{ url('/chinh-sach-bao-mat') }}">Chính sách bảo mật</a></li>
+                    <li><a href="{{ url('/giai-quyet-tranh-chap') }}">Cơ chế giải quyết tranh chấp, khiếu nại, phản ánh</a></li>
+                    <li><a href="{{ url('/bang-phi') }}">Bảng phí dịch vụ</a></li>
+                    <li><a href="{{ url('/phan-anh-to-chuc-xa-hoi') }}">Tiếp nhận phản ánh của TCXH</a></li>
+                    <li><a href="{{ url('/phan-anh-to-chuc-xa-hoi/danh-sach') }}">Danh sách phản ánh của TCXH</a></li>
                 </ul>
             </div>
         </div>
         <div class="ft-btm">
             <div>Bản quyền &copy; {{ date('Y') }} OOHX. Bảo lưu mọi quyền.</div>
             <div class="ft-bls">
-                <a href="{{ route('fp.policy', 'quy-che-hoat-dong') }}">Quy chế hoạt động</a>
-                <a href="{{ route('fp.policy', 'chinh-sach-bao-mat') }}">Chính sách bảo mật</a>
-                <a href="{{ route('fp.reflections.create') }}">Liên hệ</a>
+                <a href="{{ url('/quy-che-hoat-dong') }}">Quy chế hoạt động</a>
+                <a href="{{ url('/chinh-sach-bao-mat') }}">Chính sách bảo mật</a>
+                <a href="{{ url('/phan-anh-to-chuc-xa-hoi') }}">Liên hệ</a>
             </div>
         </div>
     </div>

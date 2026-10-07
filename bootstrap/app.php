@@ -52,6 +52,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'throttle.preauth' => \App\Http\Middleware\ThrottleBeforeAuth::class,
         ]);
         $middleware->encryptCookies(except: ['oohx_city']);
+
+        // Khách chưa đăng nhập đi về ĐƯỜNG DẪN, không về tên route.
+        //
+        // Mặc định Laravel dùng `route('login')`. Giai đoạn 7 gỡ route đó —
+        // `/login` giờ do Next phục vụ, Laravel không khai nó nữa — nên thiếu
+        // dòng này thì mọi khách vào `/my` nhận `RouteNotFoundException` thay
+        // vì trang đăng nhập.
+        //
+        // Đường dẫn giữ nguyên, nên người dùng không thấy khác biệt gì.
+        $middleware->redirectGuestsTo('/login');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // API routes luôn trả JSON 401 thay vì redirect về route('login')

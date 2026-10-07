@@ -1,13 +1,13 @@
 <nav class="bnav">
-    <a href="{{ route('fp.index') }}" @class(['bni', 'on' => ($activeNav ?? '') === 'home'])>
+    <a href="{{ url('/') }}" @class(['bni', 'on' => ($activeNav ?? '') === 'home'])>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="{{ ($activeNav ?? '') === 'home' ? 'var(--bl)' : 'var(--t4)' }}" style="width:24px;height:24px;flex-shrink:0"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
         Home
     </a>
-    <a href="{{ route('fp.listing') }}" @class(['bni', 'on' => ($activeNav ?? '') === 'explore'])>
+    <a href="{{ url('/explore') }}" @class(['bni', 'on' => ($activeNav ?? '') === 'explore'])>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="{{ ($activeNav ?? '') === 'explore' ? 'var(--bl)' : 'var(--t4)' }}" style="width:24px;height:24px;flex-shrink:0"><path d="M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z"/></svg>
         Explore
     </a>
-    <a href="{{ route('fp.map') }}" @class(['bni', 'on' => ($activeNav ?? '') === 'map'])>
+    <a href="{{ url('/map') }}" @class(['bni', 'on' => ($activeNav ?? '') === 'map'])>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="{{ ($activeNav ?? '') === 'map' ? 'var(--bl)' : 'var(--t4)' }}" style="width:24px;height:24px;flex-shrink:0"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
         Map
     </a>

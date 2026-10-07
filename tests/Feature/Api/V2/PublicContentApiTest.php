@@ -125,16 +125,27 @@ class PublicContentApiTest extends TestCase
     }
 
     /**
-     * Phép kiểm QUAN TRỌNG NHẤT của nhóm này.
+     * Phần thân phát qua HTTP phải đến từ ĐÚNG FILE trên đĩa.
      *
-     * Nó so `body_html` với HTML trang Blade thật sự phát ra. Nếu ai sau này
-     * cho endpoint tự dựng văn bản — đọc một partial khác, hay một bảng CSDL —
-     * test này đỏ. Không có nó thì "một nguồn" chỉ là một câu trong docblock.
+     * ══ Ca này thay cho một ca đã mất lý do tồn tại ══
      *
-     * So cả chuỗi, không so vài từ khoá: một chỗ khác nhau trong văn bản pháp
-     * lý mà lọt lưới vì test chỉ canh ba chữ thì tệ hơn là không có test.
+     * Bản trước so `body_html` với HTML trang Blade, để chứng minh hai bộ
+     * render không trôi khỏi nhau. Giai đoạn 7 (07/10/2026) gỡ trang Blade —
+     * giờ chỉ còn MỘT bộ render, nên phép so đó không còn gì để so.
+     *
+     * Nhưng vẫn còn một thứ đáng canh, và nó không tự nhiên đúng: endpoint
+     * phải render `config('policies.pages.*.body')`, tức đúng file trên đĩa.
+     * Nếu ai đổi config sang một partial khác, hoặc chuyển văn bản vào một
+     * bảng CSDL, HTTP vẫn trả 200 và vẫn có `body_html` — chỉ là chữ khác.
+     *
+     * So `body_html` với `view(...)->render()` thì không chứng minh được gì:
+     * đó đúng là dòng code trong controller, nên nó luôn khớp.
+     *
+     * Nên đọc THẲNG file Blade, lấy các tiêu đề mục tĩnh, và đòi từng cái có
+     * mặt trong `body_html`. Đó là ràng buộc giữa file và HTTP, không đi qua
+     * giả định nào về cách controller làm việc.
      */
-    public function test_than_van_ban_la_dung_phan_than_trang_blade_phat_ra(): void
+    public function test_than_van_ban_den_tu_dung_file_tren_dia(): void
     {
         foreach ($this->slugChinhSach() as $slug) {
             $than = $this->getJson("/api/v2/policies/{$slug}")
@@ -143,13 +154,33 @@ class PublicContentApiTest extends TestCase
 
             $this->assertNotEmpty($than, "Trang {$slug} trả thân rỗng.");
 
-            $trangBlade = $this->get('/' . $slug)->assertOk()->getContent();
-
-            $this->assertStringContainsString(
-                trim($than),
-                $trangBlade,
-                "Thân `body_html` của {$slug} không có trong HTML trang Blade — hai bên đã trôi khỏi nhau.",
+            $duongDan = resource_path(
+                'views/' . str_replace('.', '/', config("policies.pages.{$slug}.body")) . '.blade.php'
             );
+
+            $this->assertFileExists($duongDan, "Khóa body của {$slug} trỏ vào file không tồn tại.");
+
+            // Chỉ lấy tiêu đề TĨNH — bỏ những cái có `{{ }}`, vì chúng là biểu
+            // thức Blade và chuỗi trên đĩa khác chuỗi sau khi render.
+            preg_match_all('#<h2>(.*?)</h2>#s', file_get_contents($duongDan), $m);
+
+            $tieuDe = array_values(array_filter(
+                array_map('trim', $m[1] ?? []),
+                fn (string $t) => $t !== '' && ! str_contains($t, '{{'),
+            ));
+
+            $this->assertNotEmpty(
+                $tieuDe,
+                "Không trích được tiêu đề mục nào từ {$duongDan} — phép kiểm này sẽ luôn xanh, tức vô dụng.",
+            );
+
+            foreach ($tieuDe as $t) {
+                $this->assertStringContainsString(
+                    $t,
+                    $than,
+                    "Mục \"{$t}\" có trong file {$slug} nhưng không có trong body_html — endpoint đang phát ra chữ khác.",
+                );
+            }
         }
     }
 
@@ -340,6 +371,21 @@ class PublicContentApiTest extends TestCase
             ->assertJsonPath('error', 'validation_failed')
             ->assertJsonPath('code', 422)
             ->assertJsonStructure(['error', 'message', 'code', 'details' => [['field', 'message']]]);
+
+        $this->assertSame(0, PublicReflection::count());
+    }
+
+    public function test_thieu_email_lien_he_thi_khong_nhan(): void
+    {
+        // Email là đường DUY NHẤT để phản hồi kết quả xử lý. Nhận một phản ánh
+        // không có nó nghĩa là nhận một việc không trả lời được ai.
+        $this->postJson('/api/v2/reflections', [
+            'organization_name' => 'Hội thử',
+            'subject'           => 'Phản ánh thử',
+            'content'           => str_repeat('Nội dung đủ dài để xử lý. ', 3),
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('error', 'validation_failed');
 
         $this->assertSame(0, PublicReflection::count());
     }

@@ -1,16 +1,17 @@
 {{--
-    PHẦN THÂN của trang chính sách — MỘT nguồn, hai nơi dùng.
+    PHẦN THÂN của một văn bản chính sách — NGUỒN DUY NHẤT.
 
-    Dùng bởi:
-      - `frontpage/policies/<ten>.blade.php` (trang Blade, bọc trong
-        `<x-policy-shell>`)
-      - `Api\V2\PublicContentController::policy()` (trả `body_html` cho app
-        Next.js)
+    Dùng bởi `Api\V2\PublicContentController::policy()`, trả `body_html` cho
+    app Next.js. Đó là bên tiêu thụ duy nhất còn lại.
 
-    Tách ra để văn bản pháp lý không có bản thứ hai. Nếu app Next chép lại nội
-    dung này thành component riêng thì hai bản sẽ trôi khỏi nhau — và với tài
-    liệu được đóng dấu phiên bản vào từng bản ghi đồng ý thì trôi nghĩa là mất
-    bằng chứng.
+    Trang Blade từng bọc partial này trong `<x-policy-shell>`; cả trang lẫn
+    component đã gỡ ở giai đoạn 7 (07/10/2026), vì Next phục vụ bốn đường dẫn
+    chính sách và giữ hai bản song song là giữ hai nơi có thể trôi khỏi nhau.
+
+    Văn bản ở lại Blade chứ không chuyển sang `webapp/`, và đó là chủ ý: nếu
+    app Next chép nội dung này thành component riêng thì có bản thứ hai — mà
+    với tài liệu được đóng dấu phiên bản vào từng bản ghi đồng ý, hai bản trôi
+    khỏi nhau nghĩa là mất bằng chứng.
 
     Đổi chữ ở đây thì bump `version` và đặt `effective_from` trong
     `config/policies.php` ở CÙNG commit. Luật đó neo vào file này.
@@ -65,6 +66,6 @@
 <h2>8. Cơ chế tiếp nhận và giải quyết khiếu nại</h2>
 <p>
     Người dùng gửi khiếu nại qua
-    <a href="{{ route('fp.reflections.create') }}">biểu mẫu tiếp nhận phản ánh</a>,
+    <a href="{{ url('/phan-anh-to-chuc-xa-hoi') }}">biểu mẫu tiếp nhận phản ánh</a>,
     hoặc theo thông tin liên hệ nêu tại mục 5.
 </p>

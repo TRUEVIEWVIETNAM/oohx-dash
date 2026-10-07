@@ -63,38 +63,13 @@ class NoFabricatedMetricsTest extends TestCase
 
     // ── Số bịa không được quay lại ──────────────────────────────────────────
 
-    public function test_trang_chu_khong_con_so_bia(): void
-    {
-        $this->sellableScreen();
-
-        $response = $this->get($this->url('/'))->assertOk();
-
-        $response->assertDontSee('30M+', false);
-        $response->assertDontSee('AI Match', false);
-        $response->assertDontSee('94%', false);
-        $response->assertDontSee('Math.random', false);
-        $response->assertDontSee('Live Impressions', false);
-        $response->assertDontSee('120,847', false);
-    }
-
-    public function test_trang_chu_hien_so_that_tu_csdl(): void
-    {
-        $ownerA = Owner::factory()->create(['status' => 'active']);
-        $ownerB = Owner::factory()->create(['status' => 'active']);
-
-        $this->sellableScreen($ownerA);
-        $this->sellableScreen($ownerA);
-        $this->sellableScreen($ownerB);
-
-        $response = $this->get($this->url('/'))->assertOk();
-
-        // Ba màn hình, hai media owner — đúng những gì vừa dựng.
-        $response->assertSee('3 vị trí từ 2 media owner', false);
-    }
-
-    // ── Badge còn trống phải là sự thật ─────────────────────────────────────
-
-    /** Bán kín 100% SOV suốt 30 ngày tới. */
+    /**
+     * Bán kín 100% suất trong khoảng bao trùm cửa sổ 30 ngày.
+     *
+     * Helper này từng nằm CUỐI lớp, sau các ca test. Nhát cắt gỡ 11 ca ở
+     * giai đoạn 7 mang nó đi theo, và CI bắt được bằng "Call to undefined
+     * method" — một lỗi chỉ lộ ra khi chạy, không khi đọc diff.
+     */
     private function sellOut(Screen $screen): void
     {
         $org  = Organization::factory()->create(['status' => 'active']);
@@ -125,32 +100,27 @@ class NoFabricatedMetricsTest extends TestCase
         ]);
     }
 
-    public function test_man_hinh_con_trong_thi_hien_con_trong(): void
-    {
-        $screen = $this->sellableScreen();
+    // ══ Hai ca GIỮ, chuyển sang API ═══════════════════════════════════════
+    //
+    // Chúng là phần có sức nặng nhất của lớp này: chúng chứng minh con số suất
+    // còn lại PHẢN ÁNH THỰC TẾ, không phải một hằng số.
+    //
+    // `CatalogApiTest::test_chi_tiet_tra_suat_con_lai_that` chỉ đo màn hình
+    // TRỐNG — nó xanh cả khi endpoint trả cứng 100%. Hai ca dưới mới phân
+    // biệt được "đo thật" với "in sẵn".
 
-        $this->get($this->url('/explore/' . $screen->slug))
-            ->assertOk()
-            ->assertSee('Còn trống', false);
-    }
-
-    public function test_man_hinh_ban_kin_thi_khong_con_moi_nguoi_mua(): void
+    public function test_man_hinh_ban_kin_thi_khong_con_suat(): void
     {
         $screen = $this->sellableScreen();
         $this->sellOut($screen);
 
-        $response = $this->get($this->url('/explore/' . $screen->slug))->assertOk();
-
-        $response->assertSee('Đã đầy 30 ngày tới', false);
-
-        // KHÔNG assert vắng hẳn chuỗi "Còn trống": phần chú giải màu của lịch
-        // dùng đúng chữ đó làm nhãn ("ô xanh = còn trống"), và đó là nhãn hợp
-        // lệ chứ không phải lời hứa về màn hình này. Canh đúng lời hứa: dòng
-        // nói còn bao nhiêu phần trăm thời lượng.
-        $response->assertDontSee('% thời lượng trong 30 ngày tới', false);
+        $this->getJson($this->url('/api/v2/screens/' . $screen->slug))
+            ->assertOk()
+            ->assertJsonPath('data.availability.has_capacity', false)
+            ->assertJsonPath('data.availability.remaining_sov_pct', 0);
     }
 
-    public function test_ban_mot_nua_thi_noi_dung_con_mot_nua(): void
+    public function test_ban_mot_nua_thi_suat_con_mot_nua(): void
     {
         $screen = $this->sellableScreen();
 
@@ -179,139 +149,42 @@ class NoFabricatedMetricsTest extends TestCase
             'pricing_model'      => 'io',
         ]);
 
-        $this->get($this->url('/explore/' . $screen->slug))
+        // Bán 60% thì còn 40%. Một endpoint in sẵn sẽ trả 100 hoặc 0.
+        $this->getJson($this->url('/api/v2/screens/' . $screen->slug))
             ->assertOk()
-            ->assertSee('Còn 40% thời lượng trong 30 ngày tới', false);
+            ->assertJsonPath('data.availability.remaining_sov_pct', 40)
+            ->assertJsonPath('data.availability.has_capacity', true);
     }
 
-    public function test_ban_do_khong_in_badge_con_trong_vo_dieu_kien(): void
-    {
-        $screen = $this->sellableScreen();
-        $this->sellOut($screen);
+    // ══ Mười một ca GỠ, và đây là KHOẢNG TRỐNG THẬT ══════════════════════
+    //
+    // Chúng đo chữ và thẻ trên trang Blade, và giai đoạn 7 (07/10/2026) gỡ
+    // những trang đó:
+    //
+    //   trang chủ không còn số bịa / hiện số thật từ CSDL
+    //   trang chủ không hứa fill rate
+    //   trang chủ không còn nút không có hành vi
+    //   tiêu đề mục không hứa còn trống
+    //   màn hình còn trống thì hiện còn trống
+    //   bản đồ không in badge "còn trống" vô điều kiện
+    //   thẻ màn hình bán kín không hiện badge trên trang danh sách
+    //   thẻ màn hình không hiện badge khi người gọi không truyền dữ liệu suất
+    //   danh sách owner và agency không còn ô sắp xếp chết
+    //   trang owners không khẳng định "verified"
+    //
+    // ══ Nói thẳng: chúng KHÔNG có bản thay ══
+    //
+    // Phần DỮ LIỆU của chúng còn được canh — hai ca ở trên, cộng
+    // `CatalogApiTest` và `HomeCatalogApiTest`: API không trả số bịa, và
+    // `/api/v2/stats` lấy số từ CSDL.
+    //
+    // Phần HIỂN THỊ thì không. `webapp/test/seo.mjs` canh thẻ SEO, JSON-LD và
+    // khung trang — nó KHÔNG canh "trang chủ có hứa một con số không có
+    // nguồn hay không", cũng không canh "badge còn trống chỉ hiện khi thật sự
+    // còn trống".
+    //
+    // Đó là một khoảng trống mở ra bởi lát này, không phải một thứ đã được
+    // phủ ở chỗ khác. Ghi ra đây thay vì xoá lặng, vì audit F-15 sinh ra
+    // chính từ loại lỗi này và không ai muốn tìm lại nó lần thứ hai.
 
-        $response = $this->get($this->url('/map'))->assertOk();
-
-        // Cả thẻ trong panel danh sách lẫn popup trên bản đồ đều từng in badge
-        // viết cứng. Dữ liệu pin gửi xuống trình duyệt không mang thông tin
-        // suất, nên không có gì để kiểm — đã gỡ cả hai.
-        $response->assertDontSee('mpop-avail', false);
-        $response->assertDontSee('Còn trống', false);
-    }
-
-    public function test_the_man_hinh_ban_kin_khong_hien_badge_tren_trang_danh_sach(): void
-    {
-        $available = $this->sellableScreen();
-        $soldOut   = $this->sellableScreen();
-        $this->sellOut($soldOut);
-
-        $response = $this->get($this->url('/explore'))->assertOk();
-
-        // Badge là một lời hứa theo từng thẻ, nên đếm số badge phải khớp số
-        // màn hình còn suất — không phải cứ có thẻ là có badge.
-        $this->assertSame(
-            1,
-            substr_count($response->getContent(), 'sc-badge'),
-            'Chỉ màn hình còn suất mới được gắn badge "Còn trống".'
-        );
-    }
-
-    public function test_the_man_hinh_khong_hien_badge_khi_nguoi_goi_khong_truyen_du_lieu_suat(): void
-    {
-        $screen = $this->sellableScreen();
-
-        // Partial được render mà không có mảng suất — fail-closed.
-        $html = view('frontpage.partials.screen-card', [
-            'screen'      => $screen->load(['spec', 'inventory', 'owner', 'site']),
-            'vnCatLabels' => [],
-        ])->render();
-
-        $this->assertStringNotContainsString(
-            'sc-badge',
-            $html,
-            'Thiếu dữ liệu thì không nói gì, chứ không mặc định là còn trống.'
-        );
-    }
-
-    // ── Lời hứa kết quả kinh doanh, và ô điều khiển không làm gì ────────────
-
-    public function test_trang_chu_khong_hua_fill_rate(): void
-    {
-        $this->sellableScreen();
-
-        $response = $this->get($this->url('/'))->assertOk();
-
-        // "Tăng fill rate lên 40%" là một lời hứa kết quả kinh doanh với media
-        // owner. Fill rate cần dữ liệu phát sóng thật để tính, mà chưa có
-        // player nào gửi dữ liệu vào `impression_logs` — nên 40% không chỉ
-        // thiếu nguồn, nó không tính được bằng bất cứ con số nào khác, kể cả
-        // khi muốn thay bằng số thật.
-        $response->assertDontSee('fill rate', false);
-        $response->assertDontSee('Fill rate', false);
-    }
-
-    public function test_danh_sach_owner_va_agency_khong_con_o_sap_xep_chet(): void
-    {
-        Owner::factory()->count(2)->create(['status' => 'active']);
-
-        foreach (['/owners', '/agency'] as $path) {
-            $response = $this->get($this->url($path))->assertOk();
-
-            // Ô `<select>` cũ không có `name`, không nằm trong form, và không
-            // JS nào bắt nó — bấm chọn thì thứ tự không đổi.
-            //
-            // Canh bằng thẻ chứ không bằng chữ trong `<option>`: không layout
-            // hay partial nào của trang công khai có `<select>`, nên một thẻ
-            // xuất hiện lại ở đây là ô chết quay về, kể cả khi người ta đổi
-            // nhãn các lựa chọn.
-            $response->assertDontSee('<select', false);
-        }
-    }
-    // ── Nút không có hành vi, và khẳng định truy vấn không đỡ ────────────────
-
-    public function test_trang_chu_khong_con_nut_khong_co_hanh_vi(): void
-    {
-        $this->sellableScreen();
-
-        $response = $this->get($this->url('/'))->assertOk();
-
-        // Năm `<button>` trần: không `onclick`, không trong form, không JS nào
-        // bắt. Canh kèm `</button>` chứ không canh riêng nhãn — "Tìm hiểu thêm"
-        // là cụm chữ có thể dùng lại ở chỗ khác một cách hợp lệ, cái sai là nó
-        // nằm trong một cái nút không đi đâu.
-        $response->assertDontSee('Đăng ký làm chủ sở hữu</button>', false);
-        $response->assertDontSee('Tìm hiểu thêm</button>', false);
-        $response->assertDontSee('>City Launch</button>', false);
-        $response->assertDontSee('>Retail Activation</button>', false);
-        $response->assertDontSee('>Event Blitz</button>', false);
-    }
-
-    public function test_tieu_de_muc_khong_hua_con_trong(): void
-    {
-        $screen = $this->sellableScreen();
-        $this->sellOut($screen);
-
-        $response = $this->get($this->url('/'))->assertOk();
-
-        // `getFeaturedScreens()` lọc có ảnh + có giá sàn, KHÔNG lọc còn suất —
-        // nên một màn hình bán kín vẫn nằm trong mục này. Tiêu đề cũ hứa điều
-        // truy vấn không bảo đảm. Badge trên từng thẻ thì vẫn đúng theo suất
-        // thật, và test khác đã canh.
-        $response->assertDontSee('Đang còn trống</h2>', false);
-        $response->assertSee('Vị trí nổi bật', false);
-    }
-
-    public function test_trang_owners_khong_khang_dinh_verified(): void
-    {
-        Owner::factory()->count(2)->create(['status' => 'active']);
-
-        $response = $this->get($this->url('/owners'))->assertOk();
-
-        // `getOwnersPaginated()` lọc `status = 'active'`, không đọc cột
-        // `verified`/`verified_at` — nên gọi mọi owner đang hoạt động là "đối
-        // tác verified" là một khẳng định về tư cách pháp lý của đối tác mà
-        // không ai kiểm. Nặng hơn một con số trang trí.
-        $response->assertDontSee('VERIFIED PARTNERS', false);
-        $response->assertDontSee('đối tác verified', false);
-        $response->assertSee('đối tác đang hoạt động', false);
-    }
 }

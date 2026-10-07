@@ -106,23 +106,38 @@ class CurrencyHonestyTest extends TestCase
         $this->assertSame('VND', $screen->fresh('inventory')->inventory->display_currency);
     }
 
-    public function test_trang_chi_tiet_khong_in_dong_canh_so_usd(): void
+    // ── Đơn vị tiền phải đi KÈM con số qua API ──────────────────────────
+    //
+    // Hai ca dưới đây từng đo HTML của trang Blade `/explore/{slug}` và
+    // `/explore`. Giai đoạn 7 (07/10/2026) gỡ hai trang đó — Next.js phục vụ
+    // chúng, và nó lấy dữ liệu qua `/api/v2/screens`.
+    //
+    // Bất biến thì không đổi, và nó là bất biến quan trọng nhất của lớp này:
+    // một con số giá KHÔNG BAO GIỜ được đi một mình. `2.50` không có đơn vị
+    // thì bên hiển thị đoán, và đoán sai ở đây là hoá đơn lệch khoảng 25.000
+    // lần — đúng lỗi đã xảy ra ở nhánh CPM.
+    //
+    // Nên đo ở DTO: nếu `currency` biến mất khỏi payload thì mọi bên tiêu thụ
+    // mất đơn vị cùng lúc, không riêng một trang.
+
+    public function test_chi_tiet_man_hinh_tra_kem_don_vi_tien(): void
     {
         $screen = $this->cpmScreen(2.50, 'USD');
 
-        $response = $this->get($this->url('/explore/' . $screen->slug))->assertOk();
-
-        $response->assertSee('2,50 USD', false);
-        $response->assertDontSee('2 ₫', false);
+        $this->getJson($this->url('/api/v2/screens/' . $screen->slug))
+            ->assertOk()
+            ->assertJsonPath('data.pricing.floor_cpm.amount', 2.5)
+            ->assertJsonPath('data.pricing.floor_cpm.currency', 'USD');
     }
 
-    public function test_the_man_hinh_tren_danh_sach_in_dung_don_vi(): void
+    public function test_danh_sach_man_hinh_tra_kem_don_vi_tien(): void
     {
         $screen = $this->cpmScreen(2.50, 'USD');
 
-        $this->get($this->url('/explore'))
-            ->assertOk()
-            ->assertSee('USD', false);
+        $than = $this->getJson($this->url('/api/v2/screens'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('"currency":"USD"', $than);
+        $this->assertStringContainsString($screen->slug, $than);
     }
 
     public function test_san_pham_in_dung_don_vi_tien(): void

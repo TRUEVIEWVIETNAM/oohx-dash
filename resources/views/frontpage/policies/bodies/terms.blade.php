@@ -1,16 +1,17 @@
 {{--
-    PHẦN THÂN của trang chính sách — MỘT nguồn, hai nơi dùng.
+    PHẦN THÂN của một văn bản chính sách — NGUỒN DUY NHẤT.
 
-    Dùng bởi:
-      - `frontpage/policies/<ten>.blade.php` (trang Blade, bọc trong
-        `<x-policy-shell>`)
-      - `Api\V2\PublicContentController::policy()` (trả `body_html` cho app
-        Next.js)
+    Dùng bởi `Api\V2\PublicContentController::policy()`, trả `body_html` cho
+    app Next.js. Đó là bên tiêu thụ duy nhất còn lại.
 
-    Tách ra để văn bản pháp lý không có bản thứ hai. Nếu app Next chép lại nội
-    dung này thành component riêng thì hai bản sẽ trôi khỏi nhau — và với tài
-    liệu được đóng dấu phiên bản vào từng bản ghi đồng ý thì trôi nghĩa là mất
-    bằng chứng.
+    Trang Blade từng bọc partial này trong `<x-policy-shell>`; cả trang lẫn
+    component đã gỡ ở giai đoạn 7 (07/10/2026), vì Next phục vụ bốn đường dẫn
+    chính sách và giữ hai bản song song là giữ hai nơi có thể trôi khỏi nhau.
+
+    Văn bản ở lại Blade chứ không chuyển sang `webapp/`, và đó là chủ ý: nếu
+    app Next chép nội dung này thành component riêng thì có bản thứ hai — mà
+    với tài liệu được đóng dấu phiên bản vào từng bản ghi đồng ý, hai bản trôi
+    khỏi nhau nghĩa là mất bằng chứng.
 
     Đổi chữ ở đây thì bump `version` và đặt `effective_from` trong
     `config/policies.php` ở CÙNG commit. Luật đó neo vào file này.
@@ -58,13 +59,13 @@
 <h2>10. Cơ chế giải quyết tranh chấp, khiếu nại</h2>
 <p>
     Xem chi tiết tại
-    <a href="{{ route('fp.policy', 'giai-quyet-tranh-chap') }}">Cơ chế giải quyết tranh chấp, khiếu nại, phản ánh</a>.
+    <a href="{{ url('/giai-quyet-tranh-chap') }}">Cơ chế giải quyết tranh chấp, khiếu nại, phản ánh</a>.
 </p>
 
 <h2>11. Chính sách bảo vệ thông tin cá nhân</h2>
 <p>
     Xem chi tiết tại
-    <a href="{{ route('fp.policy', 'chinh-sach-bao-mat') }}">Chính sách bảo mật</a>.
+    <a href="{{ url('/chinh-sach-bao-mat') }}">Chính sách bảo mật</a>.
 </p>
 
 <h2>12. Điều khoản áp dụng</h2>

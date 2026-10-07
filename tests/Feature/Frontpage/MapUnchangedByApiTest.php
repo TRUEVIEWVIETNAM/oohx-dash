@@ -7,21 +7,30 @@ use App\Models\Screen;
 use App\Models\ScreenInventory;
 use App\Models\ScreenSpec;
 use App\Models\Site;
+use App\Services\FrontpageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 /**
- * Chống hồi quy cho trang bản đồ Blade sau khi `getMapPins()` nhận thêm tham
- * số khung nhìn và giới hạn.
+ * `getMapPins()` gọi KHÔNG khung nhìn phải trả về hết — bất biến giữ nguyên,
+ * chỗ đo thì đổi.
  *
- * `/api/v2/screens/map` **bắt buộc** có khung nhìn; trang Blade thì **không**
- * và phải giữ nguyên hành vi cũ. Hai yêu cầu trái nhau dùng chung một hàm, nên
- * nếu mặc định của hàm trôi về phía API thì trang bản đồ đang chạy sẽ âm thầm
- * mất pin — không lỗi, không cảnh báo, chỉ là ít màn hình hơn trước.
+ * `/api/v2/screens/map` **bắt buộc** có khung nhìn. Nếu mặc định của hàm trôi
+ * về phía API thì mọi bên gọi không-khung-nhìn âm thầm mất pin: không lỗi,
+ * không cảnh báo, chỉ là ít màn hình hơn trước.
  *
- * Trước đây không có test nào che trang này. "Tương thích ngược do cách viết"
- * là một lời hứa, không phải một phép kiểm.
+ * ══ Vì sao đo service chứ không đo trang ══
+ *
+ * Lớp này từng gọi `GET /map` của Blade. Giai đoạn 7 (07/10/2026) gỡ trang
+ * đó — Next.js phục vụ `/map`, và nó lấy dữ liệu qua `/api/v2/screens/pins`.
+ *
+ * Nhưng bất biến cần canh không nằm ở trang: nó nằm ở **giá trị mặc định của
+ * tham số** `$viewport`. Đo thẳng service là đo đúng chỗ nó có thể trôi, và
+ * không phụ thuộc vào việc đường dẫn nào đang do bên nào phục vụ.
+ *
+ * "Tương thích ngược do cách viết" là một lời hứa, không phải một phép kiểm.
  */
 class MapUnchangedByApiTest extends TestCase
 {
@@ -31,12 +40,6 @@ class MapUnchangedByApiTest extends TestCase
     {
         parent::setUp();
         Cache::flush();
-    }
-
-    /** Route trang công khai bị khoá theo domain, gọi đường dẫn trần sẽ 404. */
-    private function url(string $path = '/'): string
-    {
-        return 'http://' . config('domains.frontpage', 'oohx.net') . $path;
     }
 
     private function screenAt(float $lat, float $lon): Screen
@@ -69,26 +72,30 @@ class MapUnchangedByApiTest extends TestCase
         return $screen->fresh(['inventory', 'spec', 'site']);
     }
 
-    public function test_trang_ban_do_khong_doi_khung_nhin_va_van_lay_het_pin(): void
+    public function test_khong_khung_nhin_thi_lay_het_pin(): void
     {
         // Hai màn hình cách nhau hơn 1.000 km. Không khung nhìn mặc định nào
-        // trùm được cả hai, nên nếu trang bắt đầu áp khung nhìn thì một trong
-        // hai sẽ biến mất.
+        // trùm được cả hai, nên nếu hàm bắt đầu áp một khung nhìn thì một
+        // trong hai sẽ biến mất.
         $hanoi = $this->screenAt(21.02, 105.80);
         $hcm   = $this->screenAt(10.77, 106.70);
 
-        $response = $this->get($this->url('/map'))->assertOk();
+        $pins = app(FrontpageService::class)->getMapPins(new Request());
 
-        $response->assertSee($hanoi->slug, false);
-        $response->assertSee($hcm->slug, false);
+        $slugs = $pins->pluck('slug')->all();
+
+        $this->assertContains($hanoi->slug, $slugs, 'Pin Hà Nội biến mất khi gọi không khung nhìn.');
+        $this->assertContains($hcm->slug, $slugs, 'Pin TP.HCM biến mất khi gọi không khung nhìn.');
     }
 
-    public function test_trang_ban_do_khong_can_tham_so_nao(): void
+    public function test_goi_tran_khong_can_tham_so_nao(): void
     {
         $this->screenAt(21.02, 105.80);
 
-        // Gọi trần, đúng như người dùng bấm vào menu. Nếu hàm dùng chung bắt
-        // buộc khung nhìn thì đây là chỗ đổ trước tiên.
-        $this->get($this->url('/map'))->assertOk();
+        // Gọi với một Request rỗng — không khung nhìn, không giới hạn. Nếu hàm
+        // dùng chung bắt buộc khung nhìn thì đây là chỗ đổ trước tiên.
+        $pins = app(FrontpageService::class)->getMapPins(new Request());
+
+        $this->assertNotEmpty($pins, 'Gọi trần trả về rỗng — mặc định đã trôi về phía API.');
     }
 }

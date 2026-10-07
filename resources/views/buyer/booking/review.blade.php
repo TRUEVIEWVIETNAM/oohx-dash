@@ -121,9 +121,9 @@
                         <input type="checkbox" name="accept_terms" value="1" required>
                         <span>
                             Tôi đã đọc và đồng ý với
-                            <a href="{{ route('fp.policy', 'quy-che-hoat-dong') }}" target="_blank" rel="noopener">Quy chế hoạt động</a>
+                            <a href="{{ url('/quy-che-hoat-dong') }}" target="_blank" rel="noopener">Quy chế hoạt động</a>
                             và
-                            <a href="{{ route('fp.policy', 'chinh-sach-bao-mat') }}" target="_blank" rel="noopener">Chính sách bảo mật</a>
+                            <a href="{{ url('/chinh-sach-bao-mat') }}" target="_blank" rel="noopener">Chính sách bảo mật</a>
                         </span>
                     </label>
                     <button type="submit" class="btn btn-p" style="width:100%;justify-content:center;border-radius:10px;height:48px;font-size:15px">

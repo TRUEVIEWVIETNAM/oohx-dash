@@ -12,9 +12,6 @@ use App\Http\Controllers\Buyer\OwnerReviewController;
 use App\Http\Controllers\Buyer\PaymentController;
 use App\Http\Controllers\CreativeFileController;
 use App\Http\Controllers\InvitationController;
-use App\Http\Controllers\PolicyController;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\PublicReflectionController;
 use App\Http\Controllers\FrontpageController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Cache;
@@ -41,37 +38,38 @@ Route::domain($fpDomain)->group(function () {
     // Sitemap
     Route::get('/sitemap.xml',        [SitemapController::class, 'index'])->name('sitemap');
 
-    // Public pages
-    Route::get('/',                   [FrontpageController::class, 'index'])->name('fp.index');
-    Route::get('/explore',            [FrontpageController::class, 'listing'])->name('fp.listing');
-    Route::get('/explore/{screen}',   [FrontpageController::class, 'detail'])->name('fp.detail');
-    Route::get('/map',                [FrontpageController::class, 'map'])->name('fp.map');
-    Route::get('/agency',             [FrontpageController::class, 'agency'])->name('fp.agency');
-    Route::get('/owners',             [FrontpageController::class, 'owners'])->name('fp.owners');
-    Route::get('/owners/{owner}',     [FrontpageController::class, 'ownerDetail'])->name('fp.owner-detail');
+    // ── Trang công khai còn lại trên Blade ──────────────────────────────
+    //
+    // Chỉ còn MỘT. Giai đoạn 7 (07/10/2026) gỡ `/`, `/explore`,
+    // `/explore/{screen}`, `/map`, `/owners`, `/owners/{owner}`,
+    // `/products`, `/products/{slug}`, bốn trang chính sách và hai trang
+    // phản ánh — Next.js phục vụ chúng từ giai đoạn 6.
+    //
+    // `/agency` ở lại vì nó CHƯA được chuyển: không có context nào cho nó
+    // trong `nextjs.conf`, không có trang nào cho nó trong `webapp/`.
+    //
+    // ══ Vì sao gỡ hẳn, không giữ làm đường lùi ══
+    //
+    // Đường lùi "xoá nextjs.conf là mọi thứ về Blade" mất đi từ đây, và đó là
+    // một đánh đổi được chọn chứ không phải bỏ sót. Giữ hai bản song song
+    // nghĩa là giữ hai nơi có thể trôi khỏi nhau, và bản Blade đã trôi thật:
+    // nó còn phát `'price' => 0` trong JSON-LD cho màn hình chưa niêm yết giá
+    // (schema.org đọc là MIỄN PHÍ) và 8 liên kết `href="#"` ở chân trang. Một
+    // đường lùi mang lỗi không phải một đường lùi.
+    Route::get('/agency', [FrontpageController::class, 'agency'])->name('fp.agency');
 
-    // Products (new marketplace listing)
-    Route::get('/products',           [ProductController::class, 'index'])->name('fp.products');
-    Route::get('/products/{slug}',    [ProductController::class, 'show'])->name('fp.product-detail');
-
-    // ── Trang chính sách bắt buộc của sàn TMĐT ──
-    // Ràng buộc whereIn để route này chỉ nhận đúng các slug đã khai trong config,
-    // không nuốt mọi đường dẫn một cấp còn lại.
-    Route::get('/{slug}', [PolicyController::class, 'show'])
-        ->whereIn('slug', array_keys(config('policies.pages')))
-        ->name('fp.policy');
-
-    // ── Tiếp nhận phản ánh của tổ chức xã hội ──
-    Route::get('/phan-anh-to-chuc-xa-hoi',           [PublicReflectionController::class, 'create'])->name('fp.reflections.create');
-    Route::post('/phan-anh-to-chuc-xa-hoi',          [PublicReflectionController::class, 'store'])->name('fp.reflections.store')->middleware('throttle:5,60');
-    Route::get('/phan-anh-to-chuc-xa-hoi/danh-sach', [PublicReflectionController::class, 'index'])->name('fp.reflections.index');
-
-    // ── Buyer auth (no guest middleware — accessible always) ──
-    Route::get('/login',              [BuyerAuthController::class, 'showLogin'])->name('login');
-    Route::post('/login',             [BuyerAuthController::class, 'login'])->middleware('throttle:login');
-    Route::get('/register',           [BuyerAuthController::class, 'showRegister'])->name('buyer.register');
-    Route::post('/register',          [BuyerAuthController::class, 'register']);
-    Route::post('/logout',            [BuyerAuthController::class, 'logout'])->name('buyer.logout')->middleware('auth');
+    // ── Buyer auth ──────────────────────────────────────────────────────
+    //
+    // Chỉ còn `logout`. `/login` và `/register` do Next phục vụ, và biểu mẫu
+    // của chúng gửi sang `/api/v2/auth/*`.
+    //
+    // `logout` ở lại vì nó là POST từ khu người mua trên Blade (`/my/*`), và
+    // khu đó chưa chuyển — giai đoạn 8 đang hoãn.
+    //
+    // Route tên `login` biến mất theo, nên `bootstrap/app.php` phải chỉ đích
+    // danh đường dẫn cho khách chưa đăng nhập; không thì mọi khách vào `/my`
+    // nhận `RouteNotFoundException` thay vì trang đăng nhập.
+    Route::post('/logout', [BuyerAuthController::class, 'logout'])->name('buyer.logout')->middleware('auth');
 
     // ── Save/Bookmark (auth required) ──
     Route::post('/save/{screen}', function (\Illuminate\Http\Request $request, string $screen) {

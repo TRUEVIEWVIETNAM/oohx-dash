@@ -38,106 +38,30 @@ class PublicReflectionTest extends TestCase
 
     // ── Tiếp nhận ────────────────────────────────────────────────────────────
 
-    public function test_gui_phan_anh_thi_duoc_ghi_nhan_va_tra_ma_tra_cuu(): void
-    {
-        $response = $this->post('http://' . $this->domain() . '/phan-anh-to-chuc-xa-hoi', $this->payload());
-
-        $response->assertRedirect();
-        $response->assertSessionHas('reflection_code');
-
-        $this->assertDatabaseHas('public_reflections', [
-            'organization_name' => 'Hội Bảo vệ người tiêu dùng TP. Hà Nội',
-            'status'            => PublicReflection::STATUS_PENDING,
-        ]);
-    }
-
-    public function test_phan_anh_moi_khong_tu_dong_len_trang_cong_khai(): void
-    {
-        $this->post('http://' . $this->domain() . '/phan-anh-to-chuc-xa-hoi', $this->payload());
-
-        $reflection = PublicReflection::first();
-
-        $this->assertNull(
-            $reflection->published_at,
-            'form công khai mà tự xuất bản là cửa ngỏ cho spam và nội dung bôi nhọ'
-        );
-        $this->assertSame(0, PublicReflection::published()->count());
-    }
-
-    public function test_thieu_email_lien_he_thi_khong_nhan(): void
-    {
-        $response = $this->post(
-            'http://' . $this->domain() . '/phan-anh-to-chuc-xa-hoi',
-            $this->payload(['contact_email' => ''])
-        );
-
-        $response->assertSessionHasErrors('contact_email');
-        $this->assertSame(0, PublicReflection::count());
-    }
-
-    public function test_noi_dung_qua_ngan_thi_khong_nhan(): void
-    {
-        $response = $this->post(
-            'http://' . $this->domain() . '/phan-anh-to-chuc-xa-hoi',
-            $this->payload(['content' => 'ngắn'])
-        );
-
-        $response->assertSessionHasErrors('content');
-    }
-
-    public function test_bot_dien_vao_bay_spam_thi_bi_tu_choi(): void
-    {
-        $response = $this->post(
-            'http://' . $this->domain() . '/phan-anh-to-chuc-xa-hoi',
-            $this->payload(['website' => 'http://spam.example'])
-        );
-
-        $response->assertSessionHasErrors('website');
-        $this->assertSame(0, PublicReflection::count());
-    }
-
-    // ── Công bố: ranh giới dữ liệu ───────────────────────────────────────────
-
-    public function test_danh_sach_cong_khai_chi_hien_phan_anh_da_duoc_dang(): void
-    {
-        $hidden = app(PublicReflectionService::class)->record($this->payload(['subject' => 'Chưa duyệt đăng']));
-        $shown  = app(PublicReflectionService::class)->record($this->payload(['subject' => 'Đã duyệt đăng']));
-        $shown->update(['published_at' => now()]);
-
-        $response = $this->get('http://' . $this->domain() . '/phan-anh-to-chuc-xa-hoi/danh-sach');
-
-        $response->assertOk();
-        $response->assertSee('Đã duyệt đăng');
-        $response->assertDontSee('Chưa duyệt đăng');
-    }
-
-    public function test_trang_cong_khai_khong_lo_email_va_dien_thoai_nguoi_gui(): void
-    {
-        $reflection = app(PublicReflectionService::class)->record($this->payload());
-        $reflection->update(['published_at' => now()]);
-
-        $response = $this->get('http://' . $this->domain() . '/phan-anh-to-chuc-xa-hoi/danh-sach');
-
-        $response->assertOk();
-        $response->assertDontSee('nguoigui@example.org');
-        $response->assertDontSee('0900000000');
-        $response->assertDontSee('Nguyễn Văn A');
-    }
-
-    public function test_ghi_chu_noi_bo_khong_bao_gio_ra_trang_cong_khai(): void
-    {
-        $reflection = app(PublicReflectionService::class)->record($this->payload());
-        $reflection->update([
-            'published_at'   => now(),
-            'internal_notes' => 'BÍ MẬT NỘI BỘ không được lộ',
-            'resolution'     => 'Đã rà soát và điều chỉnh thông tin.',
-        ]);
-
-        $response = $this->get('http://' . $this->domain() . '/phan-anh-to-chuc-xa-hoi/danh-sach');
-
-        $response->assertDontSee('BÍ MẬT NỘI BỘ không được lộ');
-        $response->assertSee('Đã rà soát và điều chỉnh thông tin.');
-    }
+    // ── Tám ca qua biểu mẫu Blade: GỠ, đã có bản thay ở API ─────────────
+    //
+    // Chúng gọi `GET/POST /phan-anh-to-chuc-xa-hoi` và
+    // `GET /phan-anh-to-chuc-xa-hoi/danh-sach` của Blade. Giai đoạn 7
+    // (07/10/2026) gỡ hai trang đó — Next.js phục vụ chúng, và biểu mẫu gửi
+    // sang `/api/v2/reflections`.
+    //
+    // Đây KHÔNG phải mất coverage: `Api\V2\PublicContentApiTest` phủ đúng
+    // từng bảo đảm, và phủ ở nơi lưu lượng thật đi qua:
+    //
+    //   gửi được, trả mã tra cứu      → test_gui_duoc_va_tra_ve_ma_tra_cuu
+    //   bản ghi mới chưa công bố      → test_ban_ghi_moi_chua_duoc_cong_bo
+    //   thiếu email thì không nhận    → test_thieu_email_lien_he_thi_khong_nhan
+    //   nội dung quá ngắn             → test_noi_dung_qua_ngan_bi_tu_choi_...
+    //   bẫy mật chặn bot              → test_bay_mat_chan_duoc_bot_qua_api
+    //   chỉ hiện bản đã công bố       → test_chi_tra_phan_anh_da_cong_bo
+    //   không lộ email/điện thoại     → test_khong_bao_gio_lo_du_lieu_ca_nhan_...
+    //   ghi chú nội bộ không ra ngoài → cùng ca trên
+    //
+    // Bộ luật kiểm thì vốn đã dùng chung: `StorePublicReflectionRequest` phục
+    // vụ cả hai đường vào, nên không có bộ luật thứ hai nào mất theo trang.
+    //
+    // Hai ca còn lại trong lớp này ở mức MODEL, không qua HTTP, nên chúng
+    // không phụ thuộc đường dẫn nào.
 
     public function test_serialize_model_khong_kem_du_lieu_ca_nhan(): void
     {
