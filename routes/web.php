@@ -13,6 +13,7 @@ use App\Http\Controllers\Buyer\PaymentController;
 use App\Http\Controllers\CreativeFileController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\SitemapController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
@@ -40,7 +41,11 @@ Route::domain($fpDomain)->group(function () {
     // ── Không còn trang công khai nào trên Blade ────────────────────────
     //
     // Giai đoạn 7 xong 07/10/2026. Next.js phục vụ cả 14 đường công khai;
-    // Laravel ở nhóm này chỉ còn sinh `sitemap.xml` và `robots.txt`.
+    // Laravel ở nhóm này chỉ còn sinh `sitemap.xml`.
+    //
+    // `robots.txt` thì KHÔNG phải route — nó là file tĩnh ở `public/robots.txt`
+    // và OpenLiteSpeed phục vụ trực tiếp. Chú thích cũ gộp nó với `sitemap.xml`,
+    // nên ai đi tìm route cho nó sẽ không tìm thấy gì và tưởng là bị sót.
     //
     // `frontpage/layouts/app.blade.php` và các partial khung VẪN Ở LẠI, và
     // đó không phải sót: khu người mua (`/my`, `/cart`, `/booking/*`) còn là
@@ -157,7 +162,88 @@ Route::get('/geocode/search', function () {
     );
 })->middleware('throttle:geocode');
 
-// ── Fallback: nếu không match domain nào (www.oohx.net, IP, etc.)
-Route::fallback(function () {
-    return redirect('https://' . config('domains.frontpage', 'oohx.net'));
+// ── Fallback ────────────────────────────────────────────────────────────────
+//
+// Bản trước chuyển hướng MỌI đường không khớp về trang chủ:
+//
+//     Route::fallback(fn () => redirect('https://' . config('domains.frontpage')));
+//
+// Chú thích của nó nói mục đích là "không match domain nào (www.oohx.net, IP)".
+// Nhưng `fallback` không phân biệt được hai chuyện khác hẳn nhau:
+//
+//   1. Host lạ — mọi route của site đều nằm trong `Route::domain()`, nên không
+//      cái nào khớp và đường dẫn nào cũng rơi xuống đây. Chuyển hướng là ĐÚNG.
+//   2. Host đúng, đường dẫn không tồn tại. Chuyển hướng là SAI: Google đọc
+//      302-về-trang-chủ như một "soft 404" và giữ URL chết trong chỉ mục thay
+//      vì bỏ nó đi.
+//
+// Sau giai đoạn 6–7 trường hợp 2 nặng hơn hẳn: Laravel không còn route công
+// khai nào, nên mọi đường proxy không nhận đều rơi xuống đây. Đo trên
+// production 07/10/2026: `/gioi-thieu`, `/lien-he`, `/blog/bai-1` đều ra 302
+// về `/`.
+//
+// Và nó không chỉ là chuyện SEO. `/api/*` không khoá theo domain nhưng đường
+// SAI vẫn rơi xuống fallback, nên `/api/v1/khong-ton-tai` trả **302 sang một
+// trang HTML**. Một client đối tác bật `followRedirects` — mặc định ở phần lớn
+// thư viện HTTP — nhận 200 kèm HTML trang chủ và có thể đọc đó là thành công.
+// Gõ sai tên endpoint mà được báo "ổn" là kiểu lỗi im lặng tệ nhất.
+Route::fallback(function (Request $request) {
+    // ── API xét TRƯỚC host ─────────────────────────────────────────────────
+    //
+    // Thứ tự này có chủ ý. `/api/*` không nằm trong `Route::domain()`, nên một
+    // đường API ĐÚNG khớp route thật và không bao giờ tới được fallback — thứ
+    // tới đây luôn là đường SAI. Với một đường sai thì câu trả lời hữu ích là
+    // "endpoint này không tồn tại", kể cả khi người gọi đồng thời dùng sai
+    // host. Xét host trước thì họ nhận một chuyển hướng sang HTML và mất hẳn
+    // thông tin đó.
+    if ($request->is('api/v1/*')) {
+        // Trả thẳng ở đây, KHÔNG thêm renderer cho `api/v1/*` trong
+        // `bootstrap/app.php`. Một renderer ở đó sẽ bắt mọi 404 của v1, kể cả
+        // `abort(404)` bên trong controller — tức đổi hình dạng lỗi của những
+        // endpoint đối tác đang gọi thật. Ở đây phạm vi đúng bằng "đường dẫn
+        // không khớp route nào", và không đường nào trong hợp đồng v1 rơi vào
+        // đó được.
+        //
+        // Hai khoá `error` + `message`, giống `invalid_client` và `unauthorized`
+        // của v1. KHÔNG thêm `code`/`details` — đó là envelope của v2.
+        return response()->json([
+            'error'   => 'not_found',
+            'message' => 'Endpoint không tồn tại.',
+        ], 404);
+    }
+
+    if ($request->is('api/*')) {
+        // `/api/v2/*` tự ra đúng envelope `{error, message, code, details}`:
+        // khối `HttpExceptionInterface` trong `bootstrap/app.php` đã bắt sẵn.
+        // Nên ở đây không viết lại định dạng đó lần thứ hai — hai bản của một
+        // định dạng là hai bản sẽ trôi khỏi nhau.
+        abort(404);
+    }
+
+    // ── Host lạ: đưa về tên miền chính, GIỮ NGUYÊN đường dẫn ────────────────
+    //
+    // Bản trước vứt đường dẫn đi, nên ai mở `<ip>/explore` cũng rơi về trang
+    // chủ. Giữ lại thì họ tới đúng trang; còn nếu đường đó cũng không tồn tại
+    // thì họ nhận 404 thật ở nhánh dưới — vẫn đúng hơn một trang chủ im lặng.
+    //
+    // Không có nguy cơ chuyển hướng ra ngoài: đích luôn ghép từ hằng số tên
+    // miền trong config, phần lấy từ request chỉ nằm SAU dấu `/` đầu tiên.
+    // `ltrim` gộp mọi dấu `/` thừa nên `//evil.example` thành
+    // `https://oohx.net/evil.example` — một đường dẫn trên chính site này.
+    //
+    // `$chinh !== ''` không phải phép kiểm thừa: nếu `FRONTPAGE_DOMAIN` bị đặt
+    // rỗng thì `config()` trả chuỗi rỗng (giá trị mặc định chỉ dùng khi KHÔNG
+    // có khoá), mọi host thành "lạ", và đích `https:///...` tạo một vòng
+    // chuyển hướng vô tận. Một 404 ở cấu hình sai thì còn gỡ được.
+    $chinh = (string) config('domains.frontpage', 'oohx.net');
+    $biet  = array_filter([$chinh, (string) config('domains.dash')]);
+
+    if ($chinh !== '' && ! in_array($request->getHost(), $biet, true)) {
+        return redirect()->away(
+            'https://' . $chinh . '/' . ltrim($request->getRequestUri(), '/')
+        );
+    }
+
+    // ── Host đúng, đường dẫn chết: 404 thật ────────────────────────────────
+    abort(404);
 });
