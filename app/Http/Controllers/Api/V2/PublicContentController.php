@@ -185,6 +185,15 @@ class PublicContentController extends Controller
                 'subject'           => $row->subject,
                 'content'           => $row->content,
                 'status'            => $row->status,
+
+                // Nhãn đi kèm mã, không để bên tiêu thụ tự tra.
+                //
+                // Bốn nhãn này là từ vựng nghiệp vụ và chúng nằm ở
+                // `PublicReflection::STATUS_LABELS`. Nếu API chỉ trả mã thì mỗi
+                // bên tiêu thụ phải chép bảng tra của riêng mình — Blade một
+                // bản, Next một bản — và khi thêm một trạng thái, bản nào quên
+                // sửa sẽ hiện mã thô ra cho người đọc.
+                'status_label'      => $row->statusLabel(),
                 'resolution'        => $row->resolution,
                 'received_at'       => $row->received_at?->toIso8601String(),
                 'resolved_at'       => $row->resolved_at?->toIso8601String(),

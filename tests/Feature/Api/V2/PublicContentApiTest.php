@@ -268,6 +268,26 @@ class PublicContentApiTest extends TestCase
         }
     }
 
+    public function test_tra_nhan_trang_thai_kem_ma(): void
+    {
+        foreach (array_keys(PublicReflection::STATUS_LABELS) as $trang_thai) {
+            PublicReflection::query()->delete();
+            $this->reflection(['published_at' => now(), 'status' => $trang_thai]);
+
+            // Nhãn phải tới từ API, không để bên tiêu thụ tự tra. Blade dùng
+            // `statusLabel()`; nếu Next phải chép bảng tra của riêng nó thì
+            // thêm một trạng thái sẽ làm một trong hai bên hiện mã thô ra cho
+            // người đọc — và không gì báo.
+            $this->getJson('/api/v2/reflections')
+                ->assertOk()
+                ->assertJsonPath('data.0.status', $trang_thai)
+                ->assertJsonPath(
+                    'data.0.status_label',
+                    PublicReflection::STATUS_LABELS[$trang_thai],
+                );
+        }
+    }
+
     public function test_phan_trang_co_gioi_han_cung(): void
     {
         $this->reflection(['published_at' => now()]);

@@ -77,6 +77,12 @@ const TRANG = [
     // ra từ dữ liệu API, không từ một danh sách viết cứng trong `webapp/`.
     { path: '/da-ban-hanh', ogType: 'article', banNhap: false },
     { path: '/ban-nhap', ogType: 'article', banNhap: true },
+
+    // Hai trang phản ánh. Trang gửi là Server Component bọc một biểu mẫu
+    // client — nếu ai lỡ đánh dấu cả trang là client thì thẻ SEO biến mất
+    // khỏi HTML máy chủ phát ra, và phép kiểm này đỏ.
+    { path: '/phan-anh-to-chuc-xa-hoi', ogType: 'website', bieuMau: true },
+    { path: '/phan-anh-to-chuc-xa-hoi/danh-sach', ogType: 'website', danhSachPhanAnh: true },
 ];
 
 const loi = [];
@@ -231,6 +237,57 @@ async function kiemTrang(base, trang) {
         // `version` tồn tại, và nó được đóng dấu vào từng bản ghi đồng ý.
         if (!html.includes('class="pol-meta"')) {
             bao(trang.path, 'thiếu khối phiên bản');
+        }
+    }
+
+    // ── Trang gửi phản ánh ──
+    if (trang.bieuMau) {
+        // Bẫy mật phải CÓ trong DOM. Thiếu nó thì bộ luật dùng chung với
+        // Blade (`website => prohibited`) vẫn chạy, nhưng bot không có gì để
+        // điền nên bẫy không bắt được ai — hỏng im lặng.
+        if (!/name="website"/.test(html)) {
+            bao(trang.path, 'thiếu trường bẫy mật website');
+        }
+
+        if (!html.includes('class="pol-hp"')) {
+            bao(trang.path, 'bẫy mật không nằm trong .pol-hp — người thật sẽ thấy nó');
+        }
+
+        // Phần đọc được phải có trong HTML máy chủ phát ra, không chờ JS.
+        for (const can of ['class="pol-h1"', 'class="pol-lead"', 'name="contact_email"', 'name="content"']) {
+            if (!html.includes(can)) {
+                bao(trang.path, `thiếu ${can} trong HTML máy chủ phát ra`);
+            }
+        }
+    }
+
+    // ── Danh sách phản ánh ──
+    if (trang.danhSachPhanAnh) {
+        // Nhãn trạng thái phải là chữ, không phải mã thô. Hiện `in_review`
+        // ra cho người đọc là dấu hiệu bên tiêu thụ tự tra bảng và tra thiếu.
+        for (const nhan of ['Đã xử lý', 'Đang xem xét']) {
+            if (!html.includes(nhan)) {
+                bao(trang.path, `thiếu nhãn trạng thái "${nhan}"`);
+            }
+        }
+
+        if (/>in_review</.test(html) || />resolved</.test(html)) {
+            bao(trang.path, 'hiện mã trạng thái thô thay vì nhãn');
+        }
+
+        // Khối kết quả xử lý: CÓ ở bản đã xử lý, KHÔNG ở bản đang xem xét.
+        // Chỉ canh một chiều thì một trang luôn hiện khối đó vẫn qua được.
+        const soKhoiKetQua = (html.match(/class="rfl-res"/g) || []).length;
+
+        if (soKhoiKetQua !== 1) {
+            bao(trang.path, `có ${soKhoiKetQua} khối kết quả xử lý, cần đúng 1`);
+        }
+
+        // Ngày theo giờ Việt Nam. Mốc 01/10 03:00 UTC là 10:00 ngày 01/10 ở
+        // Việt Nam — nếu máy chủ chạy UTC mà không ghim múi giờ thì vẫn ra
+        // 01/10, nên mốc thứ hai (03/10 09:30 UTC) mới là mốc phân biệt.
+        if (!html.includes('03/10/2026')) {
+            bao(trang.path, 'ngày xử lý không ra 03/10/2026 — kiểm múi giờ');
         }
     }
 

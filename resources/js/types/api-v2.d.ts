@@ -901,6 +901,16 @@ export interface paths {
                                 subject?: string | null;
                                 content?: string | null;
                                 status?: string | null;
+                                /**
+                                 * @description Nhãn tiếng Việt của `status`, lấy từ
+                                 *     `PublicReflection::STATUS_LABELS`.
+                                 *
+                                 *     Có mặt ở đây để bên tiêu thụ **không** phải chép
+                                 *     bảng tra của riêng mình. Thêm một trạng thái mà bên
+                                 *     nào quên sửa bảng thì bên đó hiện mã thô ra cho
+                                 *     người đọc — đúng loại lệch im lặng khó thấy.
+                                 */
+                                status_label?: string | null;
                                 resolution?: string | null;
                                 /** Format: date-time */
                                 received_at?: string | null;
