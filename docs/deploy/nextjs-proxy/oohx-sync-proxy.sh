@@ -70,7 +70,14 @@
 #
 set -e
 
-VERSION=4
+# v5 = v4 (bỏ qua thư mục rewrite) + bỏ /login,/register khỏi danh sách cấm.
+#
+# Hai thay đổi đó làm trên hai nhánh song song và CẢ HAI đặt VERSION=4. Git
+# gộp im lặng vì hai dòng giống hệt nhau — nhưng số phiên bản khi ấy không còn
+# phân biệt được hai bản khác nhau, tức phép cảnh báo lệch của deploy.sh mất
+# tác dụng đúng lúc cần nhất. Nhảy lên 5 cho một bản gộp là rẻ hơn nhiều so
+# với một con số nói dối.
+VERSION=5
 
 # In số phiên bản rồi thoát — `deploy.sh` dùng cái này để so với bản trong repo.
 # Không cần quyền gì, nên để trước mọi phép kiểm khác.
