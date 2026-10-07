@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V2\BookingController as V2BookingController;
+use App\Http\Controllers\Api\V2\BuyerAuthController as V2BuyerAuthController;
 use App\Http\Controllers\Api\V2\CartController as V2CartController;
 use App\Http\Controllers\Api\V2\CatalogController as V2CatalogController;
 use App\Http\Controllers\Api\V2\MeController;
@@ -204,4 +205,42 @@ Route::prefix('v2')
         // — một script gọi liên tục với mã khác nhau mỗi lần.
         Route::post('campaigns/{campaign}/payments', [V2PaymentController::class, 'store'])
             ->middleware('throttle:10,1');
+    });
+
+// ── /api/v2/auth — đăng nhập, đăng ký, đăng xuất cho app Next.js ───────────
+//
+// ══ Vì sao nhóm RIÊNG, không gộp vào nhóm công khai ══
+//
+// Nhóm này mang `EnsureFrontendRequestsAreStateful`: nó TẠO PHIÊN, nên nó cần
+// middleware phiên và CSRF. Nhóm công khai (`screens`, `reflections`) thì
+// không — chúng không tạo phiên, và bắt chúng đi qua CSRF là buộc biểu mẫu
+// phản ánh phải lấy cookie trước khi gửi, đổi lại không được gì.
+//
+// Nhưng nó KHÔNG mang `auth:sanctum`: người đang đăng nhập thì cần gì đăng
+// nhập nữa. `logout` thì ngược lại, nên nó nằm ở nhóm dưới.
+//
+// ══ `throttle:login` ══
+//
+// Cùng hạn mức với đường Blade, và nó đếm theo HAI khóa: theo IP, và theo
+// `email|IP`. Chỉ đếm theo IP thì một văn phòng chung IP tự chặn nhau; chỉ đếm
+// theo email thì một script đổi email mỗi lần không bị chặn gì.
+Route::prefix('v2/auth')
+    ->middleware([\Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class])
+    ->group(function () {
+        Route::post('login', [V2BuyerAuthController::class, 'login'])
+            ->middleware('throttle:login');
+
+        // Đăng ký cũng chặt: nó là đường TẠO bản ghi, mở cho người lạ, và mỗi
+        // lần gọi tạo một người dùng cộng một tổ chức.
+        Route::post('register', [V2BuyerAuthController::class, 'register'])
+            ->middleware('throttle:login');
+    });
+
+Route::prefix('v2/auth')
+    ->middleware([
+        \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        'auth:sanctum',
+    ])
+    ->group(function () {
+        Route::post('logout', [V2BuyerAuthController::class, 'logout']);
     });

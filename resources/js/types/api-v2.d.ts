@@ -734,6 +734,201 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Đăng nhập người mua (phiên, không phải token)
+         * @description Đặt **cookie phiên Laravel** — đúng cookie mà khu người mua trên Blade
+         *     (`/my/*`) dùng. Nên người dùng đăng nhập ở app Next rồi đi tiếp vào
+         *     Blade mà không phải đăng nhập lại.
+         *
+         *     **Cần CSRF.** Nhóm này mang `EnsureFrontendRequestsAreStateful`, vì nó
+         *     tạo phiên — một endpoint tạo phiên mà không có CSRF là một endpoint
+         *     người khác đăng nhập hộ được. Trình tự:
+         *
+         *     1. `GET /sanctum/csrf-cookie` → Laravel đặt cookie `XSRF-TOKEN`;
+         *     2. POST kèm header `X-XSRF-TOKEN` mang **giá trị đã giải mã** của cookie
+         *        đó. Gửi nguyên văn (còn URL-encode) thì nhận **419**.
+         *
+         *     Hạn mức `throttle:login`: 5 lần/phút theo IP **và** 5 lần/phút theo
+         *     `email|IP`. Chỉ đếm theo IP thì một văn phòng chung IP tự chặn nhau;
+         *     chỉ đếm theo email thì một script đổi email mỗi lần không bị chặn gì.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: email */
+                        email: string;
+                        password: string;
+                        remember?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đăng nhập thành công, cookie phiên đã được đặt */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["AuthUser"];
+                        };
+                    };
+                };
+                /**
+                 * @description Sai thông tin đăng nhập.
+                 *
+                 *     MỘT thông điệp cho cả hai trường hợp sai — nói "email không tồn
+                 *     tại" là cho người lạ một cách dò xem địa chỉ nào có tài khoản.
+                 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                422: components["responses"]["ValidationFailed"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tạo tài khoản người mua
+         * @description Tạo người dùng, vai trò `buyer`, tổ chức, liên kết người dùng ↔ tổ
+         *     chức, và **bản ghi chấp thuận chính sách** — trong MỘT giao dịch. Hoặc
+         *     có cả tài khoản lẫn bằng chứng chấp thuận, hoặc không có gì.
+         *
+         *     Bản ghi chấp thuận đóng dấu `version` của chính sách tại thời điểm đăng
+         *     ký, nên nó là bằng chứng người dùng đã đồng ý với **đúng chữ nào**.
+         *
+         *     Dùng chung `BuyerRegistrationService` và `RegisterBuyerRequest` với
+         *     trang Blade. Cần CSRF như `/login`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        /** Format: email */
+                        email: string;
+                        password: string;
+                        password_confirmation: string;
+                        organization_name: string;
+                        /** @enum {string} */
+                        organization_type: "agency" | "client" | "brand";
+                        /**
+                         * @description Luật là `accepted`, không phải `required`: `false` là một
+                         *     giá trị "có mặt", nên `required` sẽ cho qua một người chưa
+                         *     đồng ý.
+                         */
+                        accept_privacy: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã tạo tài khoản và đăng nhập */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["AuthUser"];
+                        };
+                    };
+                };
+                422: components["responses"]["ValidationFailed"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Đăng xuất
+         * @description Huỷ phiên và cấp lại token CSRF. Cần đã đăng nhập.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                message?: string;
+                            };
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/policies": {
         parameters: {
             query?: never;
@@ -1980,6 +2175,19 @@ export interface components {
             total: number;
             last_page: number;
             max_per_page: number;
+        };
+        /**
+         * @description Danh sách trắng, không phải model. `User` có `password`,
+         *     `remember_token`, và quan hệ tới tổ chức kèm `billing_info`/`tax_code`.
+         */
+        AuthUser: {
+            name: string | null;
+            email: string | null;
+            /**
+             * @description Đủ để app biết nên đưa người dùng đi đâu: có tổ chức thì vào khu
+             *     người mua, chưa có thì đi bước tạo tổ chức.
+             */
+            has_organization: boolean;
         };
         /** @description Định dạng lỗi thống nhất cho mọi endpoint v2. */
         Error: {

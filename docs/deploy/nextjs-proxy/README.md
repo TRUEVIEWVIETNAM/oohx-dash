@@ -45,6 +45,8 @@ Hai cột khác nhau, và đừng đọc gộp: **dựng** là trang Next đã c
 | `/products`, `/products/{slug}` | xong | có | **có** |
 | `/map` | xong | có | **có** (06/10/2026) |
 | 4 trang chính sách | xong | có | **có** (06/10/2026) |
+| 2 trang phản ánh TCXH | xong | có | chờ deploy |
+| `/login`, `/register` | xong | có | chờ deploy |
 | `/` (trang chủ) | xong | luật rewrite | **có** (07/10/2026) |
 
 Trang chủ không mở bằng `context` mà bằng một luật rewrite khớp đúng một đường dẫn — xem mục "Trang chủ: luật rewrite, không phải `context`" dưới đây.
@@ -167,6 +169,26 @@ trông gần giống luật trang chủ nhưng nuốt **toàn bộ** site, và k
 #### Canary phải biết về luật rewrite
 
 Canary của v2 chỉ duyệt các dòng `context`. Một luật rewrite không có tác dụng vì thế vẫn qua được — trang chủ lặng lẽ ra Laravel và deploy báo xanh. v3 gộp hai nguồn, và với mỗi đường nó đòi **200 và đến từ Next.js**, không chỉ 200.
+
+### Hai nhóm `/api/v2`, hai mức yêu cầu
+
+| Nhóm | Middleware | CSRF | Ví dụ |
+|---|---|---|---|
+| Công khai | chỉ `throttle` | **không** | `/screens`, `/reflections`, `/policies` |
+| Xác thực | `EnsureFrontendRequestsAreStateful` | **có** | `/auth/login`, `/auth/register`, `/auth/logout` |
+| Cần quyền | thêm `auth:sanctum` | **có** | `/me`, `/campaigns`, `/payments` |
+
+Phân chia này có lý do cho từng nhóm, không phải một mặc định:
+
+- Nhóm **xác thực** tạo phiên. Một endpoint tạo phiên mà không có CSRF là một endpoint người khác đăng nhập hộ được.
+- Nhóm **công khai** không tạo phiên. Bắt nó đi qua CSRF là buộc biểu mẫu phản ánh phải lấy cookie trước khi gửi, đổi lại không được gì.
+- `EnsureFrontendRequestsAreStateful` gắn ở **từng nhóm**, không gọi `statefulApi()` ở `bootstrap/app.php`. Gọi ở đó là thêm middleware phiên và CSRF cho **toàn bộ** `/api/*`, tức đụng vào `/api/v1` — hợp đồng đang chạy với đối tác, và CLAUDE.md mục 1 cấm đổi hành vi của nó.
+
+Bên gọi nhóm xác thực phải: `GET /sanctum/csrf-cookie`, rồi POST kèm header `X-XSRF-TOKEN` mang **giá trị đã giải mã** của cookie. Gửi nguyên văn (còn URL-encode) thì nhận **419** — một mã không nói gì về nguyên nhân, và người đọc sẽ đi tìm lỗi ở thông tin đăng nhập.
+
+#### `/logout` KHÔNG được proxy
+
+`/login` và `/register` là trang người dùng mở, đã dựng trên Next. `/logout` thì là một route **POST** từ khu người mua trên Blade — proxy nó sang Next là trả 405 cho nút đăng xuất. Nó ở lại danh sách cấm của `oohx-sync-proxy` (v4), và đó là lý do danh sách ấy bỏ hai đường kia mà giữ đường này.
 
 ### aaPanel giữ nhiều bản sao — chỉ `*.conf` được nạp
 

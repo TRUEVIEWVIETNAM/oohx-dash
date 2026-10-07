@@ -83,6 +83,10 @@ const TRANG = [
     // khỏi HTML máy chủ phát ra, và phép kiểm này đỏ.
     { path: '/phan-anh-to-chuc-xa-hoi', ogType: 'website', bieuMau: true },
     { path: '/phan-anh-to-chuc-xa-hoi/danh-sach', ogType: 'website', danhSachPhanAnh: true },
+
+    // Trang xác thực: noindex, nhưng vẫn phải đủ thẻ chia sẻ.
+    { path: '/login', ogType: 'website', noindex: true },
+    { path: '/register', ogType: 'website', noindex: true },
 ];
 
 const loi = [];
@@ -288,6 +292,22 @@ async function kiemTrang(base, trang) {
         // 01/10, nên mốc thứ hai (03/10 09:30 UTC) mới là mốc phân biệt.
         if (!html.includes('03/10/2026')) {
             bao(trang.path, 'ngày xử lý không ra 03/10/2026 — kiểm múi giờ');
+        }
+    }
+
+    // ── Trang noindex ──
+    if (trang.noindex) {
+        // Trang xác thực không có gì cho công cụ tìm kiếm. Nhưng thẻ mô tả và
+        // Open Graph vẫn phải đủ — kiểm ở khối THE_BAT_BUOC phía trên — vì
+        // khi ai đó dán liên kết vào tin nhắn, thẻ xem trước vẫn phải đúng.
+        if (!/<meta name="robots" content="[^"]*noindex/.test(html)) {
+            bao(trang.path, 'thiếu noindex — trang xác thực không nên nằm trong chỉ mục');
+        }
+
+        // Liên kết chết: bản Blade có <a href="#">Quên mật khẩu?</a>, cùng
+        // loại khiếm khuyết F-15 đã dọn khỏi chân trang. Không chép sang.
+        if (/href="#"/.test(html)) {
+            bao(trang.path, 'có liên kết href="#" không đi đâu');
         }
     }
 
