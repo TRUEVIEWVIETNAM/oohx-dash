@@ -17,6 +17,20 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class PaymentService
 {
+    /**
+     * Trạng thái chiến dịch cho phép xác nhận thanh toán.
+     *
+     * Định nghĩa MỘT chỗ, ở service, vì cả `Api\V2\PaymentController` lẫn
+     * `Buyer\PaymentController` đều đi qua đây (CLAUDE.md mục 4: quyền phải
+     * được định nghĩa một chỗ và dùng chung cho cả Filament lẫn API).
+     *
+     * Trước đây danh sách này là một `const private` trong controller v2 và
+     * một mảng viết thẳng trong controller Blade. Hai bản trùng giá trị, nên
+     * không ai thấy gì — và hai bản trùng giá trị hôm nay là hai bản sẽ lệch
+     * ngày có người thêm một trạng thái.
+     */
+    public const PAYABLE_STATUSES = ['approved', 'active'];
+
     /** VAT áp cho dịch vụ quảng cáo. */
     /**
      * Thuế suất lấy từ config/pricing.php, không viết cứng.
@@ -55,7 +69,33 @@ class PaymentService
             // chờ, cùng tính ra một số nợ, và cùng tạo payment. Ràng buộc duy
             // nhất của số hóa đơn không ngăn được chuyện đó vì hai số hóa đơn
             // vẫn khác nhau — thứ bị nhân đôi là NGHĨA VỤ (Codex R08).
-            Campaign::withoutGlobalScopes()->whereKey($campaign->getKey())->lockForUpdate()->first();
+            $tuoi = Campaign::withoutGlobalScopes()->whereKey($campaign->getKey())->lockForUpdate()->first();
+
+            // ══ Cổng trạng thái đặt Ở ĐÂY, không ở controller ══
+            //
+            // Trước đây nó chỉ có ở `Api\V2\PaymentController::store()`.
+            // `Buyer\PaymentController::process()` thì không có, và không lớp
+            // nào dưới nó bù lại: `CampaignPolicy::pay()` chỉ kiểm quyền
+            // `manage_payments`, `StorePaymentRequest` không có luật trạng
+            // thái, và hàm này cũng không. Tức cùng một thao tác ghi vào bảng
+            // tiền mà hai đường vào trả lời khác nhau — đúng điều CLAUDE.md
+            // mục 4 cấm.
+            //
+            // Phần lớn trạng thái thì phép kiểm số tiền bên dưới tình cờ chặn
+            // được: dòng booking không ở `approved|active|completed` nên
+            // `remaining` = 0 và nó ném 422 "đã thanh toán đủ". Nhưng đó là
+            // chặn nhờ may, với một thông báo nói sai nguyên nhân. Và nó hở
+            // thật khi campaign bị `rejected` sau khi vài dòng đã `approved`:
+            // khi ấy `remaining` > 0 và khoản tiền được ghi vào một chiến dịch
+            // sẽ không chạy.
+            //
+            // Đọc trạng thái từ hàng VỪA KHÓA, không từ `$campaign` truyền
+            // vào: model đó dựng từ lúc đầu request và có thể đã cũ. Khóa ở
+            // trên tồn tại đúng để chặn một thay đổi xen giữa, nên phép kiểm
+            // phải đọc sau khóa mới có nghĩa.
+            if (! in_array($tuoi?->status ?? $campaign->status, self::PAYABLE_STATUSES, true)) {
+                throw new HttpException(422, 'Campaign chưa được duyệt nên chưa thể xác nhận thanh toán.');
+            }
 
             if ($idempotencyKey) {
                 $existing = Payment::where('idempotency_key', $idempotencyKey)->first();

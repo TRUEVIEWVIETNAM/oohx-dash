@@ -47,7 +47,10 @@ use Illuminate\Http\Request;
 class PaymentController extends Controller
 {
     /** Trạng thái campaign cho phép xác nhận thanh toán. */
-    private const PAYABLE_STATUSES = ['approved', 'active'];
+    // Danh sách trạng thái nằm ở `PaymentService::PAYABLE_STATUSES` — một
+    // định nghĩa cho cả đường v2 lẫn đường Blade. Alias ở đây chỉ để câu lệnh
+    // bên dưới đọc được, không phải một bản thứ hai.
+    private const PAYABLE_STATUSES = PaymentService::PAYABLE_STATUSES;
 
     public function __construct(
         private readonly PaymentService $payments,
