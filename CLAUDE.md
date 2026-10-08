@@ -19,6 +19,7 @@ Filament = khu quản trị nội bộ /admin và /publisher
 
 - Mỗi action **phải** gọi policy/gate. Không dựa vào việc giao diện ẩn nút.
 - **DTO danh sách trắng**, không trả thẳng model. Không bao giờ lộ: `revenue_share_pct`, `billing_info`, `bank_*`, `tax_code`, `business_license_path`, `device_token`, giá sàn nội bộ.
+- **Một ngoại lệ, đã duyệt 08/10/2026:** `bank_*` + `tax_code` của media owner ra ngoài qua **đúng một** đường — `GET /api/v2/campaigns/{campaign}/payment-recipients`. Lý do: sàn không thu hộ, người mua chuyển khoản trực tiếp cho từng owner (hồ sơ Bộ Công Thương), nên không thấy nơi nhận tiền thì không trả được. Đường đó cần quyền `manage_payments`, không nhận tham số owner nào, chặn cache và ghi nhật ký truy cập. Mọi phản hồi khác — kể cả `GET campaigns/{campaign}/payments` — vẫn chỉ có `owner.id` + `owner.name`. Thêm đường thứ hai là một quyết định mới, không phải một lần sửa.
 - Định dạng lỗi thống nhất: `{error, message, code, details[]}`.
 - Danh sách phải phân trang và có giới hạn cứng. Endpoint bản đồ bắt buộc có khung nhìn.
 - Mọi endpoint có giới hạn tần suất. Endpoint đăng nhập, cấp token và player có giới hạn riêng.

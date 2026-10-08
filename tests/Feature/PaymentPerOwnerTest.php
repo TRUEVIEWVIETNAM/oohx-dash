@@ -181,16 +181,41 @@ class PaymentPerOwnerTest extends TestCase
         return 'http://' . config('domains.frontpage', 'oohx.net') . '/booking/' . $c->id . '/payment';
     }
 
-    public function test_trang_thanh_toan_hien_tai_khoan_cua_media_owner(): void
+    /**
+     * Trang này **không còn render sẵn** nơi nhận tiền (08/10/2026).
+     *
+     * Nó đọc hai đường của `/api/v2` từ trình duyệt. Nên test cũ ở đây —
+     * `assertSee('0011001234567')` trên HTML — bị **đảo chiều**: số tài khoản
+     * nằm trong HTML bây giờ nghĩa là có ai đó đã nạp lại dữ liệu vào
+     * controller, và đường API có phân quyền riêng đã bị đi vòng qua.
+     *
+     * Nội dung thật — số tài khoản, MST, trường hợp chưa khai đủ — do
+     * `Tests\Feature\Api\V2\PaymentRecipientApiTest` canh, cùng với sáu lớp
+     * chặn của endpoint đó.
+     *
+     * Phần JS vẽ ra giao diện thì không có test nào với tới. Nói rõ ở đây để
+     * không ai đọc dãy test này mà tưởng trang đã được canh kín.
+     */
+    public function test_trang_thanh_toan_khong_render_san_noi_nhan_tien(): void
     {
         $a = $this->makeOwner('Kim Ngân ADV');
         $campaign = $this->makeCampaign([$a->id => 10_000_000]);
 
         $response = $this->actingAs($this->user)->get($this->paymentUrl($campaign));
-
         $response->assertOk();
-        $response->assertSee('Kim Ngân ADV');
-        $response->assertSee('0011001234567');
+
+        $html = $response->getContent();
+
+        $this->assertStringNotContainsString(
+            '0011001234567',
+            $html,
+            'số tài khoản render phía máy chủ = đi vòng qua quyền `manage_payments` của endpoint',
+        );
+
+        // Và trang phải trỏ đúng vào hai đường đó, nếu không nó chỉ là một
+        // trang trống không ai phát hiện.
+        $this->assertStringContainsString('/api/v2/campaigns/' . $campaign->id . '/payments', $html);
+        $this->assertStringContainsString('/api/v2/campaigns/' . $campaign->id . '/payment-recipients', $html);
     }
 
     public function test_trang_thanh_toan_khong_con_tai_khoan_gia_cua_san(): void
@@ -204,15 +229,26 @@ class PaymentPerOwnerTest extends TestCase
         $response->assertDontSee('CONG TY OOHX VIETNAM');
     }
 
-    public function test_owner_chua_khai_tai_khoan_thi_noi_thang_ra(): void
+    /**
+     * Không còn số tiền nào render phía máy chủ.
+     *
+     * Cùng lý lẽ với trang giỏ: tiền hiện ra cho người mua phải đến từ một
+     * nguồn duy nhất. Một con số render sẵn ở đây là một phép tính thứ hai,
+     * và hai phép tính thì sớm muộn lệch nhau một đồng.
+     */
+    public function test_trang_thanh_toan_khong_con_tinh_tien_phia_may_chu(): void
     {
-        $a = $this->makeOwner('Chưa Khai TK', withBank: false);
+        $a = $this->makeOwner('Kim Ngân ADV');
         $campaign = $this->makeCampaign([$a->id => 10_000_000]);
 
-        $response = $this->actingAs($this->user)->get($this->paymentUrl($campaign));
+        $html = $this->actingAs($this->user)
+            ->get($this->paymentUrl($campaign))
+            ->assertOk()
+            ->getContent();
 
-        $response->assertOk();
-        $response->assertSee('chưa cung cấp thông tin tài khoản nhận tiền');
+        // 10.000.000 ₫ và 10.800.000 ₫ (có VAT 8%) là hai con số trang cũ in ra.
+        $this->assertStringNotContainsString('10.000.000', $html);
+        $this->assertStringNotContainsString('10.800.000', $html);
     }
 
     public function test_khong_tick_dong_y_quy_che_thi_khong_xac_nhan_duoc(): void

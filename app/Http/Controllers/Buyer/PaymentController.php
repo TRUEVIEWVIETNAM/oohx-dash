@@ -33,14 +33,20 @@ class PaymentController extends Controller
             'Campaign chưa được duyệt'
         );
 
-        $summary = $this->paymentService->getSummary($campaign);
-        $payments = $campaign->payments()->with('owner:id,name')->latest()->get();
-
+        // Không nạp tiền, không nạp nơi nhận tiền. View tự gọi HAI đường của
+        // `/api/v2` từ trình duyệt — xem chú thích đầu `buyer/booking/payment.blade.php`.
+        //
+        // `$campaign` vẫn truyền vào, và chỉ để dựng vỏ trang: thẻ tiêu đề,
+        // tên và mã ở đầu trang, các URL của route. Model đã nằm trong tay do
+        // route binding nên không tốn truy vấn nào; mọi thứ cần một truy vấn —
+        // công nợ, lịch sử, số màn hình, nơi nhận tiền — đều đi qua API.
+        //
+        // Quan trọng: **không** gọi `getSummary()` hay `breakdownByOwner()` ở
+        // đây nữa. Giữ lại là hai lần tính cùng một con số cho một lần xem
+        // trang, và là chỗ để bản render và bản API trôi khỏi nhau mà không ai
+        // thấy — đúng kiểu lỗi `InventoryController` và `FrontpageService`.
         return view('buyer.booking.payment', [
             'campaign' => $campaign,
-            'summary'  => $summary,
-            'payments' => $payments,
-            'byOwner'  => $this->paymentService->breakdownByOwner($campaign),
         ]);
     }
 

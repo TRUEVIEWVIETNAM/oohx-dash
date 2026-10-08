@@ -275,27 +275,52 @@ hình dữ liệu lệch, nhưng đó là dữ liệu sẵn có, không thuộc 
 - **Phần JS không có test.** Test chỉ canh được trang trả 200, có trỏ tới endpoint, và không
   còn dựng sẵn số tiền trong HTML. Việc JS vẽ đúng hay không thì chưa có gì canh.
 
-### Hai action đọc còn lại — vì sao chưa chuyển được (08/10/2026)
-
-**`PaymentController::show` — chặn bởi một điều khoản bảo mật, cần người quyết.**
+### Trang thanh toán — ngoại lệ bảo mật đã được duyệt và dựng (08/10/2026)
 
 Trang này hiển thị thẳng từ model `Owner`: `tax_code`, `bank_name`,
 `bank_account_number`, `bank_account_name`, `bank_branch`. Đó **không** phải lỗi — mô
 hình kinh doanh là người mua chuyển khoản trực tiếp cho từng media owner, ghi trong chú
 thích của chính view theo hồ sơ Bộ Công Thương: *"thanh toán trực tiếp giữa khách hàng và
 nhà cung cấp dịch vụ quảng cáo; OOHX.NET hỗ trợ ghi nhận giao dịch và đối soát"*. Người
-mua buộc phải thấy số tài khoản mới trả được, và có test canh đúng việc đó
-(`trang thanh toan hien tai khoan cua media owner`).
+mua buộc phải thấy nơi nhận tiền mới trả được.
 
-Nhưng CLAUDE.md mục 2 và 5 cấm phơi `bank_*` và `tax_code`, và DTO `by_owner` của v2 **cố
-ý chỉ có** `owner.id` + `owner.name`. Nên chuyển trang này nghĩa là đưa
-`bank_account_number` và `tax_code` vào một phản hồi API — một quyết định về chính sách
-bảo mật, không phải một bước refactor.
+Nhưng CLAUDE.md mục 2 và 5 cấm phơi `bank_*` và `tax_code`, nên chuyển trang này là một
+**quyết định về chính sách bảo mật**, không phải một bước refactor. Đã trình, đã duyệt
+08/10/2026. Ngoại lệ ghi vào CLAUDE.md mục 2 cùng lượt với code — không ghi trước, để
+luật và code không bao giờ nói hai điều khác nhau.
 
-Cái giá cụ thể của việc đó: một endpoint mang số tài khoản là diện phơi rộng hơn một trang
-render phía máy chủ — nó cache được, log được, và với một script có cookie phiên thì gọi
-được. Nếu làm thì phải làm kèm: endpoint riêng phạm vi hẹp, chỉ owner CÓ màn hình trong
-campaign đó, chặn cache, và ghi nhật ký truy cập.
+Cái giá được trả bằng sáu lớp, không phải bằng một lời hứa trong chú thích:
+
+| Lớp | Cách làm | Test canh |
+|---|---|---|
+| Phạm vi | Endpoint **không nhận tham số owner nào**. Danh sách dẫn từ `booking_lines` của chính campaign, lọc `approved\|active\|completed` — cùng nguồn với `breakdownByOwner()` | `owner_khong_co_man_hinh_trong_campaign_khong_ra_ngoai`, `owner_chi_con_dong_da_huy_thi_khong_ra_noi_nhan_tien`, `danh_sach_nguoi_nhan_khop_voi_danh_sach_cong_no` |
+| Quyền | Cần `manage_payments`, **không phải** quyền xem. 404 khi không được xem, 403 khi xem được mà không được trả | `viewer_xem_duoc_cong_no_nhung_khong_xem_duoc_noi_nhan_tien`, `nguoi_to_chuc_khac_nhan_404_chu_khong_phai_403` |
+| Trạng thái | `PaymentService::PAYABLE_STATUSES` — cùng danh sách với đường ghi | `campaign_chua_duyet_thi_chua_co_gi_de_doc` |
+| Cache | `no-store, no-cache, must-revalidate, private` + `Pragma` + `Expires: 0` | `chan_cache_o_moi_tang` |
+| Nhật ký | Một dòng `campaign_activities` mỗi lần đọc: ai, lúc nào, IP, owner nào. Cửa chống lụt 10 phút vì nhật ký đó hiện nguyên trên `/my/campaigns/{campaign}` và không phân trang | `ghi_lai_ai_doc_noi_nhan_tien_va_luc_nao`, `tai_lai_trang_nhieu_lan_khong_lam_lut_nhat_ky`, `bi_tu_choi_thi_khong_ghi_nhat_ky` |
+| Tần suất | `throttle:20,1` — limiter riêng, chặt hơn 300/phút của nhóm | — |
+
+**Hai đường, không một.** `GET payments` giữ nguyên tiền và vẫn chỉ cần quyền xem;
+`GET payment-recipients` mang danh tính + nơi nhận tiền và **không mang đồng nào**. Lý do
+tách: một bản sao thứ hai của phép tính tiền là một chỗ để trôi khỏi bản gốc, và đường
+nhạy cảm càng hẹp càng dễ canh. `khong_mang_so_tien` giữ đúng ranh giới đó khỏi bị nới
+dần.
+
+**Một thứ đã siết chặt hơn trước, có chủ ý.** Trang Blade cũ chỉ gọi quyền `view`, nên vai
+trò `viewer` đang đọc được số tài khoản của media owner. Sau khi chuyển thì không — người
+cần số tài khoản là người đi chuyển tiền. Trang vẽ đúng trường hợp đó (hiện công nợ, nói
+rõ thiếu quyền gì) thay vì chết trắng.
+
+**Ba test cũ đã bị đảo chiều, không phải xoá.** `assertSee('0011001234567')` trên HTML giờ
+nghĩa là *có ai đó đã nạp lại dữ liệu vào controller và đi vòng qua quyền của endpoint*,
+nên nó thành `assertStringNotContainsString`. `assertSee($ownerY->name)` của R31 đã thành
+phép kiểm rỗng — nó xanh kể cả khi công nợ của ownerY biến mất — nên bảo đảm thật của R31
+chuyển sang hỏi `by_owner` qua API.
+
+**Chưa canh được:** phần JS vẽ ra giao diện. API có 16 ca; việc JS ghép hai phản hồi và vẽ
+đúng thì không có gì canh. Cần mở bằng mắt một lần.
+
+### Action đọc còn lại — vì sao chưa chuyển được (08/10/2026)
 
 **`BuyerCampaignController::show` — không phải chuyển, là mở rộng API.**
 

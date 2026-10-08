@@ -30,7 +30,9 @@ use Tests\TestCase;
  *     chỉ đúng khi mọi owner đã đủ — đó là F07 trong `FINDINGS.md`.
  *  3. **Quyền `manage_payments`, không phải quyền xem.** Vai trò `viewer` xem
  *     được nhưng không trả được.
- *  4. **Số tài khoản không đi qua API** (CLAUDE.md mục 2 cấm `bank_*`).
+ *  4. **Nơi nhận tiền không đi qua đường NÀY.** Nó có đường riêng cần quyền
+ *     `manage_payments` — xem `PaymentRecipientApiTest`. Đường này chỉ cần
+ *     quyền xem, nên nó phải sạch `bank_*` và `tax_code` (CLAUDE.md mục 2).
  *  5. Khóa chống trùng chặn lần gửi lặp của cùng một biểu mẫu.
  *  6. Chỉ còn một cách trả tiền trong enum, vì chỉ một cách hoạt động.
  */
@@ -211,8 +213,12 @@ class PaymentApiTest extends TestCase
         $body = $response->getContent();
 
         foreach ([
-            // Người mua cần biết chuyển tiền cho AI, nhưng số tài khoản là
-            // việc của một đường riêng có phân quyền riêng — chưa dựng.
+            // Người mua cần biết chuyển tiền cho AI, nhưng nơi nhận tiền là
+            // việc của một đường riêng có phân quyền riêng:
+            // `GET campaigns/{campaign}/payment-recipients`, cần quyền
+            // `manage_payments`. Đường NÀY chỉ cần quyền xem, nên nó phải
+            // sạch — kéo `bank_*` vào đây là cho vai trò `viewer` đọc được thứ
+            // mà đường kia cố ý không cho họ đọc.
             'bank_name',
             'bank_account_number',
             'bank_account_name',

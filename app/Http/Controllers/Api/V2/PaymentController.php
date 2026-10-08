@@ -38,11 +38,17 @@ use Illuminate\Http\Request;
  * thể trông như đã trả đủ trong khi một owner chưa nhận đồng nào.
  * `PaymentService::breakdownByOwner()` là chỗ duy nhất tính việc đó.
  *
- * ══ Số tài khoản không đi qua đây ══
+ * ══ Nơi nhận tiền không đi qua đây ══
  *
  * DTO chỉ trả `owner.id` và `owner.name`. CLAUDE.md mục 2 cấm lộ `bank_*` và
- * `billing_info`, nên thông tin chuyển khoản là việc của một đường riêng có
- * phân quyền riêng — chưa dựng, và không được lén đưa vào đây.
+ * `billing_info`, nên thông tin nhận tiền là việc của một đường riêng có phân
+ * quyền riêng: `GET campaigns/{campaign}/payment-recipients`
+ * (`Api\V2\PaymentRecipientController`, dựng 08/10/2026).
+ *
+ * **Và nó phải ở lại đường riêng đó.** Đường kia cần quyền `pay`, chặn cache
+ * và ghi nhật ký ai đọc; `GET payments` này chỉ cần quyền `view`. Kéo
+ * `bank_*` vào đây là cho vai trò `viewer` đọc được thứ mà đường kia cố ý
+ * không cho họ đọc — và không ai nhận ra, vì cả hai đều trả 200.
  */
 class PaymentController extends Controller
 {
@@ -137,10 +143,23 @@ class PaymentController extends Controller
         $rows = $this->payments->breakdownByOwner($campaign);
 
         return [
+            // `name`, kỳ chạy và số màn hình có mặt ở đây vì trang thanh toán
+            // cần đúng bốn thứ đó cho thanh bên, và không có lý do để nó gọi
+            // thêm `GET campaigns/{campaign}` — một endpoint nặng hơn nhiều
+            // (dòng đặt chỗ, creative, xung đột) — chỉ để lấy một cái tên.
+            //
+            // `line_count` đếm MỌI dòng, kể cả đã hủy: nó là nhãn mô tả chiến
+            // dịch ("12 màn hình"), không phải cơ sở của một phép tính tiền.
+            // Tiền chỉ đếm dòng `approved|active|completed`, và việc đó ở
+            // `PaymentService`.
             'campaign' => [
-                'id'     => $campaign->id,
-                'code'   => $campaign->code,
-                'status' => $campaign->status,
+                'id'         => $campaign->id,
+                'code'       => $campaign->code,
+                'status'     => $campaign->status,
+                'name'       => $campaign->name,
+                'start_date' => $campaign->start_date?->toDateString(),
+                'end_date'   => $campaign->end_date?->toDateString(),
+                'line_count' => (int) $campaign->bookingLines()->count(),
             ],
 
             // Tiền bằng VND nguyên ở mọi chỗ. `getSummary()` trả `float` vì
