@@ -1,0 +1,29 @@
+{
+  "//": "Móc DOM mà phần JS của mỗi trang Blade dựa vào. ĐỌC BỞI HAI PHÍA — xem tests/js/README.md.",
+
+  "resources/views/buyer/cart.blade.php": {
+    "cauHinh": "data-cart-config",
+    "moc": [
+      "data-cart-sub",
+      "data-cart-add",
+      "data-cart-error",
+      "data-cart-error-msg",
+      "data-cart-empty",
+      "data-cart-layout",
+      "data-cart-items",
+      "data-cart-count",
+      "data-cart-subtotal",
+      "data-cart-vat",
+      "data-cart-total",
+      "data-cart-retry"
+    ]
+  },
+
+  "resources/views/buyer/booking/payment.blade.php": {
+    "cauHinh": "data-pay-config",
+    "moc": [
+      "data-pay-main",
+      "data-pay-meta"
+    ]
+  }
+}

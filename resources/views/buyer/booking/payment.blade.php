@@ -158,11 +158,25 @@
         var d = new Date(s);
         if (isNaN(d.getTime())) { return ''; }
         try {
-            return new Intl.DateTimeFormat('vi-VN', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit', hour12: false,
-                timeZone: 'Asia/Ho_Chi_Minh'
-            }).format(d).replace(',', ' ');
+            // Hai bộ định dạng chứ không một.
+            //
+            // Một bộ khai cả ngày lẫn giờ thì `vi-VN` trả về "09:11 08/10/2026"
+            // — giờ TRƯỚC ngày. Bản render cũ của trang là `d/m/Y H:i`, tức
+            // ngày trước. Thứ tự do locale quyết là thứ tự mình không kiểm
+            // được, và nó đổi theo phiên bản ICU.
+            //
+            // Test `thời điểm tạo khoản hiện theo giờ Việt Nam, ngày trước giờ`
+            // canh cả ba cách sai: bỏ ghim múi giờ, để nguyên UTC, và để
+            // locale tự chọn thứ tự.
+            var p = { timeZone: 'Asia/Ho_Chi_Minh' };
+            var ngayVN = new Intl.DateTimeFormat('vi-VN', Object.assign({
+                day: '2-digit', month: '2-digit', year: 'numeric'
+            }, p)).format(d);
+            var gioVN = new Intl.DateTimeFormat('vi-VN', Object.assign({
+                hour: '2-digit', minute: '2-digit', hour12: false
+            }, p)).format(d);
+
+            return ngayVN + ' ' + gioVN;
         } catch (e) {
             return d.toISOString().slice(0, 16).replace('T', ' ');
         }

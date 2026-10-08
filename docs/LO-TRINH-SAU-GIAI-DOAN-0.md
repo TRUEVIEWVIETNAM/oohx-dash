@@ -272,8 +272,13 @@ hình dữ liệu lệch, nhưng đó là dữ liệu sẵn có, không thuộc 
   có `GET campaigns` dạng danh sách. Phải viết endpoint mới trước. Năm controller
   `BuyerDashboard`, `BuyerReport`, `BuyerSettings`, `Cancellation`, `OwnerReview` cũng cùng
   tình trạng — đó là phần việc ẩn mà con số "5 controller" ở bản trước của mục này che mất.
-- **Phần JS không có test.** Test chỉ canh được trang trả 200, có trỏ tới endpoint, và không
-  còn dựng sẵn số tiền trong HTML. Việc JS vẽ đúng hay không thì chưa có gì canh.
+- **Phần JS không có test** — *đã lấp 08/10/2026.* Lúc viết mục này, test chỉ canh được
+  trang trả 200, có trỏ tới endpoint, và không còn dựng sẵn số tiền trong HTML. Nay có 14
+  ca jsdom cho trang giỏ, chạy trên đúng khối script sẽ lên production: ba con số tiền đọc
+  thẳng từ API (phản hồi trong test cố ý **không** thoả `subtotal × 1,08 = total`, nên một
+  bản tự nhân lại sẽ đỏ), ngày theo lịch không lùi ở múi giờ âm, tên màn hình chứa mã HTML
+  không thoát ra khỏi thuộc tính, và 401 không nạp lại trang. Chi tiết ở mục trang thanh
+  toán bên dưới.
 
 ### Trang thanh toán — ngoại lệ bảo mật đã được duyệt và dựng (08/10/2026)
 
@@ -317,8 +322,40 @@ nên nó thành `assertStringNotContainsString`. `assertSee($ownerY->name)` củ
 phép kiểm rỗng — nó xanh kể cả khi công nợ của ownerY biến mất — nên bảo đảm thật của R31
 chuyển sang hỏi `by_owner` qua API.
 
-**Chưa canh được:** phần JS vẽ ra giao diện. API có 16 ca; việc JS ghép hai phản hồi và vẽ
-đúng thì không có gì canh. Cần mở bằng mắt một lần.
+**Phần JS đã có người canh — 08/10/2026.** Lúc chuyển hai trang, đây là chỗ duy nhất tôi
+ghi là *chưa canh được*. Nay có 33 ca chạy trong jsdom trên **đúng khối `<script>` sẽ lên
+production** — test trích nó ra khỏi tệp `.blade.php` chứ không chép lại, nên không có bản
+sao nào để trôi. Xem `tests/js/README.md`.
+
+Ba lỗi thật của hai trang đó — `chu()` không thoát dấu nháy kép, `new Date()` làm lùi ngày
+theo lịch, 401 xử lý bằng `location.reload()` — đều **không** làm đỏ một test PHPUnit nào.
+Giờ mỗi lỗi có một ca riêng, và tôi đã kiểm bằng cách gây lại từng lỗi một để xem test có
+đỏ thật.
+
+Hai thứ đáng ghi lại:
+
+- **Múi giờ của máy chạy test là một phần của phép kiểm.** Hai tệp test khai
+  `process.env.TZ = 'Pacific/Honolulu'` (UTC−10). Chạy ở UTC — như máy CI mặc định — thì
+  lỗi "ngày theo lịch lùi một ngày" không bao giờ hiện ra, và cái ghim
+  `timeZone: 'Asia/Ho_Chi_Minh'` của lịch sử thanh toán cũng không chứng minh được gì.
+- **Một móc DOM biến mất KHÔNG làm trang vỡ ồn ào.** Tôi đột biến thử: đổi tên
+  `data-cart-total` trong Blade và để `moc-dom.json` nguyên. Phía PHP đỏ ngay, nhưng phía
+  JS chỉ đỏ **một** ca trong mười bốn — script bắt `null` bên trong một `.then()` nên
+  chính `.catch()` của nó hứng lấy, và trang hiện "không tải được" với nguyên nhân sai.
+  Đó là triệu chứng khó lần nhất. Nên thêm một phép kiểm đối xứng: tập móc script đi tìm
+  phải **trùng khít** tập móc được khai, thiếu đỏ mà thừa cũng đỏ.
+
+**Chống trôi giữa hai phía:** `tests/js/moc-dom.json` là nguồn sự thật dùng chung — phía JS
+dựng bộ khung DOM từ nó, `MocDomTrangBladeTest` đọc cùng tệp đó và đòi mọi móc có mặt
+trong HTML trang thật. Một bộ khung viết tay trong test sẽ xanh mãi trong khi trang đã
+đổi; đó là lý do nó không được viết tay.
+
+**Vẫn chưa canh được:** CSS (một khối vẽ đúng mà bị `display:none` thì test vẫn xanh),
+việc Blade ghép khối cấu hình, và trình duyệt thật. Vẫn nên mở bằng mắt một lần.
+
+**Sửa kèm:** lịch sử thanh toán từng hiện "09:11 08/10/2026" — `vi-VN` đặt giờ trước ngày
+khi một bộ `Intl.DateTimeFormat` khai cả ngày lẫn giờ, trong khi bản render cũ là
+`d/m/Y H:i`. Nay dùng hai bộ định dạng để thứ tự do mình quyết, không do phiên bản ICU.
 
 ### Action đọc còn lại — vì sao chưa chuyển được (08/10/2026)
 
