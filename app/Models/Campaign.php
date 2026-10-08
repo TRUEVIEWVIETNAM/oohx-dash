@@ -57,14 +57,12 @@ class Campaign extends Model
      * lệch thì cùng một chiến dịch hiện hai chữ khác nhau ở hai trang, không
      * ai biết chữ nào đúng.
      *
-     * Hai trang khu người mua nay đọc chữ này **qua API** (`status_label` của
+     * Hai trang khu người mua đọc chữ này **qua API** (`status_label` của
      * `CampaignResource`): máy chủ sở hữu chữ, client sở hữu màu. Màu là việc
      * trình bày và nó đổi theo chủ đề; chữ là việc nghiệp vụ.
      *
-     * Còn ba bản chép trong Filament (`Filament\Resources\CampaignResource`,
-     * `Filament\Publisher\Resources\BookingInboxResource` ×2). Chúng chỉ liệt
-     * kê **một phần** các trạng thái cho bộ lọc, nên đổi sang dùng hằng này là
-     * một thay đổi hành vi của khu quản trị — việc riêng, không gộp vào đây.
+     * Filament dùng nó qua `statusLabels()` — xem hàm đó về việc vì sao mỗi
+     * bảng khai phạm vi trạng thái của riêng nó thay vì lấy cả tám.
      */
     public const STATUS_LABELS = [
         self::STATUS_DRAFT     => 'Nháp',
@@ -76,6 +74,44 @@ class Campaign extends Model
         self::STATUS_COMPLETED => 'Hoàn thành',
         self::STATUS_CANCELLED => 'Đã hủy',
     ];
+
+    /**
+     * Nhãn cho một **tập con** trạng thái, giữ đúng thứ tự của `STATUS_LABELS`.
+     *
+     * ══ Vì sao cần tập con, không phải cứ lấy cả tám ══
+     *
+     * Mỗi bảng chỉ *với tới* được một phần trạng thái. Hộp thư đặt chỗ của
+     * media owner lọc sẵn sáu trạng thái trong `getEloquentQuery()` — một
+     * chiến dịch `draft` hay `cancelled` không bao giờ hiện ở đó. Đưa `draft`
+     * vào bộ lọc của bảng ấy là thêm một lựa chọn **luôn** trả về rỗng, và một
+     * bộ lọc nói dối thì tệ hơn một bộ lọc thiếu.
+     *
+     * Nên mỗi bảng truyền vào **chính hằng mà truy vấn của nó dùng**. Hai danh
+     * sách đó trước đây được giữ riêng và đã lệch nhau thật: truy vấn gồm
+     * `paused`, bộ lọc thì không.
+     *
+     * Gọi không tham số thì trả cả tám — đúng cho bảng quản trị sàn, nơi không
+     * có phép lọc trạng thái nào ở tầng truy vấn.
+     *
+     * @param  array<int, string>|null  $chi
+     * @return array<string, string>
+     */
+    public static function statusLabels(?array $chi = null): array
+    {
+        if ($chi === null) {
+            return self::STATUS_LABELS;
+        }
+
+        // Lọc theo `STATUS_LABELS` chứ không `array_map` trên `$chi`: cách này
+        // giữ thứ tự chuẩn (nháp → chờ duyệt → … → đã hủy) bất kể người gọi
+        // xếp mảng của họ thế nào, và một mã lạ trong `$chi` bị bỏ chứ không
+        // thành một mục không có chữ.
+        return array_filter(
+            self::STATUS_LABELS,
+            fn (string $ma) => in_array($ma, $chi, true),
+            ARRAY_FILTER_USE_KEY,
+        );
+    }
 
     // ── Relationships ──
 

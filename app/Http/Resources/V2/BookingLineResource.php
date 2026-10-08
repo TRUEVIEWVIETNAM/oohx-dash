@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V2;
 
+use App\Models\BookingLine;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -58,6 +59,15 @@ class BookingLineResource extends JsonResource
             ],
 
             'status' => $this->status,
+
+            // Chữ do MÁY CHỦ sở hữu, màu do client sở hữu.
+            //
+            // Bảng chữ ở `BookingLine::STATUS_LABELS`, **khác**
+            // `Campaign::STATUS_LABELS` ở đúng một mã: dòng dùng `pending`,
+            // chiến dịch dùng `pending_approval`. Trang chi tiết từng dùng một
+            // bảng cho cả hai, nên một dòng `pending` hiện ra `pending` nguyên
+            // văn tiếng Anh ngay cạnh các dòng đã có chữ Việt.
+            'status_label' => BookingLine::STATUS_LABELS[$this->status] ?? $this->status,
 
             // Lý do bị từ chối thì người mua phải thấy — đó là thông tin về
             // chính đơn của họ, không phải ghi chú nội bộ.

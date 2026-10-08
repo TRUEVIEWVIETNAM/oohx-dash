@@ -105,13 +105,15 @@
 
     var dinhDang = new Intl.NumberFormat('vi-VN');
 
+    // Chỉ MÀU ở client. Chữ đến từ máy chủ (`status_label`), vì hai enum khác
+    // nhau — chiến dịch dùng `pending_approval`, dòng đặt chỗ dùng `pending` —
+    // và một bảng chữ dùng cho cả hai làm dòng `pending` hiện ra nguyên văn
+    // tiếng Anh. Bảng màu dưới đây phủ cả hai mã, và màu thì trùng nhau được
+    // vì nó chỉ nói "việc này đang chờ".
     var MAU_TRANG_THAI = {
-        draft: 'b-gray', pending_approval: 'b-org', approved: 'b-bl', rejected: 'b-red',
-        active: 'b-grn', paused: 'b-org', completed: 'b-gray', cancelled: 'b-red'
-    };
-    var CHU_TRANG_THAI = {
-        draft: 'Nháp', pending_approval: 'Chờ duyệt', approved: 'Đã duyệt', rejected: 'Từ chối',
-        active: 'Đang chạy', paused: 'Tạm dừng', completed: 'Hoàn thành', cancelled: 'Đã hủy'
+        draft: 'b-gray', pending: 'b-org', pending_approval: 'b-org', approved: 'b-bl',
+        rejected: 'b-red', active: 'b-grn', paused: 'b-org', completed: 'b-gray',
+        cancelled: 'b-red'
     };
 
     // ── Giúp việc ────────────────────────────────────────────────────────────
@@ -188,9 +190,10 @@
         }
     }
 
-    function the(trangThai) {
-        return '<span class="badge ' + (MAU_TRANG_THAI[trangThai] || 'b-gray') + '">'
-             + chu(CHU_TRANG_THAI[trangThai] || trangThai) + '</span>';
+    /** Thẻ trạng thái: màu từ bảng trên, chữ từ máy chủ. */
+    function the(ma, nhan, cuaThem) {
+        return '<span class="badge ' + (MAU_TRANG_THAI[ma] || 'b-gray') + '"'
+             + (cuaThem || '') + '>' + chu(nhan || ma) + '</span>';
     }
 
     // ── Gọi API ──────────────────────────────────────────────────────────────
@@ -229,7 +232,7 @@
         var p = c.period || {};
 
         if (oTrangThai) {
-            oTrangThai.innerHTML = the(c.status)
+            oTrangThai.innerHTML = the(c.status, c.status_label)
                 + '<span style="font-size:13px;color:var(--t3)">'
                 + chu(ngay(p.start_date)) + ' → ' + chu(ngay(p.end_date)) + '</span>';
         }
@@ -296,8 +299,7 @@
             + '</div></div></div>'
             + '<div style="text-align:right;flex-shrink:0">'
             + '<div style="font-size:13px;font-weight:700;color:var(--t1)">' + tien(est.cost) + ' ₫</div>'
-            + '<span class="badge ' + (MAU_TRANG_THAI[line.status] || 'b-gray') + '" style="font-size:10px">'
-            + chu(CHU_TRANG_THAI[line.status] || line.status) + '</span>';
+            + the(line.status, line.status_label, ' style="font-size:10px"');
 
         if (bao) {
             h += veNutHuy(line, bao);
