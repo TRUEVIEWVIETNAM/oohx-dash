@@ -382,4 +382,113 @@ class CartApiTest extends TestCase
 
         $this->assertSame(1, CartItem::count());
     }
+
+    // ── VAT: một chỗ tính, một chỗ duy nhất ─────────────────────────────────
+
+    public function test_vat_va_tong_cong_lay_tu_withVat_chu_khong_nhan_tay(): void
+    {
+        $this->addViaService($this->screen());
+        $this->addViaService($this->screen());
+
+        $response = $this->actingAs($this->buyer)->getJson('/api/v2/cart')->assertOk();
+
+        $subtotal = $response->json('data.summary.subtotal');
+        $vat      = $response->json('data.summary.vat');
+        $total    = $response->json('data.summary.total');
+
+        // Nguồn sự thật là service, không phải một phép nhân viết lại ở test.
+        // Viết lại công thức ở đây là tạo chỗ làm tròn thứ ba, và khi ấy test
+        // xanh không còn chứng minh được điều nó định chứng minh.
+        $this->assertSame(
+            app(\App\Services\PaymentService::class)->withVat($subtotal),
+            $total,
+            'Tổng cộng không khớp PaymentService::withVat().'
+        );
+
+        // Bất biến người mua đọc được trên trang: cột cộng phải cộng đúng.
+        $this->assertSame($subtotal + $vat, $total, 'subtotal + vat không bằng total.');
+
+        $this->assertIsInt($vat);
+        $this->assertIsInt($total);
+    }
+
+    public function test_vat_khong_lech_1_dong_so_voi_cach_view_cu_tinh(): void
+    {
+        $this->addViaService($this->screen());
+
+        $response = $this->actingAs($this->buyer)->getJson('/api/v2/cart')->assertOk();
+        $total    = $response->json('data.summary.total');
+
+        // Cách view CŨ: nhân trên tổng dạng float rồi mới làm tròn khi in.
+        // Cách đúng: chốt tổng về int TRƯỚC, rồi mới cộng VAT.
+        //
+        // Ca này không đòi hai cách bằng nhau — chúng lệch được 1₫ và đó
+        // chính là lý do bỏ cách cũ. Nó đòi con số API trả ra đúng bằng cách
+        // ĐÚNG, tức không ai lặng lẽ trả lại cách cũ.
+        $rate     = (float) config('pricing.vat_rate');
+        $sumFloat = (float) CartItem::sum('estimated_cost');
+
+        $this->assertSame(
+            (int) round(((int) round($sumFloat)) * (1 + $rate)),
+            $total,
+            'Tổng cộng đang tính theo tổng float, không theo tổng đã chốt về int.'
+        );
+    }
+
+    public function test_don_gia_va_so_man_hinh_ra_ngoai(): void
+    {
+        $item = $this->addViaService($this->screen());
+
+        $response = $this->actingAs($this->buyer)->getJson('/api/v2/cart')->assertOk();
+
+        // Thiếu hai trường này thì trang giỏ chỉ còn `estimate.cost` và không
+        // giải thích được con số đó ra từ đâu — người mua thấy một tổng tiền
+        // không có cách nào kiểm.
+        $this->assertSame(
+            (int) round((float) $item->unit_price),
+            $response->json('data.items.0.estimate.unit_price')
+        );
+        $this->assertSame(
+            $item->screen_count !== null ? (int) $item->screen_count : null,
+            $response->json('data.items.0.delivery.screen_count')
+        );
+    }
+
+    // ── Trang Blade giờ đọc qua API ─────────────────────────────────────────
+
+    public function test_trang_gio_blade_doc_qua_api_chu_khong_dung_san_so_tien(): void
+    {
+        $this->addViaService($this->screen());
+
+        $html = $this->actingAs($this->buyer)
+            ->get('http://' . config('domains.frontpage', 'oohx.net') . '/cart')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('/api/v2/cart', $html, 'Trang giỏ không trỏ tới endpoint v2.');
+
+        // Chốt chặn hồi quy cho đúng lỗi vừa sửa: nếu ai dựng lại dòng VAT
+        // bằng PHP thì con số sẽ nằm sẵn trong HTML, và chỗ làm tròn thứ hai
+        // quay lại mà không ai thấy.
+        $cost = (int) round((float) CartItem::sum('estimated_cost'));
+        $this->assertStringNotContainsString(
+            number_format((int) round($cost * (1 + (float) config('pricing.vat_rate'))), 0, ',', '.'),
+            $html,
+            'Trang giỏ lại tự dựng số tiền trong HTML thay vì lấy từ API.'
+        );
+    }
+
+    public function test_chi_xem_trang_gio_thi_khong_tao_gio(): void
+    {
+        $this->assertSame(0, Cart::count());
+
+        $this->actingAs($this->buyer)
+            ->get('http://' . config('domains.frontpage', 'oohx.net') . '/cart')
+            ->assertOk();
+
+        // Action Blade không còn gọi `getOrCreateCart()`. Gọi nó ở cả hai nơi
+        // là hai lần ghi cho một lần xem trang, và nó che mất lỗi: API hỏng mà
+        // giỏ vẫn được tạo thì triệu chứng hiện ra ở chỗ khác chỗ hỏng.
+        $this->assertSame(0, Cart::count(), 'Chỉ xem trang mà đã tạo giỏ.');
+    }
 }

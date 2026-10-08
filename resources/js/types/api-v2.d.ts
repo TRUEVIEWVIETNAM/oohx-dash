@@ -2114,13 +2114,28 @@ export interface components {
                 /** @enum {string} */
                 currency: "VND";
                 item_count: number;
-                /**
-                 * @description **Chưa gồm VAT.** VAT tính một chỗ duy nhất ở
-                 *     `PaymentService::withVat()`, lúc chốt đơn — cộng VAT ở đây là
-                 *     một phép làm tròn thứ hai, và hai chỗ làm tròn khác nhau là
-                 *     cách sinh ra "công nợ bằng 0 nhưng chưa trả đủ".
-                 */
+                /** @description **Chưa gồm VAT**, và đã chốt về VND nguyên trước khi tính VAT. */
                 subtotal: number;
+                /**
+                 * @description `total - subtotal`, **không** phải một phép nhân riêng. Tính
+                 *     `round(subtotal * rate)` ở client là mở lại một chỗ làm tròn
+                 *     thứ hai, và khi ấy `subtotal + vat` có thể không bằng `total`.
+                 */
+                vat: number;
+                /**
+                 * @description `PaymentService::withVat(subtotal)` — chỗ **duy nhất** được
+                 *     phép tính VAT.
+                 *
+                 *     Bản trước cố tình không trả VAT, lý do: "cộng VAT ở đây là một
+                 *     phép làm tròn thứ hai". Lý do đúng nhưng nhắm sai đích — nó
+                 *     nhắm vào việc TÍNH lại công thức, không phải việc phơi kết quả
+                 *     của chỗ duy nhất được tính. Và chỗ làm tròn thứ hai đã tồn tại
+                 *     sẵn ở `buyer/cart.blade.php`, nơi tự nhân
+                 *     `sum * (1 + vat_rate)` trên tổng dạng float trong khi
+                 *     `withVat` nhận int. Phơi trường này ra là để view hết lý do
+                 *     tự nhân.
+                 */
+                total: number;
                 impressions?: number;
             };
         };
@@ -2153,11 +2168,26 @@ export interface components {
                 booked_cpms?: number | null;
                 duration_units?: number | null;
                 duration_unit?: string | null;
+                /**
+                 * @description Số màn hình của dòng này. Cần để dựng lại câu "đơn giá × N màn
+                 *     hình × M kỳ" mà trang giỏ hiển thị cho kiểu `io`.
+                 */
+                screen_count?: number | null;
             };
             /** @description Do máy chủ tính. Không nhận chiều ngược lại. */
             estimate: {
                 /** @enum {string} */
                 currency: "VND";
+                /**
+                 * @description Đơn giá máy chủ đã chốt: giá 1.000 lượt hiển thị với `cpm`,
+                 *     giá một màn hình một kỳ với `io`. VND nguyên.
+                 *
+                 *     **Không** phải giá sàn nội bộ mà CLAUDE.md mục 2 cấm lộ — đây
+                 *     là giá người mua đang trả cho chính dòng giỏ của họ, thứ họ
+                 *     thấy trên hoá đơn. Giá sàn là ngưỡng của media owner và không
+                 *     liên quan tới trường này.
+                 */
+                unit_price?: number | null;
                 cost?: number | null;
                 impressions?: number | null;
                 duration_discount_pct?: number | null;

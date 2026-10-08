@@ -52,10 +52,30 @@ class CartItemResource extends JsonResource
                 'booked_cpms'        => $this->booked_cpms !== null ? (int) $this->booked_cpms : null,
                 'duration_units'     => $this->duration_units !== null ? (int) $this->duration_units : null,
                 'duration_unit'      => $this->duration_unit,
+
+                // Số màn hình của dòng này — cần để dựng lại câu "đơn giá ×
+                // N màn hình × M kỳ" mà trang giỏ hiển thị cho kiểu I/O.
+                // Thiếu nó thì client chỉ còn `estimate.cost` và không giải
+                // thích được con số đó ra từ đâu.
+                'screen_count'       => $this->screen_count !== null ? (int) $this->screen_count : null,
             ],
 
             'estimate' => [
                 'currency'    => 'VND',
+
+                // Đơn giá máy chủ đã chốt cho dòng này: giá 1.000 lượt hiển
+                // thị với `cpm`, giá một màn hình một kỳ với `io`.
+                //
+                // RA ngoài được, và nó KHÔNG phải giá sàn nội bộ mà CLAUDE.md
+                // mục 2 cấm. Đây là giá người mua đang trả cho chính dòng giỏ
+                // của họ — họ nhìn thấy nó trên hoá đơn. Giá sàn nội bộ là
+                // ngưỡng của media owner, không liên quan tới trường này.
+                //
+                // Cột là `decimal:2` nên phải quy về VND nguyên (CLAUDE.md
+                // mục 6). Trả nguyên chuỗi "1500.00" là đẩy việc làm tròn
+                // sang client, và client nào cũng làm tròn một kiểu.
+                'unit_price'  => $this->unit_price !== null ? (int) round((float) $this->unit_price) : null,
+
                 'cost'        => $this->estimated_cost !== null ? (int) round((float) $this->estimated_cost) : null,
                 'impressions' => $this->estimated_impressions !== null ? (int) $this->estimated_impressions : null,
                 'duration_discount_pct' => $this->duration_discount_pct !== null ? (int) $this->duration_discount_pct : null,
