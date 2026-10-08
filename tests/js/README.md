@@ -1,11 +1,11 @@
-# Test JS của hai trang Blade
+# Test JS của các trang Blade đọc qua API
 
 Chạy: `npm run test:js` (từ gốc repo). CI gọi nó ở job **JS của trang Blade**.
 
 ## Vì sao tồn tại
 
-Ba trang `/cart`, `/booking/{campaign}/payment` và `/my/campaigns/{campaign}`
-đã chuyển sang đọc `/api/v2` từ trình duyệt. Phía máy chủ canh API và canh
+Bốn trang khu người mua — `/cart`, `/booking/{campaign}/payment`,
+`/my/campaigns/{campaign}` và `/my/campaigns` — đã chuyển sang đọc `/api/v2` từ trình duyệt. Phía máy chủ canh API và canh
 "trang không render sẵn số tiền" — nhưng phần JS *vẽ* ra giao diện thì không có
 gì canh. Đó là chỗ đã được ghi vào lộ trình là **chưa canh được**, và là chỗ ba
 lỗi thật đã xảy ra khi viết hai trang đầu:
@@ -52,14 +52,21 @@ tập móc được **khai**. Cần vì một móc biến mất **không** làm 
 script bắt `null` bên trong một `.then()` nên chính `.catch()` của nó hứng lấy,
 và trang hiện một thông báo lỗi sai nguyên nhân.
 
-### Bốn trường của `moc-dom.json`
+### Năm trường của `moc-dom.json`
 
 | Trường | Nghĩa |
 |---|---|
 | `cauHinh` | Thuộc tính của khối `<script type="application/json">` mang cấu hình từ PHP |
 | `moc` | Móc trang Blade **phải** render ra. Phía PHP đòi từng móc; phía JS dựng bộ khung từ đúng danh sách này |
 | `tuTao` | Móc script tự gắn vào phần tử do **chính nó** vẽ ra, nên trang Blade không có. Bị loại khỏi phép so trùng khít, nhưng vẫn phải khai — không khai thì phép so báo "thừa", khai bừa thì nó mất tác dụng |
+| `the` | Thẻ HTML của móc khi **không** phải `div`. Thẻ là một phần của hợp đồng, không phải chi tiết trình bày: một `<input>` dựng thành `<div>` thì `el.value` ra `undefined`, và test sẽ chạy nhưng đang chạy trên một thứ khác với trang thật. Phía PHP cũng đòi trang render đúng thẻ đó |
 | `linkDangNhapTrongMarkup` | Lối "Đăng nhập lại" nằm trong markup trang (`true`) hay do script vẽ khi nhận 401 (`false`). Quyết định chỗ canh: `true` → phía PHP đọc HTML; `false` → phía JS trả 401 rồi tìm thẻ `a` |
+
+### Tham số `url` của `dungTrang()`
+
+URL của **chính trang**, không của API. Cần cho trang đọc trạng thái từ địa chỉ:
+`/my/campaigns` lấy `?page=`, `?status=` và `?q=` từ đó, và ghi lại bằng
+`pushState`. Mặc định là một đường trung tính.
 
 Ranh giới "script vẽ gì / trang có gì" là thứ dễ quên nhất khi thêm test cho một
 trang mới. `tuTao` và `linkDangNhapTrongMarkup` tồn tại để ranh giới đó là một

@@ -147,6 +147,11 @@ class MocDomTrangBladeTest extends TestCase
                 ->get($this->urlFrontpage('/my/campaigns/' . $campaign->id))
                 ->assertOk()
                 ->getContent(),
+
+            'resources/views/buyer/dashboard/campaigns.blade.php' => $this->actingAs($this->buyer)
+                ->get($this->urlFrontpage('/my/campaigns'))
+                ->assertOk()
+                ->getContent(),
         ];
     }
 
@@ -236,6 +241,24 @@ class MocDomTrangBladeTest extends TestCase
                     "Trang \"{$trang}\" thiếu móc [{$moc}]. Phần JS gọi "
                     . "querySelector('[{$moc}]') và sẽ vỡ trên production. "
                     . 'Sửa tên ở cả Blade lẫn tests/js/moc-dom.json.'
+                );
+
+                // Thẻ HTML là một phần của hợp đồng, không phải chi tiết trình
+                // bày: một `<input>` render thành `<div>` thì script đọc
+                // `el.value` ra `undefined`, và bộ khung jsdom — dựng từ cùng
+                // khai báo này — sẽ không bắt được, vì nó dựng đúng thứ được
+                // khai chứ không đúng thứ trang có.
+                $the = $dinhNghia['the'][$moc] ?? null;
+
+                if ($the === null) {
+                    continue;
+                }
+
+                $this->assertMatchesRegularExpression(
+                    '#<' . preg_quote($the, '#') . '[\s>][^>]*' . preg_quote($moc, '#') . '#',
+                    $html[$trang],
+                    "Trang \"{$trang}\" render móc [{$moc}] không phải bằng thẻ <{$the}> "
+                    . 'như moc-dom.json khai.'
                 );
             }
         }

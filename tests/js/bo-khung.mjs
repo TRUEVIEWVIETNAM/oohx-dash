@@ -122,15 +122,30 @@ export function mocScriptCanTrang(trang) {
  * @param {string} trang      đường dẫn tệp blade, như khóa trong `moc-dom.json`
  * @param {object} cauHinh    nội dung khối cấu hình
  * @param {Function} traLoi   (url) => { status, body } | Promise, hoặc ném lỗi mạng
+ * @param {string} [url]      URL của chính trang — cần cho trang đọc `?page=`
+ *                            từ địa chỉ. Mặc định là một đường trung tính.
  */
-export function dungTrang(trang, { cauHinh, traLoi }) {
+export function dungTrang(trang, { cauHinh, traLoi, url }) {
     const dinhNghia = MOC_DOM[trang];
 
     if (! dinhNghia) {
         throw new Error(`Chưa khai móc DOM cho ${trang} trong tests/js/moc-dom.json`);
     }
 
-    const khung = dinhNghia.moc.map((m) => `<div ${m}></div>`).join('\n');
+    // Thẻ mặc định là `div`; móc nào cần thẻ khác thì khai ở `the`.
+    //
+    // Cần vì thẻ là một phần của hợp đồng, không phải chi tiết trình bày: một
+    // `<input>` dựng thành `<div>` thì `el.value` ra `undefined`, và
+    // `<select>` dựng thành `<div>` thì `el.options` cũng vậy. Test sẽ chạy
+    // nhưng nó đang chạy trên một thứ khác với trang thật.
+    const the = dinhNghia.the ?? {};
+    const khung = dinhNghia.moc
+        .map((m) => {
+            const t = the[m] ?? 'div';
+
+            return t === 'input' ? `<input ${m}>` : `<${t} ${m}></${t}>`;
+        })
+        .join('\n');
 
     /**
      * Mọi thứ jsdom từ chối làm, giữ lại thay vì để nó trôi ra stderr.
@@ -155,7 +170,7 @@ export function dungTrang(trang, { cauHinh, traLoi }) {
         </body></html>`,
         {
             runScripts: 'outside-only',
-            url: 'https://oohx.net/trang-thu',
+            url: url ?? 'https://oohx.net/trang-thu',
             virtualConsole: banDieuKhien,
         },
     );

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Booking\ListCampaignsRequest;
 use App\Http\Requests\Booking\StoreCampaignRequest;
 use App\Http\Requests\Booking\SubmitCampaignRequest;
 use App\Http\Requests\Booking\UploadCreativeRequest;
@@ -76,6 +77,18 @@ class BookingController extends Controller
     ) {}
 
     /**
+     * Giới hạn cứng của `GET campaigns`.
+     *
+     * 20 là đúng con số trang Blade đang dùng, nên chuyển trang không đổi hành
+     * vi người dùng thấy. 100 là mức chặn: client xin hơn thì nhận 100 và
+     * `meta.max_per_page` nói ra con số đó, chứ không để họ đoán từ việc kết
+     * quả ngắn hơn mình xin.
+     */
+    private const DEFAULT_PER_PAGE = 20;
+
+    private const MAX_PER_PAGE = 100;
+
+    /**
      * Số dòng lịch sử hoạt động trả về nhiều nhất.
      *
      * CLAUDE.md mục 2 đòi mọi danh sách có giới hạn cứng. Lịch sử của một
@@ -88,6 +101,50 @@ class BookingController extends Controller
      * chứ không im lặng cắt bớt.
      */
     private const TOI_DA_LICH_SU = 50;
+
+    /**
+     * `GET campaigns` — danh sách chiến dịch của tổ chức đang chọn.
+     *
+     * ══ Phân trang có giới hạn cứng ══
+     *
+     * CLAUDE.md mục 2. `per_page` nhận từ client nhưng bị kẹp vào
+     * `[1, MAX_PER_PAGE]`, và `max_per_page` ra ngoài trong `meta` để client
+     * **biết** mức chặn thay vì phải đoán từ việc kết quả ngắn hơn mình xin.
+     *
+     * ══ Phạm vi nằm ở service ══
+     *
+     * `CampaignService::listForUser()` quyết thấy những gì, và nó kiểm tư cách
+     * thành viên chứ không tin `current_organization_id`. Không có policy theo
+     * bản ghi ở đây vì chưa có bản ghi nào để hỏi — phép chặn là chính phép
+     * scope, và nó phải mặc định là chặn.
+     *
+     * ══ Không có `cancel_quotes` ở đây ══
+     *
+     * Danh sách trả `CampaignResource` thuần. Báo giá hoàn tiền chạy một lượt
+     * đọc bảng tiền cho mỗi dòng đặt chỗ; nhân với 20 chiến dịch một trang là
+     * hàng trăm lượt đọc cho một màn hình không có nút hủy nào. Nó ở
+     * `GET campaigns/{campaign}`, nơi người dùng đã chọn đúng một chiến dịch.
+     */
+    public function index(ListCampaignsRequest $request): JsonResponse
+    {
+        $perPage = min(
+            max(1, (int) $request->integer('per_page', self::DEFAULT_PER_PAGE)),
+            self::MAX_PER_PAGE,
+        );
+
+        $page = $this->campaigns->listForUser($request->user(), $request->boLoc(), $perPage);
+
+        return response()->json([
+            'data' => CampaignResource::collection($page->getCollection())->resolve(),
+            'meta' => [
+                'page'         => $page->currentPage(),
+                'per_page'     => $page->perPage(),
+                'total'        => $page->total(),
+                'last_page'    => $page->lastPage(),
+                'max_per_page' => self::MAX_PER_PAGE,
+            ],
+        ]);
+    }
 
     public function store(StoreCampaignRequest $request): JsonResponse
     {
