@@ -27,7 +27,8 @@ class PaymentController extends Controller
         $this->authorize($request, $campaign, 'view');
 
         abort_unless(
-            in_array($campaign->status, ['approved', 'active']),
+            // Cùng danh sách với đường v2, lấy từ service — không viết lại.
+            in_array($campaign->status, PaymentService::PAYABLE_STATUSES, true),
             403,
             'Campaign chưa được duyệt'
         );

@@ -266,15 +266,44 @@ hình dữ liệu lệch, nhưng đó là dữ liệu sẵn có, không thuộc 
 
 #### Còn lại gì
 
-- **Hai action đọc nữa có endpoint v2 tương ứng**: `BuyerCampaignController::show`
-  (`GET campaigns/{campaign}`) và `PaymentController::show`
-  (`GET campaigns/{campaign}/payments`).
+- ~~**Hai action đọc nữa có endpoint v2 tương ứng**~~ — **khảo sát 08/10: cả hai đều KHÔNG
+  phải một lần chuyển, và mỗi cái chặn vì một lý do khác nhau.** Chi tiết ở mục dưới.
 - **`/my/campaigns` và dashboard chuyển không được**: v2 chỉ có `POST campaigns`, **không**
   có `GET campaigns` dạng danh sách. Phải viết endpoint mới trước. Năm controller
   `BuyerDashboard`, `BuyerReport`, `BuyerSettings`, `Cancellation`, `OwnerReview` cũng cùng
   tình trạng — đó là phần việc ẩn mà con số "5 controller" ở bản trước của mục này che mất.
 - **Phần JS không có test.** Test chỉ canh được trang trả 200, có trỏ tới endpoint, và không
   còn dựng sẵn số tiền trong HTML. Việc JS vẽ đúng hay không thì chưa có gì canh.
+
+### Hai action đọc còn lại — vì sao chưa chuyển được (08/10/2026)
+
+**`PaymentController::show` — chặn bởi một điều khoản bảo mật, cần người quyết.**
+
+Trang này hiển thị thẳng từ model `Owner`: `tax_code`, `bank_name`,
+`bank_account_number`, `bank_account_name`, `bank_branch`. Đó **không** phải lỗi — mô
+hình kinh doanh là người mua chuyển khoản trực tiếp cho từng media owner, ghi trong chú
+thích của chính view theo hồ sơ Bộ Công Thương: *"thanh toán trực tiếp giữa khách hàng và
+nhà cung cấp dịch vụ quảng cáo; OOHX.NET hỗ trợ ghi nhận giao dịch và đối soát"*. Người
+mua buộc phải thấy số tài khoản mới trả được, và có test canh đúng việc đó
+(`trang thanh toan hien tai khoan cua media owner`).
+
+Nhưng CLAUDE.md mục 2 và 5 cấm phơi `bank_*` và `tax_code`, và DTO `by_owner` của v2 **cố
+ý chỉ có** `owner.id` + `owner.name`. Nên chuyển trang này nghĩa là đưa
+`bank_account_number` và `tax_code` vào một phản hồi API — một quyết định về chính sách
+bảo mật, không phải một bước refactor.
+
+Cái giá cụ thể của việc đó: một endpoint mang số tài khoản là diện phơi rộng hơn một trang
+render phía máy chủ — nó cache được, log được, và với một script có cookie phiên thì gọi
+được. Nếu làm thì phải làm kèm: endpoint riêng phạm vi hẹp, chỉ owner CÓ màn hình trong
+campaign đó, chặn cache, và ghi nhật ký truy cập.
+
+**`BuyerCampaignController::show` — không phải chuyển, là mở rộng API.**
+
+`GET campaigns/{campaign}` hiện trả `campaign`, `lines`, `creatives`, `conflicts`,
+`summary`. View còn cần **bốn** thứ nữa chưa có ở đâu trong v2: `cancelQuotes` (báo giá
+hoàn tiền — đụng tiền, do `CancellationService` tính), `reviewableOwners`, `myReviews`,
+`activities`. Mỗi thứ cần DTO, đặc tả, kiểu TypeScript và test riêng. Đó là một chặng
+việc, không phải một lần sửa controller.
 
 ---
 

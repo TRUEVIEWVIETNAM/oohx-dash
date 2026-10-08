@@ -355,6 +355,75 @@ class PaymentApiTest extends TestCase
         $this->assertSame(0, Payment::count());
     }
 
+    // ── Hai đường vào, MỘT luật trạng thái ──────────────────────────────────
+    //
+    // Cổng trạng thái từng chỉ có ở `Api\V2\PaymentController::store()`.
+    // `Buyer\PaymentController::process()` thì không, và không lớp nào dưới nó
+    // bù lại: `CampaignPolicy::pay()` chỉ kiểm quyền `manage_payments`,
+    // `StorePaymentRequest` không có luật trạng thái, `createPayment()` cũng
+    // không có.
+    //
+    // Hai ca dưới đây dựng ĐÚNG thế mà phép kiểm số tiền không che được: dòng
+    // booking ở `approved` nên `remaining` > 0. Trước khi đẩy cổng xuống
+    // service, đường Blade GHI được khoản tiền vào CSDL ở cả hai ca.
+
+    private function urlBlade(Campaign $campaign): string
+    {
+        return 'http://' . config('domains.frontpage', 'oohx.net')
+            . '/booking/' . $campaign->id . '/payment';
+    }
+
+    public function test_duong_blade_cung_chan_campaign_chua_duyet(): void
+    {
+        $owner    = $this->owner('Kim Ngân ADV');
+        $campaign = $this->campaign([$owner->id => 10_000_000], Campaign::STATUS_DRAFT);
+
+        $this->actingAs($this->buyer)->post($this->urlBlade($campaign), [
+            'method'        => 'bank_transfer',
+            'owner_id'      => $owner->id,
+            'accept_terms'  => '1',
+            'payment_nonce' => (string) Str::uuid(),
+        ])->assertStatus(422);
+
+        $this->assertSame(0, Payment::count(), 'Đường Blade ghi khoản tiền cho campaign chưa duyệt.');
+    }
+
+    public function test_duong_blade_chan_campaign_bi_tu_choi_du_dong_da_duyet(): void
+    {
+        // Thế hở thật: campaign bị từ chối SAU khi vài dòng đã `approved`.
+        // `remaining` > 0 nên thông báo "đã thanh toán đủ" không cứu được, và
+        // trước khi sửa thì khoản tiền được ghi vào một chiến dịch sẽ không
+        // chạy.
+        $owner    = $this->owner('Kim Ngân ADV');
+        $campaign = $this->campaign([$owner->id => 10_000_000], Campaign::STATUS_REJECTED);
+
+        $this->actingAs($this->buyer)->post($this->urlBlade($campaign), [
+            'method'        => 'bank_transfer',
+            'owner_id'      => $owner->id,
+            'accept_terms'  => '1',
+            'payment_nonce' => (string) Str::uuid(),
+        ])->assertStatus(422);
+
+        $this->assertSame(0, Payment::count(), 'Đường Blade ghi khoản tiền cho campaign bị từ chối.');
+    }
+
+    public function test_hai_duong_dung_cung_mot_danh_sach_trang_thai(): void
+    {
+        // Chốt chặn cho chính việc vừa hợp nhất: nếu ai tách danh sách ra hai
+        // bản lần nữa, ca này đỏ trước khi hai bản kịp lệch giá trị.
+        $this->assertSame(
+            \App\Services\PaymentService::PAYABLE_STATUSES,
+            (new \ReflectionClass(\App\Http\Controllers\Api\V2\PaymentController::class))
+                ->getConstant('PAYABLE_STATUSES'),
+            'Controller v2 không còn dùng danh sách của PaymentService.'
+        );
+
+        $this->assertSame(
+            [Campaign::STATUS_APPROVED, Campaign::STATUS_ACTIVE],
+            \App\Services\PaymentService::PAYABLE_STATUSES
+        );
+    }
+
     // ── Hợp đồng API: slug thay cho khóa nội bộ ─────────────────────────────
 
     public function test_nhan_owner_slug_chu_khong_bat_client_doan_khoa_noi_bo(): void
