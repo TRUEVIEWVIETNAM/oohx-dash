@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V2\CartController as V2CartController;
 use App\Http\Controllers\Api\V2\CatalogController as V2CatalogController;
 use App\Http\Controllers\Api\V2\MeController;
 use App\Http\Controllers\Api\V2\PaymentController as V2PaymentController;
+use App\Http\Controllers\Api\V2\PaymentRecipientController as V2PaymentRecipientController;
 use App\Http\Controllers\Api\V2\PublicContentController as V2PublicContentController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OohxEstimateController;
@@ -203,6 +204,20 @@ Route::prefix('v2')
 
         // ── Thanh toán (mốc 3) ────────────────────────────────────────────
         Route::get('campaigns/{campaign}/payments', [V2PaymentController::class, 'index']);
+
+        // Nơi chuyển tiền tới — đường DUY NHẤT của cả hệ thống mang `bank_*`
+        // và `tax_code` ra ngoài. Ngoại lệ được duyệt 08/10/2026; lý do nghiệp
+        // vụ ở `OwnerRemittanceResource`, năm lớp chặn ở controller.
+        //
+        // `throttle:20,1` là limiter inline, tức khóa đếm riêng — không cộng
+        // đôi số đếm của nhóm như chú thích đầu nhóm cảnh báo.
+        //
+        // Vì sao 20/phút chứ không để hạn mức 300/phút của nhóm: một trang
+        // thanh toán gọi đúng một lần, tải lại vài lần là cùng. Con số nào cao
+        // hơn thế đều là dấu hiệu của một script đang quét, và đây là đường
+        // không nên quét được.
+        Route::get('campaigns/{campaign}/payment-recipients', V2PaymentRecipientController::class)
+            ->middleware('throttle:20,1');
 
         // Chặt hơn nữa: đây là đường ghi vào bảng tiền. Khóa chống trùng đã
         // chặn lần gửi lặp của cùng một biểu mẫu, nhưng hạn mức chặn thứ khác

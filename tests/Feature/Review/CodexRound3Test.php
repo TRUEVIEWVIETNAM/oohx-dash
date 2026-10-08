@@ -225,10 +225,27 @@ class CodexRound3Test extends TestCase
 
         $url = 'http://' . config('domains.frontpage', 'oohx.net') . '/booking/' . $campaign->id . '/payment';
 
-        $this->actingAs($this->buyer)
-            ->get($url)
+        // Trang vẫn phải mở được…
+        $this->actingAs($this->buyer)->get($url)->assertOk();
+
+        // …nhưng từ 08/10/2026 nó **không render sẵn** danh sách owner nữa; nó
+        // đọc `GET /api/v2/campaigns/{campaign}/payments` từ trình duyệt. Nên
+        // `assertSee($ownerY->name)` trên HTML đã thành một phép kiểm rỗng —
+        // nó sẽ xanh kể cả khi công nợ của ownerY biến mất hoàn toàn.
+        //
+        // Bảo đảm thật của R31 là: hủy dòng của ownerX và trả đủ cho ownerX
+        // KHÔNG được làm ownerY trông như đã xong. Nên hỏi đúng chỗ quyết định
+        // điều đó.
+        $byOwner = $this->actingAs($this->buyer)
+            ->getJson('/api/v2/campaigns/' . $campaign->id . '/payments')
             ->assertOk()
-            ->assertSee($ownerY->name);
+            ->json('data.by_owner');
+
+        $dongY = collect($byOwner)->firstWhere('owner.id', $ownerY->id);
+
+        $this->assertNotNull($dongY, 'ownerY còn nợ mà không còn trong danh sách công nợ');
+        $this->assertFalse($dongY['is_paid']);
+        $this->assertGreaterThan(0, $dongY['remaining'], 'ownerY phải vẫn còn phần cần chuyển');
     }
 
     // ── R32 ─────────────────────────────────────────────────────────────────

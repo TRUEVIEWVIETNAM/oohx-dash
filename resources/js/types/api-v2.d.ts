@@ -1902,6 +1902,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/campaigns/{campaign}/payment-recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Nơi chuyển tiền tới — thông tin nhận tiền của từng media owner
+         * @description **Đây là đường DUY NHẤT của cả `/api/v2` mang `bank_*` và `tax_code` ra
+         *     ngoài.** CLAUDE.md mục 2 cấm phơi hai nhóm trường đó; ngoại lệ được
+         *     duyệt ngày 08/10/2026 vì mô hình kinh doanh là người mua chuyển khoản
+         *     **trực tiếp cho từng media owner** — sàn không thu hộ, đúng như hồ sơ
+         *     đăng ký với Bộ Công Thương. Người mua không thấy nơi nhận tiền thì
+         *     không trả được.
+         *
+         *     Điều cấm vẫn giữ nguyên ở mọi chỗ khác: `Payment.owner` và
+         *     `OwnerDebt.owner` chỉ có `id` + `name`, và phải giữ như vậy.
+         *
+         *     **Sáu lớp chặn:**
+         *
+         *     1. Không có tham số nào ngoài `campaign`. Danh sách người nhận dẫn từ
+         *        `booking_lines` của chính campaign đó, nên "chỉ owner CÓ màn hình
+         *        trong campaign" đúng do cấu trúc, không do một phép kiểm.
+         *     2. Cần quyền `manage_payments`, **không phải** quyền xem. Vai trò
+         *        `viewer` xem được công nợ ở `GET payments` nhưng nhận 403 ở đây.
+         *     3. Campaign phải ở trạng thái `approved` hoặc `active` — cùng danh
+         *        sách với đường ghi. Chưa duyệt thì 422.
+         *     4. `Cache-Control: no-store, private` — không trình duyệt, CDN hay
+         *        proxy nào được giữ bản sao.
+         *     5. Mỗi lần đọc ghi một dòng `campaign_activities` (ai, lúc nào, IP, các
+         *        owner nào), tối đa một dòng mỗi 10 phút cho mỗi người mỗi campaign.
+         *     6. Hạn mức riêng 20 lần/phút, chặt hơn hạn mức 300/phút của nhóm.
+         *
+         *     **Không có số tiền ở đây.** Số phải trả vẫn ở
+         *     `GET /api/v2/campaigns/{campaign}/payments`. Client ghép hai phản hồi
+         *     theo `id` của owner; gọi song song nên không mất thêm vòng mạng.
+         *
+         *     `has_bank_details` là câu trả lời của **máy chủ**, không để client suy
+         *     từ việc trường nào null: chưa khai đủ thì cả bốn trường `bank_*` đều
+         *     `null`, vì nửa bộ thông tin tệ hơn không có gì.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    campaign: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        /** @description Luôn là `no-store, no-cache, must-revalidate, private`. */
+                        "Cache-Control"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["RemittanceOverview"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /**
+                 * @description Xem được campaign nhưng không có quyền `manage_payments`. Trang
+                 *     thanh toán vẽ đúng trường hợp này: hiện công nợ, không hiện nơi
+                 *     nhận tiền.
+                 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+                /** @description Campaign chưa ở trạng thái trả được nên chưa có gì để trả. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2497,11 +2600,74 @@ export interface components {
             remaining?: number;
             is_paid?: boolean;
         };
+        /**
+         * @description Nơi nhận tiền của một media owner. Danh sách **trắng** — thêm trường
+         *     vào đây là một quyết định về chính sách bảo mật, không phải một lần
+         *     sửa. Xem `App\Http\Resources\V2\OwnerRemittanceResource`.
+         *
+         *     Vẫn **không** ra ngoài: `revenue_share_pct` (ăn chia của sàn với
+         *     owner), `business_license_path` (tệp disk riêng, phải qua URL ký hạn),
+         *     `billing_*` và `credit_limit` của tổ chức.
+         */
+        OwnerRemittance: {
+            id: string;
+            slug?: string | null;
+            /** @description Tên thương hiệu — tên người mua nhận ra. */
+            name: string;
+            /** @description Tên pháp lý — tên ghi trên chứng từ chuyển khoản. */
+            legal_name?: string | null;
+            /**
+             * @description Mã số thuế của bên nhận tiền. Người mua cần nó cho sổ sách của
+             *     chính họ, và MST doanh nghiệp Việt Nam là thông tin tra cứu công
+             *     khai được (tracuunnt.gdt.gov.vn).
+             */
+            tax_code?: string | null;
+            /**
+             * @description Đã khai đủ ba trường tên ngân hàng + số tài khoản + chủ tài khoản.
+             *     `false` thì cả bốn trường dưới đây là `null` và client phải hiện
+             *     lời nhắc liên hệ sàn, **không** vẽ nút trả tiền.
+             */
+            has_bank_details: boolean;
+            bank_name?: string | null;
+            bank_account_number?: string | null;
+            bank_account_name?: string | null;
+            bank_branch?: string | null;
+        };
+        RemittanceOverview: {
+            campaign: {
+                id?: string;
+                code?: string;
+            };
+            /**
+             * @description Nội dung người mua ghi khi chuyển khoản. Do **máy chủ** đưa ra,
+             *     không để client tự ghép: đối soát dựa vào đúng chuỗi này, và hai
+             *     client ghép hai kiểu là hai kiểu đối soát.
+             */
+            transfer_note: string;
+            /**
+             * @description Chỉ các owner có dòng `approved|active|completed` trong campaign
+             *     này — cùng nguồn với `OwnerDebt`, nên hai danh sách không lệch
+             *     nhau. Ghép với `by_owner` theo `id`.
+             */
+            recipients: components["schemas"]["OwnerRemittance"][];
+        };
         PaymentOverview: {
             campaign: {
                 id?: string;
                 code?: string;
                 status?: string;
+                name?: string | null;
+                /** Format: date */
+                start_date?: string | null;
+                /** Format: date */
+                end_date?: string | null;
+                /**
+                 * @description Đếm **mọi** dòng đặt chỗ, kể cả đã hủy — đây là nhãn mô tả
+                 *     chiến dịch, không phải cơ sở của một phép tính tiền. Tiền chỉ
+                 *     đếm dòng `approved|active|completed`, và việc đó ở
+                 *     `PaymentService`.
+                 */
+                line_count?: number;
             };
             summary: {
                 /** @enum {string} */

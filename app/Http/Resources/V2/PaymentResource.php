@@ -19,9 +19,13 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *   URL ký hạn nào. Trả ra một đường dẫn không ký là mở hóa đơn cho người lạ.
  *
  * `owner` chỉ ra `id` và `name`. Người mua cần biết mình chuyển tiền cho ai,
- * nhưng CLAUDE.md mục 2 cấm lộ `bank_*` và `billing_info` — nên **số tài khoản
- * không đi qua đây**. Thông tin chuyển khoản là việc của một đường riêng, có
- * phân quyền riêng, chưa dựng.
+ * nhưng CLAUDE.md mục 2 cấm lộ `bank_*` và `billing_info` — nên **nơi nhận
+ * tiền không đi qua đây**. Nó là việc của `OwnerRemittanceResource`, chỉ dùng
+ * ở `GET campaigns/{campaign}/payment-recipients`, nơi có quyền `pay`, chặn
+ * cache và nhật ký truy cập.
+ *
+ * Đây là DTO của **lịch sử** thanh toán: một khoản đã tạo. Nó được trả cả cho
+ * người chỉ có quyền xem, nên nó phải sạch hơn đường kia.
  */
 class PaymentResource extends JsonResource
 {
