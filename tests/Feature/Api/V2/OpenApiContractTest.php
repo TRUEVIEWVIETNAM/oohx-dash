@@ -131,25 +131,124 @@ class OpenApiContractTest extends TestCase
         );
     }
 
+    /**
+     * Đặc tả không được khai trường nhạy cảm — **trừ đúng một khối**.
+     *
+     * Ngoại lệ duyệt 08/10/2026: `bank_*` và `tax_code` ra ngoài qua đúng một
+     * đường (`GET campaigns/{campaign}/payment-recipients`) và đúng một schema
+     * (`OwnerRemittance`). Lý do nghiệp vụ ở `OwnerRemittanceResource`; điều
+     * kiện kèm theo ở CLAUDE.md mục 2.
+     *
+     * ══ Cách nới ngoại lệ ở đây mới là phần quan trọng ══
+     *
+     * **Không** bỏ năm trường đó khỏi danh sách cấm. Thay vào đó cắt khối
+     * `OwnerRemittance` ra khỏi đống rạ rồi giữ nguyên lệnh cấm trên phần còn
+     * lại. Nên:
+     *
+     *  - thêm `bank_account_number` vào `Payment`, `OwnerDebt` hay bất kỳ
+     *    schema nào khác → test đỏ, y như trước;
+     *  - xoá hay đổi tên khối `OwnerRemittance` mà vẫn để năm trường nằm rải
+     *    rác → test đỏ, vì phép kiểm thứ hai đòi khối đó CÒN và còn đủ cả năm;
+     *  - nhét `revenue_share_pct` vào chính khối ngoại lệ → test đỏ, vì ngoại
+     *    lệ chỉ cấp cho năm trường, không cấp cho cả khối.
+     *
+     * Bỏ hẳn năm trường khỏi danh sách cấm là cách để lần rò tiếp theo đi qua
+     * mà không ai biết — và đó là cách dễ nhất, nên nó phải được nói ra là
+     * sai ngay tại đây.
+     */
     public function test_dac_ta_khong_khai_truong_nhay_cam(): void
     {
         $raw = file_get_contents(base_path('docs/openapi/v2.yaml'));
 
-        $sensitive = [
-            'revenue_share_pct', 'billing_info',
-            'bank_name', 'bank_account_number', 'bank_account_name', 'bank_branch',
-            'tax_code', 'business_license_path', 'legal_representative',
-            'device_token', 'internal_notes',
+        [$khoiNgoaiLe, $conLai] = $this->tachKhoiSchema($raw, 'OwnerRemittance');
+
+        $this->assertNotSame(
+            '',
+            $khoiNgoaiLe,
+            'Không tìm thấy schema `OwnerRemittance`. Nếu nó bị xoá hoặc đổi tên thì '
+            . 'ngoại lệ không còn chỗ trú, và phép kiểm dưới đây mất hiệu lực — '
+            . 'sửa test cùng lượt với đặc tả, đừng để nó xanh rỗng.'
+        );
+
+        // Cấm tuyệt đối, không có ngoại lệ nào, ở cả hai phần của tệp.
+        $camTuyetDoi = [
+            'revenue_share_pct', 'billing_info', 'business_license_path',
+            'legal_representative', 'device_token', 'internal_notes',
         ];
 
-        foreach ($sensitive as $field) {
+        // Chỉ được phép nằm trong khối ngoại lệ, không chỗ nào khác.
+        $chiTrongKhoiNgoaiLe = [
+            'bank_name', 'bank_account_number', 'bank_account_name', 'bank_branch',
+            'tax_code',
+        ];
+
+        foreach (array_merge($camTuyetDoi, $chiTrongKhoiNgoaiLe) as $field) {
             // Chú thích có thể nhắc tên trường để giải thích vì sao không trả;
             // chỉ cấm nó xuất hiện như một khóa của schema.
             $this->assertStringNotContainsString(
                 $field . ':',
-                $raw,
-                "Đặc tả khai trường nhạy cảm \"{$field}\" như một thuộc tính trả về."
+                $conLai,
+                "Đặc tả khai trường nhạy cảm \"{$field}\" như một thuộc tính trả về, "
+                . 'ngoài khối `OwnerRemittance`.'
             );
         }
+
+        foreach ($camTuyetDoi as $field) {
+            $this->assertStringNotContainsString(
+                $field . ':',
+                $khoiNgoaiLe,
+                "Ngoại lệ cấp cho `bank_*` và `tax_code`, không cấp cho \"{$field}\"."
+            );
+        }
+
+        foreach ($chiTrongKhoiNgoaiLe as $field) {
+            $this->assertStringContainsString(
+                $field . ':',
+                $khoiNgoaiLe,
+                "\"{$field}\" không còn trong `OwnerRemittance`. Nếu trường này không "
+                . 'ra ngoài nữa thì bỏ nó khỏi danh sách ngoại lệ ở đây, để lệnh cấm '
+                . 'toàn phần có hiệu lực lại.'
+            );
+        }
+    }
+
+    /**
+     * Cắt một khối schema ra khỏi tệp theo thụt lề.
+     *
+     * `components.schemas.<Tên>` thụt 4 dấu cách, và khối kết thúc ở dòng tiếp
+     * theo cũng thụt đúng 4 dấu cách.
+     *
+     * Cố ý làm việc trên **chữ** của tệp chứ không parse rồi dump lại: thứ phép
+     * kiểm này canh là tệp mà con người đọc và sửa, không phải cây dữ liệu đã
+     * chuẩn hoá. Một trường nhạy cảm nằm trong một chú thích YAML sai chỗ cũng
+     * phải bị bắt.
+     *
+     * @return array{0: string, 1: string} [khối, phần còn lại của tệp]
+     */
+    private function tachKhoiSchema(string $raw, string $ten): array
+    {
+        $trong  = false;
+        $khoi   = [];
+        $conLai = [];
+
+        foreach (preg_split('/\R/', $raw) as $dong) {
+            // Thoát TRƯỚC khi nhận dòng mở, nên chính dòng mở không tự đóng
+            // khối của mình.
+            if ($trong && preg_match('/^    \S/', $dong) === 1) {
+                $trong = false;
+            }
+
+            if ($dong === '    ' . $ten . ':') {
+                $trong = true;
+            }
+
+            if ($trong) {
+                $khoi[] = $dong;
+            } else {
+                $conLai[] = $dong;
+            }
+        }
+
+        return [implode("\n", $khoi), implode("\n", $conLai)];
     }
 }
