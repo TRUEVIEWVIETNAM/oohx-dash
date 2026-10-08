@@ -21,15 +21,14 @@ class CartController extends Controller
      */
     public function index(Request $request): View
     {
-        $cart = $this->cartService->getOrCreateCart($request->user());
-        $items = $cart->items()
-            ->with(['screen.spec', 'screen.inventory', 'screen.owner', 'screen.site.network', 'screen.site.province', 'screen.site.commune'])
-            ->get();
-
-        return view('buyer.cart', [
-            'cart' => $cart,
-            'items' => $items,
-        ]);
+        // Không nạp gì. View tự gọi `GET /api/v2/cart` từ trình duyệt — xem
+        // chú thích đầu `buyer/cart.blade.php` về lý do.
+        //
+        // KHÔNG gọi `getOrCreateCart()` ở đây nữa: endpoint v2 đã gọi nó, và
+        // gọi hai lần là hai lần ghi cho một lần xem trang. Nó cũng là thứ sẽ
+        // âm thầm che mất lỗi — nếu API hỏng thì giỏ vẫn được tạo bởi action
+        // này, và triệu chứng hiện ra ở một chỗ khác chứ không ở chỗ hỏng.
+        return view('buyer.cart');
     }
 
     /**

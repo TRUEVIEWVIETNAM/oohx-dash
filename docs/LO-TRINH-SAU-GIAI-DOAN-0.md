@@ -204,29 +204,77 @@ Mốc 1 ghi rõ chỗ hở: tầng DTO/phân trang/lỗi "chỉ được test ca
 chạy qua". Và ghi rõ cách đóng: "khi tới nhóm cần quyền thì Next.js là bên tiêu thụ duy nhất
 và đường đó buộc phải đi qua HTTP thật".
 
-Bên tiêu thụ đó **chưa tồn tại.** Tìm toàn repo: không file `.ts`, `.tsx`, `.php` hay
+Tới ngày 08/10 bên tiêu thụ đó **chưa tồn tại**: không file `.ts`, `.tsx`, `.php` hay
 `.blade.php` nào gọi `/api/v2/cart`, `/api/v2/campaigns` hoặc `…/payments`. Khu người mua Blade
-vẫn gọi service trực tiếp. Kiểu TypeScript đã sinh nhưng chưa ai import. Bên tiêu thụ dự kiến
+gọi service trực tiếp, kiểu TypeScript đã sinh nhưng chưa ai import, và bên tiêu thụ dự kiến
 là giai đoạn 8 — đang hoãn.
-
-Nên trạng thái đúng là **code xong, mục đích chưa**: một tầng chạy được, đã deploy, chưa có
-một yêu cầu thật nào đi qua.
 
 Đó đúng cùng hình dạng với `canary` v6: năm phép kiểm 404 nằm yên không chạy lần nào, vì điều
 kiện kích hoạt (conf proxy đổi) gần như không xảy ra — và chúng chỉ chạy lần đầu ngày 08/10
 sau khi v7 bỏ điều kiện đó đi. Khác biệt: ở đây điều kiện kích hoạt là một giai đoạn bị hoãn,
 nên nó không tự xảy ra, và không có bản "v7" nào bỏ nó đi được.
 
-Hai lựa chọn, để mở như mốc 1 đã để mở:
+### Bên tiêu thụ đầu tiên — trang giỏ hàng, 08/10/2026
 
-- **Cho khu người mua Blade gọi `/api/v2` qua HTTP.** Đóng khoảng trống ngay và đóng bằng lưu
-  lượng thật. Giá: một vòng HTTP nội bộ mỗi lần dựng trang, và công sửa **5** controller —
-  `Cart`, `Booking`, `Payment`, `BuyerCampaign`, `BuyerAuth`. Năm controller còn lại trong
-  `app/Http/Controllers/Buyer/` (`BuyerDashboard`, `BuyerReport`, `BuyerSettings`,
-  `Cancellation`, `OwnerReview`) **chưa có endpoint v2 nào tương ứng**, nên chúng không
-  chuyển được mà không viết thêm endpoint trước — đó là phần việc ẩn của lựa chọn này.
-- **Để nguyên.** Rẻ hơn, và tầng đó vẫn có 55 ca test canh. Chấp nhận rằng một lỗi ở DTO hoặc
-  phân trang của nhóm cần quyền sẽ không ai thấy cho tới khi giai đoạn 8 gọi vào.
+`buyer/cart.blade.php` giờ đọc dữ liệu qua `GET /api/v2/cart`, không qua model.
+`Buyer\CartController::index()` không nạp gì nữa và cũng không gọi `getOrCreateCart()` —
+endpoint v2 đã gọi, gọi hai lần là hai lần ghi cho một lần xem trang.
+
+**Gọi từ trình duyệt, không từ PHP.** Hai cách hiển nhiên hơn đều đã bị loại:
+
+| Cách | Vì sao không |
+|---|---|
+| PHP tự `Http::get('https://oohx.net/api/v2/cart')` | OpenLiteSpeed chạy PHP qua một pool worker có hạn. Một request đang giữ worker mà chờ một request khác cũng cần worker thì dưới tải pool cạn và site đứng. |
+| Sub-request nội bộ qua HTTP kernel | Không qua mạng, nhưng phải bịa lại phiên và Sanctum trong request con, và `throttle` đếm đôi mỗi lần dựng trang — hạn mức thật của người dùng còn một nửa mà không ai nhận ra. |
+
+Gọi từ trình duyệt đi qua **nhiều** stack hơn cả hai: đúng web server, đúng middleware,
+đúng DTO, đúng bộ dựng lỗi — mà không thêm plumbing nào ở máy chủ. Và nó đúng hình dạng
+giai đoạn 8 sẽ dùng, nên công này không phải công bỏ đi.
+
+**Đường GHI vẫn đi route Blade.** Nút xoá còn POST về `buyer.cart.remove`. Cố ý: khoảng
+trống cần đóng là tầng ĐỌC, và chuyển cả đường ghi trong cùng một lần là nhân đôi diện rủi
+ro trên một trang đụng tiền. `DELETE /api/v2/cart/items/{item}` đã có và đã có test; chuyển
+sang nó là một bước riêng.
+
+#### Và nó bắt được một lỗi ngay — đúng việc nó tồn tại để làm
+
+Lý lẽ của mốc 1 là "nếu API sai thì trang đang chạy sai ngay, phát hiện được liền". Lần
+chuyển này tìm ra chỗ sai theo đúng chiều ngược lại, mà kết quả thì giống:
+
+Trang giỏ **tự tính VAT** — `sum * (1 + config('pricing.vat_rate'))` — trong khi
+`PaymentService::withVat()` được ghi là chỗ duy nhất được phép tính VAT, và chính đặc tả
+OpenAPI cố ý không trả VAT với lý do "cộng VAT ở đây là một phép làm tròn thứ hai". Chỗ làm
+tròn thứ hai đó **đã tồn tại sẵn**, nằm trong view, suốt thời gian đó. Nó còn nhân trên tổng
+dạng float trong khi `withVat` nhận int, nên hai đường lệch nhau được 1₫ — ở đúng con số
+người mua đọc.
+
+`summary` giờ trả `vat` và `total` lấy từ `withVat()`. Đó không phải thêm một chỗ tính; đó là
+bỏ chỗ đang có, vì view hết lý do tự nhân. `vat` là hiệu `total - subtotal` chứ không phải
+một phép nhân riêng — để `subtotal + vat === total` luôn đúng, tức cột cộng trên trang cộng
+đúng với tổng của chính nó.
+
+DTO cũng mở thêm `estimate.unit_price` và `delivery.screen_count`. Không phải nới whitelist
+cho tiện: thiếu hai trường đó thì trang chỉ còn `estimate.cost` và người mua thấy một tổng
+tiền không có cách nào kiểm. Cả hai là dữ liệu của chính dòng giỏ của họ, **không** phải giá
+sàn nội bộ mà CLAUDE.md mục 2 cấm.
+
+Một chỗ **không** phải nới: view từng ghép `site.province.name > site.commune.name`, và
+`location.city` của DTO công khai đã chứa sẵn đúng chuỗi đó (`"Thái Nguyên > Phường Bắc Kạn"`
+— dò production 08/10). Nên không phải thêm trường nào vào DTO công khai để phục vụ một trang
+sau đăng nhập. Ghi chú lề: `city` chứa "Tỉnh > Phường" và `location_district` luôn null là mô
+hình dữ liệu lệch, nhưng đó là dữ liệu sẵn có, không thuộc phạm vi lần này.
+
+#### Còn lại gì
+
+- **Hai action đọc nữa có endpoint v2 tương ứng**: `BuyerCampaignController::show`
+  (`GET campaigns/{campaign}`) và `PaymentController::show`
+  (`GET campaigns/{campaign}/payments`).
+- **`/my/campaigns` và dashboard chuyển không được**: v2 chỉ có `POST campaigns`, **không**
+  có `GET campaigns` dạng danh sách. Phải viết endpoint mới trước. Năm controller
+  `BuyerDashboard`, `BuyerReport`, `BuyerSettings`, `Cancellation`, `OwnerReview` cũng cùng
+  tình trạng — đó là phần việc ẩn mà con số "5 controller" ở bản trước của mục này che mất.
+- **Phần JS không có test.** Test chỉ canh được trang trả 200, có trỏ tới endpoint, và không
+  còn dựng sẵn số tiền trong HTML. Việc JS vẽ đúng hay không thì chưa có gì canh.
 
 ---
 
@@ -311,15 +359,26 @@ Gỡ view cũ, route cũ, phần render của `FrontpageService`. Laravel còn l
 đã xoá, `resources/views/frontpage/` chỉ còn `layouts/`, `partials/`, `policies/`, và
 `resources/views/buyer/auth/` cũng đã xoá. Không còn đường lùi nào.
 
-Hai điều kiện ở trên **chưa được xác nhận trước khi chọn**. Điều kiện thứ hai thì thời
-gian tự trả: các đường đã chạy trên Next từ 07/10. Điều kiện thứ nhất — luồng đăng nhập
-kiểm bằng tay — vẫn là nợ, và giờ nặng hơn trước vì `buyer/auth/*.blade.php` không còn
-làm đường lùi được nữa.
+Hai điều kiện ở trên **chưa được xác nhận trước khi chọn**, nhưng cả hai đã đóng sau đó.
 
-Phần kiểm được bằng máy thì đã xanh: `POST /api/v2/auth/login` với thông tin giả trả
-`{"error":"invalid_credentials","code":401}`, tức controller chạy và có đọc CSDL. Phần
-**chưa** kiểm được từ xa là khúc trình duyệt: cookie phiên, CSRF, chuyển hướng sau khi
-vào. Cái đó cần một lần đăng nhập thật bằng tay, một lần là đủ.
+Điều kiện thứ hai thì thời gian tự trả: các đường đã chạy trên Next từ 07/10.
+
+Điều kiện thứ nhất — luồng đăng nhập kiểm bằng tay — **đã kiểm, 08/10/2026, đăng nhập
+thật thành công.** Đây là flow duy nhất của cả chặng chuyển sang Next không có cách nào
+kiểm từ xa, vì khúc quyết định nằm ở trình duyệt: cookie phiên, CSRF, chuyển hướng sau
+khi vào. Phần máy kiểm được thì đã xanh trước đó (`POST /api/v2/auth/login` với thông
+tin giả trả `{"error":"invalid_credentials","code":401}`, tức controller chạy và có đọc
+CSDL), nhưng nó không chứng minh được khúc còn lại.
+
+Lần đăng nhập đó cũng gỡ luôn một rủi ro ghi ở cuối giai đoạn 6: `sanctum.stateful` suy
+ra từ `APP_URL`, và sai thì đăng nhập **trả 200 mà không đặt phiên** — người dùng quay
+lại trang đăng nhập và không thấy lỗi gì. Vào được nghĩa là danh sách đó đúng trên
+production.
+
+Và phiên do Next tạo ra dùng được cho khu người mua Blade, điều này đúng theo cấu trúc
+chứ không nhờ may: `Api\V2\BuyerAuthController` và `Buyer\BuyerAuthController` gọi **cùng
+một** `BuyerLoginService::attempt()`, hàm đó dùng `Auth::attempt` (guard `web`) rồi
+`session()->regenerate()`. Một phiên web chuẩn, cùng origin, cùng cookie.
 
 ---
 
