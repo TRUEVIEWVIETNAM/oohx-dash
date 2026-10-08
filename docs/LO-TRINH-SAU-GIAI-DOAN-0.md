@@ -17,9 +17,9 @@ Nguyên tắc xuyên suốt: **đóng đường tiền trước, đổi giao di�
 | ~~2~~ | ~~Sửa đường ghi bằng chứng phát sóng~~ **XONG 29/09** | L | — |
 | ~~3~~ | ~~Hợp nhất quan hệ Màn hình ↔ Mạng lưới~~ **XONG 29/09** | M | — (đã chạy `networks:reconcile` trên dữ liệu thật khi deploy 02/10: 2970→2970, 0 xung đột) |
 | ~~4~~ | ~~Dọn số liệu bịa trên trang công khai~~ **XONG 03/10** | S | — |
-| **5** | API v2 + OpenAPI, Blade tự đọc qua API | M | **Đang làm.** Mốc 1, 2 xong; mốc 3 còn nhóm đặt chỗ + thanh toán |
-| **6** | Next.js cho trang công khai | L | Xong 5 |
-| **7** | Dọn Blade công khai | S | Xong 6 |
+| ~~5~~ | ~~API v2 + OpenAPI~~ **XONG 03/10** | M | — (mốc 1, 2, 3 xong. "Blade tự đọc qua API" cố tình chưa làm — xem mốc 3) |
+| ~~6~~ | ~~Next.js cho trang công khai~~ **XONG 07/10** | L | — |
+| ~~7~~ | ~~Dọn Blade công khai~~ **XONG 08/10** | S | — (chọn nhánh B: bỏ đường lùi) |
 | **8** | *(hoãn)* Next.js cho khu người mua | L | Có thêm người |
 
 Giai đoạn 1b chạy song song được với 1 vì không đụng cùng file. Các giai đoạn còn lại nối tiếp.
@@ -165,7 +165,68 @@ Trên khung nhìn vẫn còn **giới hạn cứng 500 pin**, vì khung nhìn r�
 
 `getMapPins()` nhận hai tham số **tùy chọn** nên trang Blade giữ nguyên hành vi, và có `MapUnchangedByApiTest` canh điều đó — trước mốc này không test nào che trang bản đồ Blade.
 
-**Chưa có:** sản phẩm/gói (`/products/{slug}`) và toàn bộ nhóm cần quyền (giỏ hàng, đặt chỗ, thanh toán). Đó là mốc 3.
+### Mốc 3 đã làm (01–03/10/2026) — code xong, mục đích chưa
+
+Bốn commit: `787dc9b` (sản phẩm), `4276acd` (giỏ hàng), `dcf2e59` (đặt chỗ + thanh toán),
+`180d428` (sửa ba lỗi của vòng CI đầu).
+
+Đã có, và đã dò trên production ngày 08/10/2026:
+
+| Nhóm | Đường | Đo được |
+|---|---|---|
+| Sản phẩm | `products`, `products/{slug}` | 200, công khai |
+| Giỏ hàng | `cart`, `cart/items`, `cart/items/{item}` | 401 khi chưa đăng nhập |
+| Đặt chỗ | `campaigns`, `campaigns/{campaign}`, `…/creatives`, `…/submit` | 401 |
+| Thanh toán | `campaigns/{campaign}/payments` (GET, POST) | 401 |
+| Đăng nhập | `auth/login`, `auth/register`, `auth/logout` | `login` trả `invalid_credentials` 401 — controller chạy, có đọc CSDL |
+
+**401 chứ không 404** là phép phân biệt đáng tiền ở đây: 404 nghĩa là route không tồn tại
+trên bản đang chạy, 401 nghĩa là nó tồn tại và lớp xác thực đang làm việc.
+
+55 ca test cho ba nhóm cần quyền (`CartApiTest` 18, `BookingApiTest` 17, `PaymentApiTest` 20).
+`docs/openapi/v2.yaml` khai đủ **29** đường và `OpenApiContractTest` đối chiếu hai chiều đặc
+tả ↔ bảng route. Kiểu TypeScript đã sinh ở `resources/js/types/api-v2.d.ts`.
+
+Hai điều khoản CLAUDE.md kiểm được từ ngoài, và cả hai đúng: `GET /api/v2/products?per_page=999`
+trả `meta.per_page = 50` kèm `max_per_page = 50` (giới hạn cứng có hiệu lực thật, không chỉ
+trong test), và 401 trả đúng `{"error","message","code","details"}`.
+
+**Không trôi khỏi nhau** — đây là món nợ cả giai đoạn 5 tồn tại để trả, nên nói rõ bằng chứng:
+`Buyer\BookingController` và `Api\V2\BookingController` tiêm **đúng cùng năm service**
+(`CampaignService`, `CartService`, `AvailabilityService`, `PolicyConsentService`,
+`CreativeService`), và `CampaignService::createFromCart()` là chỗ **duy nhất** trong `app/`
+gọi `Campaign::create`. Luật kiểm dùng chung qua FormRequest (`AddToCartRequest`), quyền qua
+policy. Hai cửa, một đường.
+
+#### Nhưng lý lẽ của mốc 3 vẫn chưa thành
+
+Mốc 1 ghi rõ chỗ hở: tầng DTO/phân trang/lỗi "chỉ được test canh, không được lưu lượng thật
+chạy qua". Và ghi rõ cách đóng: "khi tới nhóm cần quyền thì Next.js là bên tiêu thụ duy nhất
+và đường đó buộc phải đi qua HTTP thật".
+
+Bên tiêu thụ đó **chưa tồn tại.** Tìm toàn repo: không file `.ts`, `.tsx`, `.php` hay
+`.blade.php` nào gọi `/api/v2/cart`, `/api/v2/campaigns` hoặc `…/payments`. Khu người mua Blade
+vẫn gọi service trực tiếp. Kiểu TypeScript đã sinh nhưng chưa ai import. Bên tiêu thụ dự kiến
+là giai đoạn 8 — đang hoãn.
+
+Nên trạng thái đúng là **code xong, mục đích chưa**: một tầng chạy được, đã deploy, chưa có
+một yêu cầu thật nào đi qua.
+
+Đó đúng cùng hình dạng với `canary` v6: năm phép kiểm 404 nằm yên không chạy lần nào, vì điều
+kiện kích hoạt (conf proxy đổi) gần như không xảy ra — và chúng chỉ chạy lần đầu ngày 08/10
+sau khi v7 bỏ điều kiện đó đi. Khác biệt: ở đây điều kiện kích hoạt là một giai đoạn bị hoãn,
+nên nó không tự xảy ra, và không có bản "v7" nào bỏ nó đi được.
+
+Hai lựa chọn, để mở như mốc 1 đã để mở:
+
+- **Cho khu người mua Blade gọi `/api/v2` qua HTTP.** Đóng khoảng trống ngay và đóng bằng lưu
+  lượng thật. Giá: một vòng HTTP nội bộ mỗi lần dựng trang, và công sửa **5** controller —
+  `Cart`, `Booking`, `Payment`, `BuyerCampaign`, `BuyerAuth`. Năm controller còn lại trong
+  `app/Http/Controllers/Buyer/` (`BuyerDashboard`, `BuyerReport`, `BuyerSettings`,
+  `Cancellation`, `OwnerReview`) **chưa có endpoint v2 nào tương ứng**, nên chúng không
+  chuyển được mà không viết thêm endpoint trước — đó là phần việc ẩn của lựa chọn này.
+- **Để nguyên.** Rẻ hơn, và tầng đó vẫn có 55 ca test canh. Chấp nhận rằng một lỗi ở DTO hoặc
+  phân trang của nhóm cần quyền sẽ không ai thấy cho tới khi giai đoạn 8 gọi vào.
 
 ---
 
@@ -216,7 +277,7 @@ Chi tiết ở `docs/deploy/nextjs-proxy/README.md`.
 
 ---
 
-## Giai đoạn 7 — Dọn Blade công khai
+## Giai đoạn 7 — Dọn Blade công khai — **ĐÃ XONG 08/10/2026**
 
 Gỡ view cũ, route cũ, phần render của `FrontpageService`. Laravel còn lại làm API và Filament admin.
 
@@ -230,7 +291,7 @@ Gỡ view cũ, route cũ, phần render của `FrontpageService`. Laravel còn l
 
 **Lớn hơn:** phần còn lại không phải dọn rác. Nó là **bỏ đường lùi về Laravel**.
 
-Đường lùi đang có, ghi ở `docs/deploy/nextjs-proxy/README.md`: xoá `nextjs.conf` rồi `lswsctrl restart` là toàn bộ trang công khai quay về Blade. Xoá view Blade đi thì lệnh đó cho 404 thay vì trang cũ.
+~~Đường lùi đang có, ghi ở `docs/deploy/nextjs-proxy/README.md`: xoá `nextjs.conf` rồi `lswsctrl restart` là toàn bộ trang công khai quay về Blade.~~ **Hết hiệu lực 08/10/2026:** đường lùi đó **không còn tồn tại**. `FrontpageController` và các view trang đã xoá, nên xoá `nextjs.conf` giờ cho 404 trên toàn bộ trang công khai chứ không cho trang Blade cũ. Ai đọc mục này trong một sự cố cần biết điều đó trước khi gõ lệnh.
 
 ### Hai nhánh, mỗi nhánh kéo theo việc riêng
 
@@ -245,6 +306,20 @@ Gỡ view cũ, route cũ, phần render của `FrontpageService`. Laravel còn l
 
 - Luồng đăng nhập đã được kiểm bằng tay một lần (xem ghi chú cuối giai đoạn 6). Đây là flow **duy nhất** chưa có bằng chứng chạy thật, và cũng là flow mà `buyer/auth/*.blade.php` đang làm đường lùi.
 - Các đường đã chuyển chạy đủ lâu để lưu lượng thật đi qua mọi nhánh, không chỉ qua phép đo.
+
+**Cập nhật 08/10/2026 — nhánh B đã được chọn, và chọn trọn.** `FrontpageController.php`
+đã xoá, `resources/views/frontpage/` chỉ còn `layouts/`, `partials/`, `policies/`, và
+`resources/views/buyer/auth/` cũng đã xoá. Không còn đường lùi nào.
+
+Hai điều kiện ở trên **chưa được xác nhận trước khi chọn**. Điều kiện thứ hai thì thời
+gian tự trả: các đường đã chạy trên Next từ 07/10. Điều kiện thứ nhất — luồng đăng nhập
+kiểm bằng tay — vẫn là nợ, và giờ nặng hơn trước vì `buyer/auth/*.blade.php` không còn
+làm đường lùi được nữa.
+
+Phần kiểm được bằng máy thì đã xanh: `POST /api/v2/auth/login` với thông tin giả trả
+`{"error":"invalid_credentials","code":401}`, tức controller chạy và có đọc CSDL. Phần
+**chưa** kiểm được từ xa là khúc trình duyệt: cookie phiên, CSRF, chuyển hướng sau khi
+vào. Cái đó cần một lần đăng nhập thật bằng tay, một lần là đủ.
 
 ---
 
@@ -311,7 +386,7 @@ Phương án khác, tránh hẳn chuyện tỷ giá: yêu cầu media owner niê
 
 ~~Ba mục cũ (trả lời câu hỏi 2, Codex review giai đoạn 0, bắt đầu 1.1) đã hết hạn: giai đoạn 0 và 1 đã lên production từ 01–02/10.~~ Cập nhật 03/10/2026:
 
-1. **Mốc 3 của giai đoạn 5 — nhóm đặt chỗ + thanh toán trên `/api/v2`.** Đây là cửa duy nhất mở sang giai đoạn 6, vì bảng tổng thể ghi giai đoạn 6 "Chặn bởi: Xong 5". Và nó quan trọng hơn hai mốc trước: phần đọc hiện cho `CatalogController` gọi thẳng `FrontpageService`, nên tầng DTO/phân trang/lỗi chỉ có test canh, không có lưu lượng thật chạy qua. Nhóm cần quyền là chỗ Next.js buộc phải đi qua HTTP thật.
+1. ~~**Mốc 3 của giai đoạn 5.**~~ **XONG 03/10.** Nhưng lý lẽ của nó chưa thành: nhóm cần quyền chưa có bên tiêu thụ nào, vì bên dự kiến là giai đoạn 8 và giai đoạn 8 đang hoãn. Việc còn lại là một **quyết định**, không phải code — xem mục "Mốc 3 đã làm" ở giai đoạn 5. Hai lựa chọn: cho khu người mua Blade gọi `/api/v2` qua HTTP (đóng được khoảng trống ngay, giá là một vòng HTTP nội bộ mỗi lần dựng trang), hoặc để nguyên và chấp nhận tầng đó chỉ có test canh cho tới giai đoạn 8.
 2. **Ban hành ba trang chính sách.** `quy-che-hoat-dong`, `chinh-sach-bao-mat`, `giai-quyet-tranh-chap` đang `effective_from = null`, tức bản nháp, trên một sàn đang nộp hồ sơ TMĐT. `bang-phi` thì đã ban hành. Phần code đã sẵn và `/api/v2/policies` phơi đúng trạng thái qua cờ `is_effective` — việc còn lại nằm ngoài code.
 3. **Cho Codex review khối từ R41 tới nay** (~35 commit): API v2, giỏ hàng, hoàn tiền, đường tiền. Đúng loại code nên có người thứ hai đọc.
 
