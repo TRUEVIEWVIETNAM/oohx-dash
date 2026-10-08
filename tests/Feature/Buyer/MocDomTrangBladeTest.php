@@ -71,8 +71,14 @@ class MocDomTrangBladeTest extends TestCase
 
         $khai = json_decode(file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);
 
-        // Bỏ khóa chú thích; mọi khóa còn lại là một đường dẫn tệp blade.
-        unset($khai['//']);
+        // Bỏ **mọi** khóa chú thích. JSON không có cú pháp chú thích, nên tệp
+        // đó dùng khóa mở đầu bằng `//` để giải thích từng trường — và chúng
+        // không phải trang.
+        $khai = array_filter(
+            $khai,
+            fn (string $khoa) => ! str_starts_with($khoa, '//'),
+            ARRAY_FILTER_USE_KEY,
+        );
 
         $this->assertNotEmpty($khai, 'moc-dom.json không khai trang nào — test này sẽ xanh rỗng.');
 
@@ -136,7 +142,71 @@ class MocDomTrangBladeTest extends TestCase
                 ->get($this->urlFrontpage('/booking/' . $campaign->id . '/payment'))
                 ->assertOk()
                 ->getContent(),
+
+            'resources/views/buyer/dashboard/campaign-detail.blade.php' => $this->actingAs($this->buyer)
+                ->get($this->urlFrontpage('/my/campaigns/' . $campaign->id))
+                ->assertOk()
+                ->getContent(),
         ];
+    }
+
+    /**
+     * Lối "Đăng nhập lại" phải có mặt — ở đúng chỗ mỗi trang khai.
+     *
+     * ══ Vì sao cần canh ══
+     *
+     * Ba trang này đều xử 401 bằng cách **nói thẳng ra**, không
+     * `location.reload()`. Lý do: trang đi qua guard `web`, API đi qua
+     * `auth:sanctum` phía sau `EnsureFrontendRequestsAreStateful`, và lớp sau
+     * chỉ bật khi `Referer`/`Origin` khớp `sanctum.stateful` — nên có thế phiên
+     * web còn hợp lệ (trang dựng được) mà API vẫn 401. Nạp lại là vòng lặp
+     * không lối ra.
+     *
+     * Nhưng "nói thẳng ra" chỉ có ích nếu người dùng có chỗ bấm để thoát khỏi
+     * tình trạng đó. Thiếu cái link ấy thì thông báo lỗi là một ngõ cụt.
+     *
+     * ══ Vì sao chỉ canh MỘT PHẦN các trang ở đây ══
+     *
+     * Hai trang đặt link trong markup; trang thanh toán thì **script vẽ nó**
+     * khi nhận 401. Phép kiểm này đọc HTML trang thật nên chỉ thấy loại thứ
+     * nhất. Loại thứ hai được canh ở phía JS — tệp `tests/js/thanh-toan.test.mjs`
+     * trả 401 rồi tìm đúng thẻ `a` đó.
+     *
+     * Cờ `linkDangNhapTrongMarkup` trong `moc-dom.json` nói mỗi trang thuộc
+     * loại nào. Nó có để chỗ canh là một **quyết định được ghi lại**, không
+     * phải một chỗ im lặng bỏ qua: đổi một trang từ `false` sang `true` mà
+     * quên thêm link thì phép kiểm này đỏ.
+     */
+    public function test_trang_khai_co_link_dang_nhap_trong_markup_thi_phai_co_that(): void
+    {
+        $khai = $this->khaiBaoMoc();
+        $html = $this->htmlCuaCacTrang();
+        $daKiem = 0;
+
+        foreach ($khai as $trang => $dinhNghia) {
+            $this->assertArrayHasKey(
+                'linkDangNhapTrongMarkup',
+                $dinhNghia,
+                "Trang \"{$trang}\" chưa khai `linkDangNhapTrongMarkup`. Phải nói rõ lối "
+                . '"Đăng nhập lại" nằm trong markup hay do script vẽ, để biết canh ở phía nào.'
+            );
+
+            if ($dinhNghia['linkDangNhapTrongMarkup'] !== true) {
+                continue;
+            }
+
+            $this->assertMatchesRegularExpression(
+                '#<a[^>]+href="[^"]*/login"#',
+                $html[$trang],
+                "Trang \"{$trang}\" khai có lối \"Đăng nhập lại\" trong markup nhưng không "
+                . 'tìm thấy. Trang này xử 401 bằng cách nói thẳng ra thay vì nạp lại; '
+                . 'thiếu lối thoát thì thông báo lỗi là ngõ cụt.'
+            );
+
+            $daKiem++;
+        }
+
+        $this->assertGreaterThan(0, $daKiem, 'không trang nào được kiểm — phép kiểm này đang rỗng');
     }
 
     public function test_moi_moc_dom_duoc_khai_deu_co_mat_trong_trang_that(): void

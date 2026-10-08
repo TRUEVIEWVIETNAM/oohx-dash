@@ -181,19 +181,52 @@ class CancellationEntryPointTest extends TestCase
         $this->assertSame(0, InventoryHold::effective()->count());
     }
 
+    /**
+     * Con số hoàn dự kiến phải có TRƯỚC khi bấm.
+     *
+     * ══ Ba ca dưới đây đã đổi nguồn kiểm — 08/10/2026 ══
+     *
+     * Trang `/my/campaigns/{campaign}` nay đọc `GET /api/v2/campaigns/{campaign}`
+     * từ trình duyệt, nên `assertSee('Hủy đặt chỗ')` trên HTML đã thành một
+     * phép kiểm **rỗng**: chuỗi đó nằm trong khối `<script>` của trang, nên nó
+     * xanh kể cả khi API không trả báo giá nào. Ca "không hiện nút cho vai chỉ
+     * xem" còn tệ hơn — nó **đỏ** dù hành vi đúng, vì `assertDontSee` thấy
+     * chính chuỗi đó trong script.
+     *
+     * Nên phép kiểm chuyển về nơi quyết định: phản hồi API. Phần JS vẽ ra từ
+     * phản hồi đó được canh riêng ở `tests/js/chi-tiet-campaign.test.mjs`, và
+     * `MocDomTrangBladeTest` canh việc trang trỏ đúng endpoint.
+     *
+     * Bắt người mua bấm rồi mới biết được hoàn bao nhiêu là bắt họ ký vào một
+     * tờ giấy trắng — nên điều phải giữ là *con số có mặt*, không phải *nó
+     * được render ở tầng nào*.
+     */
     public function test_trang_chien_dich_hien_so_tien_hoan_du_kien(): void
     {
         $screen   = $this->screen();
         $campaign = $this->campaign($screen, 30);
         $this->payInFull($campaign, $screen);
 
-        // Con số phải xuất hiện TRƯỚC khi bấm. Bắt người mua bấm rồi mới biết
-        // được hoàn bao nhiêu là bắt họ ký vào một tờ giấy trắng.
+        $line = $campaign->bookingLines()->first();
+
+        // Trang vẫn phải mở được…
         $this->actingAs($this->buyer)
             ->get(route('buyer.campaigns.show', $campaign))
+            ->assertOk();
+
+        // …và báo giá phải có mặt, kèm con số khác 0 (đã trả đủ, còn 30 ngày
+        // nên theo chính sách là hoàn 100%).
+        $bao = $this->actingAs($this->buyer)
+            ->getJson('/api/v2/campaigns/' . $campaign->id)
             ->assertOk()
-            ->assertSee('Hủy đặt chỗ')
-            ->assertSee('Hoàn dự kiến');
+            ->json('data.cancel_quotes');
+
+        $dong = collect($bao)->firstWhere('booking_line_id', $line->id);
+
+        $this->assertNotNull($dong, 'dòng còn hủy được mà không có báo giá nào');
+        $this->assertGreaterThan(0, $dong['refundable'], 'trả đủ rồi hủy sớm thì phải có tiền hoàn');
+        $this->assertSame(100, $dong['refund_pct']);
+        $this->assertTrue($dong['is_estimate'], 'máy chủ phải tự nói đây là con số dự kiến');
     }
 
     public function test_chinh_sach_hien_tren_trang_lay_tu_config(): void
@@ -201,15 +234,24 @@ class CancellationEntryPointTest extends TestCase
         $screen   = $this->screen();
         $campaign = $this->campaign($screen, 30);
 
-        $response = $this->actingAs($this->buyer)
+        $this->actingAs($this->buyer)
             ->get(route('buyer.campaigns.show', $campaign))
             ->assertOk();
 
-        // Các mốc chính sách thật phải có mặt, để trang không nói một đằng máy
-        // chủ áp một nẻo.
-        foreach (config('pricing.refund_tiers') as $tier) {
-            $response->assertSee($tier['refund_pct'] . '%', false);
-        }
+        // Các mốc chính sách thật phải ra ngoài, để trang không nói một đằng
+        // máy chủ áp một nẻo. Trước đây trang đọc `config()` trực tiếp trong
+        // Blade; nay nó đi qua API, nên client — kể cả client Next.js không
+        // đọc được config — không còn lý do nào để chép cứng phần trăm.
+        $this->assertSame(
+            array_map(fn ($t) => [
+                'min_days_before' => (int) $t['min_days_before'],
+                'refund_pct'      => (int) $t['refund_pct'],
+            ], config('pricing.refund_tiers')),
+            $this->actingAs($this->buyer)
+                ->getJson('/api/v2/campaigns/' . $campaign->id)
+                ->assertOk()
+                ->json('data.refund_policy'),
+        );
     }
 
     // ── Quyền ───────────────────────────────────────────────────────────────
@@ -238,7 +280,20 @@ class CancellationEntryPointTest extends TestCase
         $this->assertSame(0, Refund::count());
     }
 
-    public function test_trang_khong_hien_nut_huy_cho_vai_chi_xem(): void
+    /**
+     * Vai chỉ xem không được **mời** đi hủy.
+     *
+     * `assertDontSee('Hủy đặt chỗ')` trên HTML không dùng được nữa: chuỗi đó
+     * nằm trong khối `<script>` của trang, nên phép kiểm đỏ dù hành vi đúng.
+     * Nơi quyết định là `cancel_quotes` — rỗng thì phần JS không vẽ nút nào, và
+     * việc đó có ca riêng ở `tests/js/chi-tiet-campaign.test.mjs`
+     * (`không có báo giá thì không vẽ nút hủy nào`).
+     *
+     * Đây là lớp *giao diện*, không phải lớp chặn. Phép chặn thật ở ca
+     * `test_vai_chi_xem_khong_huy_duoc` ngay trên, nơi `viewer` POST vào đường
+     * hủy và nhận 403.
+     */
+    public function test_vai_chi_xem_khong_duoc_moi_di_huy(): void
     {
         $screen   = $this->screen();
         $campaign = $this->campaign($screen, 30);
@@ -251,10 +306,23 @@ class CancellationEntryPointTest extends TestCase
             'role'            => OrganizationUser::ROLE_VIEWER,
         ]);
 
+        // Vẫn xem được trang…
         $this->actingAs($viewer)
             ->get(route('buyer.campaigns.show', $campaign))
+            ->assertOk();
+
+        // …nhưng không nhận báo giá nào, nên không có gì để vẽ nút.
+        $this->actingAs($viewer)
+            ->getJson('/api/v2/campaigns/' . $campaign->id)
             ->assertOk()
-            ->assertDontSee('Hủy đặt chỗ');
+            ->assertJsonCount(0, 'data.cancel_quotes');
+
+        // Và người CÓ quyền thì vẫn nhận — nếu không thì đây là chặn quá tay
+        // chứ không phải siết đúng chỗ.
+        $this->actingAs($this->buyer)
+            ->getJson('/api/v2/campaigns/' . $campaign->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data.cancel_quotes');
     }
 
     public function test_nguoi_ngoai_to_chuc_khong_huy_duoc(): void

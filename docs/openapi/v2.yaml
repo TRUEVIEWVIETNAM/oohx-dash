@@ -1075,7 +1075,7 @@ paths:
     get:
       tags: [booking]
       security: [{ sessionCookie: [] }]
-      summary: Xem lại campaign trước khi gửi (bước 2 của đặt chỗ)
+      summary: Xem một campaign — bước xem lại trước khi gửi, VÀ trang chi tiết
       description: |
         Trả campaign, các dòng đặt chỗ, nội dung đã tải lên, và **xung đột SOV
         tính ngay lúc gọi** — không phải ảnh chụp lúc tạo.
@@ -1085,6 +1085,23 @@ paths:
         khác thì sự tồn tại của nó cũng là thông tin riêng, còn đồng nghiệp vai
         trò `viewer` thì đang nhìn thấy đúng campaign đó và cần biết vấn đề là
         quyền.
+
+        **Mở rộng 08/10/2026 — sáu khối chỉ có ở đường ĐỌC này:** `stats`,
+        `cancel_quotes`, `refund_policy`, `reviewable_owners`, `my_reviews`,
+        `activities` + `activity_count`. Chúng **không** có trong phản hồi của
+        `POST campaigns`, `POST creatives` và `POST submit`, dù ba đường đó
+        cùng trả `BookingReview`.
+
+        Vì sao tách: `cancel_quotes` chạy `CancellationService::quote()` cho
+        mỗi dòng còn hủy được, và mỗi quote là một lượt đọc bảng tiền. Nhét nó
+        vào phần dùng chung là bắt mỗi lần tải một tệp nội dung quảng cáo phải
+        tính lại toàn bộ báo giá hoàn tiền — một phép tính không ai hỏi, trên
+        đường mà người dùng đang chờ tệp lên.
+
+        `cancel_quotes` **rỗng** khi người gọi không có quyền `manage_payments`
+        (quyền `cancel` xếp cùng nhóm với thanh toán, vì hủy kéo theo nghĩa vụ
+        hoàn tiền). Đó là một gợi ý cho giao diện, **không phải** một lớp bảo
+        vệ: việc chặn thật nằm ở đường hủy.
       responses:
         '200':
           description: OK
@@ -1094,7 +1111,7 @@ paths:
                 type: object
                 required: [data]
                 properties:
-                  data: { $ref: '#/components/schemas/BookingReview' }
+                  data: { $ref: '#/components/schemas/CampaignDetail' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
@@ -1955,6 +1972,184 @@ components:
         available_pct:   { type: integer }
         dates:           { type: string, description: 'Khoảng ngày dạng dd/mm → dd/mm.' }
 
+    CampaignDetail:
+      description: |
+        Phản hồi của `GET /api/v2/campaigns/{campaign}`: khối dùng chung của ba
+        bước đặt chỗ, **cộng** sáu khối chỉ có ở đường đọc. Xem mô tả của
+        endpoint đó về lý do sáu khối kia không nằm trong phản hồi của các
+        đường ghi.
+      allOf:
+        - $ref: '#/components/schemas/BookingReview'
+        - $ref: '#/components/schemas/CampaignDetailExtra'
+
+    CampaignDetailExtra:
+      type: object
+      description: |
+        Những gì trang `/my/campaigns/{campaign}` cần ngoài khối đặt chỗ. Trước
+        08/10/2026 trang đó dựng bốn thứ này từ model, nên nó là action đọc
+        cuối cùng của khu người mua chưa đi qua API.
+      required: [stats, cancel_quotes, refund_policy, reviewable_owners, my_reviews, activities, activity_count]
+      properties:
+        stats:
+          type: object
+          description: |
+            Bốn con số đầu trang, đọc từ chính các accessor của model nên không
+            ra kết quả khác bản render cũ. `estimated_cost` CHƯA gồm VAT —
+            giống `summary.subtotal`; số phải trả ở
+            `GET campaigns/{campaign}/payments`.
+          required: [currency, line_count, estimated_cost, actual_impressions, delivery_rate_pct]
+          properties:
+            currency:           { type: string, enum: [VND] }
+            line_count:         { type: integer }
+            estimated_cost:     { type: integer }
+            actual_impressions: { type: integer }
+            delivery_rate_pct:
+              type: number
+              description: Phần trăm, một chữ số thập phân. Không phải tiền.
+        cancel_quotes:
+          type: array
+          description: |
+            Báo giá hoàn tiền cho từng dòng **còn hủy được**, tính ở máy chủ.
+
+            **Rỗng khi người gọi không có quyền `manage_payments`** — một gợi ý
+            cho giao diện, không phải lớp bảo vệ.
+
+            Mảng, không phải object khóa theo id dòng: một object khóa bằng ULID
+            không diễn tả được trong đặc tả này, và client nào cũng phải dựng
+            bảng tra riêng.
+          items: { $ref: '#/components/schemas/CancelQuote' }
+        refund_policy:
+          type: array
+          description: |
+            Các mốc chính sách hủy đang áp dụng, đọc từ cùng cấu hình mà
+            `CancellationService::tierFor()` đọc. Ra ngoài để client **không**
+            chép cứng phần trăm: chép cứng là để con số trên màn hình lệch khỏi
+            con số máy chủ áp dụng mà không ai biết.
+          items:
+            type: object
+            required: [min_days_before, refund_pct]
+            properties:
+              min_days_before: { type: integer }
+              refund_pct:      { type: integer }
+        reviewable_owners:
+          type: array
+          description: |
+            Media owner mà campaign này **còn** được đánh giá. Rỗng khi campaign
+            chưa chạy: đánh giá một dịch vụ chưa được cung cấp thì không dựa
+            trên trải nghiệm nào, và đó là cách nhanh nhất làm điểm số trên sàn
+            thành vô nghĩa.
+          items: { $ref: '#/components/schemas/OwnerToReview' }
+        my_reviews:
+          type: array
+          description: Đánh giá tổ chức này đã viết cho campaign này.
+          items: { $ref: '#/components/schemas/OwnerReview' }
+        activities:
+          type: array
+          description: |
+            Lịch sử hoạt động, **50 dòng mới nhất**. Giới hạn cứng theo
+            CLAUDE.md mục 2: lịch sử mọc theo lượt đọc từ 08/10/2026 vì
+            `remittance_details_viewed` thêm một dòng mỗi lần có người xem
+            thông tin nhận tiền.
+          items: { $ref: '#/components/schemas/CampaignActivity' }
+        activity_count:
+          type: integer
+          description: |
+            Tổng số dòng lịch sử. Có để client nói được "đang hiện 50 trong
+            120" chứ không im lặng cắt bớt.
+
+    CancelQuote:
+      type: object
+      description: |
+        **Ảnh chụp tại thời điểm gọi, không phải con số quyết định.** Tiền đã
+        trả được phân bổ theo các dòng CÒN MỞ, nên hủy dòng A xong thì báo giá
+        của dòng B đổi. Con số quyết định là con số `cancelLine()` tính lại
+        trong transaction có khóa.
+      required: [booking_line_id, currency, days_before, refund_pct, paid, refundable, tier, is_estimate]
+      properties:
+        booking_line_id: { type: string }
+        currency:        { type: string, enum: [VND] }
+        days_before:
+          type: integer
+          description: Số ngày còn lại tới ngày chạy của **dòng này**, không của campaign.
+        refund_pct:  { type: integer }
+        paid:
+          type: integer
+          description: |
+            Người mua đã thực sự trả bao nhiêu cho dòng này. Tiền trả theo
+            owner chứ không theo dòng, nên đây là phần chia theo tỉ lệ giá của
+            dòng trong tổng của owner đó, và chỉ tính khoản đã xác nhận.
+        refundable:  { type: integer }
+        tier:
+          type: object
+          required: [min_days_before, refund_pct]
+          properties:
+            min_days_before: { type: integer }
+            refund_pct:      { type: integer }
+        is_estimate:
+          type: boolean
+          description: |
+            Luôn `true`. Máy chủ nói ra để client **buộc** phải gọi con số này
+            là "dự kiến", chứ không phải tự biết điều đó.
+
+    OwnerToReview:
+      type: object
+      description: |
+        Media owner còn đánh giá được. Mang `id` vì đường ghi
+        `POST /my/campaigns/{campaign}/reviews` nhận `owner_id`.
+      required: [id, name]
+      properties:
+        id:       { type: string }
+        slug:     { type: [string, 'null'] }
+        name:     { type: string }
+        logo_url: { type: [string, 'null'] }
+
+    OwnerReview:
+      type: object
+      description: |
+        Một đánh giá **do chính tổ chức này viết**. `moderation_note` không ra
+        ngoài: đó là ghi chú của người kiểm duyệt trên sàn, viết cho nội bộ, và
+        người viết nó không biết mình đang viết cho khách.
+      required: [id, rating, status]
+      properties:
+        id: { type: string }
+        owner:
+          type: [object, 'null']
+          properties:
+            id:   { type: string }
+            name: { type: string }
+        rating:  { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: [string, 'null'] }
+        status:  { type: string, enum: [pending, published, rejected] }
+        status_label:
+          type: string
+          description: |
+            Nhãn tiếng Việt lấy từ `OwnerReview::STATUS_LABELS` — cùng bảng chữ
+            mà khu quản trị dùng. Client tự dịch `status` là có hai bộ chữ cho
+            cùng một trạng thái, và chúng lệch nhau ngay lần đổi đầu tiên.
+        published_at: { type: [string, 'null'], format: date-time }
+        created_at:   { type: [string, 'null'], format: date-time }
+
+    CampaignActivity:
+      type: object
+      description: |
+        Một dòng lịch sử hoạt động.
+
+        **`metadata` không ra ngoài.** Cột đó tự do, do tầng trong ghi vào, và
+        nó đã chứa — chứ không "có thể chứa" — `ip` với `user_agent` của người
+        đọc thông tin nhận tiền, cùng số tiền phân bổ và lý do nội bộ khi hủy.
+        Trả một cột tự do ra ngoài là hứa một hợp đồng mà không ai kiểm được.
+      required: [id, action, description]
+      properties:
+        id:          { type: string }
+        action:      { type: string }
+        description: { type: [string, 'null'] }
+        actor:
+          type: [object, 'null']
+          description: '`null` nghĩa là hệ thống tự làm (job, lệnh artisan), không phải "không biết ai".'
+          properties:
+            name: { type: string }
+        created_at: { type: [string, 'null'], format: date-time }
+
     BookingReview:
       type: object
       description: |
@@ -1962,6 +2157,8 @@ components:
         cần đúng những gì bước xem lại cần, và sau khi gửi cũng vậy — trả ba
         hình dạng cho cùng một tài nguyên là bắt bên tiêu thụ viết ba đường xử
         lý cho một thứ.
+
+        `GET campaigns/{campaign}` trả khối này **cộng** `CampaignDetailExtra`.
       required: [campaign, lines, creatives, conflicts, summary]
       properties:
         campaign:  { $ref: '#/components/schemas/Campaign' }

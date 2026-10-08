@@ -77,7 +77,14 @@ export function mocScriptDiTim(trang) {
     return [...new Set([...than.matchAll(/\[(data-[a-z0-9-]+)\]/g)].map((m) => m[1]))].sort();
 }
 
-/** Tập móc được KHAI cho một trang: khối cấu hình cộng các móc còn lại. */
+/**
+ * Tập móc được KHAI cho một trang: khối cấu hình cộng các móc trang phải có.
+ *
+ * `tuTao` KHÔNG nằm trong tập này. Đó là các móc script tự gắn vào phần tử do
+ * chính nó vẽ ra (ví dụ `data-cd-huy` trên form hủy), nên trang Blade không có
+ * chúng và phía PHP không đòi chúng. Nhưng chúng vẫn phải được khai, vì phép
+ * kiểm trùng khít so với tập móc script ĐI TÌM — không khai thì nó báo "thừa".
+ */
 export function mocDuocKhai(trang) {
     const d = MOC_DOM[trang];
 
@@ -86,6 +93,23 @@ export function mocDuocKhai(trang) {
     }
 
     return [d.cauHinh, ...d.moc].sort();
+}
+
+/** Móc script tự tạo — khai trong `tuTao`, loại khỏi phép so trùng khít. */
+export function mocTuTao(trang) {
+    return [...(MOC_DOM[trang]?.tuTao ?? [])].sort();
+}
+
+/**
+ * Tập móc script đi tìm, đã TRỪ các móc nó tự tạo.
+ *
+ * Đây là tập đem so với `mocDuocKhai()`. Trừ ở một chỗ, không trừ trong từng
+ * tệp test: trừ trong test là mỗi test một cách trừ.
+ */
+export function mocScriptCanTrang(trang) {
+    const tuTao = new Set(mocTuTao(trang));
+
+    return mocScriptDiTim(trang).filter((m) => ! tuTao.has(m));
 }
 
 /**
