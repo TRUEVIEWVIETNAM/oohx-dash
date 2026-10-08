@@ -132,6 +132,37 @@ jobs:
         working-directory: webapp
         run: npm run test:seo
 
+  # Phần JS của hai trang Blade đọc `/api/v2` từ trình duyệt: `/cart` và
+  # `/booking/{campaign}/payment`.
+  #
+  # Vì sao tách job riêng, không gộp vào `webapp`: mã dưới test nằm trong
+  # `resources/views`, không trong `webapp/`. Gộp vào một job tên "Next.js
+  # (trang công khai)" là đặt sai tên cho thứ nó đang canh, và khi job đó đỏ thì
+  # người đọc đi tìm sai chỗ.
+  #
+  # Vì sao job này cần tồn tại: sau khi hai trang chuyển sang đọc API, phía máy
+  # chủ còn 32 ca PHPUnit canh API và canh "trang không render sẵn số tiền" —
+  # nhưng phần JS *vẽ* thì không có gì canh. Ba lỗi thật của hai trang đó
+  # (`chu()` không thoát dấu nháy kép, `new Date()` làm lùi ngày theo lịch, 401
+  # xử lý bằng `location.reload()`) đều KHÔNG làm đỏ một test PHPUnit nào.
+  bladejs:
+    name: JS của trang Blade
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - run: npm ci
+
+      # Test trích đúng khối <script> sẽ lên production ra khỏi tệp .blade.php
+      # rồi chạy nó trong jsdom, nên nó canh mã thật chứ không canh một bản
+      # sao. Chi tiết và giới hạn ở tests/js/README.md.
+      - name: Chạy test JS
+        run: npm run test:js
+
   phpunit:
     name: PHPUnit (MySQL 8)
     runs-on: ubuntu-latest
