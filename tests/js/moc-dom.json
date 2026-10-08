@@ -1,6 +1,9 @@
 {
   "//": "Móc DOM mà phần JS của mỗi trang Blade dựa vào. ĐỌC BỞI HAI PHÍA — xem tests/js/README.md.",
-
+  "// cauHinh": "Thuộc tính của khối <script type=application/json> mang cấu hình từ PHP.",
+  "// moc": "Móc trang Blade PHẢI render ra. Phía PHP đòi từng móc có mặt trong HTML; phía JS dựng bộ khung từ đúng danh sách này.",
+  "// tuTao": "Móc script tự gắn vào phần tử do CHÍNH NÓ vẽ ra, nên trang Blade không có. Không nằm trong phép kiểm phía PHP, nhưng vẫn phải khai: không khai thì phép kiểm trùng khít báo 'thừa', mà khai bừa thì nó mất tác dụng.",
+  "// linkDangNhapTrongMarkup": "Lối 'Đăng nhập lại' nằm trong markup trang (true) hay do script vẽ khi nhận 401 (false). Trang true được canh ở phía PHP bằng cách đọc HTML; trang false được canh ở phía JS bằng cách nhận 401 rồi tìm thẻ a. Cả hai đều phải có lối đó — xử 401 bằng cách nói thẳng ra mà không cho chỗ bấm là một ngõ cụt.",
   "resources/views/buyer/cart.blade.php": {
     "cauHinh": "data-cart-config",
     "moc": [
@@ -16,14 +19,29 @@
       "data-cart-vat",
       "data-cart-total",
       "data-cart-retry"
-    ]
+    ],
+    "linkDangNhapTrongMarkup": true
   },
-
   "resources/views/buyer/booking/payment.blade.php": {
     "cauHinh": "data-pay-config",
     "moc": [
       "data-pay-main",
       "data-pay-meta"
-    ]
+    ],
+    "linkDangNhapTrongMarkup": false
+  },
+  "resources/views/buyer/dashboard/campaign-detail.blade.php": {
+    "cauHinh": "data-cd-config",
+    "moc": [
+      "data-cd-than",
+      "data-cd-trangthai",
+      "data-cd-nut",
+      "data-cd-loi",
+      "data-cd-loi-msg"
+    ],
+    "tuTao": [
+      "data-cd-huy"
+    ],
+    "linkDangNhapTrongMarkup": true
   }
 }

@@ -4,11 +4,11 @@ Chạy: `npm run test:js` (từ gốc repo). CI gọi nó ở job **JS của tra
 
 ## Vì sao tồn tại
 
-Hai trang `/cart` và `/booking/{campaign}/payment` đã chuyển sang đọc `/api/v2`
-từ trình duyệt. Sau lần chuyển đó, phía máy chủ còn **29 ca PHPUnit** canh API
-và canh "trang không render sẵn số tiền" — nhưng phần JS *vẽ* ra giao diện thì
-không có gì canh. Đó là chỗ đã được ghi vào lộ trình là **chưa canh được**, và
-là chỗ ba lỗi thật đã xảy ra khi viết hai trang đó:
+Ba trang `/cart`, `/booking/{campaign}/payment` và `/my/campaigns/{campaign}`
+đã chuyển sang đọc `/api/v2` từ trình duyệt. Phía máy chủ canh API và canh
+"trang không render sẵn số tiền" — nhưng phần JS *vẽ* ra giao diện thì không có
+gì canh. Đó là chỗ đã được ghi vào lộ trình là **chưa canh được**, và là chỗ ba
+lỗi thật đã xảy ra khi viết hai trang đầu:
 
 | Lỗi | Hậu quả nếu không ai bắt |
 |---|---|
@@ -46,3 +46,21 @@ Nên đổi tên một móc trong Blade mà quên sửa chỗ khác là **đỏ 
 phía PHP báo trang thiếu móc, phía JS báo script không tìm thấy phần tử. Đó là
 điều một bộ khung DOM viết tay trong test không làm được — nó sẽ xanh mãi trong
 khi trang thật đã đổi.
+
+Thêm vào đó, mỗi tệp test có một ca đòi tập móc script **đi tìm** trùng khít
+tập móc được **khai**. Cần vì một móc biến mất **không** làm trang vỡ ồn ào:
+script bắt `null` bên trong một `.then()` nên chính `.catch()` của nó hứng lấy,
+và trang hiện một thông báo lỗi sai nguyên nhân.
+
+### Bốn trường của `moc-dom.json`
+
+| Trường | Nghĩa |
+|---|---|
+| `cauHinh` | Thuộc tính của khối `<script type="application/json">` mang cấu hình từ PHP |
+| `moc` | Móc trang Blade **phải** render ra. Phía PHP đòi từng móc; phía JS dựng bộ khung từ đúng danh sách này |
+| `tuTao` | Móc script tự gắn vào phần tử do **chính nó** vẽ ra, nên trang Blade không có. Bị loại khỏi phép so trùng khít, nhưng vẫn phải khai — không khai thì phép so báo "thừa", khai bừa thì nó mất tác dụng |
+| `linkDangNhapTrongMarkup` | Lối "Đăng nhập lại" nằm trong markup trang (`true`) hay do script vẽ khi nhận 401 (`false`). Quyết định chỗ canh: `true` → phía PHP đọc HTML; `false` → phía JS trả 401 rồi tìm thẻ `a` |
+
+Ranh giới "script vẽ gì / trang có gì" là thứ dễ quên nhất khi thêm test cho một
+trang mới. `tuTao` và `linkDangNhapTrongMarkup` tồn tại để ranh giới đó là một
+**quyết định được ghi lại**, không phải một chỗ im lặng bỏ qua.

@@ -1582,7 +1582,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Xem lại campaign trước khi gửi (bước 2 của đặt chỗ)
+         * Xem một campaign — bước xem lại trước khi gửi, VÀ trang chi tiết
          * @description Trả campaign, các dòng đặt chỗ, nội dung đã tải lên, và **xung đột SOV
          *     tính ngay lúc gọi** — không phải ảnh chụp lúc tạo.
          *
@@ -1591,6 +1591,23 @@ export interface paths {
          *     khác thì sự tồn tại của nó cũng là thông tin riêng, còn đồng nghiệp vai
          *     trò `viewer` thì đang nhìn thấy đúng campaign đó và cần biết vấn đề là
          *     quyền.
+         *
+         *     **Mở rộng 08/10/2026 — sáu khối chỉ có ở đường ĐỌC này:** `stats`,
+         *     `cancel_quotes`, `refund_policy`, `reviewable_owners`, `my_reviews`,
+         *     `activities` + `activity_count`. Chúng **không** có trong phản hồi của
+         *     `POST campaigns`, `POST creatives` và `POST submit`, dù ba đường đó
+         *     cùng trả `BookingReview`.
+         *
+         *     Vì sao tách: `cancel_quotes` chạy `CancellationService::quote()` cho
+         *     mỗi dòng còn hủy được, và mỗi quote là một lượt đọc bảng tiền. Nhét nó
+         *     vào phần dùng chung là bắt mỗi lần tải một tệp nội dung quảng cáo phải
+         *     tính lại toàn bộ báo giá hoàn tiền — một phép tính không ai hỏi, trên
+         *     đường mà người dùng đang chờ tệp lên.
+         *
+         *     `cancel_quotes` **rỗng** khi người gọi không có quyền `manage_payments`
+         *     (quyền `cancel` xếp cùng nhóm với thanh toán, vì hủy kéo theo nghĩa vụ
+         *     hoàn tiền). Đó là một gợi ý cho giao diện, **không phải** một lớp bảo
+         *     vệ: việc chặn thật nằm ở đường hủy.
          */
         get: {
             parameters: {
@@ -1611,7 +1628,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            data: components["schemas"]["BookingReview"];
+                            data: components["schemas"]["CampaignDetail"];
                         };
                     };
                 };
@@ -2530,10 +2547,168 @@ export interface components {
             dates?: string;
         };
         /**
+         * @description Phản hồi của `GET /api/v2/campaigns/{campaign}`: khối dùng chung của ba
+         *     bước đặt chỗ, **cộng** sáu khối chỉ có ở đường đọc. Xem mô tả của
+         *     endpoint đó về lý do sáu khối kia không nằm trong phản hồi của các
+         *     đường ghi.
+         */
+        CampaignDetail: components["schemas"]["BookingReview"] & components["schemas"]["CampaignDetailExtra"];
+        /**
+         * @description Những gì trang `/my/campaigns/{campaign}` cần ngoài khối đặt chỗ. Trước
+         *     08/10/2026 trang đó dựng bốn thứ này từ model, nên nó là action đọc
+         *     cuối cùng của khu người mua chưa đi qua API.
+         */
+        CampaignDetailExtra: {
+            /**
+             * @description Bốn con số đầu trang, đọc từ chính các accessor của model nên không
+             *     ra kết quả khác bản render cũ. `estimated_cost` CHƯA gồm VAT —
+             *     giống `summary.subtotal`; số phải trả ở
+             *     `GET campaigns/{campaign}/payments`.
+             */
+            stats: {
+                /** @enum {string} */
+                currency: "VND";
+                line_count: number;
+                estimated_cost: number;
+                actual_impressions: number;
+                /** @description Phần trăm, một chữ số thập phân. Không phải tiền. */
+                delivery_rate_pct: number;
+            };
+            /**
+             * @description Báo giá hoàn tiền cho từng dòng **còn hủy được**, tính ở máy chủ.
+             *
+             *     **Rỗng khi người gọi không có quyền `manage_payments`** — một gợi ý
+             *     cho giao diện, không phải lớp bảo vệ.
+             *
+             *     Mảng, không phải object khóa theo id dòng: một object khóa bằng ULID
+             *     không diễn tả được trong đặc tả này, và client nào cũng phải dựng
+             *     bảng tra riêng.
+             */
+            cancel_quotes: components["schemas"]["CancelQuote"][];
+            /**
+             * @description Các mốc chính sách hủy đang áp dụng, đọc từ cùng cấu hình mà
+             *     `CancellationService::tierFor()` đọc. Ra ngoài để client **không**
+             *     chép cứng phần trăm: chép cứng là để con số trên màn hình lệch khỏi
+             *     con số máy chủ áp dụng mà không ai biết.
+             */
+            refund_policy: {
+                min_days_before: number;
+                refund_pct: number;
+            }[];
+            /**
+             * @description Media owner mà campaign này **còn** được đánh giá. Rỗng khi campaign
+             *     chưa chạy: đánh giá một dịch vụ chưa được cung cấp thì không dựa
+             *     trên trải nghiệm nào, và đó là cách nhanh nhất làm điểm số trên sàn
+             *     thành vô nghĩa.
+             */
+            reviewable_owners: components["schemas"]["OwnerToReview"][];
+            /** @description Đánh giá tổ chức này đã viết cho campaign này. */
+            my_reviews: components["schemas"]["OwnerReview"][];
+            /**
+             * @description Lịch sử hoạt động, **50 dòng mới nhất**. Giới hạn cứng theo
+             *     CLAUDE.md mục 2: lịch sử mọc theo lượt đọc từ 08/10/2026 vì
+             *     `remittance_details_viewed` thêm một dòng mỗi lần có người xem
+             *     thông tin nhận tiền.
+             */
+            activities: components["schemas"]["CampaignActivity"][];
+            /**
+             * @description Tổng số dòng lịch sử. Có để client nói được "đang hiện 50 trong
+             *     120" chứ không im lặng cắt bớt.
+             */
+            activity_count: number;
+        };
+        /**
+         * @description **Ảnh chụp tại thời điểm gọi, không phải con số quyết định.** Tiền đã
+         *     trả được phân bổ theo các dòng CÒN MỞ, nên hủy dòng A xong thì báo giá
+         *     của dòng B đổi. Con số quyết định là con số `cancelLine()` tính lại
+         *     trong transaction có khóa.
+         */
+        CancelQuote: {
+            booking_line_id: string;
+            /** @enum {string} */
+            currency: "VND";
+            /** @description Số ngày còn lại tới ngày chạy của **dòng này**, không của campaign. */
+            days_before: number;
+            refund_pct: number;
+            /**
+             * @description Người mua đã thực sự trả bao nhiêu cho dòng này. Tiền trả theo
+             *     owner chứ không theo dòng, nên đây là phần chia theo tỉ lệ giá của
+             *     dòng trong tổng của owner đó, và chỉ tính khoản đã xác nhận.
+             */
+            paid: number;
+            refundable: number;
+            tier: {
+                min_days_before: number;
+                refund_pct: number;
+            };
+            /**
+             * @description Luôn `true`. Máy chủ nói ra để client **buộc** phải gọi con số này
+             *     là "dự kiến", chứ không phải tự biết điều đó.
+             */
+            is_estimate: boolean;
+        };
+        /**
+         * @description Media owner còn đánh giá được. Mang `id` vì đường ghi
+         *     `POST /my/campaigns/{campaign}/reviews` nhận `owner_id`.
+         */
+        OwnerToReview: {
+            id: string;
+            slug?: string | null;
+            name: string;
+            logo_url?: string | null;
+        };
+        /**
+         * @description Một đánh giá **do chính tổ chức này viết**. `moderation_note` không ra
+         *     ngoài: đó là ghi chú của người kiểm duyệt trên sàn, viết cho nội bộ, và
+         *     người viết nó không biết mình đang viết cho khách.
+         */
+        OwnerReview: {
+            id: string;
+            owner?: {
+                id?: string;
+                name?: string;
+            } | null;
+            rating: number;
+            comment?: string | null;
+            /** @enum {string} */
+            status: "pending" | "published" | "rejected";
+            /**
+             * @description Nhãn tiếng Việt lấy từ `OwnerReview::STATUS_LABELS` — cùng bảng chữ
+             *     mà khu quản trị dùng. Client tự dịch `status` là có hai bộ chữ cho
+             *     cùng một trạng thái, và chúng lệch nhau ngay lần đổi đầu tiên.
+             */
+            status_label?: string;
+            /** Format: date-time */
+            published_at?: string | null;
+            /** Format: date-time */
+            created_at?: string | null;
+        };
+        /**
+         * @description Một dòng lịch sử hoạt động.
+         *
+         *     **`metadata` không ra ngoài.** Cột đó tự do, do tầng trong ghi vào, và
+         *     nó đã chứa — chứ không "có thể chứa" — `ip` với `user_agent` của người
+         *     đọc thông tin nhận tiền, cùng số tiền phân bổ và lý do nội bộ khi hủy.
+         *     Trả một cột tự do ra ngoài là hứa một hợp đồng mà không ai kiểm được.
+         */
+        CampaignActivity: {
+            id: string;
+            action: string;
+            description: string | null;
+            /** @description `null` nghĩa là hệ thống tự làm (job, lệnh artisan), không phải "không biết ai". */
+            actor?: {
+                name?: string;
+            } | null;
+            /** Format: date-time */
+            created_at?: string | null;
+        };
+        /**
          * @description Khối dữ liệu dùng chung cho cả ba bước đặt chỗ. Client vừa tạo campaign
          *     cần đúng những gì bước xem lại cần, và sau khi gửi cũng vậy — trả ba
          *     hình dạng cho cùng một tài nguyên là bắt bên tiêu thụ viết ba đường xử
          *     lý cho một thứ.
+         *
+         *     `GET campaigns/{campaign}` trả khối này **cộng** `CampaignDetailExtra`.
          */
         BookingReview: {
             campaign: components["schemas"]["Campaign"];

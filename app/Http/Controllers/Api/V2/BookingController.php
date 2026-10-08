@@ -7,14 +7,20 @@ use App\Http\Requests\Booking\StoreCampaignRequest;
 use App\Http\Requests\Booking\SubmitCampaignRequest;
 use App\Http\Requests\Booking\UploadCreativeRequest;
 use App\Http\Resources\V2\BookingLineResource;
+use App\Http\Resources\V2\CampaignActivityResource;
 use App\Http\Resources\V2\CampaignResource;
 use App\Http\Resources\V2\CreativeResource;
+use App\Http\Resources\V2\OwnerReviewResource;
+use App\Http\Resources\V2\OwnerToReviewResource;
 use App\Models\Campaign;
+use App\Models\OwnerReview;
 use App\Models\PolicyConsent;
 use App\Services\AvailabilityService;
+use App\Services\Booking\CancellationService;
 use App\Services\CampaignService;
 use App\Services\CartService;
 use App\Services\CreativeService;
+use App\Services\OwnerReviewService;
 use App\Services\PolicyConsentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,8 +31,15 @@ use Illuminate\Http\Request;
  * Ba bước, đúng ba bước mà trang Blade đang có:
  *
  *   POST  campaigns                     tạo campaign từ giỏ hàng
- *   GET   campaigns/{campaign}          xem lại trước khi gửi
+ *   GET   campaigns/{campaign}          xem lại trước khi gửi, VÀ xem chi tiết
  *   POST  campaigns/{campaign}/submit   gửi chờ duyệt
+ *
+ * `GET campaigns/{campaign}` phục vụ hai màn hình bằng một phản hồi, mở rộng
+ * 08/10/2026: bước xem lại trước khi gửi, và trang chi tiết
+ * `/my/campaigns/{campaign}` sau khi gửi. Trang sau cần thêm bốn thứ — báo giá
+ * hoàn tiền, owner còn đánh giá được, đánh giá đã viết, lịch sử hoạt động —
+ * nên chúng nằm ở `detailPayload()`, **chỉ** trên đường đọc. Xem chú thích của
+ * `show()` về lý do không nhét vào phần dùng chung.
  *
  * ══ Vì sao nhóm này quan trọng hơn hai mốc trước ══
  *
@@ -58,7 +71,23 @@ class BookingController extends Controller
         private readonly AvailabilityService $availability,
         private readonly PolicyConsentService $consents,
         private readonly CreativeService $creatives,
+        private readonly OwnerReviewService $reviews,
+        private readonly CancellationService $cancellations,
     ) {}
+
+    /**
+     * Số dòng lịch sử hoạt động trả về nhiều nhất.
+     *
+     * CLAUDE.md mục 2 đòi mọi danh sách có giới hạn cứng. Lịch sử của một
+     * chiến dịch bình thường chỉ vài chục dòng, nhưng nó **mọc theo lượt đọc**
+     * từ 08/10/2026: `remittance_details_viewed` thêm một dòng mỗi lần có
+     * người xem thông tin nhận tiền. Không chặn thì một chiến dịch chạy lâu sẽ
+     * trả về một phản hồi lớn dần mà không ai để ý.
+     *
+     * Trả kèm `activity_count` để client nói được "đang hiện 50 trong 120",
+     * chứ không im lặng cắt bớt.
+     */
+    private const TOI_DA_LICH_SU = 50;
 
     public function store(StoreCampaignRequest $request): JsonResponse
     {
@@ -81,11 +110,28 @@ class BookingController extends Controller
         return response()->json(['data' => $this->reviewPayload($campaign->fresh())], 201);
     }
 
+    /**
+     * Xem một chiến dịch — dùng cho CẢ bước xem lại trước khi gửi và trang
+     * chi tiết sau khi gửi.
+     *
+     * Phản hồi gồm hai phần ghép lại:
+     *
+     * - `reviewPayload()` — phần dùng chung với hai đường GHI bên dưới.
+     * - `detailPayload()` — chỉ ở đường ĐỌC này.
+     *
+     * Vì sao tách: `detailPayload()` chạy `CancellationService::quote()` cho
+     * mỗi dòng còn hủy được, và mỗi lần quote là một lượt đọc bảng tiền. Nhét
+     * nó vào `reviewPayload()` là bắt mỗi lần tải một tệp nội dung quảng cáo
+     * phải tính lại toàn bộ báo giá hoàn tiền — một phép tính không ai hỏi,
+     * trên đường mà người dùng đang chờ tệp lên.
+     */
     public function show(Request $request, Campaign $campaign): JsonResponse
     {
         $this->authorizeCampaign($request, $campaign, 'view');
 
-        return response()->json(['data' => $this->reviewPayload($campaign)]);
+        return response()->json([
+            'data' => $this->reviewPayload($campaign) + $this->detailPayload($request, $campaign),
+        ]);
     }
 
     /**
@@ -248,5 +294,143 @@ class BookingController extends Controller
                 'can_submit' => $campaign->status === 'draft' && empty($conflicts),
             ],
         ];
+    }
+
+    /**
+     * Phần chỉ có ở đường ĐỌC: những gì trang chi tiết chiến dịch cần.
+     *
+     * Trước 08/10/2026, `GET campaigns/{campaign}` thiếu đúng bốn thứ mà
+     * `/my/campaigns/{campaign}` hiển thị, nên trang đó là action đọc cuối
+     * cùng của khu người mua còn phải dựng dữ liệu từ model. Đây là bốn thứ
+     * đó, cộng phần số liệu và chính sách hủy mà trang cũ đọc thẳng từ
+     * accessor và `config()`.
+     */
+    private function detailPayload(Request $request, Campaign $campaign): array
+    {
+        $user = $request->user();
+
+        return [
+            'stats' => $this->stats($campaign),
+
+            'cancel_quotes' => $this->cancelQuotes($request, $campaign),
+
+            // Chính sách hủy ra ngoài thay vì để client đọc lại `config()`.
+            //
+            // Trang Blade đọc được config nên nó không cần; một client Next.js
+            // thì không, và nếu nó chép cứng "14 ngày / 100%" thì con số trên
+            // màn hình và con số máy chủ đang áp dụng sẽ lệch nhau im lặng
+            // ngay lần đổi chính sách đầu tiên. Cùng mảng mà
+            // `CancellationService::tierFor()` đọc.
+            'refund_policy' => array_map(fn (array $t) => [
+                'min_days_before' => (int) $t['min_days_before'],
+                'refund_pct'      => (int) $t['refund_pct'],
+            ], config('pricing.refund_tiers', [])),
+
+            // Danh sách owner CÒN được đánh giá. `reviewableOwners()` tự trả
+            // mảng rỗng khi chiến dịch chưa chạy — đánh giá một dịch vụ chưa
+            // được cung cấp thì không dựa trên trải nghiệm nào, và đó là cách
+            // nhanh nhất làm điểm số trên sàn thành vô nghĩa.
+            'reviewable_owners' => OwnerToReviewResource::collection(
+                $this->reviews->reviewableOwners($campaign)
+            )->resolve(),
+
+            // Đánh giá tổ chức này ĐÃ viết cho chiến dịch này. Lọc theo
+            // `campaign_id` là đủ hẹp: một chiến dịch thuộc đúng một tổ chức,
+            // và người gọi đã qua `can('view')` trên chính chiến dịch đó.
+            'my_reviews' => OwnerReviewResource::collection(
+                OwnerReview::where('campaign_id', $campaign->id)
+                    ->with('owner:id,name')
+                    ->latest()
+                    ->get()
+            )->resolve(),
+
+            // `activities()` đã sắp giảm dần theo thời gian ở quan hệ, nên
+            // `limit` ở đây lấy đúng các dòng MỚI NHẤT, không phải một khúc
+            // tuỳ ý giữa bảng.
+            'activities' => CampaignActivityResource::collection(
+                $campaign->activities()->with('user:id,name')->limit(self::TOI_DA_LICH_SU)->get()
+            )->resolve(),
+
+            'activity_count' => (int) $campaign->activities()->count(),
+        ];
+    }
+
+    /**
+     * Bốn con số đầu trang.
+     *
+     * Đọc từ chính các accessor mà trang Blade đang đọc, nên hai bên không ra
+     * hai kết quả. `delivery_rate` là **phần trăm** nên không phải tiền —
+     * giữ một chữ số thập phân, đúng như accessor làm.
+     *
+     * `cost` ở đây là tổng ước tính CHƯA gồm VAT, giống `summary.subtotal`.
+     * Số phải trả nằm ở `GET campaigns/{campaign}/payments`, nơi
+     * `PaymentService::withVat()` là chỗ duy nhất cộng VAT.
+     */
+    private function stats(Campaign $campaign): array
+    {
+        $campaign->loadMissing('bookingLines');
+
+        return [
+            'currency'           => 'VND',
+            'line_count'         => $campaign->bookingLines->count(),
+            'estimated_cost'     => (int) round((float) $campaign->total_estimated_cost),
+            'actual_impressions' => (int) $campaign->total_actual_impressions,
+            'delivery_rate_pct'  => (float) $campaign->delivery_rate,
+        ];
+    }
+
+    /**
+     * Báo giá hoàn tiền cho từng dòng còn hủy được — **tính ở máy chủ**.
+     *
+     * ══ Quyền ══
+     *
+     * Trả mảng rỗng khi người xem không có quyền `cancel` (xếp cùng
+     * `manage_payments`), để giao diện khớp với quyền. Việc chặn THẬT vẫn nằm
+     * ở `BuyerCancellationController` và ở chính `CancellationService` — mảng
+     * rỗng ở đây là một gợi ý cho giao diện, không phải một lớp bảo vệ.
+     *
+     * ══ Đây là ảnh chụp, không phải con số quyết định ══
+     *
+     * Tiền đã trả được phân bổ theo các dòng CÒN MỞ, nên hủy dòng A xong thì
+     * báo giá của dòng B đổi. Con số quyết định là con số `cancelLine()` tính
+     * lại trong transaction có khóa — nên khóa `is_estimate` ra ngoài để client
+     * buộc phải nói "dự kiến" chứ không nói chắc.
+     *
+     * `quote()` gọi với `locking: false` (mặc định) vì đây là đường đọc; bản có
+     * khóa chỉ dùng trong transaction hủy.
+     */
+    private function cancelQuotes(Request $request, Campaign $campaign): array
+    {
+        if (! ($request->user()?->can('cancel', $campaign) ?? false)) {
+            return [];
+        }
+
+        $campaign->loadMissing('bookingLines');
+
+        return $campaign->bookingLines
+            ->reject(fn ($line) => in_array($line->status, ['cancelled', 'completed', 'rejected'], true))
+            ->map(function ($line) use ($campaign) {
+                // Gắn sẵn quan hệ: `quote()` đọc `$line->campaign`, không gắn
+                // thì mỗi dòng nạp lại chiến dịch một lần.
+                $line->setRelation('campaign', $campaign);
+
+                $bao = $this->cancellations->quote($line);
+
+                return [
+                    'booking_line_id' => $line->id,
+                    'currency'        => 'VND',
+                    'days_before'     => (int) $bao['days_before'],
+                    'refund_pct'      => (int) $bao['refund_pct'],
+                    'paid'            => (int) round((float) $bao['paid']),
+                    'refundable'      => (int) round((float) $bao['refundable']),
+                    'tier'            => [
+                        'min_days_before' => (int) $bao['tier']['min_days_before'],
+                        'refund_pct'      => (int) $bao['tier']['refund_pct'],
+                    ],
+                    'is_estimate' => true,
+                ];
+            })
+            ->values()
+            ->all();
     }
 }

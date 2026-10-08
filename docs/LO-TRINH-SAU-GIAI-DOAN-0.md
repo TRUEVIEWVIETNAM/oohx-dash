@@ -323,7 +323,7 @@ phép kiểm rỗng — nó xanh kể cả khi công nợ của ownerY biến m�
 chuyển sang hỏi `by_owner` qua API.
 
 **Phần JS đã có người canh — 08/10/2026.** Lúc chuyển hai trang, đây là chỗ duy nhất tôi
-ghi là *chưa canh được*. Nay có 33 ca chạy trong jsdom trên **đúng khối `<script>` sẽ lên
+ghi là *chưa canh được*. Nay có 60 ca chạy trong jsdom (33 lúc đầu, cộng 27 cho trang chi tiết chiến dịch) trên **đúng khối `<script>` sẽ lên
 production** — test trích nó ra khỏi tệp `.blade.php` chứ không chép lại, nên không có bản
 sao nào để trôi. Xem `tests/js/README.md`.
 
@@ -334,7 +334,7 @@ Giờ mỗi lỗi có một ca riêng, và tôi đã kiểm bằng cách gây l�
 
 Hai thứ đáng ghi lại:
 
-- **Múi giờ của máy chạy test là một phần của phép kiểm.** Hai tệp test khai
+- **Múi giờ của máy chạy test là một phần của phép kiểm.** Ba tệp test khai
   `process.env.TZ = 'Pacific/Honolulu'` (UTC−10). Chạy ở UTC — như máy CI mặc định — thì
   lỗi "ngày theo lịch lùi một ngày" không bao giờ hiện ra, và cái ghim
   `timeZone: 'Asia/Ho_Chi_Minh'` của lịch sử thanh toán cũng không chứng minh được gì.
@@ -357,15 +357,47 @@ việc Blade ghép khối cấu hình, và trình duyệt thật. Vẫn nên m�
 khi một bộ `Intl.DateTimeFormat` khai cả ngày lẫn giờ, trong khi bản render cũ là
 `d/m/Y H:i`. Nay dùng hai bộ định dạng để thứ tự do mình quyết, không do phiên bản ICU.
 
-### Action đọc còn lại — vì sao chưa chuyển được (08/10/2026)
+### Action đọc cuối cùng đã chuyển — chi tiết chiến dịch (08/10/2026)
 
-**`BuyerCampaignController::show` — không phải chuyển, là mở rộng API.**
+`BuyerCampaignController::show` là action đọc **cuối cùng** của khu người mua còn dựng dữ
+liệu từ model. Nó không phải việc chuyển, mà là mở rộng API trước: `GET campaigns/{campaign}`
+thiếu đúng bốn thứ view cần — `cancelQuotes`, `reviewableOwners`, `myReviews`, `activities`.
 
-`GET campaigns/{campaign}` hiện trả `campaign`, `lines`, `creatives`, `conflicts`,
-`summary`. View còn cần **bốn** thứ nữa chưa có ở đâu trong v2: `cancelQuotes` (báo giá
-hoàn tiền — đụng tiền, do `CancellationService` tính), `reviewableOwners`, `myReviews`,
-`activities`. Mỗi thứ cần DTO, đặc tả, kiểu TypeScript và test riêng. Đó là một chặng
-việc, không phải một lần sửa controller.
+Đã mở rộng thành **sáu** khối, cộng hai thứ trang cũ đọc thẳng từ accessor và `config()`:
+
+| Khối | Vì sao ở API chứ không ở client |
+|---|---|
+| `stats` | Bốn con số đầu trang, đọc từ cùng accessor model. Client cộng lại từ `lines` là một phép tính thứ hai — và `estimated_cost` trong test cố ý khác tổng các dòng để bắt đúng việc đó |
+| `cancel_quotes` | Tiền hoàn do `CancellationService` tính. **Rỗng khi thiếu quyền `manage_payments`** |
+| `refund_policy` | Để client **không** chép cứng phần trăm. Chép cứng là để con số trên màn hình lệch khỏi con số máy chủ áp dụng mà không ai biết |
+| `reviewable_owners` | `OwnerReviewService` quyết campaign nào đánh giá được |
+| `my_reviews` | Kèm `status_label` từ máy chủ — client tự dịch là hai bộ chữ cho một trạng thái |
+| `activities` + `activity_count` | **Giới hạn cứng 50 dòng**, kèm tổng số |
+
+**Sáu khối chỉ ở đường ĐỌC.** Ba đường ghi cùng trả `BookingReview`, và nếu gộp vào phần
+dùng chung thì mỗi lần tải một tệp quảng cáo sẽ chạy `quote()` cho từng dòng — một phép
+tính không ai hỏi, trên đường người dùng đang chờ tệp lên. Có test riêng canh việc đường
+ghi **không** mang theo sáu khối đó.
+
+**Giới hạn 50 dòng lịch sử có lý do mới.** Lịch sử của một chiến dịch mọc theo **lượt
+đọc** kể từ hôm nay: `remittance_details_viewed` thêm một dòng mỗi lần có người xem thông
+tin nhận tiền. Không chặn là trả về một phản hồi lớn dần mà không ai để ý. Và nó nói ra
+tổng số chứ không im lặng cắt.
+
+**`metadata` của lịch sử không ra ngoài**, và đây là chỗ quan trọng nhất của đợt này. Cột
+đó tự do, do tầng trong ghi vào, và nó **đã** chứa `ip` với `user_agent` của người đọc
+thông tin nhận tiền. Trả một cột tự do ra ngoài là hứa một hợp đồng mà không ai kiểm được.
+Tương tự `moderation_note` của đánh giá: ghi chú của người kiểm duyệt, viết cho nội bộ —
+trả nó ra là biến nó thành câu trả lời chính thức gửi cho khách.
+
+**Một lỗi phân quyền sửa kèm.** `show()` cũ so
+`$campaign->organization_id === $request->user()->current_organization_id` — đúng phép so
+mà `CampaignPolicy` được viết ra để thay. Hai hệ quả có thật: một người thuộc hai tổ chức,
+mở link chiến dịch của tổ chức A trong khi đang chọn tổ chức B, nhận 403 cho chiến dịch
+của chính mình; và nó **không kiểm tổ chức còn hoạt động hay không**, trong khi policy có
+kiểm. Nay gọi `can('view')`, cùng luật với đường API phục vụ chính trang đó.
+
+27 ca JS cho trang này (tổng 60 ca JS), 19 ca API mới.
 
 ---
 

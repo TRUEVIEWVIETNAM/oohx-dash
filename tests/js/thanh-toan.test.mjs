@@ -8,7 +8,7 @@ process.env.TZ = 'Pacific/Honolulu';
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dungTrang, choVeXong, chuCua, mocScriptDiTim, mocDuocKhai } from './bo-khung.mjs';
+import { dungTrang, choVeXong, chuCua, mocScriptCanTrang, mocDuocKhai } from './bo-khung.mjs';
 
 const TRANG = 'resources/views/buyer/booking/payment.blade.php';
 
@@ -16,7 +16,7 @@ const TRANG = 'resources/views/buyer/booking/payment.blade.php';
 
 test('tập móc script đi tìm trùng khít tập móc được khai', () => {
     assert.deepEqual(
-        mocScriptDiTim(TRANG),
+        mocScriptCanTrang(TRANG),
         mocDuocKhai(TRANG),
         'Script và tests/js/moc-dom.json lệch nhau — xem chú thích của '
         + '`mocScriptDiTim` về lý do phép kiểm này không thay được bằng '
