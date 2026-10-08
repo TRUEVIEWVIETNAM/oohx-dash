@@ -89,6 +89,7 @@ ul{list-style:none}
 .badge-grn,.b-grn{background:rgba(52,199,89,.12);color:#248A3D}
 .badge-red,.b-red{background:rgba(255,59,48,.1);color:#D70015}
 .badge-org,.b-org{background:rgba(255,159,10,.12);color:#C93400}
+.b-gray{background:rgba(120,120,128,.14);color:var(--t2)}
 .b-pur{background:rgba(175,82,222,.12);color:#6B2FA0}
 .b-dark{background:rgba(0,0,0,.62);color:#fff;backdrop-filter:blur(10px)}
 

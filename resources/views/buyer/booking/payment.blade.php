@@ -287,7 +287,7 @@
         }
 
         h += '</div>';
-        h += row.is_paid ? '<span class="badge b-green">Đã ghi nhận</span>' : '';
+        h += row.is_paid ? '<span class="badge b-grn">Đã ghi nhận</span>' : '';
         h += '</div><div class="pay-bank-info">';
 
         if (! coQuyenXemNhanTien) {
