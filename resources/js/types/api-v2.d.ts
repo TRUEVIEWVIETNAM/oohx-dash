@@ -2571,7 +2571,19 @@ export interface components {
                 impressions?: number | null;
                 duration_discount_pct?: number | null;
             };
-            status?: string;
+            /**
+             * @description **Khác enum của `Campaign`** ở đúng một mã: dòng dùng `pending`,
+             *     chiến dịch dùng `pending_approval`.
+             * @enum {string}
+             */
+            status?: "pending" | "approved" | "rejected" | "active" | "paused" | "completed" | "cancelled";
+            /**
+             * @description Chữ tiếng Việt từ `BookingLine::STATUS_LABELS` — bảng **riêng**,
+             *     không dùng chung với `Campaign::STATUS_LABELS`. Trang chi tiết từng
+             *     dùng một bảng cho cả hai, nên một dòng `pending` hiện ra `pending`
+             *     nguyên văn tiếng Anh ngay cạnh các dòng đã có chữ Việt.
+             */
+            status_label?: string;
             rejected_reason?: string | null;
         };
         /**

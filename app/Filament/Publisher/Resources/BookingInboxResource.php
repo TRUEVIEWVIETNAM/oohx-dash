@@ -12,6 +12,22 @@ use Illuminate\Database\Eloquent\Model;
 
 class BookingInboxResource extends Resource
 {
+    /**
+     * Trạng thái chiến dịch **với tới được** ở hộp thư này.
+     *
+     * Một định nghĩa, dùng ở hai chỗ: `getEloquentQuery()` lọc theo nó, và bộ
+     * lọc của bảng lấy nhãn theo nó. Trước đây hai danh sách được giữ riêng và
+     * **đã lệch nhau**: truy vấn gồm `paused`, bộ lọc thì không — nên một
+     * chiến dịch tạm dừng hiện trong bảng mà không lọc ra được.
+     *
+     * `draft` không có ở đây vì chiến dịch chưa gửi thì chưa đến tay media
+     * owner; `cancelled` không có vì đã hủy thì không còn là việc của hộp thư.
+     */
+    public const VISIBLE_STATUSES = [
+        'pending_approval', 'approved', 'rejected',
+        'active', 'paused', 'completed',
+    ];
+
     protected static ?string $model = Campaign::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-inbox-arrow-down';
@@ -97,16 +113,11 @@ class BookingInboxResource extends Resource
                         'completed' => 'gray',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'draft' => 'Nháp',
-                        'pending_approval' => 'Chờ duyệt',
-                        'approved' => 'Đã duyệt',
-                        'rejected' => 'Từ chối',
-                        'active' => 'Đang chạy',
-                        'completed' => 'Hoàn thành',
-                        'cancelled' => 'Đã hủy',
-                        default => $state,
-                    }),
+                    // Bảng chữ ở `Campaign::STATUS_LABELS`. Bản `match` cũ ở
+                    // đây **thiếu `paused`**, trong khi truy vấn của hộp thư
+                    // gồm nó — nên một chiến dịch tạm dừng hiện ra với chữ
+                    // `paused` nguyên văn tiếng Anh.
+                    ->formatStateUsing(fn (string $state): string => Campaign::STATUS_LABELS[$state] ?? $state),
 
                 Tables\Columns\TextColumn::make('submitted_at')
                     ->label('Gửi lúc')
@@ -114,14 +125,11 @@ class BookingInboxResource extends Resource
                     ->sortable(),
             ])
             ->filters([
+                // Đúng các trạng thái truy vấn cho qua, không nhiều hơn: một
+                // lựa chọn luôn trả về rỗng là một bộ lọc nói dối. `paused`
+                // nay có mặt — nó vốn thiếu.
                 Tables\Filters\SelectFilter::make('status')
-                    ->options([
-                        'pending_approval' => 'Chờ duyệt',
-                        'approved' => 'Đã duyệt',
-                        'active' => 'Đang chạy',
-                        'rejected' => 'Từ chối',
-                        'completed' => 'Hoàn thành',
-                    ]),
+                    ->options(Campaign::statusLabels(self::VISIBLE_STATUSES)),
             ])
             ->defaultSort('submitted_at', 'desc')
             ->actions([
@@ -153,10 +161,7 @@ class BookingInboxResource extends Resource
         return parent::getEloquentQuery()
             ->with(['organization', 'createdBy'])
             ->whereHas('bookingLines', fn ($q) => $q->where('owner_id', $ownerId))
-            ->whereIn('status', [
-                'pending_approval', 'approved', 'rejected',
-                'active', 'paused', 'completed',
-            ]);
+            ->whereIn('status', self::VISIBLE_STATUSES);
     }
 
     public static function getPages(): array

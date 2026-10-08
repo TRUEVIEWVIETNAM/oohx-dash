@@ -11,6 +11,30 @@ class BookingLine extends Model
 {
     use HasUlids;
 
+    /**
+     * Chữ tiếng Việt cho trạng thái của **một dòng đặt chỗ** — một định nghĩa.
+     *
+     * ══ Khác `Campaign::STATUS_LABELS`, và khác ở đúng một mã ══
+     *
+     * Dòng đặt chỗ dùng `pending`; chiến dịch dùng `pending_approval`. Bảy mã
+     * còn lại trùng tên, và chính chỗ trùng đó là nguồn của một lỗi hiển thị:
+     * trang chi tiết chiến dịch (cả bản Blade cũ lẫn bản JS) dùng **một** bảng
+     * chữ cho cả hai, nên một dòng `pending` rơi ra ngoài bảng và hiện ra
+     * `pending` nguyên văn tiếng Anh ngay cạnh các dòng đã có chữ Việt.
+     *
+     * Hai enum khác nhau thì phải có hai bảng chữ. Enum lấy từ migration
+     * `create_booking_lines_table`.
+     */
+    public const STATUS_LABELS = [
+        'pending'   => 'Chờ duyệt',
+        'approved'  => 'Đã duyệt',
+        'rejected'  => 'Từ chối',
+        'active'    => 'Đang chạy',
+        'paused'    => 'Tạm dừng',
+        'completed' => 'Hoàn thành',
+        'cancelled' => 'Đã hủy',
+    ];
+
     protected $fillable = [
         'campaign_id', 'product_id', 'bundle_id', 'screen_id', 'owner_id',
         'duration_discount_pct',

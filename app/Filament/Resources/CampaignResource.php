@@ -69,7 +69,12 @@ class CampaignResource extends Resource
                         'rejected' => 'danger',
                         'completed' => 'gray',
                         default => 'gray',
-                    }),
+                    })
+                    // Cột này **chưa từng** có nhãn chữ, nên bảng quản trị hiện
+                    // `pending_approval` nguyên văn tiếng Anh trong khi cùng
+                    // trạng thái đó ở hộp thư media owner hiện "Chờ duyệt".
+                    // Cùng bảng chữ cho cả hai cửa.
+                    ->formatStateUsing(fn (string $state): string => Campaign::STATUS_LABELS[$state] ?? $state),
 
                 Tables\Columns\TextColumn::make('pending_payments_count')
                     ->label('Payment')
@@ -85,14 +90,13 @@ class CampaignResource extends Resource
                     ->sortable(),
             ])
             ->filters([
+                // Cả tám trạng thái: bảng này không lọc trạng thái nào ở tầng
+                // truy vấn, nên mọi trạng thái đều với tới được. Bản cũ chỉ
+                // liệt kê năm, tức quản trị sàn **không lọc được** `draft`,
+                // `paused` và `cancelled` — ba trạng thái mà người cần tìm một
+                // chiến dịch kẹt sẽ tìm trước.
                 Tables\Filters\SelectFilter::make('status')
-                    ->options([
-                        'pending_approval' => 'Chờ duyệt',
-                        'approved' => 'Đã duyệt',
-                        'active' => 'Đang chạy',
-                        'rejected' => 'Từ chối',
-                        'completed' => 'Hoàn thành',
-                    ]),
+                    ->options(Campaign::statusLabels()),
             ])
             ->defaultSort('created_at', 'desc')
             ->actions([

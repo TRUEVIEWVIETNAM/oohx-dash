@@ -49,6 +49,7 @@ function dong(ghiDe = {}) {
         delivery: { pricing_model: 'io' },
         estimate: { currency: 'VND', cost: 10_000_000, impressions: 500_000 },
         status: 'approved',
+        status_label: 'Đã duyệt',
         rejected_reason: null,
         ...ghiDe,
     };
@@ -75,6 +76,7 @@ function duLieu(ghiDe = {}) {
             code: 'CPN-ABC',
             name: 'Chiến dịch Tết',
             status: 'approved',
+            status_label: 'Đã duyệt',
             period: { start_date: '2026-10-08', end_date: '2026-11-01' },
         },
         lines: [dong()],
@@ -209,6 +211,44 @@ test('nút báo cáo chỉ hiện khi campaign đã chạy', async () => {
 });
 
 // ── Dòng đặt chỗ ────────────────────────────────────────────────────────────
+
+/**
+ * Nhãn trạng thái của **cả hai** enum đến từ máy chủ.
+ *
+ * Trang này từng dùng MỘT bảng chữ ở client cho cả chiến dịch và dòng đặt chỗ.
+ * Hai enum đó khác nhau ở đúng một mã — chiến dịch dùng `pending_approval`,
+ * dòng dùng `pending` — nên một dòng `pending` rơi ra ngoài bảng và hiện ra
+ * `pending` nguyên văn tiếng Anh ngay cạnh các dòng đã có chữ Việt. Lỗi này có
+ * từ bản Blade cũ và đi theo sang bản JS.
+ *
+ * Nhãn dưới đây **cố ý khác** mọi nhãn thật, nên một bản tự dịch sẽ đỏ.
+ */
+test('nhãn trạng thái của chiến dịch và của dòng đều đến từ máy chủ', async () => {
+    const { tai } = dungTrang(TRANG, {
+        cauHinh: CAU_HINH,
+        traLoi: traLoi(duLieu({
+            campaign: {
+                id: 'cpn-1', code: 'C', name: 'N',
+                status: 'approved', status_label: 'NHÃN CHIẾN DỊCH',
+                period: { start_date: '2026-10-08', end_date: '2026-11-01' },
+            },
+            lines: [dong({ status: 'pending', status_label: 'NHÃN DÒNG' })],
+            cancel_quotes: [],
+        })),
+    });
+
+    await choVeXong();
+
+    assert.match(chuCua(tai, 'data-cd-trangthai'), /NHÃN CHIẾN DỊCH/);
+    assert.match(chuCua(tai, 'data-cd-than'), /NHÃN DÒNG/);
+
+    // Và `pending` không được lọt ra dưới dạng mã.
+    assert.doesNotMatch(chuCua(tai, 'data-cd-than'), /\bpending\b/);
+
+    // Màu vẫn do client chọn — đó là việc trình bày.
+    const theDong = tai.querySelector('[data-cd-than] .badge');
+    assert.ok(theDong.classList.contains('b-org'), 'dòng chờ duyệt mang màu "đang chờ"');
+});
 
 test('dòng đặt chỗ hiện tên màn hình, owner, kỳ ngắn và chi phí', async () => {
     const { tai } = dungTrang(TRANG, { cauHinh: CAU_HINH, traLoi: traLoi(duLieu()) });
