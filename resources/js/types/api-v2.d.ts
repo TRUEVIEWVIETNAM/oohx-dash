@@ -1513,7 +1513,70 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Danh sách campaign của tổ chức đang chọn
+         * @description Phân trang, **giới hạn cứng** `max_per_page = 100` (CLAUDE.md mục 2).
+         *     `meta.max_per_page` ra ngoài để client **biết** mức chặn thay vì phải
+         *     đoán từ việc kết quả ngắn hơn mình xin.
+         *
+         *     ══ Phạm vi ══
+         *
+         *     Chỉ campaign của **tổ chức đang chọn**, và chỉ khi người gọi còn tư
+         *     cách thành viên hợp lệ: thành viên của tổ chức đó, tổ chức còn
+         *     `active`, và vai trò có quyền `view_campaigns`. Đúng ba điều kiện mà
+         *     `CampaignPolicy::membership()` dùng.
+         *
+         *     **Không tin `current_organization_id` một mình.** Cột đó client đổi được
+         *     (có bộ chuyển tổ chức) và có thể trỏ vào một tổ chức người này đã bị gỡ
+         *     khỏi, hoặc một tổ chức đã bị tạm ngưng. Không có tư cách thì trả về một
+         *     trang **rỗng** — mặc định phải là chặn.
+         *
+         *     ══ Không có `cancel_quotes` ở đây ══
+         *
+         *     Danh sách trả `Campaign` thuần. Báo giá hoàn tiền chạy một lượt đọc
+         *     bảng tiền cho **mỗi dòng đặt chỗ**; nhân với 20 campaign một trang là
+         *     hàng trăm lượt đọc cho một màn hình không có nút hủy nào. Nó ở
+         *     `GET campaigns/{campaign}`, nơi người dùng đã chọn đúng một campaign.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /**
+                     * @description Phải nằm trong enum, nếu không thì **422** kèm danh sách hợp lệ.
+                     *     Nhận chuỗi tuỳ ý rồi trả danh sách rỗng là để client không phân biệt
+                     *     được "không có campaign nào ở trạng thái này" với "tôi gõ sai tên
+                     *     trạng thái".
+                     */
+                    status?: "draft" | "pending_approval" | "approved" | "rejected" | "active" | "paused" | "completed" | "cancelled";
+                    /** @description Tìm theo tên hoặc mã, không phân biệt chỗ khớp. */
+                    q?: string;
+                    page?: number;
+                    /** @description Bị kẹp vào [1, 100]. */
+                    per_page?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["Campaign"][];
+                            meta: components["schemas"]["PageMeta"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                422: components["responses"]["ValidationFailed"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
         put?: never;
         /**
          * Tạo campaign từ giỏ hàng (bước 1 của đặt chỗ)
@@ -2451,6 +2514,14 @@ export interface components {
             };
             /** @enum {string} */
             status?: "draft" | "pending_approval" | "approved" | "rejected" | "active" | "paused" | "completed" | "cancelled";
+            /**
+             * @description Chữ tiếng Việt từ `Campaign::STATUS_LABELS` — **một định nghĩa**.
+             *     Bảng chữ này từng được chép vào từng khối `@php` của mỗi trang
+             *     Blade, nên cùng một campaign có thể hiện hai chữ khác nhau ở hai
+             *     trang. Máy chủ sở hữu **chữ**; client sở hữu **màu**, vì màu là
+             *     việc trình bày và đổi theo chủ đề.
+             */
+            status_label?: string;
             timeline?: {
                 /** Format: date-time */
                 submitted_at?: string | null;

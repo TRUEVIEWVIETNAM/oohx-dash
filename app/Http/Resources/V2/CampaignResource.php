@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V2;
 
+use App\Models\Campaign;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -42,6 +43,15 @@ class CampaignResource extends JsonResource
             ],
 
             'status' => $this->status,
+
+            // Chữ do MÁY CHỦ sở hữu, màu do client sở hữu.
+            //
+            // Bảng chữ ở `Campaign::STATUS_LABELS` — một định nghĩa. Trước đây
+            // nó được chép vào từng khối `@php` của mỗi trang Blade, nên cùng
+            // một chiến dịch có thể hiện hai chữ khác nhau ở hai trang và
+            // không ai biết chữ nào đúng. Màu thì vẫn ở client: nó là việc
+            // trình bày và đổi theo chủ đề.
+            'status_label' => Campaign::STATUS_LABELS[$this->status] ?? $this->status,
 
             'timeline' => [
                 'submitted_at' => $this->submitted_at?->toJSON(),

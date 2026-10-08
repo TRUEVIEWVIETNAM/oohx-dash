@@ -14,17 +14,26 @@ class BuyerCampaignController extends Controller
     // `Api\V2\BookingController`. Tiêm một service rồi không dùng là nói sai về
     // việc controller này làm gì.
 
+    /**
+     * GET /my/campaigns — danh sách chiến dịch.
+     *
+     * Không nạp gì. View tự gọi `GET /api/v2/campaigns` từ trình duyệt, đọc
+     * `?page=`, `?status=` và `?q=` từ URL rồi chuyển tiếp vào query của API.
+     *
+     * Hai thứ bỏ đi, và cả hai là có chủ ý:
+     *
+     * - `$org->campaigns()->paginate(20)` — phép scope đó nay ở
+     *   `CampaignService::listForUser()`, dùng chung với đường API. Nó cũng
+     *   **chặt hơn** bản cũ: bản cũ tin `currentOrganization`, nên một người đã
+     *   bị gỡ khỏi tổ chức, hoặc một tổ chức đã bị tạm ngưng, vẫn đọc được
+     *   danh sách. Bản mới kiểm tư cách thành viên còn hiệu lực.
+     * - `$campaigns->links()` — phân trang do Laravel vẽ kèm HTML. Nay trang
+     *   tự vẽ và **ghi số trang vào URL** bằng `pushState`, nên vẫn chia sẻ
+     *   được link tới trang 3 và nút Quay lại vẫn đúng.
+     */
     public function index(Request $request): View
     {
-        $org = $request->user()->currentOrganization;
-
-        $campaigns = $org->campaigns()
-            ->latest()
-            ->paginate(20);
-
-        return view('buyer.dashboard.campaigns', [
-            'campaigns' => $campaigns,
-        ]);
+        return view('buyer.dashboard.campaigns');
     }
 
     /**

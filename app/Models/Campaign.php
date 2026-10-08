@@ -48,6 +48,35 @@ class Campaign extends Model
     public const STATUS_COMPLETED = 'completed';
     public const STATUS_CANCELLED = 'cancelled';
 
+    /**
+     * Chữ tiếng Việt cho từng trạng thái — **một định nghĩa**.
+     *
+     * Bảng chữ này từng được chép lại ở mỗi nơi cần nó: hai khối `@php` trong
+     * `buyer/dashboard/campaign-detail.blade.php` và `campaigns.blade.php`, và
+     * ba bộ `options()` trong Filament. Chép là để chúng lệch nhau — và khi
+     * lệch thì cùng một chiến dịch hiện hai chữ khác nhau ở hai trang, không
+     * ai biết chữ nào đúng.
+     *
+     * Hai trang khu người mua nay đọc chữ này **qua API** (`status_label` của
+     * `CampaignResource`): máy chủ sở hữu chữ, client sở hữu màu. Màu là việc
+     * trình bày và nó đổi theo chủ đề; chữ là việc nghiệp vụ.
+     *
+     * Còn ba bản chép trong Filament (`Filament\Resources\CampaignResource`,
+     * `Filament\Publisher\Resources\BookingInboxResource` ×2). Chúng chỉ liệt
+     * kê **một phần** các trạng thái cho bộ lọc, nên đổi sang dùng hằng này là
+     * một thay đổi hành vi của khu quản trị — việc riêng, không gộp vào đây.
+     */
+    public const STATUS_LABELS = [
+        self::STATUS_DRAFT     => 'Nháp',
+        self::STATUS_PENDING   => 'Chờ duyệt',
+        self::STATUS_APPROVED  => 'Đã duyệt',
+        self::STATUS_REJECTED  => 'Từ chối',
+        self::STATUS_ACTIVE    => 'Đang chạy',
+        self::STATUS_PAUSED    => 'Tạm dừng',
+        self::STATUS_COMPLETED => 'Hoàn thành',
+        self::STATUS_CANCELLED => 'Đã hủy',
+    ];
+
     // ── Relationships ──
 
     public function organization(): BelongsTo

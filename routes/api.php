@@ -179,6 +179,13 @@ Route::prefix('v2')
         Route::delete('cart/items/{item}', [V2CartController::class, 'destroy']);
 
         // ── Đặt chỗ (mốc 3) ───────────────────────────────────────────────
+        //
+        // Danh sách TRƯỚC `{campaign}`: Laravel khớp route theo thứ tự khai, và
+        // `campaigns/{campaign}` khai trước sẽ hút luôn `GET campaigns` nếu
+        // đường đó không có đoạn thứ hai. Ở đây hai mẫu khác số đoạn nên không
+        // đụng nhau, nhưng giữ thứ tự danh-sách-trước là thói quen đúng.
+        Route::get('campaigns', [V2BookingController::class, 'index']);
+
         Route::get('campaigns/{campaign}', [V2BookingController::class, 'show']);
 
         // Hai đường GHI của đặt chỗ có hạn mức RIÊNG, chặt hơn nhóm `api`.

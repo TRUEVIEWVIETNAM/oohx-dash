@@ -399,6 +399,51 @@ kiểm. Nay gọi `can('view')`, cùng luật với đường API phục vụ ch
 
 27 ca JS cho trang này (tổng 60 ca JS), 19 ca API mới.
 
+### `GET /api/v2/campaigns` dạng danh sách — trang cuối của khu người mua (08/10/2026)
+
+Trang `/my/campaigns` là trang Blade cuối cùng của khu người mua còn dựng dữ liệu từ model.
+Nay nó đọc một endpoint danh sách có phân trang, bộ lọc trạng thái, và tìm theo tên/mã.
+
+**Phạm vi là một phép phân quyền, nên nó ở service.** `CampaignService::listForUser()` dùng
+chung cho cả hai đường, và nó **chặt hơn** bản cũ ở hai chỗ:
+
+| Tình huống | Bản cũ (`currentOrganization->campaigns()`) | Nay |
+|---|---|---|
+| Bị gỡ khỏi **mọi** tổ chức | đọc được | 403 từ middleware `buyer` |
+| `current_organization_id` trỏ sang tổ chức **không là thành viên** | **đọc được toàn bộ danh sách của nơi đó** | rỗng |
+| Tổ chức bị tạm ngưng | đọc được | rỗng |
+
+Khe thứ hai là khe đáng kể: cột `current_organization_id` client đổi được (có bộ chuyển tổ
+chức), nên nó là **đầu vào**, không phải một sự thật. Middleware không đóng được khe đó —
+nó chỉ hỏi "có thuộc tổ chức nào không".
+
+**Ngoặc quanh nhóm `orWhere` là thứ duy nhất ngăn rò rỉ khi tìm kiếm.** Thiếu nó thì
+`organization_id = X AND name LIKE … OR code LIKE …` đọc thành `(… AND …) OR (code LIKE …)`,
+tức một mã trùng ở tổ chức khác cũng ra. Có test riêng cho đúng việc đó, và một test nữa
+cho việc `%` với `_` trong từ khóa phải được coi là **chữ**: không thoát thì `q=%` khớp mọi
+chiến dịch.
+
+**Nhãn trạng thái: một định nghĩa.** `Campaign::STATUS_LABELS` thay cho các bản chép trong
+hai khối `@php` của Blade. Máy chủ sở hữu **chữ** (`status_label`), client sở hữu **màu** —
+màu là việc trình bày và đổi theo chủ đề. Còn ba bản chép trong Filament, chúng chỉ liệt kê
+một phần trạng thái cho bộ lọc nên đổi là một thay đổi hành vi của khu quản trị; để riêng.
+
+**Phân trang không được thụt lùi so với `$campaigns->links()`.** Bản Laravel vốn cho phép
+chia sẻ link tới trang 3 và bấm Quay lại về đúng chỗ. Nên trang đọc `?page=` từ URL và ghi
+lại bằng `pushState` — `replaceState` cho lần đầu và cho `popstate`, vì `pushState` ở lần
+đầu khiến nút Quay lại trông như bị kẹt. Có test cho cả ba hành vi.
+
+**Hai câu "rỗng" khác nhau.** "Chưa có campaign nào" khi đang lọc là nói sai — họ có
+campaign, chỉ không có cái nào khớp — và câu sai đó dẫn họ đi tạo cái mới thay vì xoá lọc.
+
+**Thêm vào bộ khung test JS:** trường `the` (thẻ HTML của móc khi không phải `div`). Cần vì
+một `<input>` dựng thành `<div>` thì `el.value` ra `undefined`: test vẫn chạy nhưng đang
+chạy trên một thứ khác với trang thật. Phía PHP cũng đòi trang render đúng thẻ đó.
+
+23 ca JS cho trang này (tổng 83 ca JS), 19 ca API mới.
+
+**Khu người mua từ đây không còn action đọc nào dựng dữ liệu từ model.**
+
 ---
 
 ## Đóng nợ — hủy/hoàn tiền có lối vào thật (30/09/2026)

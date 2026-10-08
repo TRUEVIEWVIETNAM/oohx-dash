@@ -9,6 +9,7 @@ use App\Models\CampaignActivity;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Organization;
+use App\Models\OrganizationUser;
 use App\Models\Owner;
 use App\Models\Screen;
 use App\Models\User;
@@ -23,6 +24,70 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class CampaignService
 {
+    /**
+     * Danh sách chiến dịch của một người, trong **tổ chức đang chọn**.
+     *
+     * ══ Vì sao scope ở service, không ở controller ══
+     *
+     * CLAUDE.md mục 1: controller nhận request, gọi service, trả response.
+     * Nhưng lý do thật nằm ở chỗ khác — phép scope này là một **phép phân
+     * quyền**, và trang Blade cùng `/api/v2` phải dùng đúng một bản. Hai bản
+     * là cách để một ngày nào đó danh sách trên trang và danh sách qua API
+     * khác nhau, mà không bên nào biết bên nào đúng.
+     *
+     * ══ Kiểm tư cách, không tin `current_organization_id` ══
+     *
+     * Cột đó do client đổi được (có bộ chuyển tổ chức), và nó có thể trỏ vào
+     * một tổ chức người này đã bị gỡ khỏi, hoặc một tổ chức đã bị tạm ngưng.
+     * Nên không truy vấn theo nó trực tiếp: tìm **tư cách thành viên còn hiệu
+     * lực** đúng ba điều kiện mà `CampaignPolicy::membership()` dùng — thành
+     * viên của tổ chức đó, tổ chức còn `active`, và vai trò có quyền
+     * `view_campaigns`.
+     *
+     * Không có tư cách thì trả về một trang **rỗng**, không phải mọi chiến
+     * dịch của sàn. Mặc định phải là chặn, như `HasOwnerScope`.
+     *
+     * @param  array{status?: string|null, q?: string|null}  $loc
+     */
+    public function listForUser(User $user, array $loc = [], int $perPage = 20)
+    {
+        $membership = OrganizationUser::where('user_id', $user->id)
+            ->where('organization_id', $user->current_organization_id)
+            ->whereHas('organization', fn ($q) => $q->where('status', 'active'))
+            ->first();
+
+        if (! $membership?->can('view_campaigns')) {
+            // `whereRaw('1 = 0')` thay vì trả `collect()`: người gọi cần một
+            // paginator thật để `meta` vẫn đúng hình dạng, chứ không phải một
+            // nhánh đặc biệt ở mọi bên tiêu thụ.
+            return Campaign::whereRaw('1 = 0')->paginate($perPage);
+        }
+
+        $query = Campaign::where('organization_id', $membership->organization_id);
+
+        if (! empty($loc['status'])) {
+            $query->where('status', $loc['status']);
+        }
+
+        if (! empty($loc['q'])) {
+            // Tìm theo tên hoặc mã. `LIKE` có ký tự đại diện ở hai đầu nên
+            // không dùng được index — chấp nhận được vì phạm vi đã hẹp về một
+            // tổ chức, và một tổ chức không có hàng triệu chiến dịch.
+            //
+            // Ngoặc quanh nhóm `orWhere` là bắt buộc: thiếu nó thì
+            // `organization_id = X AND name LIKE … OR code LIKE …` đọc thành
+            // `(… AND …) OR (code LIKE …)`, tức mã trùng ở TỔ CHỨC KHÁC cũng
+            // ra — một rò rỉ theo đúng kiểu `InventoryHold` từng mắc.
+            $tu = '%' . str_replace(['%', '_'], ['\%', '\_'], (string) $loc['q']) . '%';
+
+            $query->where(function ($q) use ($tu) {
+                $q->where('name', 'like', $tu)->orWhere('code', 'like', $tu);
+            });
+        }
+
+        return $query->latest()->paginate($perPage);
+    }
+
     /**
      * Create campaign from cart items.
      */

@@ -1026,6 +1026,62 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /api/v2/campaigns:
+    get:
+      tags: [booking]
+      security: [{ sessionCookie: [] }]
+      summary: Danh sách campaign của tổ chức đang chọn
+      description: |
+        Phân trang, **giới hạn cứng** `max_per_page = 100` (CLAUDE.md mục 2).
+        `meta.max_per_page` ra ngoài để client **biết** mức chặn thay vì phải
+        đoán từ việc kết quả ngắn hơn mình xin.
+
+        ══ Phạm vi ══
+
+        Chỉ campaign của **tổ chức đang chọn**, và chỉ khi người gọi còn tư
+        cách thành viên hợp lệ: thành viên của tổ chức đó, tổ chức còn
+        `active`, và vai trò có quyền `view_campaigns`. Đúng ba điều kiện mà
+        `CampaignPolicy::membership()` dùng.
+
+        **Không tin `current_organization_id` một mình.** Cột đó client đổi được
+        (có bộ chuyển tổ chức) và có thể trỏ vào một tổ chức người này đã bị gỡ
+        khỏi, hoặc một tổ chức đã bị tạm ngưng. Không có tư cách thì trả về một
+        trang **rỗng** — mặc định phải là chặn.
+
+        ══ Không có `cancel_quotes` ở đây ══
+
+        Danh sách trả `Campaign` thuần. Báo giá hoàn tiền chạy một lượt đọc
+        bảng tiền cho **mỗi dòng đặt chỗ**; nhân với 20 campaign một trang là
+        hàng trăm lượt đọc cho một màn hình không có nút hủy nào. Nó ở
+        `GET campaigns/{campaign}`, nơi người dùng đã chọn đúng một campaign.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: |
+            Phải nằm trong enum, nếu không thì **422** kèm danh sách hợp lệ.
+            Nhận chuỗi tuỳ ý rồi trả danh sách rỗng là để client không phân biệt
+            được "không có campaign nào ở trạng thái này" với "tôi gõ sai tên
+            trạng thái".
+          schema:
+            type: string
+            enum: [draft, pending_approval, approved, rejected, active, paused, completed, cancelled]
+        - { name: q, in: query, required: false, schema: { type: string, maxLength: 100 }, description: 'Tìm theo tên hoặc mã, không phân biệt chỗ khớp.' }
+        - { name: page, in: query, required: false, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, required: false, schema: { type: integer, minimum: 1, default: 20 }, description: 'Bị kẹp vào [1, 100].' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Campaign' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       tags: [booking]
       security: [{ sessionCookie: [] }]
@@ -1886,6 +1942,14 @@ components:
             start_date: { type: string, format: date, nullable: true }
             end_date:   { type: string, format: date, nullable: true }
         status: { type: string, enum: [draft, pending_approval, approved, rejected, active, paused, completed, cancelled] }
+        status_label:
+          type: string
+          description: |
+            Chữ tiếng Việt từ `Campaign::STATUS_LABELS` — **một định nghĩa**.
+            Bảng chữ này từng được chép vào từng khối `@php` của mỗi trang
+            Blade, nên cùng một campaign có thể hiện hai chữ khác nhau ở hai
+            trang. Máy chủ sở hữu **chữ**; client sở hữu **màu**, vì màu là
+            việc trình bày và đổi theo chủ đề.
         timeline:
           type: object
           properties:
