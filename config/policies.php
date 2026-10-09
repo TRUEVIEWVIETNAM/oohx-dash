@@ -37,8 +37,8 @@ return [
             // Phần thân, render qua endpoint
             // /api/v2/policies/{slug} cho trang Next. Văn bản chỉ có MỘT nơi.
             'body'    => 'frontpage.policies.bodies.terms',
-            'version' => '0.1-draft',
-            'effective_from' => null, // chưa ban hành — nội dung còn là bản nháp
+            'version' => '1.0',
+            'effective_from' => '09/10/2026',
         ],
         'chinh-sach-bao-mat' => [
             'key'     => 'privacy',
@@ -46,9 +46,11 @@ return [
             // Phần thân, render qua endpoint
             // /api/v2/policies/{slug} cho trang Next. Văn bản chỉ có MỘT nơi.
             'body'    => 'frontpage.policies.bodies.privacy',
-            // 0.2: thêm việc chia sẻ liên hệ người mua cho media owner (mục 4).
-            'version' => '0.2-draft',
-            'effective_from' => null,
+            // Lịch sử nội dung, giữ lại vì `version` được đóng dấu lên từng bản
+            // ghi chấp thuận: 0.2 thêm việc chia sẻ liên hệ người mua cho media
+            // owner (mục 4). Ban hành 09/10/2026 với số 1.0.
+            'version' => '1.0',
+            'effective_from' => '09/10/2026',
         ],
         'giai-quyet-tranh-chap' => [
             'key'     => 'disputes',
@@ -56,8 +58,8 @@ return [
             // Phần thân, render qua endpoint
             // /api/v2/policies/{slug} cho trang Next. Văn bản chỉ có MỘT nơi.
             'body'    => 'frontpage.policies.bodies.disputes',
-            'version' => '0.1-draft',
-            'effective_from' => null,
+            'version' => '1.0',
+            'effective_from' => '09/10/2026',
         ],
         'bang-phi' => [
             'key'     => 'fees',
