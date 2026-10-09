@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Campaign;
 use App\Models\CartItem;
 use App\Models\Creative;
+use App\Models\Organization;
 use App\Models\OrganizationUser;
 use App\Models\Owner;
 use App\Models\OwnerUser;
@@ -19,6 +20,7 @@ use App\Policies\CampaignPolicy;
 use App\Policies\CartItemPolicy;
 use App\Policies\CreativePolicy;
 use App\Policies\NetworkPolicy;
+use App\Policies\OrganizationPolicy;
 use App\Policies\OrganizationUserPolicy;
 use App\Policies\OwnerPolicy;
 use App\Policies\OwnerUserPolicy;
@@ -56,6 +58,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Creative::class, CreativePolicy::class);
         Gate::policy(OwnerUser::class, OwnerUserPolicy::class);
         Gate::policy(OrganizationUser::class, OrganizationUserPolicy::class);
+        Gate::policy(Organization::class, OrganizationPolicy::class);
         // Đăng ký tường minh thay vì dựa vào auto-discovery cho dễ truy vết.
         // (Ghi chú cũ nói thiếu đăng ký thì Gate "cho qua âm thầm" là SAI —
         // Laravel mặc định từ chối khi không tìm thấy policy hay ability.)
