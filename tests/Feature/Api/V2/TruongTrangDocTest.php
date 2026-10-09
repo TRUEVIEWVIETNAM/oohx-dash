@@ -41,6 +41,15 @@ use Tests\TestCase;
  *    chúng đi về route Blade.
  *  - Không canh chiều ngược: một trường đặc tả khai mà không ai đọc là trường
  *    chết, và chốt này không nói gì.
+ *  - **Trang gọi nhiều đường thì phạm vi là HỢP của chúng.** Trang thanh toán
+ *    gọi cả `payments` lẫn `payment-recipients`, nên `bank_name` đọc ở bất cứ
+ *    đâu trên trang đó cũng qua. Tôi đo điều này bằng đột biến: đặt
+ *    `p.bank_name` vào chỗ vẽ lịch sử thanh toán thì chốt **không** đỏ.
+ *
+ *    Chặt hơn thì phải lần từng biến tới lời gọi `fetch` sinh ra nó — tức một
+ *    phép phân tích luồng dữ liệu, không phải một phép quét. Trang giỏ hàng
+ *    chỉ gọi một đường, nên ở đó chốt chặt đúng như mô tả: đột biến đặt
+ *    `bank_name` vào trang giỏ thì đỏ ngay, trong khi bản JS cũ cho qua.
  */
 class TruongTrangDocTest extends TestCase
 {
