@@ -1329,6 +1329,80 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /api/v2/campaigns/{campaign}/report:
+    parameters:
+      - { name: campaign, in: path, required: true, schema: { type: string }, description: ULID của campaign. }
+    get:
+      tags: [Đặt chỗ]
+      summary: Báo cáo phát sóng của chiến dịch
+      description: |
+        Mở đường cho `/my/campaigns/{campaign}/report` — trang Blade cuối cùng
+        còn **nhúng** dữ liệu vào HTML (`@json($dailyData)`).
+
+        Quyền: `CampaignPolicy::viewReports()` — tư cách thành viên còn hiệu
+        lực của tổ chức **sở hữu chiến dịch**, không phải
+        `current_organization_id`.
+
+        **404 là một câu trả lời nghiệp vụ**, không phải "không có đường":
+        chiến dịch chưa chạy thì chưa có báo cáo. Chỉ `active`, `paused`,
+        `completed` có.
+
+        Danh sách trắng ở đây **hẹp hơn** cái `CampaignReportService` trả:
+        `daily.revenue`, `breakdown[].estimated_cost`, `breakdown[].status` và
+        `overview.total_paid` không ra ngoài, vì trang không hiện chúng.
+
+        Tiền là **số nguyên** VND; service trả `float`.
+      security: [{ sanctumSession: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [overview, daily, breakdown]
+                    properties:
+                      overview:
+                        type: object
+                        properties:
+                          total_screens:               { type: integer }
+                          total_estimated_impressions: { type: integer }
+                          total_actual_impressions:    { type: integer }
+                          delivery_rate:               { type: number, description: 'Phần trăm, máy chủ tính. Trang KHÔNG chia lại.' }
+                          total_estimated_cost:        { type: integer }
+                          total_actual_cost:           { type: integer }
+                          days_total:                  { type: integer }
+                          days_elapsed:                { type: integer }
+                          days_remaining:              { type: integer }
+                          progress_pct:                { type: integer }
+                      daily:
+                        type: object
+                        description: 'Chuỗi theo ngày cho biểu đồ. Không mang `revenue`.'
+                        properties:
+                          labels:      { type: array, items: { type: string } }
+                          impressions: { type: array, items: { type: integer } }
+                      breakdown:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            screen_name:           { type: string }
+                            owner_name:            { type: string }
+                            city:                  { type: string }
+                            dates:                 { type: string }
+                            estimated_impressions: { type: integer }
+                            actual_impressions:    { type: integer }
+                            delivery_rate:         { type: number }
+                            actual_cost:           { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /api/v2/campaigns/{campaign}/payments:
     parameters:
       - { name: campaign, in: path, required: true, schema: { type: string } }
