@@ -125,19 +125,24 @@ tên class. Có một ca canh đúng việc đó, vì một test báo oan thì s
 | `welcome.blade.php` | Dùng `app.css` (Tailwind): ở đó "có định nghĩa" nghĩa là *sinh ra theo yêu cầu*, nên phép kiểm tĩnh không nói được gì |
 | `invitations/**` | Mỗi trang có khối `<style>` riêng trong chính nó |
 
-## Trường API: chốt đã chuyển sang phía PHP
+## `truong-api.test.mjs` — tên trường API trang đọc phải có trong đặc tả
 
-`truong-api.test.mjs` từng đối chiếu tên trường snake_case mà sáu khối script
-đọc với **cả tệp** `docs/openapi/v2.yaml`. Nó bị thay bởi
-`tests/Feature/Api/V2/TruongTrangDocTest.php`, chặt hơn ở chỗ đáng kể: chốt
-mới đối chiếu với schema của **đúng endpoint** trang gọi.
+Các ca jsdom dựng phản hồi API bằng **dữ liệu mẫu viết tay**. Nếu DTO đổi tên
+một trường, dữ liệu mẫu vẫn mang tên cũ, mọi ca vẫn xanh, và trang thật đọc
+`undefined` — trên trang tiền, `undefined` không nổ: nó rơi về nhánh
+`|| p.status` và hiện một mã CSDL.
 
-Khác biệt đó không phải chi tiết. `bank_name` **có** trong đặc tả, nên bản tìm
-chuỗi cho qua một trang đọc nó từ `GET payments` — nơi không trả `bank_*`.
-Mà `bank_*` và `tax_code` chỉ ra ngoài qua MỘT đường (ngoại lệ đã duyệt
-08/10), nên đúng chỗ đó là chỗ phải canh chặt.
+Tệp này đối chiếu mọi tên **snake_case** mà sáu khối script đọc với
+`docs/openapi/v2.yaml` — nguồn sự thật cho kiểu dữ liệu (CLAUDE.md mục 2).
+snake_case là phép lọc: API đặt tên kiểu đó, biến cục bộ thì không.
 
-Chốt ở PHP vì `symfony/yaml` đã có ở đó và `OpenApiContractTest` đã phân tích
-cùng tệp đặc tả. Viết một bộ phân tích YAML bằng tay trong JS là cách chắc
-chắn để có một bộ phân tích sai — bản JS đã gặp đúng chuyện đó với bộ bỏ chú
-thích của nó.
+Nó **không** nói trường đó đúng kiểu hay đúng nghĩa; nó nói hai bên còn gọi
+cùng một tên.
+
+### Bộ bỏ chú thích là phần không được bỏ qua
+
+Bản đầu chỉ theo dõi ba kiểu nháy, và mọi trang đều có
+`.replace(/'/g, '&#39;')`. `/'/g` là một **regex literal** chứa dấu nháy
+đơn, nên máy trạng thái mở trạng thái chuỗi ở đó rồi lệch nhịp, và thôi bỏ
+chú thích từ đó. Hậu quả đo được: chốt báo một tên nằm trong docblock là
+"thiếu trong đặc tả". Có ca riêng canh đúng hình dạng đó.
