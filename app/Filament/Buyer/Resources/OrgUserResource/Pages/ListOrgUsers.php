@@ -55,7 +55,7 @@ class ListOrgUsers extends ListRecords
                         );
                         Notification::make()
                             ->title("✅ Đã gửi lời mời tới {$data['email']}")
-                            ->body('Role: ' . (OrganizationUser::ROLES[$data['role']] ?? $data['role']) . ' · hết hạn sau 7 ngày')
+                            ->body('Role: ' . (OrganizationUser::ROLE_LABELS[$data['role']] ?? $data['role']) . ' · hết hạn sau 7 ngày')
                             ->success()->send();
                     } catch (\Throwable $e) {
                         Notification::make()

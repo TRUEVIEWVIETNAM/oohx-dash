@@ -519,6 +519,14 @@ class PaymentApiTest extends TestCase
                 $khoan['status_label'],
                 "khoản trạng thái `{$khoan['status']}` không mang chữ đúng",
             );
+
+            // Cách trả cũng vậy. `bank_transfer` là mã có dấu gạch dưới, và
+            // trang từng "làm đẹp" nó thành "Bank transfer".
+            $this->assertSame(
+                Payment::METHOD_LABELS[$khoan['method']],
+                $khoan['method_label'],
+                "cách trả `{$khoan['method']}` không mang chữ đúng",
+            );
         }
     }
 

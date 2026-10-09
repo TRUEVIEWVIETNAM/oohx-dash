@@ -489,6 +489,7 @@ test('nhãn trạng thái khoản tiền lấy từ máy chủ, không dịch �
                 amount: 10_800_000,
                 status: 'pending',
                 status_label: 'NHÃN TỪ MÁY CHỦ',
+                method_label: 'CÁCH TRẢ TỪ MÁY CHỦ',
                 invoice_number: 'HD-001',
                 created_at: '2026-10-08T02:11:14.000000Z',
             }],
@@ -501,6 +502,12 @@ test('nhãn trạng thái khoản tiền lấy từ máy chủ, không dịch �
 
     assert.match(chu, /NHÃN TỪ MÁY CHỦ/);
     assert.doesNotMatch(chu, /Chờ xác nhận/, 'trang không được tự dịch mã trạng thái');
+
+    // Cách trả cũng từ máy chủ. Bản cũ "làm đẹp mã" —
+    // `replace(/_/g, ' ')` rồi viết hoa chữ đầu — nên `bank_transfer` ra
+    // "Bank transfer" ngay trên trang tiền.
+    assert.match(chu, /CÁCH TRẢ TỪ MÁY CHỦ/);
+    assert.doesNotMatch(chu, /Bank transfer/i, 'trang không được tự làm đẹp mã cách trả');
 });
 
 // ── Thanh bên ───────────────────────────────────────────────────────────────

@@ -77,11 +77,6 @@ class TheEnumPhaiCoChuTest extends TestCase
         'app/Filament/Resources/OwnerResource.php::status' => 1,
         'app/Filament/Resources/OwnerResource.php::type' => 1,
 
-        // `organization_users.role` CÓ bảng chữ (`OrganizationUser::ROLES`)
-        // nhưng chữ trong đó là tiếng Anh ("Admin", "Planner", "Viewer"), nên
-        // nối vào chỉ đổi `admin` thành `Admin` — chưa phải một lần sửa. Bảng
-        // đó cũng không tên `ROLE_LABELS` nên `NhanEnumMotNoiTest` không thấy.
-        'app/Filament/Resources/OrganizationResource.php::role' => 1,
     ];
 
     /** @return array<int, string> tên mọi cột enum trong CSDL */

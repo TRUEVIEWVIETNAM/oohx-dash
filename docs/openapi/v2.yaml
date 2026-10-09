@@ -2406,7 +2406,11 @@ components:
           properties:
             id:   { type: string }
             name: { type: string }
-        method:          { type: string, enum: [bank_transfer] }
+        # Ba giá trị, theo enum của `create_payments_table`. Chỉ `bank_transfer`
+        # có đường GHI (`StorePaymentRequest`), hai mã kia có trong enum nhưng
+        # chưa dùng — nên khai đủ để bên tiêu thụ không gặp giá trị lạ.
+        method:          { type: string, enum: [bank_transfer, vnpay, momo] }
+        method_label:    { type: string, description: 'Chữ tiếng Việt của `method`, từ `Payment::METHOD_LABELS`. Trước đây trang tự "làm đẹp mã" bằng `replace(/_/g, " ")`, nên `bank_transfer` ra "Bank transfer".' }
         currency:        { type: string, enum: [VND] }
         amount:          { type: integer }
         # Năm giá trị, theo enum của `create_payments_table`. Đặc tả trước đây

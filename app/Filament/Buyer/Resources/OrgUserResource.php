@@ -81,7 +81,7 @@ class OrgUserResource extends Resource
                     ->copyable(),
                 Tables\Columns\BadgeColumn::make('role')
                     ->label('Role')
-                    ->formatStateUsing(fn($state) => OrganizationUser::ROLES[$state] ?? $state)
+                    ->formatStateUsing(fn($state) => OrganizationUser::ROLE_LABELS[$state] ?? $state)
                     ->colors([
                         'danger'  => 'admin',
                         'primary' => 'planner',
