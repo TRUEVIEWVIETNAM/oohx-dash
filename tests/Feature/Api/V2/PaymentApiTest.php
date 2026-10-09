@@ -347,6 +347,61 @@ class PaymentApiTest extends TestCase
         $this->assertSame(0, Payment::count());
     }
 
+    /**
+     * Chiến dịch **đã hoàn thành** mà còn nợ thì vẫn trả được.
+     *
+     * ══ Lỗi ca này chống ══
+     *
+     * Công nợ tính từ các dòng đặt chỗ ở `approved|active|completed`, nhưng
+     * cổng trạng thái trước đây chỉ cho `approved|active`. Nên một chiến dịch
+     * đã chạy xong mà còn nợ thì `remaining` > 0 — trang vẫn hiện số tiền —
+     * trong khi `can_pay` = false và đường ghi trả 422 **"Campaign chưa được
+     * duyệt"**, một thông báo nói sai nguyên nhân.
+     *
+     * Tức sàn ghi nhận một khoản nợ mà không cho người mua trả nó. Một chiến
+     * dịch kết thúc không xoá nghĩa vụ tiền với media owner.
+     */
+    public function test_campaign_da_hoan_thanh_ma_con_no_thi_van_tra_duoc(): void
+    {
+        $owner    = $this->owner('Kim Ngân ADV');
+        $campaign = $this->campaign([$owner->id => 10_000_000], Campaign::STATUS_COMPLETED);
+
+        $this->actingAs($this->buyer)
+            ->getJson($this->url($campaign))
+            ->assertOk()
+            ->assertJsonPath('data.can_pay', true);
+
+        $this->actingAs($this->buyer)->postJson($this->url($campaign), [
+            'method'       => 'bank_transfer',
+            'owner_id'     => $owner->id,
+            'accept_terms' => true,
+        ])->assertStatus(201);
+
+        $this->assertSame(1, Payment::count());
+    }
+
+    /**
+     * `cancelled` và `rejected` vẫn **ngoài** danh sách.
+     *
+     * Ở đó nghĩa vụ đi qua đường hoàn tiền, không qua đường thu. Thêm
+     * `completed` không được kéo theo hai mã này.
+     */
+    public function test_campaign_bi_huy_hoac_tu_choi_thi_van_khong_tra_duoc(): void
+    {
+        foreach ([Campaign::STATUS_CANCELLED, Campaign::STATUS_REJECTED] as $ma) {
+            $owner    = $this->owner('Owner ' . $ma);
+            $campaign = $this->campaign([$owner->id => 10_000_000], $ma);
+
+            $this->actingAs($this->buyer)->postJson($this->url($campaign), [
+                'method'       => 'bank_transfer',
+                'owner_id'     => $owner->id,
+                'accept_terms' => true,
+            ])->assertStatus(422);
+        }
+
+        $this->assertSame(0, Payment::count());
+    }
+
     public function test_campaign_chua_duyet_thi_chua_tra_duoc(): void
     {
         $owner    = $this->owner('Kim Ngân ADV');
@@ -424,8 +479,12 @@ class PaymentApiTest extends TestCase
             'Controller v2 không còn dùng danh sách của PaymentService.'
         );
 
+        // `completed` có trong danh sách vì công nợ được tính từ các dòng ở
+        // `approved|active|completed`: một chiến dịch đã chạy xong mà còn nợ
+        // thì vẫn phải trả được. `cancelled` và `rejected` thì không — ở đó
+        // nghĩa vụ đi qua đường hoàn tiền.
         $this->assertSame(
-            [Campaign::STATUS_APPROVED, Campaign::STATUS_ACTIVE],
+            [Campaign::STATUS_APPROVED, Campaign::STATUS_ACTIVE, Campaign::STATUS_COMPLETED],
             \App\Services\PaymentService::PAYABLE_STATUSES
         );
     }

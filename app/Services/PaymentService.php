@@ -29,7 +29,30 @@ class PaymentService
      * không ai thấy gì — và hai bản trùng giá trị hôm nay là hai bản sẽ lệch
      * ngày có người thêm một trạng thái.
      */
-    public const PAYABLE_STATUSES = ['approved', 'active'];
+    /*
+     * ══ `completed` nằm trong danh sách, và vì sao ══
+     *
+     * Công nợ được tính từ các dòng đặt chỗ ở `approved|active|completed` —
+     * bốn chỗ trong service này làm vậy. Nhưng cổng này trước đây chỉ cho
+     * `approved|active`, nên một chiến dịch ĐÃ HOÀN THÀNH mà còn nợ thì:
+     *
+     *   - `remaining` > 0, trang vẫn hiện số tiền còn phải trả;
+     *   - `can_pay` = false, nên không có nút nào để trả;
+     *   - gọi thẳng đường ghi thì nhận 422 **"Campaign chưa được duyệt nên
+     *     chưa thể xác nhận thanh toán"** — một thông báo nói sai nguyên nhân,
+     *     vì chiến dịch đã được duyệt và đã chạy xong.
+     *
+     * Tức sàn ghi nhận một khoản nợ mà không cho người mua trả nó. Một chiến
+     * dịch kết thúc không xoá nghĩa vụ tiền với media owner.
+     *
+     * `cancelled` và `rejected` vẫn **ngoài** danh sách: ở đó nghĩa vụ đi qua
+     * đường hoàn tiền (`CancellationService`), không qua đường thu.
+     */
+    public const PAYABLE_STATUSES = [
+        Campaign::STATUS_APPROVED,
+        Campaign::STATUS_ACTIVE,
+        Campaign::STATUS_COMPLETED,
+    ];
 
     /** VAT áp cho dịch vụ quảng cáo. */
     /**
