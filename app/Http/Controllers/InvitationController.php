@@ -37,7 +37,7 @@ class InvitationController extends Controller
 
         $tenant = $invitation->tenant();
         $roleLabel = match ($invitation->tenant_type) {
-            UserInvitation::TENANT_OWNER        => OwnerUser::ROLES[$invitation->role] ?? $invitation->role,
+            UserInvitation::TENANT_OWNER        => OwnerUser::ROLE_LABELS[$invitation->role] ?? $invitation->role,
             UserInvitation::TENANT_ORGANIZATION => OrganizationUser::ROLE_LABELS[$invitation->role] ?? $invitation->role,
             default                             => $invitation->role,
         };

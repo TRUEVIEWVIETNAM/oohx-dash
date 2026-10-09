@@ -81,7 +81,7 @@ class OwnerUsersRelationManager extends RelationManager
                     ->copyable(),
 
                 Tables\Columns\BadgeColumn::make('role')
-                    ->formatStateUsing(fn($state) => OwnerUser::ROLES[$state] ?? $state)
+                    ->formatStateUsing(fn($state) => OwnerUser::ROLE_LABELS[$state] ?? $state)
                     ->colors([
                         'danger'  => 'owner',
                         'primary' => 'manager',
@@ -155,7 +155,7 @@ class OwnerUsersRelationManager extends RelationManager
 
                             Notification::make()
                                 ->title("✅ Đã gửi lời mời tới {$data['email']}")
-                                ->body('Role: ' . (OwnerUser::ROLES[$data['role']] ?? $data['role']) . ' · hết hạn sau 7 ngày')
+                                ->body('Role: ' . (OwnerUser::ROLE_LABELS[$data['role']] ?? $data['role']) . ' · hết hạn sau 7 ngày')
                                 ->success()->send();
                         } catch (\Throwable $e) {
                             Notification::make()

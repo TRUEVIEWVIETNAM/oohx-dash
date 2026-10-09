@@ -20,26 +20,61 @@ class OwnerUser extends Model
     // ── Role definitions ──────────────────────────────────────────────────────
 
     /**
-     * 6 roles theo thứ tự quyền giảm dần.
-     * Label hiển thị trong UI (khớp với ảnh thiết kế).
+     * Chữ tiếng Việt cho 6 vai trò trong một media owner, quyền giảm dần.
+     *
+     * ══ Hai lỗi bảng này sửa ══
+     *
+     *  1. Chữ là **tiếng Anh** — "Owner", "Manager", "Scheduler", "Read only",
+     *     "Reporting only", "Sales manager". Docblock cũ nói chúng "khớp với ảnh
+     *     thiết kế", nhưng chỗ chúng ra tới không phải chỉ một bảng quản trị:
+     *     `InvitationController` và `UserInvitationNotification` đóng chúng vào
+     *     **thư mời**, nên nhân sự của media owner nhận một email tiếng Việt kết
+     *     thúc bằng "với vai trò **Read only**". Đúng hình dạng lỗi đã sửa ở
+     *     `OrganizationUser::ROLE_LABELS` ("Admin", "Planner", "Viewer").
+     *  2. Hằng tên `ROLES`, **không** theo quy ước `<CỘT>_LABELS`, nên bộ tự tìm
+     *     của `NhanEnumMotNoiTest` không thấy: `owner_users.role` là enum 6 giá
+     *     trị, có bảng chữ, mà không ai đối chiếu hai thứ đó với nhau. Đổi tên
+     *     là để nó vào tầm — và từ nay thêm một giá trị vào enum mà quên chữ là
+     *     **đỏ**.
+     *
+     * ══ Một chỗ chữ và mã không khớp nhau, nói ra ══
+     *
+     * `scheduler` dịch thẳng là "Lập lịch", nhưng bộ quyền của nó
+     * (`manage_inventory`, `import_inventory`, `view_inventory`) **không** có
+     * việc lên lịch phát nào — nó là vai trò vận hành điểm phát. Chữ ở đây giữ
+     * đúng nghĩa của mã; sửa cho khớp thực tế là đổi **tên vai trò**, tức một
+     * quyết định nghiệp vụ kéo theo cả `ROLE_DESCRIPTIONS` và migration enum,
+     * không phải một lần dịch.
      */
-    public const ROLES = [
-        'owner'          => 'Owner',
-        'manager'        => 'Manager',
-        'scheduler'      => 'Scheduler',
-        'read_only'      => 'Read only',
-        'reporting_only' => 'Reporting only',
-        'sales_manager'  => 'Sales manager',
+    public const ROLE_LABELS = [
+        'owner'          => 'Chủ sở hữu',
+        'manager'        => 'Quản lý',
+        'scheduler'      => 'Lập lịch',
+        'read_only'      => 'Chỉ xem',
+        'reporting_only' => 'Chỉ báo cáo',
+        'sales_manager'  => 'Quản lý bán hàng',
     ];
 
-    /** Mô tả ngắn về quyền của từng role — dùng làm helperText/Placeholder trong forms. */
+    /**
+     * Mô tả ngắn về quyền của từng role — dùng làm helperText/Placeholder trong forms.
+     *
+     * Hai dòng dưới đây từng **nói sai** bộ quyền thật ở `PERMISSIONS`, và đây
+     * là chữ người gán vai trò đọc ngay lúc gán:
+     *
+     *  - `manager` và `sales_manager` đều có `manage_bookings` — tức duyệt / từ
+     *    chối yêu cầu đặt chỗ — mà mô tả của `sales_manager` lại kết thúc bằng
+     *    "Không chỉnh sửa". Duyệt một đơn là quyết định có hệ quả tiền, không
+     *    phải một việc "chỉ xem".
+     *  - `manager` còn có `settle_refunds` (khai đã hoàn tiền cho người mua),
+     *    cũng không được nhắc.
+     */
     public const ROLE_DESCRIPTIONS = [
         'owner'          => '👑 Toàn quyền: quản lý team, inventory, pricing, reports.',
-        'manager'        => '🔧 Quản lý inventory & pricing, xem reports. Không quản lý được users.',
+        'manager'        => '🔧 Quản lý inventory & pricing, duyệt đặt chỗ, khai hoàn tiền, xem reports. Không quản lý được users.',
         'scheduler'      => '📅 Thêm/sửa screens và import inventory. Không xem được reports.',
         'read_only'      => '👁 Chỉ xem screens và sites, không chỉnh sửa.',
         'reporting_only' => '📊 Chỉ xem và export reports, không thấy inventory.',
-        'sales_manager'  => '💼 Xem inventory và sales dashboard. Không chỉnh sửa.',
+        'sales_manager'  => '💼 Xem inventory, sales dashboard và duyệt đặt chỗ. Không sửa được inventory, không khai hoàn tiền.',
     ];
 
     /**
@@ -108,13 +143,13 @@ class OwnerUser extends Model
     /** Role label để hiển thị UI */
     public function getRoleLabelAttribute(): string
     {
-        return self::ROLES[$this->role] ?? $this->role;
+        return self::ROLE_LABELS[$this->role] ?? $this->role;
     }
 
     /** Static helper: lấy danh sách options cho Select */
     public static function roleOptions(): array
     {
-        return self::ROLES;
+        return self::ROLE_LABELS;
     }
 
     /**
@@ -124,9 +159,9 @@ class OwnerUser extends Model
     public static function assignableRolesFor(?User $actor): array
     {
         if ($actor?->hasRole('super_admin')) {
-            return self::ROLES;
+            return self::ROLE_LABELS;
         }
-        $roles = self::ROLES;
+        $roles = self::ROLE_LABELS;
         unset($roles['owner']);
         return $roles;
     }

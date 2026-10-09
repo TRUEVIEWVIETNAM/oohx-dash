@@ -28,7 +28,7 @@
                     @foreach($ownerUsers as $ou)
                         <th class="text-center py-2 px-3 font-medium text-gray-600 dark:text-gray-400">
                             <div>{{ $ou->owner?->name ?? '?' }}</div>
-                            <div class="text-xs font-normal text-gray-400">{{ \App\Models\OwnerUser::ROLES[$ou->role] ?? $ou->role }}</div>
+                            <div class="text-xs font-normal text-gray-400">{{ \App\Models\OwnerUser::ROLE_LABELS[$ou->role] ?? $ou->role }}</div>
                         </th>
                     @endforeach
                 </tr>

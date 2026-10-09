@@ -62,7 +62,7 @@ class TenantPermission
     public function roleLabel(): string
     {
         $role = $this->role();
-        return $role ? (OwnerUser::ROLES[$role] ?? $role) : '—';
+        return $role ? (OwnerUser::ROLE_LABELS[$role] ?? $role) : '—';
     }
 
     /**

@@ -27,7 +27,7 @@ class PermissionMatrix extends Page
 
     public function getViewData(): array
     {
-        $roles       = OwnerUser::ROLES;
+        $roles       = OwnerUser::ROLE_LABELS;
         $permissions = OwnerUser::PERMISSIONS;
 
         $permissionLabels = [

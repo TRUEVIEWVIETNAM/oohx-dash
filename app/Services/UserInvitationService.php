@@ -158,7 +158,7 @@ class UserInvitationService
     private function guardRole(string $tenantType, string $role): void
     {
         $valid = match ($tenantType) {
-            UserInvitation::TENANT_OWNER        => array_keys(OwnerUser::ROLES),
+            UserInvitation::TENANT_OWNER        => array_keys(OwnerUser::ROLE_LABELS),
             UserInvitation::TENANT_ORGANIZATION => array_keys(OrganizationUser::PERMISSIONS),
             default                             => [],
         };
