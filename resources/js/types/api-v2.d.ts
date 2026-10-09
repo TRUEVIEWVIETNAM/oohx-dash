@@ -1932,6 +1932,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/campaigns/{campaign}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ULID của campaign. */
+                campaign: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Báo cáo phát sóng của chiến dịch
+         * @description Mở đường cho `/my/campaigns/{campaign}/report` — trang Blade cuối cùng
+         *     còn **nhúng** dữ liệu vào HTML (`@json($dailyData)`).
+         *
+         *     Quyền: `CampaignPolicy::viewReports()` — tư cách thành viên còn hiệu
+         *     lực của tổ chức **sở hữu chiến dịch**, không phải
+         *     `current_organization_id`.
+         *
+         *     **404 là một câu trả lời nghiệp vụ**, không phải "không có đường":
+         *     chiến dịch chưa chạy thì chưa có báo cáo. Chỉ `active`, `paused`,
+         *     `completed` có.
+         *
+         *     Danh sách trắng ở đây **hẹp hơn** cái `CampaignReportService` trả:
+         *     `daily.revenue`, `breakdown[].estimated_cost`, `breakdown[].status` và
+         *     `overview.total_paid` không ra ngoài, vì trang không hiện chúng.
+         *
+         *     Tiền là **số nguyên** VND; service trả `float`.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ULID của campaign. */
+                    campaign: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                overview: {
+                                    total_screens?: number;
+                                    total_estimated_impressions?: number;
+                                    total_actual_impressions?: number;
+                                    /** @description Phần trăm, máy chủ tính. Trang KHÔNG chia lại. */
+                                    delivery_rate?: number;
+                                    total_estimated_cost?: number;
+                                    total_actual_cost?: number;
+                                    days_total?: number;
+                                    days_elapsed?: number;
+                                    days_remaining?: number;
+                                    progress_pct?: number;
+                                };
+                                /** @description Chuỗi theo ngày cho biểu đồ. Không mang `revenue`. */
+                                daily: {
+                                    labels?: string[];
+                                    impressions?: number[];
+                                };
+                                breakdown: {
+                                    screen_name?: string;
+                                    owner_name?: string;
+                                    city?: string;
+                                    dates?: string;
+                                    estimated_impressions?: number;
+                                    actual_impressions?: number;
+                                    delivery_rate?: number;
+                                    actual_cost?: number;
+                                }[];
+                            };
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/campaigns/{campaign}/payments": {
         parameters: {
             query?: never;
