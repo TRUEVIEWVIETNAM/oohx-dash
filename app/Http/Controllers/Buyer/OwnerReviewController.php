@@ -19,8 +19,10 @@ class OwnerReviewController extends Controller
 
     public function store(Request $request, Campaign $campaign): RedirectResponse
     {
+        // Policy, KHÔNG so `current_organization_id` — xem
+        // `CampaignPolicy::review()`.
         abort_unless(
-            $campaign->organization_id === $request->user()->current_organization_id,
+            $request->user()?->can('review', $campaign) ?? false,
             403,
             'Bạn không có quyền đánh giá campaign này'
         );

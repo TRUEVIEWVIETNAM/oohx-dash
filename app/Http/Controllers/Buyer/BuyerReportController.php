@@ -14,10 +14,13 @@ class BuyerReportController extends Controller
 
     public function show(Request $request, Campaign $campaign): View
     {
-        abort_unless(
-            $campaign->organization_id === $request->user()->current_organization_id,
-            403
-        );
+        // Policy, KHÔNG so `current_organization_id`. Xem
+        // `CampaignPolicy::viewReports()` để biết khe cũ là gì.
+        //
+        // `->can()` chứ không `$this->authorize()`: lớp `Controller` gốc của dự
+        // án không dùng trait `AuthorizesRequests`, và các controller khu người
+        // mua đều gọi theo cách này.
+        abort_unless($request->user()?->can('viewReports', $campaign) ?? false, 403);
 
         abort_unless(
             in_array($campaign->status, ['active', 'completed', 'paused']),
