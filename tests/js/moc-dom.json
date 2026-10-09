@@ -45,6 +45,16 @@
     ],
     "linkDangNhapTrongMarkup": true
   },
+  "resources/views/buyer/dashboard/index.blade.php": {
+    "cauHinh": "data-td-config",
+    "moc": [
+      "data-td-thongke",
+      "data-td-than",
+      "data-td-loi",
+      "data-td-loi-msg"
+    ],
+    "linkDangNhapTrongMarkup": true
+  },
   "resources/views/buyer/dashboard/campaigns.blade.php": {
     "cauHinh": "data-ds-config",
     "moc": [
