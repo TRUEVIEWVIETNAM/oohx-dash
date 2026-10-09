@@ -12,6 +12,47 @@ class Creative extends Model
 {
     use HasUlids;
 
+    public const TYPE_IMAGE = 'image';
+
+    public const TYPE_VIDEO = 'video';
+
+    public const TYPE_HTML5 = 'html5';
+
+    public const TYPE_VAST_TAG = 'vast_tag';
+
+    /**
+     * Chữ tiếng Việt cho loại nội dung quảng cáo — **một định nghĩa**.
+     *
+     * ══ Lỗi bảng này sửa ══
+     *
+     * Hai trang đặt chỗ in `strtoupper($c->type)`, nên `vast_tag` hiện ra
+     * **`VAST_TAG`** — một mã CSDL kèm dấu gạch dưới, trên trang người mua.
+     * Cột `type` ở bảng quản trị sàn thì có `->badge()` và có màu nhưng
+     * **không có nhãn chữ**, nên nó hiện thẳng `vast_tag`. Bộ lọc cạnh đó có
+     * chữ, nhưng tiếng Anh và là một bản chép rời.
+     *
+     * Ba kiểu sai cho cùng một cột — đúng hình dạng của lỗi trạng thái chiến
+     * dịch trước PR #41 và lỗi loại hình tổ chức trước PR #47.
+     *
+     * ══ Vì sao "Video" và "HTML5" giữ nguyên ══
+     *
+     * Chúng là tên định dạng, không phải từ nghiệp vụ: "Video" là từ tiếng
+     * Việt đã dùng, và "HTML5" là một tên riêng. Dịch chúng là đặt ra từ mới
+     * cho thứ ai cũng gọi bằng tên đó.
+     *
+     * Thứ **không** giữ được là `VAST_TAG`. VAST là tên chuẩn của IAB nên giữ
+     * chữ viết tắt, nhưng dấu gạch dưới là dấu của một mã CSDL, không phải của
+     * một nhãn — nên "Thẻ VAST". Có test đòi **không nhãn nào chứa dấu gạch
+     * dưới**; đó là phép kiểm bắt đúng lỗi này, chứ không phải phép kiểm "nhãn
+     * khác mã" (nhãn của `html5` đúng là `HTML5`).
+     */
+    public const TYPE_LABELS = [
+        self::TYPE_IMAGE    => 'Hình ảnh',
+        self::TYPE_VIDEO    => 'Video',
+        self::TYPE_HTML5    => 'HTML5',
+        self::TYPE_VAST_TAG => 'Thẻ VAST',
+    ];
+
     public const STATUS_PENDING_REVIEW = 'pending_review';
 
     public const STATUS_APPROVED = 'approved';

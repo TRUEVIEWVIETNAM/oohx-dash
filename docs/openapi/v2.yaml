@@ -2084,6 +2084,7 @@ components:
         # khai hai (`image`, `video`) nên TypeScript sinh ra từ đây thiếu hai
         # nhánh mà CSDL cho phép và bộ lọc Filament đang mời chọn.
         type: { type: string, enum: [image, video, html5, vast_tag] }
+        type_label: { type: string, description: 'Chữ tiếng Việt của `type`, từ `Creative::TYPE_LABELS`. Có vì `vast_tag` là mã có dấu gạch dưới — bên tiêu thụ tự dịch sẽ tự quyết cách viết.' }
         dimensions:
           type: object
           properties:

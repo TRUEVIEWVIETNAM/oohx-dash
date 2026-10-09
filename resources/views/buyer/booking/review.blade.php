@@ -80,13 +80,14 @@
                     @foreach($creatives as $c)
                     <div class="wz-creative-item">
                         <div class="wz-creative-thumb">
-                            @if($c->type === 'image')<img src="{{ $c->file_url }}" alt="">@else
+                            @if($c->type === \App\Models\Creative::TYPE_IMAGE)<img src="{{ $c->file_url }}" alt="">@else
                             <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:var(--bg2)"><svg viewBox="0 0 24 24" fill="var(--t4)" style="width:20px;height:20px"><path d="M8 5v14l11-7z"/></svg></div>
                             @endif
                         </div>
                         <div class="wz-creative-info">
                             <div style="font-weight:600;color:var(--t1)">{{ $c->name }}</div>
-                            <div style="font-size:11px;color:var(--t4)">{{ strtoupper($c->type) }}</div>
+                            {{-- Chữ từ bảng, không `strtoupper`: `vast_tag` ra `VAST_TAG`. --}}
+                            <div style="font-size:11px;color:var(--t4)">{{ \App\Models\Creative::TYPE_LABELS[$c->type] ?? $c->type }}</div>
                         </div>
                     </div>
                     @endforeach

@@ -42,6 +42,11 @@ class CreativeResource extends JsonResource
             'name' => $this->name,
             'type' => $this->type,
 
+            // Cùng lý lẽ với `status_label` bên dưới. Và ở cột này nó còn cần
+            // hơn: `vast_tag` là một mã có dấu gạch dưới, nên bên tiêu thụ nào
+            // tự dịch cũng sẽ phải tự quyết viết nó thế nào.
+            'type_label' => Creative::TYPE_LABELS[$this->type] ?? $this->type,
+
             'dimensions' => [
                 'width_px'     => $this->width_px !== null ? (int) $this->width_px : null,
                 'height_px'    => $this->height_px !== null ? (int) $this->height_px : null,
