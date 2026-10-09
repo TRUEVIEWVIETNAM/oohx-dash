@@ -332,13 +332,19 @@ test('chưa có chiến dịch nào thì mời đi khám phá kho', async () => 
 // ── Lỗi ─────────────────────────────────────────────────────────────────────
 
 /**
- * Một khối hỏng thì **cả trang** nói, không vẽ nửa sự thật.
+ * Thông báo lỗi phải **dọn cả hai khối**, không để số cũ nằm cạnh lời xin lỗi.
  *
- * Nếu hai lời gọi được xử riêng thì số đếm vẫn hiện trong khi danh sách bên
- * dưới đã không tải được — và người dùng không có cách nào biết phần dưới
- * trống vì họ chưa có chiến dịch hay vì máy chủ hỏng.
+ * Số đếm còn trên trang bên cạnh dòng "không tải được" là một trang nói hai
+ * điều trái nhau: ba con số trông như dữ liệu thật, trong khi câu bên trên nói
+ * là không có dữ liệu.
+ *
+ * Ghi rõ điều ca này **không** canh, vì tôi đã thử: tách `Promise.all` thành
+ * hai `then` rời thì ca này vẫn xanh — `veLoi()` dọn cả hai khối trong cả hai
+ * cách viết. Thứ pin `Promise.all` lại là ba ca lỗi bên dưới (401/429/500):
+ * tách rời thì một trong hai chuỗi không có `catch`, và lỗi của nó không tới
+ * được `veLoi()`.
  */
-test('đường danh sách hỏng thì cả trang báo lỗi, không hiện mỗi ô thống kê', async () => {
+test('thông báo lỗi dọn cả ô thống kê lẫn danh sách', async () => {
     const { tai } = dungTrang(TRANG, {
         cauHinh: CAU_HINH,
         traLoi: traLoi({ loi: { duong: 'danhSach', status: 500, thong: 'Máy chủ hỏng' } }),
