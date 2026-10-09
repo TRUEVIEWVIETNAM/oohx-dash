@@ -146,6 +146,51 @@ class BookingController extends Controller
         ]);
     }
 
+    /**
+     * Bảng đếm chiến dịch theo trạng thái — cho trang đầu khu người mua.
+     *
+     * ══ Vì sao một đường riêng, không nhét vào `meta` của danh sách ══
+     *
+     * `GET campaigns` trả một trang đã **lọc**. Nhét số đếm toàn bộ vào `meta`
+     * của nó là đặt hai phạm vi khác nhau cạnh nhau trong một phản hồi, và bên
+     * tiêu thụ nào cũng sẽ có lúc đọc `meta.total` khi cần số đếm toàn bộ —
+     * hoặc ngược lại. Hai câu hỏi khác nhau thì hai đường.
+     *
+     * Cách còn lại — gọi `campaigns?status=X&per_page=1` tám lần rồi đọc
+     * `meta.total` — là tám lượt đi về cho một ô thống kê.
+     *
+     * ══ Chữ đi cùng số ══
+     *
+     * Mỗi mục mang `label` từ `Campaign::STATUS_LABELS`. Cùng lý lẽ với
+     * `status_label` ở DTO danh sách: máy chủ sở hữu chữ, client sở hữu màu.
+     * Không có `label` thì trang phải tự dịch tám mã, và đó đúng là cách chữ
+     * trạng thái đã trôi thành năm bản chép lệch nhau.
+     *
+     * `by_status` là **mảng**, không phải đối tượng: thứ tự nháp → chờ duyệt →
+     * … → đã hủy là thứ tự máy chủ chọn, và thứ tự khoá của một đối tượng JSON
+     * không phải thứ bên tiêu thụ được dựa vào.
+     */
+    public function summary(Request $request): JsonResponse
+    {
+        $dem = $this->campaigns->statusCountsForUser($request->user());
+
+        return response()->json([
+            'data' => [
+                'total' => $dem['total'],
+
+                'by_status' => array_map(
+                    fn (string $ma, int $so) => [
+                        'status' => $ma,
+                        'label'  => Campaign::STATUS_LABELS[$ma] ?? $ma,
+                        'count'  => $so,
+                    ],
+                    array_keys($dem['by_status']),
+                    array_values($dem['by_status']),
+                ),
+            ],
+        ]);
+    }
+
     public function store(StoreCampaignRequest $request): JsonResponse
     {
         $user = $request->user();

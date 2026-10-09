@@ -1125,6 +1125,61 @@ paths:
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /api/v2/campaigns/summary:
+    get:
+      tags: [Đặt chỗ]
+      summary: Số chiến dịch theo trạng thái
+      description: |
+        Bảng đếm cho trang đầu khu người mua (`/my`).
+
+        **Một đường riêng, không phải `meta` của danh sách.** `GET campaigns`
+        trả một trang đã *lọc*; số đếm ở đây là toàn bộ. Hai phạm vi khác nhau
+        trong một phản hồi là cách để bên tiêu thụ đọc sai con số.
+
+        Phạm vi **đúng** phạm vi của `GET campaigns`: cùng
+        `CampaignService::tuCachXemChienDich()`, nên không thể có chuyện ô
+        thống kê đếm 12 mà danh sách trả 0.
+
+        `by_status` gồm **đủ mọi mã** của enum, kể cả mã đếm được 0, theo thứ
+        tự chuẩn (nháp → chờ duyệt → … → đã hủy). Mảng chứ không đối tượng, vì
+        thứ tự khoá của đối tượng JSON không phải thứ dựa vào được.
+
+        Đường này khai **trước** `campaigns/{campaign}` trong `routes/api.php`:
+        hai mẫu cùng số đoạn, khai sau thì `{campaign}` hút chuỗi `summary` và
+        trả 404.
+      security: [{ sanctumSession: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [total, by_status]
+                    properties:
+                      total:
+                        type: integer
+                        description: |
+                          Tổng của **mọi** mã trong CSDL, không phải tổng của
+                          `by_status`. Hai số đó chỉ lệch nhau khi CSDL có mã
+                          không có chữ — và `NhanTrangThaiMotNoiTest` đỏ ở đó.
+                      by_status:
+                        type: array
+                        items:
+                          type: object
+                          required: [status, label, count]
+                          properties:
+                            status: { type: string, enum: [draft, pending_approval, approved, rejected, active, paused, completed, cancelled] }
+                            label:  { type: string, description: 'Chữ tiếng Việt, từ `Campaign::STATUS_LABELS`.' }
+                            count:  { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /api/v2/campaigns/{campaign}:
     parameters:
       - { name: campaign, in: path, required: true, schema: { type: string }, description: ULID của campaign. }

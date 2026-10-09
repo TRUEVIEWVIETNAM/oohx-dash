@@ -1,6 +1,6 @@
 # Lộ trình sau giai đoạn 0
 
-Cập nhật 27/09/2026 · Viết bởi Claude Code · Trạng thái hiện tại ở `audit-5-vung-2026-09-23/STATUS.md`
+Cập nhật 09/10/2026 · Viết bởi Claude Code · Trạng thái hiện tại ở `audit-5-vung-2026-09-23/STATUS.md`
 
 Giai đoạn 0 đã xong và xanh: phân quyền API, giá do máy chủ quyết, cổng bán hàng, giới hạn tần suất, CI chặn deploy. Tài liệu này trả lời câu hỏi **tiếp theo làm gì, theo thứ tự nào, và vì sao thứ tự đó**.
 
@@ -442,7 +442,59 @@ chạy trên một thứ khác với trang thật. Phía PHP cũng đòi trang r
 
 23 ca JS cho trang này (tổng 83 ca JS), 19 ca API mới.
 
-**Khu người mua từ đây không còn action đọc nào dựng dữ liệu từ model.**
+~~**Khu người mua từ đây không còn action đọc nào dựng dữ liệu từ model.**~~
+**SỬA 09/10/2026: câu đó SAI**, và tôi viết nó mà không đếm lại. `/my`
+(`BuyerDashboardController`) vẫn chạy bốn `COUNT(*)` rồi lấy năm chiến dịch
+gần nhất qua model; `/my/campaigns/{campaign}/report` và `/my/settings` cũng
+dựng từ model. Mục "Còn lại gì" ở trên đã liệt kê đúng năm controller đó —
+câu kết này chép sai chính mục ngay trên nó. Xem mục tiếp theo.
+
+### Trang đầu khu người mua — và một khe phạm vi (09/10/2026)
+
+`/my` nay đọc `GET /api/v2/campaigns/summary` và `GET /api/v2/campaigns?per_page=5`
+từ trình duyệt. Nhưng điều đáng ghi không phải việc đổi nguồn dữ liệu.
+
+**Bản cũ đọc được dữ liệu của tổ chức khác.** Nó đếm bằng `$org->campaigns()`
+với `$org = $user->currentOrganization`, và `currentOrganization` là một
+`belongsTo` thuần trên `current_organization_id` — **không** kiểm tư cách thành
+viên. Hai tình huống, cả hai có thật:
+
+| Tình huống | Bản cũ | Nay |
+|---|---|---|
+| Bị **gỡ khỏi tổ chức**, cột vẫn trỏ ở đó | đếm và hiện 5 chiến dịch gần nhất của tổ chức ấy kèm tên, mã, kỳ chạy | 0 |
+| Tổ chức bị **tạm ngưng** | đọc được | 0 |
+
+Khu quản trị tổ chức xoá được thành viên và **không chỗ nào dọn cột đó**, nên
+tình huống thứ nhất không cần ai tấn công — nó xảy ra khi một người bị cho ra
+khỏi nhóm. `listForUser()` đã đóng cả hai khe cho `/my/campaigns` từ mốc trước;
+trang đầu bị bỏ lại, nên cùng một người thấy **0 ở danh sách và 12 ở ô thống
+kê**. Đó là dấu hiệu của hai bản chép phép scope, đúng thứ CLAUDE.md mục 1 nói
+đừng làm.
+
+Cổng nay tách thành `CampaignService::tuCachXemChienDich()` và **cả hai** đường
+dùng nó. `CampaignSummaryApiTest::test_dem_khop_voi_danh_sach` so tổng của số
+đếm với `meta.total` của danh sách: tách hai cổng ra lần nữa thì đỏ.
+
+**`GET /api/v2/campaigns/summary`** trả tổng cộng đủ tám mã kèm chữ, bằng một
+`GROUP BY` thay cho bốn `COUNT(*)`. Một đường riêng chứ không nhét vào `meta`
+của danh sách: danh sách đã lọc, số đếm là toàn bộ — hai phạm vi trong một phản
+hồi là cách để bên tiêu thụ đọc sai con số.
+
+Đường này khai **trước** `campaigns/{campaign}`. Hai mẫu **cùng** số đoạn, nên
+khai sau thì tham số hút chuỗi `summary`, ràng buộc model không tìm thấy ULID,
+và đường trả 404 — một 404 trông y như "chưa deploy". Đột biến đảo thứ tự làm
+7/8 ca đỏ.
+
+17 ca jsdom cho trang này (tổng 108 ca JS), 7 ca API mới.
+
+**Hai ca của PR #44 đã chuyển chỗ, không mất.** Chúng đọc thẻ trạng thái trong
+HTML máy chủ render; máy chủ không còn render thẻ nào. Thứ chúng canh nay nằm ở
+`tests/js/trang-dau.test.mjs` và `CampaignSummaryApiTest`, và ghi chú trong
+`NhanTrangThaiMotNoiTest` nói rõ chúng đi đâu.
+
+**Còn lại trong khu người mua:** `/my/campaigns/{campaign}/report` (cần DTO cho
+`ReportService::getOverview()`) và `/my/settings` (phần lớn là đường ghi, nên nó
+là một bài khác). Hai cái đó mới là câu kết đúng của mục này.
 
 ---
 
@@ -561,8 +613,8 @@ Không có giai đoạn nào cho `/admin` và `/publisher`. Nếu sau này vẫn
 ## Việc quản trị
 
 - ~~**Xoay khóa deploy** đang nằm trong git — thao tác trên VPS.~~ **XONG 01/10/2026.** Chi tiết ở mục dưới. Lưu ý nhãn: `STATUS.md` ghi việc này là "F-07", nhưng **F07 trong `FINDINGS.md` là chuyện khác** (tổng tiền che khuất công nợ theo owner, đã sửa). Việc khóa deploy là **mục 0.2** của `IMPLEMENTATION-P0-CLAUDE.md`. Tôi đã lặp lại nhãn sai đó trong nhiều báo cáo trước.
-- **Đổi remote git** sang địa chỉ mới: `git remote set-url origin https://github.com/TRUEVIEWVIETNAM/oohx-dash.git`.
-- ~~**Dọn cảnh báo PHPUnit**~~ — một nửa xong 01/10/2026: cảnh báo `file_get_contents(.env)` làm 610/619 test thành WARN đã hết (xem `.env.testing`). **Còn lại** lớp metadata viết trong doc-comment (`@dataProvider`…), PHPUnit 12 sẽ bỏ — cần chuyển sang attribute.
+- ~~**Đổi remote git** sang địa chỉ mới.~~ **XONG** — `git remote -v` trả `https://github.com/TRUEVIEWVIETNAM/oohx-dash.git` cho cả fetch lẫn push.
+- ~~**Dọn cảnh báo PHPUnit**~~ — **XONG CẢ HAI NỬA.** Nửa đầu 01/10/2026: cảnh báo `file_get_contents(.env)` làm 610/619 test thành WARN đã hết (xem `.env.testing`). Nửa sau cũng đã xong, chỉ chưa ai gạch mục này: đếm lại ngày 09/10 thì `tests/` có **0** lần dùng metadata trong doc-comment (`@dataProvider`, `@depends`, `@covers`, `@group`, `@testWith`) và 6 lần dùng attribute (`#[DataProvider]` ×5, `#[Group]` ×1). PHPUnit đang ở `^11.5.50`, nên không còn gì chặn việc lên 12 ở phía này.
 
 ### Xoay khóa deploy — đã làm, 01/10/2026
 
@@ -613,8 +665,10 @@ Phương án khác, tránh hẳn chuyện tỷ giá: yêu cầu media owner niê
 
 ~~Ba mục cũ (trả lời câu hỏi 2, Codex review giai đoạn 0, bắt đầu 1.1) đã hết hạn: giai đoạn 0 và 1 đã lên production từ 01–02/10.~~ Cập nhật 03/10/2026:
 
-1. ~~**Mốc 3 của giai đoạn 5.**~~ **XONG 03/10.** Nhưng lý lẽ của nó chưa thành: nhóm cần quyền chưa có bên tiêu thụ nào, vì bên dự kiến là giai đoạn 8 và giai đoạn 8 đang hoãn. Việc còn lại là một **quyết định**, không phải code — xem mục "Mốc 3 đã làm" ở giai đoạn 5. Hai lựa chọn: cho khu người mua Blade gọi `/api/v2` qua HTTP (đóng được khoảng trống ngay, giá là một vòng HTTP nội bộ mỗi lần dựng trang), hoặc để nguyên và chấp nhận tầng đó chỉ có test canh cho tới giai đoạn 8.
+1. ~~**Mốc 3 của giai đoạn 5.**~~ **XONG 03/10**, và lý lẽ của nó **đã thành** — cập nhật 09/10/2026. Lúc viết mục này, nhóm cần quyền chưa có bên tiêu thụ nào và lựa chọn còn mở. Nay đã chọn, và đã làm năm lần: giỏ hàng, thanh toán, chi tiết chiến dịch, danh sách chiến dịch, trang đầu — tất cả gọi `/api/v2` **từ trình duyệt**, không từ PHP. Nên tầng DTO/phân trang/lỗi có lưu lượng thật chạy qua, và nó đã bắt được ba lỗi mà test không bắt: VAT nhân hai lần ở trang giỏ, hai trong ba trạng thái nội dung hiện tiếng Anh, và khe phạm vi của trang đầu.
+
+   Còn hai trang đọc chưa chuyển (`report`, `settings`) — xem cuối mục "Trang đầu khu người mua" ở giai đoạn 5.
 2. **Ban hành ba trang chính sách.** `quy-che-hoat-dong`, `chinh-sach-bao-mat`, `giai-quyet-tranh-chap` đang `effective_from = null`, tức bản nháp, trên một sàn đang nộp hồ sơ TMĐT. `bang-phi` thì đã ban hành. Phần code đã sẵn và `/api/v2/policies` phơi đúng trạng thái qua cờ `is_effective` — việc còn lại nằm ngoài code.
-3. **Cho Codex review khối từ R41 tới nay** (~35 commit): API v2, giỏ hàng, hoàn tiền, đường tiền. Đúng loại code nên có người thứ hai đọc.
+3. **Cho Codex review khối từ R41 tới nay** (~132 commit kể từ vòng review 30/09): API v2, giỏ hàng, hoàn tiền, đường tiền. Đúng loại code nên có người thứ hai đọc.
 
 **Lưu ý thứ tự:** mốc SEO, sinh TypeScript và cấu hình proxy OpenLiteSpeed (01–03/10) đều thuộc **giai đoạn 6**, làm trước khi xong giai đoạn 5. Chúng không vô ích — mốc SEO là điều kiện "xong" của giai đoạn 6, và cấu hình proxy đã ghi lại hạ tầng thật khác với giả định Caddy trong lộ trình — nhưng chúng không đưa giai đoạn 5 tiến thêm bước nào.

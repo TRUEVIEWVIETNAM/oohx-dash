@@ -1634,6 +1634,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/campaigns/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Số chiến dịch theo trạng thái
+         * @description Bảng đếm cho trang đầu khu người mua (`/my`).
+         *
+         *     **Một đường riêng, không phải `meta` của danh sách.** `GET campaigns`
+         *     trả một trang đã *lọc*; số đếm ở đây là toàn bộ. Hai phạm vi khác nhau
+         *     trong một phản hồi là cách để bên tiêu thụ đọc sai con số.
+         *
+         *     Phạm vi **đúng** phạm vi của `GET campaigns`: cùng
+         *     `CampaignService::tuCachXemChienDich()`, nên không thể có chuyện ô
+         *     thống kê đếm 12 mà danh sách trả 0.
+         *
+         *     `by_status` gồm **đủ mọi mã** của enum, kể cả mã đếm được 0, theo thứ
+         *     tự chuẩn (nháp → chờ duyệt → … → đã hủy). Mảng chứ không đối tượng, vì
+         *     thứ tự khoá của đối tượng JSON không phải thứ dựa vào được.
+         *
+         *     Đường này khai **trước** `campaigns/{campaign}` trong `routes/api.php`:
+         *     hai mẫu cùng số đoạn, khai sau thì `{campaign}` hút chuỗi `summary` và
+         *     trả 404.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                /**
+                                 * @description Tổng của **mọi** mã trong CSDL, không phải tổng của
+                                 *     `by_status`. Hai số đó chỉ lệch nhau khi CSDL có mã
+                                 *     không có chữ — và `NhanTrangThaiMotNoiTest` đỏ ở đó.
+                                 */
+                                total: number;
+                                by_status: {
+                                    /** @enum {string} */
+                                    status: "draft" | "pending_approval" | "approved" | "rejected" | "active" | "paused" | "completed" | "cancelled";
+                                    /** @description Chữ tiếng Việt, từ `Campaign::STATUS_LABELS`. */
+                                    label: string;
+                                    count: number;
+                                }[];
+                            };
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/campaigns/{campaign}": {
         parameters: {
             query?: never;

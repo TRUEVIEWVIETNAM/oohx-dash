@@ -186,6 +186,15 @@ Route::prefix('v2')
         // đụng nhau, nhưng giữ thứ tự danh-sách-trước là thói quen đúng.
         Route::get('campaigns', [V2BookingController::class, 'index']);
 
+        // `campaigns/summary` PHẢI khai trước `campaigns/{campaign}` — và đây
+        // là chỗ thứ tự thật sự quan trọng, khác với cặp ở trên.
+        //
+        // Hai mẫu ở trên khác số đoạn nên không đụng nhau. Hai mẫu này có
+        // **cùng** số đoạn: khai sau thì `{campaign}` hút luôn chuỗi
+        // "summary", ràng buộc model không tìm thấy ULID nào, và đường này trả
+        // 404 — một 404 trông y như "chưa deploy".
+        Route::get('campaigns/summary', [V2BookingController::class, 'summary']);
+
         Route::get('campaigns/{campaign}', [V2BookingController::class, 'show']);
 
         // Hai đường GHI của đặt chỗ có hạn mức RIÊNG, chặt hơn nhóm `api`.

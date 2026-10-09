@@ -152,6 +152,11 @@ class MocDomTrangBladeTest extends TestCase
                 ->get($this->urlFrontpage('/my/campaigns'))
                 ->assertOk()
                 ->getContent(),
+
+            'resources/views/buyer/dashboard/index.blade.php' => $this->actingAs($this->buyer)
+                ->get($this->urlFrontpage('/my'))
+                ->assertOk()
+                ->getContent(),
         ];
     }
 

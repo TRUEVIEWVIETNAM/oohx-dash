@@ -51,12 +51,9 @@ class CampaignService
      */
     public function listForUser(User $user, array $loc = [], int $perPage = 20)
     {
-        $membership = OrganizationUser::where('user_id', $user->id)
-            ->where('organization_id', $user->current_organization_id)
-            ->whereHas('organization', fn ($q) => $q->where('status', 'active'))
-            ->first();
+        $membership = $this->tuCachXemChienDich($user);
 
-        if (! $membership?->can('view_campaigns')) {
+        if (! $membership) {
             // `whereRaw('1 = 0')` thay vì trả `collect()`: người gọi cần một
             // paginator thật để `meta` vẫn đúng hình dạng, chứ không phải một
             // nhánh đặc biệt ở mọi bên tiêu thụ.
@@ -86,6 +83,92 @@ class CampaignService
         }
 
         return $query->latest()->paginate($perPage);
+    }
+
+    /**
+     * Tư cách xem chiến dịch trong **tổ chức đang chọn**, hoặc `null`.
+     *
+     * Tách ra vì danh sách và bảng đếm phải dùng **đúng một** phép phân quyền.
+     * Hai bản của cùng một cổng là cách để một ngày nào đó trang đếm được 12
+     * chiến dịch mà danh sách chỉ ra 0 — hoặc tệ hơn, ngược lại.
+     */
+    private function tuCachXemChienDich(User $user): ?OrganizationUser
+    {
+        $membership = OrganizationUser::where('user_id', $user->id)
+            ->where('organization_id', $user->current_organization_id)
+            ->whereHas('organization', fn ($q) => $q->where('status', 'active'))
+            ->first();
+
+        return $membership?->can('view_campaigns') ? $membership : null;
+    }
+
+    /**
+     * Số chiến dịch theo từng trạng thái, cho trang đầu khu người mua.
+     *
+     * ══ Lỗ hổng việc này đóng ══
+     *
+     * `BuyerDashboardController` trước đây đếm bằng `$org->campaigns()` với
+     * `$org = $user->currentOrganization` — một `belongsTo` thuần, **không**
+     * kiểm tư cách thành viên. Ba tình huống đọc được dữ liệu của tổ chức khác:
+     *
+     *  1. Người bị **gỡ khỏi tổ chức** nhưng `current_organization_id` vẫn trỏ
+     *     ở đó: vẫn đếm và vẫn thấy năm chiến dịch gần nhất kèm tên, mã, kỳ
+     *     chạy. Đây là tình huống có thật — khu quản trị tổ chức xoá được thành
+     *     viên, và không chỗ nào dọn cột đó.
+     *  2. Tổ chức bị **tạm ngưng**: vẫn đọc.
+     *  3. Thành viên có vai trò **không có quyền `view_campaigns`**: vẫn đọc.
+     *
+     * `listForUser()` đã đóng cả ba cho `/my/campaigns` từ PR #40. Trang đầu
+     * thì chưa, nên cùng một người thấy số 0 ở danh sách và số 12 ở ô thống kê.
+     *
+     * ══ Một truy vấn, không tám ══
+     *
+     * Bản cũ chạy bốn `COUNT(*)` cho bốn ô. Trả đủ tám trạng thái bằng cách đó
+     * là tám lượt đi về. `GROUP BY` cho cùng câu trả lời trong một lượt.
+     *
+     * Trả về **đủ mọi mã** trong `Campaign::STATUS_LABELS`, kể cả mã đếm được
+     * 0: thiếu khoá thì mỗi bên tiêu thụ phải tự nhớ `?? 0`, và chỗ nào quên
+     * thì hiện ra `undefined` thay vì số không.
+     *
+     * @return array{total: int, by_status: array<string, int>}
+     */
+    public function statusCountsForUser(User $user): array
+    {
+        $khong = array_fill_keys(array_keys(Campaign::STATUS_LABELS), 0);
+
+        $membership = $this->tuCachXemChienDich($user);
+
+        if (! $membership) {
+            return ['total' => 0, 'by_status' => $khong];
+        }
+
+        $dem = Campaign::where('organization_id', $membership->organization_id)
+            ->groupBy('status')
+            ->selectRaw('status, count(*) as so')
+            ->pluck('so', 'status');
+
+        // Ghi lên bảng toàn-số-không chứ không lấy thẳng kết quả truy vấn: giữ
+        // đúng thứ tự của `STATUS_LABELS` (nháp → chờ duyệt → … → đã hủy), và
+        // một mã lạ trong CSDL không lọt ra ngoài thành một khoá không có chữ.
+        $theoTrangThai = $khong;
+
+        foreach ($theoTrangThai as $ma => $_) {
+            $theoTrangThai[$ma] = (int) ($dem[$ma] ?? 0);
+        }
+
+        // Tổng từ **cùng** truy vấn, không phải một `count()` thứ hai: hai lượt
+        // đọc cách nhau một nhịp có thể lệch nhau, và lúc đó tổng không bằng
+        // tổng các phần — đúng con số người dùng cộng nhẩm được.
+        //
+        // Và tổng của **mọi** mã trong CSDL, không phải tổng của `by_status`:
+        // một mã lạ phải được đếm vào tổng, vì nó là một chiến dịch thật. Nếu
+        // hai số đó lệch nhau thì CSDL có mã không có chữ, và
+        // `NhanTrangThaiMotNoiTest` đỏ ngay ở chỗ nói đúng nguyên nhân — tốt
+        // hơn là lấy tổng của `by_status` rồi che mất chiến dịch đó đi.
+        return [
+            'total'     => (int) $dem->sum(),
+            'by_status' => $theoTrangThai,
+        ];
     }
 
     /**
