@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\OrganizationResource\Pages;
+use App\Models\Campaign;
 use App\Models\Organization;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -50,10 +51,7 @@ class OrganizationResource extends Resource
                         ->required(),
                     Forms\Components\Select::make('status')
                         ->label('Trạng thái')
-                        ->options([
-                            'active'    => 'Active',
-                            'suspended' => 'Suspended',
-                        ])
+                        ->options(Organization::STATUS_LABELS)
                         ->required(),
                     Forms\Components\TextInput::make('tax_id')
                         ->label('MST'),
@@ -123,7 +121,8 @@ class OrganizationResource extends Resource
                         ->formatStateUsing(fn (string $state): string => Organization::TYPE_LABELS[$state] ?? $state),
                     Infolists\Components\TextEntry::make('status')->label('Trạng thái')
                         ->badge()
-                        ->color(fn (string $state): string => $state === 'active' ? 'success' : 'danger'),
+                        ->color(fn (string $state): string => $state === Organization::STATUS_ACTIVE ? 'success' : 'danger')
+                        ->formatStateUsing(fn (string $state): string => Organization::STATUS_LABELS[$state] ?? $state),
                 ]),
                 Infolists\Components\Grid::make(3)->schema([
                     Infolists\Components\TextEntry::make('tax_id')->label('MST')->default('—'),
@@ -138,7 +137,12 @@ class OrganizationResource extends Resource
                         ->getStateUsing(fn (Organization $r) => $r->campaigns()->count()),
                     Infolists\Components\TextEntry::make('active_campaigns')
                         ->label('Đang chạy')
-                        ->getStateUsing(fn (Organization $r) => $r->campaigns()->where('status', 'active')->count())
+                        // `Campaign::`, KHÔNG `Organization::` — đây là
+                        // `campaigns.status`, một enum khác tình cờ cũng có mã
+                        // `active`. Hằng của `Organization` ở đây vẫn ra đúng
+                        // chuỗi nhưng dẫn người đọc sau đi sai bảng.
+                        ->getStateUsing(fn (Organization $r) => $r->campaigns()
+                            ->where('status', Campaign::STATUS_ACTIVE)->count())
                         ->color('success'),
                     Infolists\Components\TextEntry::make('total_paid')
                         ->label('Đã thanh toán')
@@ -196,7 +200,8 @@ class OrganizationResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->label('Trạng thái')
                     ->badge()
-                    ->color(fn (string $state): string => $state === 'active' ? 'success' : 'danger'),
+                    ->color(fn (string $state): string => $state === Organization::STATUS_ACTIVE ? 'success' : 'danger')
+                    ->formatStateUsing(fn (string $state): string => Organization::STATUS_LABELS[$state] ?? $state),
 
                 Tables\Columns\TextColumn::make('credit_limit')
                     ->label('Hạn mức')
@@ -212,7 +217,7 @@ class OrganizationResource extends Resource
                 Tables\Filters\SelectFilter::make('type')
                     ->options(Organization::TYPE_LABELS),
                 Tables\Filters\SelectFilter::make('status')
-                    ->options(['active' => 'Active', 'suspended' => 'Suspended']),
+                    ->options(Organization::STATUS_LABELS),
             ])
             ->defaultSort('created_at', 'desc')
             ->actions([

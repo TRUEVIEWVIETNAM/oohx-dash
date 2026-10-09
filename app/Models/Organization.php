@@ -54,6 +54,43 @@ class Organization extends Model
         self::TYPE_CLIENT => 'Khách hàng',
     ];
 
+    public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_SUSPENDED = 'suspended';
+
+    /**
+     * Chữ tiếng Việt cho trạng thái tổ chức — **một định nghĩa**.
+     *
+     * ══ Lỗi bảng này sửa ══
+     *
+     * `organizations.status` là `enum('active','suspended')` và không có bảng
+     * chữ. Bốn chỗ ở `OrganizationResource`:
+     *
+     *  - cột bảng và khối thông tin: `->badge()` có màu, **không có nhãn chữ**,
+     *    nên Filament in thẳng `active` / `suspended`;
+     *  - ô chọn của form và của bộ lọc: có chữ, nhưng tiếng Anh, và là **hai
+     *    bản chép** rời nhau.
+     *
+     * Đây là **lần thứ năm** cùng một lỗi ở một cột khác: `campaigns.status`
+     * (#41), `creatives.status` (#43), `organizations.type` (#47),
+     * `creatives.type` (#48).
+     *
+     * ══ Trạng thái này có hiệu lực thật, không chỉ là một nhãn ══
+     *
+     * `CampaignService::tuCachXemChienDich()` đòi tổ chức còn `active`; một tổ
+     * chức `suspended` thì người của nó thấy danh sách chiến dịch **rỗng**.
+     * Nên chữ ở đây là chữ mà người quản trị đọc trước khi quyết định tạm ngưng
+     * ai — không phải một nhãn trang trí.
+     *
+     * "Tạm ngưng" chứ không "Tạm dừng": `Campaign::STATUS_PAUSED` đã dùng "Tạm
+     * dừng", và hai trạng thái khác nhau ở hai bảng khác nhau không nên đọc
+     * giống nhau.
+     */
+    public const STATUS_LABELS = [
+        self::STATUS_ACTIVE    => 'Đang hoạt động',
+        self::STATUS_SUSPENDED => 'Tạm ngưng',
+    ];
+
     protected $fillable = [
         'name', 'slug', 'type', 'tax_id',
         'billing_address', 'billing_email', 'billing_phone',
