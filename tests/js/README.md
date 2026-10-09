@@ -88,9 +88,39 @@ hai lỗi lọt qua 84 ca.
 
 Tệp này đối chiếu mọi tên class bốn trang có thể đặt vào DOM — gồm giá trị của
 **bảng tra cứu dùng ở vị trí class**, vì tên class ở đó không nằm trong một chuỗi
-`class="…"` nào — với tập class định nghĩa trong `frontpage.css`. Thêm một phép
-kiểm rộng hơn: **mọi token `b-*` trong mọi tệp Blade**, vì hai trang chưa chuyển
-sang đọc API cũng dùng `b-gray`, ở đó nó nằm trong biểu thức Blade.
+`class="…"` nào — với tập class định nghĩa trong `frontpage.css`.
 
 Nó **không** nói class đó trông đúng hay không; nó nói class đó có người định
 nghĩa. Một tên không có định nghĩa thì không bao giờ là cố ý.
+
+### Ba vòng canh, rộng dần
+
+| Vòng | Phủ gì | Vì sao cần riêng |
+|---|---|---|
+| Bốn trang đọc API | **mọi** class, trích từ khối `<script>` thật sẽ lên production | Tên class ở đây do JS ghép lúc chạy, không có trong markup |
+| Mọi tệp Blade | chỉ token `b-*` | Thẻ trạng thái là chỗ các bản chép tụ lại; phủ cả tệp Filament, nơi stylesheet khác |
+| Mọi tệp dùng `frontpage.css` | **mọi** class, 22 tệp / 334 token | Bảy trang người mua còn lại, layout, partial và thân trang chính sách |
+
+Vòng thứ ba tìm phạm vi bằng **tham chiếu**, không viết cứng đường dẫn: layout
+nào `@vite` `frontpage.css` → trang nào `@extends` layout đó → view nào
+`config/policies.php` dựng thành `body_html` → rồi đệ quy theo `@include`. Thêm
+một trang người mua mới là nó tự vào phạm vi; một danh sách viết cứng thì không.
+
+Thân bốn trang chính sách thuộc phạm vi này vì `webapp/app/globals.css` chỉ có
+một dòng thật — `@import '../../resources/css/frontpage.css'`. Trang Next và
+trang Blade dùng **cùng** stylesheet, nên HTML Laravel sinh ra rồi Next nhét vào
+`dangerouslySetInnerHTML` cũng phải khớp cùng tập class đó.
+
+Bộ trích của vòng này lấy chuỗi **bên trong** biểu thức Blade — cách duy nhất
+thấy được `b-gray` nằm trong một ternary — nhưng **bỏ toán hạng so sánh**:
+`{{ $x === 'pending_approval' ? 'b-org' : 'b-gray' }}` có ba chuỗi, chỉ hai là
+tên class. Có một ca canh đúng việc đó, vì một test báo oan thì sẽ bị tắt.
+
+### Những gì cố ý nằm ngoài
+
+| Nhóm | Vì sao |
+|---|---|
+| `resources/views/filament/**` | Khu quản trị dùng CSS riêng của Filament |
+| `resources/views/vendor/pagination/**` | Bản mặc định của Laravel, không phải mã dự án |
+| `welcome.blade.php` | Dùng `app.css` (Tailwind): ở đó "có định nghĩa" nghĩa là *sinh ra theo yêu cầu*, nên phép kiểm tĩnh không nói được gì |
+| `invitations/**` | Mỗi trang có khối `<style>` riêng trong chính nó |

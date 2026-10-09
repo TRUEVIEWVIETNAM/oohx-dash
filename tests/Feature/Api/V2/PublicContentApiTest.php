@@ -196,6 +196,52 @@ class PublicContentApiTest extends TestCase
         }
     }
 
+    /**
+     * Mọi tên view trong `config/policies.php` phải trỏ vào một view có thật.
+     *
+     * ══ Lỗi ca này tìm ra ══
+     *
+     * Bốn trang chính sách còn khóa `'view' => 'frontpage.policies.<key>'` từ
+     * thời trang Blade phục vụ chúng. Giai đoạn 7 gỡ những trang Blade đó, và
+     * cả bốn view biến mất — nhưng khóa thì còn, trỏ vào bốn tên không có tệp
+     * nào. Không ai đọc khóa đó nữa, nên không gì nổ; nó chỉ ngồi đó như một
+     * cái bẫy đã nạp sẵn, chờ người tiếp theo viết `view($page['view'])`.
+     *
+     * ══ Vì sao đoán theo hình dạng giá trị ══
+     *
+     * Không thể liệt kê khóa nào "là tên view": khóa mới sẽ không có trong
+     * danh sách đó, và đúng những khóa mới mới cần canh. Nên lọc theo hình
+     * dạng — chữ thường, phân cách bằng dấu chấm. `'terms'` (không dấu chấm),
+     * `'0.1-draft'` (mở đầu bằng số) và tiêu đề tiếng Việt (có dấu cách) đều
+     * không khớp.
+     */
+    public function test_moi_ten_view_trong_config_chinh_sach_deu_ton_tai(): void
+    {
+        $daKiem = 0;
+
+        foreach (config('policies.pages', []) as $slug => $trang) {
+            foreach ($trang as $khoa => $gia) {
+                if (! is_string($gia) || ! preg_match('/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_-]*)+$/', $gia)) {
+                    continue;
+                }
+
+                $daKiem++;
+
+                $this->assertTrue(
+                    \Illuminate\Support\Facades\View::exists($gia),
+                    "config/policies.php: {$slug}.{$khoa} trỏ view '{$gia}' nhưng không có view nào tên đó.",
+                );
+            }
+        }
+
+        $this->assertGreaterThanOrEqual(
+            4,
+            $daKiem,
+            'Không lọc được tên view nào từ config — phép lọc theo hình dạng đã vỡ, '
+            . 'và ca này sẽ luôn xanh.',
+        );
+    }
+
     public function test_than_van_ban_khong_chua_the_thuc_thi(): void
     {
         foreach ($this->slugChinhSach() as $slug) {

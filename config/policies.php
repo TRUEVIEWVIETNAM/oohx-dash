@@ -34,9 +34,8 @@ return [
         'quy-che-hoat-dong' => [
             'key'     => 'terms',
             'title'   => 'Quy chế hoạt động',
-            'view'    => 'frontpage.policies.terms',
-            // Phần thân, dùng chung giữa trang Blade và endpoint
-            // /api/v2/policies/{slug}. Văn bản chỉ có MỘT nơi.
+            // Phần thân, render qua endpoint
+            // /api/v2/policies/{slug} cho trang Next. Văn bản chỉ có MỘT nơi.
             'body'    => 'frontpage.policies.bodies.terms',
             'version' => '0.1-draft',
             'effective_from' => null, // chưa ban hành — nội dung còn là bản nháp
@@ -44,9 +43,8 @@ return [
         'chinh-sach-bao-mat' => [
             'key'     => 'privacy',
             'title'   => 'Chính sách bảo mật',
-            'view'    => 'frontpage.policies.privacy',
-            // Phần thân, dùng chung giữa trang Blade và endpoint
-            // /api/v2/policies/{slug}. Văn bản chỉ có MỘT nơi.
+            // Phần thân, render qua endpoint
+            // /api/v2/policies/{slug} cho trang Next. Văn bản chỉ có MỘT nơi.
             'body'    => 'frontpage.policies.bodies.privacy',
             // 0.2: thêm việc chia sẻ liên hệ người mua cho media owner (mục 4).
             'version' => '0.2-draft',
@@ -55,9 +53,8 @@ return [
         'giai-quyet-tranh-chap' => [
             'key'     => 'disputes',
             'title'   => 'Cơ chế giải quyết tranh chấp, khiếu nại, phản ánh',
-            'view'    => 'frontpage.policies.disputes',
-            // Phần thân, dùng chung giữa trang Blade và endpoint
-            // /api/v2/policies/{slug}. Văn bản chỉ có MỘT nơi.
+            // Phần thân, render qua endpoint
+            // /api/v2/policies/{slug} cho trang Next. Văn bản chỉ có MỘT nơi.
             'body'    => 'frontpage.policies.bodies.disputes',
             'version' => '0.1-draft',
             'effective_from' => null,
@@ -65,9 +62,8 @@ return [
         'bang-phi' => [
             'key'     => 'fees',
             'title'   => 'Bảng phí dịch vụ',
-            'view'    => 'frontpage.policies.fees',
-            // Phần thân, dùng chung giữa trang Blade và endpoint
-            // /api/v2/policies/{slug}. Văn bản chỉ có MỘT nơi.
+            // Phần thân, render qua endpoint
+            // /api/v2/policies/{slug} cho trang Next. Văn bản chỉ có MỘT nơi.
             'body'    => 'frontpage.policies.bodies.fees',
             'version' => '1.0',
             'effective_from' => '22/09/2026',
