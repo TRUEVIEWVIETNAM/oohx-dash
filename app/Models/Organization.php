@@ -13,6 +13,47 @@ class Organization extends Model
 {
     use HasFactory, HasUlids, SoftDeletes;
 
+    public const TYPE_AGENCY = 'agency';
+
+    public const TYPE_BRAND = 'brand';
+
+    public const TYPE_CLIENT = 'client';
+
+    /**
+     * Chữ tiếng Việt cho loại hình tổ chức — **một định nghĩa**.
+     *
+     * ══ Lỗi bảng này sửa ══
+     *
+     * Cột `organizations.type` là `enum('agency','client','brand')` và trước
+     * đây **không có bảng chữ nào**. Bốn chỗ hiện nó, bốn kiểu sai khác nhau:
+     *
+     *  1. Trang đầu khu người mua in `ucfirst($org->type)` — "Agency",
+     *     "Brand", "Client" — tiếng Anh, ngay dưới tên người dùng, trên trang
+     *     họ thấy đầu tiên sau khi đăng nhập.
+     *  2. Cột `type` ở bảng quản trị sàn có `->badge()` và màu, nhưng **không
+     *     có nhãn chữ**, nên nó hiện thẳng mã `agency`.
+     *  3. Khối thông tin (infolist) cũng vậy.
+     *  4. Ô chọn của form và của bộ lọc có chữ, nhưng là tiếng Anh, và là
+     *     **hai bản chép** rời nhau.
+     *
+     * Đúng hình dạng của lỗi trạng thái chiến dịch ở `Campaign::STATUS_LABELS`:
+     * mỗi chỗ tự quyết chữ, nên cùng một giá trị hiện ba kiểu.
+     *
+     * ══ Vì sao "Đại lý" ══
+     *
+     * Trang công khai đã gọi `/agency` là "Đại lý" trong thanh điều hướng. Một
+     * từ khác ở khu người mua là hai từ cho cùng một thứ.
+     *
+     * Màu thì **không** nằm ở đây: Filament dùng từ vựng riêng
+     * (`info`/`success`/`gray`) và khu người mua dùng class CSS. Máy chủ sở hữu
+     * chữ, client sở hữu màu.
+     */
+    public const TYPE_LABELS = [
+        self::TYPE_AGENCY => 'Đại lý',
+        self::TYPE_BRAND  => 'Thương hiệu',
+        self::TYPE_CLIENT => 'Khách hàng',
+    ];
+
     protected $fillable = [
         'name', 'slug', 'type', 'tax_id',
         'billing_address', 'billing_email', 'billing_phone',

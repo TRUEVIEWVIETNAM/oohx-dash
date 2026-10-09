@@ -400,6 +400,34 @@ test('lỗi khác hiện thông điệp của máy chủ', async () => {
  * chạm tới cấu hình thật. Một lỗi gõ ở đó — `pending` thay vì
  * `pending_approval` — cho ra một ô `—` trên production mà mọi test vẫn xanh.
  */
+/**
+ * Trang thật phải dựng sẵn bốn thẻ RỖNG để giữ chỗ cho khối thống kê.
+ *
+ * `.buyer-stats` là grid không có `min-height`, nên khối rỗng cao 0px. Trang
+ * vẽ sau khi API trả về, nên thiếu chỗ giữ thì mọi thứ bên dưới nhảy xuống
+ * một hàng thẻ (≈82px trên máy tính, ≈176px trên điện thoại vì grid xếp 2×2).
+ *
+ * Bộ khung jsdom dựng khối này **rỗng** từ `moc-dom.json`, nên không ca nào ở
+ * trên chạm tới phần giữ chỗ — nó chỉ tồn tại trong markup thật. Đọc mã nguồn
+ * là cách duy nhất canh nó, và không canh thì nó bị xoá mà mọi test vẫn xanh.
+ */
+test('trang thật giữ chỗ cho khối thống kê, không để nó cao 0px', () => {
+    const nguon = readFileSync(resolve(GOC, TRANG), 'utf8');
+    const o = nguon.indexOf('data-td-thongke');
+
+    assert.notEqual(o, -1, 'không tìm được khối [data-td-thongke] trong trang');
+
+    // Cắt một cửa sổ sau móc chứ không khớp tới `</div>`: nội dung có `</div>`
+    // lồng bên trong, nên một phép khớp tới thẻ đóng đầu tiên sẽ dừng quá sớm.
+    const sau = nguon.slice(o, o + 600);
+
+    assert.match(
+        sau,
+        /@for[\s\S]*buyer-stat-n[\s\S]*buyer-stat-l[\s\S]*@endfor/,
+        'khối thống kê phải dựng sẵn thẻ rỗng — rỗng hẳn thì trang nhảy một nhịp khi API về',
+    );
+});
+
 test('cấu hình thật của trang chỉ dùng hằng trạng thái, không chuỗi rời', () => {
     const nguon = readFileSync(resolve(GOC, TRANG), 'utf8');
     const khop = nguon.match(/'oThongKe'\s*=>\s*\[([\s\S]*?)\]/);

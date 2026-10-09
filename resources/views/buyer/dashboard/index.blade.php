@@ -77,7 +77,13 @@
     <div class="buyer-welcome">
         <div>
             <h1 class="buyer-welcome-title">Xin chào, {{ auth()->user()->name }}</h1>
-            <p class="buyer-welcome-sub">{{ $org->name }} &middot; {{ ucfirst($org->type) }}</p>
+            {{--
+                Loại hình qua bảng chữ, không `ucfirst`. Bản cũ in
+                `ucfirst($org->type)` nên cột `enum('agency','client','brand')`
+                ra "Agency", "Brand", "Client" — tiếng Anh, ngay dưới tên người
+                dùng, trên trang họ thấy đầu tiên sau khi đăng nhập.
+            --}}
+            <p class="buyer-welcome-sub">{{ $org->name }} &middot; {{ \App\Models\Organization::TYPE_LABELS[$org->type] ?? $org->type }}</p>
         </div>
         <a href="{{ url('/explore') }}" class="btn btn-p btn-sm">
             <svg viewBox="0 0 24 24" fill="#fff" style="width:14px;height:14px;flex-shrink:0"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -92,8 +98,34 @@
         </div>
     </div>
 
-    {{-- Stats cards --}}
-    <div class="buyer-stats" data-td-thongke></div>
+    {{--
+        Stats cards — bốn thẻ RỖNG dựng sẵn để giữ chỗ.
+
+        `.buyer-stats` là một grid không có `min-height`, nên khi khối này rỗng
+        nó cao **0px**. Trang vẽ sau khi API trả về, nên mọi thứ bên dưới — mục
+        "Campaign gần đây" và ba ô liên kết nhanh — nhảy xuống một khoảng bằng
+        chiều cao một hàng thẻ (≈82px trên máy tính, ≈176px trên điện thoại vì
+        grid xếp 2×2). Đúng trên trang người mua thấy đầu tiên.
+
+        Khối danh sách bên dưới đã giữ chỗ bằng dòng "Đang tải…"; khối này thì
+        trước đó không giữ gì cả. Bốn thẻ với `&nbsp;` cho ra đúng chiều cao
+        thật, vì chiều cao thẻ do padding và `line-height` quyết định, không do
+        nội dung.
+
+        Không đặt `min-height` trong CSS: con số đúng khác nhau giữa một hàng
+        và hai hàng, nên nó sẽ sai ở một trong hai khổ màn hình.
+
+        Script ghi đè toàn bộ `innerHTML` của khối này, nên bốn thẻ giữ chỗ
+        không để lại dấu gì sau khi dữ liệu về.
+    --}}
+    <div class="buyer-stats" data-td-thongke>
+        @for($i = 0; $i < 4; $i++)
+        <div class="buyer-stat" aria-hidden="true">
+            <div class="buyer-stat-n">&nbsp;</div>
+            <div class="buyer-stat-l">&nbsp;</div>
+        </div>
+        @endfor
+    </div>
 
     {{-- Recent campaigns --}}
     <div class="buyer-section">
