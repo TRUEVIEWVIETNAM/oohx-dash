@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V2;
 
+use App\Models\Creative;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -54,7 +55,13 @@ class CreativeResource extends JsonResource
             // vào CSDL hay cache lâu hơn chính cái hạn.
             'download_url' => $this->file_url,
 
-            'status'      => $this->status,
+            'status' => $this->status,
+
+            // Chữ đi cùng mã, vì nếu không thì mỗi bên tiêu thụ tự dịch — và
+            // đó đúng là cách chữ trạng thái đã trôi thành năm bản chép lệch
+            // nhau ở chiến dịch. Mã để client quyết định MÀU, chữ để hiện.
+            'status_label' => Creative::STATUS_LABELS[$this->status] ?? $this->status,
+
             'reviewed_at' => $this->reviewed_at?->toJSON(),
 
             'created_at' => $this->created_at?->toJSON(),

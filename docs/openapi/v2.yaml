@@ -2025,7 +2025,10 @@ components:
       properties:
         id:   { type: string }
         name: { type: string, nullable: true }
-        type: { type: string, enum: [image, video] }
+        # Bốn giá trị, theo enum của `create_creatives_table`. Đặc tả trước đây
+        # khai hai (`image`, `video`) nên TypeScript sinh ra từ đây thiếu hai
+        # nhánh mà CSDL cho phép và bộ lọc Filament đang mời chọn.
+        type: { type: string, enum: [image, video, html5, vast_tag] }
         dimensions:
           type: object
           properties:
@@ -2034,7 +2037,11 @@ components:
             duration_sec: { type: integer, nullable: true }
         file_size:    { type: integer, nullable: true }
         download_url: { type: string, format: uri, nullable: true, description: 'URL ký hạn. Null khi bản ghi chưa có tệp.' }
-        status:       { type: string }
+        status:       { type: string, enum: [pending_review, approved, rejected] }
+        # Chữ đi cùng mã: mỗi bên tiêu thụ tự dịch là cách chữ trạng thái đã
+        # trôi thành năm bản chép lệch nhau ở chiến dịch. Mã để client quyết
+        # định màu, chữ để hiện.
+        status_label: { type: string, description: 'Chữ tiếng Việt của `status`, từ `Creative::STATUS_LABELS`.' }
         reviewed_at:  { type: string, format: date-time, nullable: true }
         created_at:  { type: string, format: date-time, nullable: true }
 

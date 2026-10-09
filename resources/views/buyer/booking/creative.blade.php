@@ -49,6 +49,27 @@
             @if($creatives->isNotEmpty())
             <div class="wz-card" style="margin-top:16px">
                 <div class="wz-card-title">Creatives đã upload ({{ $creatives->count() }})</div>
+                @php
+                    // Chữ từ mô hình, màu ở đây.
+                    //
+                    // Trước đây chỗ này là một biểu thức ba ngôi chỉ biết MỘT
+                    // mã — `pending_review` — nên `approved` hiện ra
+                    // `approved` và `rejected` hiện ra `rejected`, nguyên văn
+                    // tiếng Anh, trên trang người mua nhìn ngay sau khi tải tệp
+                    // lên. Bảng đầy đủ vẫn nằm ở Filament, nhưng đó là khu
+                    // quản trị nội bộ: người mua không bao giờ thấy nó.
+                    //
+                    // Màu khớp khu quản trị (`warning`/`success`/`danger`) và
+                    // khớp quy ước của chiến dịch: chờ → cam, duyệt → xanh,
+                    // từ chối → đỏ. Bản cũ cho `rejected` màu xám, cùng màu với
+                    // `pending_review` — hai nghĩa khác nhau một màu.
+                    $nhanTrangThai = \App\Models\Creative::STATUS_LABELS;
+                    $mauTrangThai  = [
+                        \App\Models\Creative::STATUS_PENDING_REVIEW => 'b-org',
+                        \App\Models\Creative::STATUS_APPROVED       => 'b-grn',
+                        \App\Models\Creative::STATUS_REJECTED       => 'b-red',
+                    ];
+                @endphp
                 <div class="wz-creative-list">
                     @foreach($creatives as $c)
                     <div class="wz-creative-item">
@@ -65,7 +86,7 @@
                             <div style="font-weight:600;color:var(--t1)">{{ $c->name }}</div>
                             <div style="font-size:11px;color:var(--t4)">{{ strtoupper($c->type) }} &middot; {{ number_format($c->file_size / 1024) }} KB</div>
                         </div>
-                        <span class="badge {{ $c->status === 'approved' ? 'b-grn' : 'b-gray' }}" style="font-size:10px">{{ $c->status === 'pending_review' ? 'Chờ duyệt' : $c->status }}</span>
+                        <span class="badge {{ $mauTrangThai[$c->status] ?? 'b-gray' }}" style="font-size:10px">{{ $nhanTrangThai[$c->status] ?? $c->status }}</span>
                     </div>
                     @endforeach
                 </div>

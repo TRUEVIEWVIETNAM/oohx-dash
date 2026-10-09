@@ -41,7 +41,7 @@ class CreativeGate
     {
         return DB::transaction(function () use ($creative, $reviewerId) {
             $creative->update([
-                'status'      => 'approved',
+                'status'      => Creative::STATUS_APPROVED,
                 'reviewed_by' => $reviewerId,
                 'reviewed_at' => now(),
             ]);
@@ -89,7 +89,7 @@ class CreativeGate
     {
         return DB::transaction(function () use ($creative, $reviewerId, $reason) {
             $creative->update([
-                'status'      => 'rejected',
+                'status'      => Creative::STATUS_REJECTED,
                 'reviewed_by' => $reviewerId,
                 'reviewed_at' => now(),
             ]);
@@ -112,7 +112,7 @@ class CreativeGate
     /** Gắn tay một nội dung ĐÃ DUYỆT vào một dòng đặt chỗ. */
     public function attach(BookingLine $line, Creative $creative, int $weight = 100): void
     {
-        if ($creative->status !== 'approved') {
+        if ($creative->status !== Creative::STATUS_APPROVED) {
             throw new HttpException(422, "Nội dung \"{$creative->name}\" chưa được duyệt, không gắn vào dòng đặt chỗ được.");
         }
 
@@ -132,7 +132,7 @@ class CreativeGate
     {
         return $campaign->bookingLines()
             ->whereIn('status', self::LINES_NEEDING_CREATIVE)
-            ->whereDoesntHave('creatives', fn ($q) => $q->where('creatives.status', 'approved'))
+            ->whereDoesntHave('creatives', fn ($q) => $q->where('creatives.status', Creative::STATUS_APPROVED))
             ->with('screen')
             ->get();
     }

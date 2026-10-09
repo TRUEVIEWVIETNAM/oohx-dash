@@ -310,7 +310,8 @@ class BookingApiTest extends TestCase
             ])
             ->assertStatus(201)
             ->assertJsonPath('data.creative.name', 'Banner thử')
-            ->assertJsonPath('data.creative.status', 'pending_review');
+            ->assertJsonPath('data.creative.status', 'pending_review')
+            ->assertJsonPath('data.creative.status_label', 'Chờ duyệt');
 
         $creative = \App\Models\Creative::firstOrFail();
 

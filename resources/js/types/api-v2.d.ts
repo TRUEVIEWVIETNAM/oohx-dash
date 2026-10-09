@@ -2602,7 +2602,7 @@ export interface components {
             id?: string;
             name?: string | null;
             /** @enum {string} */
-            type?: "image" | "video";
+            type?: "image" | "video" | "html5" | "vast_tag";
             dimensions?: {
                 width_px?: number | null;
                 height_px?: number | null;
@@ -2614,7 +2614,10 @@ export interface components {
              * @description URL ký hạn. Null khi bản ghi chưa có tệp.
              */
             download_url?: string | null;
-            status?: string;
+            /** @enum {string} */
+            status?: "pending_review" | "approved" | "rejected";
+            /** @description Chữ tiếng Việt của `status`, từ `Creative::STATUS_LABELS`. */
+            status_label?: string;
             /** Format: date-time */
             reviewed_at?: string | null;
             /** Format: date-time */
