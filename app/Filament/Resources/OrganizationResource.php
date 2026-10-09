@@ -44,11 +44,9 @@ class OrganizationResource extends Resource
                 Forms\Components\Grid::make(3)->schema([
                     Forms\Components\Select::make('type')
                         ->label('Loại hình')
-                        ->options([
-                            'agency' => 'Agency',
-                            'brand'  => 'Brand',
-                            'client' => 'Client',
-                        ])
+                        // Chữ từ `Organization::TYPE_LABELS` — một bảng cho cả
+                        // form, bộ lọc, cột, khối thông tin và khu người mua.
+                        ->options(Organization::TYPE_LABELS)
                         ->required(),
                     Forms\Components\Select::make('status')
                         ->label('Trạng thái')
@@ -115,8 +113,14 @@ class OrganizationResource extends Resource
                     Infolists\Components\TextEntry::make('type')->label('Loại')
                         ->badge()
                         ->color(fn (string $state): string => match ($state) {
-                            'agency' => 'info', 'brand' => 'success', default => 'gray',
-                        }),
+                            Organization::TYPE_AGENCY => 'info',
+                            Organization::TYPE_BRAND => 'success',
+                            default => 'gray',
+                        })
+                        // Thiếu dòng này thì thẻ hiện thẳng mã `agency`: có màu,
+                        // không có chữ. Đúng lỗi cột trạng thái chiến dịch đã mắc
+                        // ở bảng quản trị sàn trước PR #41.
+                        ->formatStateUsing(fn (string $state): string => Organization::TYPE_LABELS[$state] ?? $state),
                     Infolists\Components\TextEntry::make('status')->label('Trạng thái')
                         ->badge()
                         ->color(fn (string $state): string => $state === 'active' ? 'success' : 'danger'),
@@ -173,8 +177,11 @@ class OrganizationResource extends Resource
                     ->label('Loại')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'agency' => 'info', 'brand' => 'success', default => 'gray',
-                    }),
+                        Organization::TYPE_AGENCY => 'info',
+                        Organization::TYPE_BRAND => 'success',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => Organization::TYPE_LABELS[$state] ?? $state),
 
                 Tables\Columns\TextColumn::make('organization_users_count')
                     ->label('Users')
@@ -203,7 +210,7 @@ class OrganizationResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
-                    ->options(['agency' => 'Agency', 'brand' => 'Brand', 'client' => 'Client']),
+                    ->options(Organization::TYPE_LABELS),
                 Tables\Filters\SelectFilter::make('status')
                     ->options(['active' => 'Active', 'suspended' => 'Suspended']),
             ])
