@@ -26,6 +26,16 @@ class OwnerUserResource extends Resource
     protected static ?string $pluralModelLabel = 'Team Members';
     protected static ?int    $navigationSort  = 90;
 
+    /**
+     * Vai trò có thể bị giới hạn theo network — một định nghĩa.
+     *
+     * Ba chỗ trong tệp này đọc cùng danh sách (hiện ô, lọc lúc lưu, câu
+     * helperText), và câu helperText trước đây viết **tay** tên hai vai trò đó
+     * bằng tiếng Anh. Đổi chữ ở `ROLE_LABELS` mà câu kia không đổi theo là một
+     * chỗ trôi im lặng, nên câu đó giờ dựng từ chính bảng chữ.
+     */
+    private const GIOI_HAN_THEO_NETWORK = ['scheduler', 'read_only'];
+
     // ── Chỉ hiển thị nếu user có quyền manage_users ──────────────────────────
 
     public static function canViewAny(): bool
@@ -72,13 +82,17 @@ class OwnerUserResource extends Resource
 
                 Forms\Components\CheckboxList::make('allowed_network_ids')
                     ->label('Restrict to Networks (optional)')
-                    ->helperText('Để trống = truy cập tất cả networks. Chỉ áp dụng cho Scheduler và Read only.')
+                    ->helperText('Để trống = truy cập tất cả networks. Chỉ áp dụng cho '
+                        . implode(' và ', array_map(
+                            fn (string $r) => OwnerUser::ROLE_LABELS[$r] ?? $r,
+                            self::GIOI_HAN_THEO_NETWORK,
+                        )) . '.')
                     ->options(fn() => \App\Models\Network::where('owner_id', auth()->user()->current_owner_id)
                         ->pluck('name', 'id'))
                     ->columns(2)
-                    ->visible(fn(Forms\Get $get) => in_array($get('role'), ['scheduler', 'read_only']))
+                    ->visible(fn(Forms\Get $get) => in_array($get('role'), self::GIOI_HAN_THEO_NETWORK))
                     // Khi role không thuộc scheduler/read_only, dehydrate null để xoá restriction cũ.
-                    ->dehydrateStateUsing(fn($state, Forms\Get $get) => in_array($get('role'), ['scheduler', 'read_only']) ? $state : null),
+                    ->dehydrateStateUsing(fn($state, Forms\Get $get) => in_array($get('role'), self::GIOI_HAN_THEO_NETWORK) ? $state : null),
 
             ])->columns(1),
         ]);
@@ -102,7 +116,7 @@ class OwnerUserResource extends Resource
 
                 Tables\Columns\BadgeColumn::make('role')
                     ->label('Role')
-                    ->formatStateUsing(fn($state) => OwnerUser::ROLES[$state] ?? $state)
+                    ->formatStateUsing(fn($state) => OwnerUser::ROLE_LABELS[$state] ?? $state)
                     ->colors([
                         'danger'  => 'owner',
                         'primary' => 'manager',

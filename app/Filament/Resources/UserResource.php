@@ -99,7 +99,7 @@ class UserResource extends Resource
 
                             Forms\Components\Select::make('role')
                                 ->label('Role')
-                                ->options(OwnerUser::ROLES)
+                                ->options(OwnerUser::ROLE_LABELS)
                                 ->default('read_only')
                                 ->required()
                                 ->columnSpan(1),
@@ -151,7 +151,7 @@ class UserResource extends Resource
                     ->getStateUsing(function (User $record) {
                         $items = $record->ownerUsers->map(function (OwnerUser $ou) {
                             $ownerName = $ou->owner?->name ?? '?';
-                            $roleLabel = OwnerUser::ROLES[$ou->role] ?? $ou->role;
+                            $roleLabel = OwnerUser::ROLE_LABELS[$ou->role] ?? $ou->role;
                             return "{$ownerName} ({$roleLabel})";
                         });
                         return $items->isEmpty() ? '—' : $items->implode(', ');
@@ -189,7 +189,7 @@ class UserResource extends Resource
 
                 Tables\Filters\SelectFilter::make('owner_role')
                     ->label('Owner Role')
-                    ->options(OwnerUser::ROLES)
+                    ->options(OwnerUser::ROLE_LABELS)
                     ->query(fn($query, $data) => $data['value']
                         ? $query->whereHas('ownerUsers', fn($q) => $q->where('role', $data['value']))
                         : $query),
@@ -273,7 +273,7 @@ class UserResource extends Resource
                             Infolists\Components\TextEntry::make('role')
                                 ->label('Role')
                                 ->badge()
-                                ->formatStateUsing(fn($state) => OwnerUser::ROLES[$state] ?? $state)
+                                ->formatStateUsing(fn($state) => OwnerUser::ROLE_LABELS[$state] ?? $state)
                                 ->color(fn($state) => match ($state) {
                                     'owner'          => 'danger',
                                     'manager'        => 'primary',

@@ -26,7 +26,7 @@
                             @forelse($user->ownerUsers as $ou)
                                 <span class="inline-flex items-center px-2 py-0.5 mr-1 mb-0.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
                                     {{ $ou->owner?->name ?? '?' }}
-                                    <span class="ml-1 text-gray-400">({{ \App\Models\OwnerUser::ROLES[$ou->role] ?? $ou->role }})</span>
+                                    <span class="ml-1 text-gray-400">({{ \App\Models\OwnerUser::ROLE_LABELS[$ou->role] ?? $ou->role }})</span>
                                 </span>
                             @empty
                                 <span class="text-gray-400 text-xs">—</span>

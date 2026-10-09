@@ -197,7 +197,38 @@ class InvitationFlowTest extends TestCase
         $response = $this->get(route('invitations.accept', $invitation->token));
         $response->assertOk();
         $response->assertSee($this->owner->name);
-        $response->assertSee('Read only');
+        $response->assertSee('Chỉ xem');
+        $response->assertDontSee('Read only');
+        $response->assertDontSee('read_only');
+    }
+
+    /**
+     * Thư mời phải mang **chữ**, không mang mã hay tiếng Anh.
+     *
+     * Đây là chỗ bảng chữ của `OwnerUser` ra khỏi khu quản trị và tới hộp thư
+     * của người được mời: một email tiếng Việt kết thúc bằng "với vai trò
+     * **Read only**" là thứ không ai trong panel nhìn thấy để mà sửa.
+     *
+     * Ca này đọc thân thư thật qua `MailMessage`, không đọc lại hằng — kiểm
+     * `ROLE_LABELS['read_only']` ở đây thì nó vẫn xanh khi có người đặt chữ về
+     * lại tiếng Anh.
+     */
+    public function test_thu_moi_mang_chu_tieng_viet_cua_vai_tro(): void
+    {
+        Notification::fake();
+
+        $invitation = $this->service->invite(
+            'mail@example.com', UserInvitation::TENANT_OWNER, $this->owner->id, 'read_only', null, $this->inviter,
+        );
+
+        $than = (new UserInvitationNotification($invitation))
+            ->toMail($this->inviter)
+            ->render()
+            ->toHtml();
+
+        $this->assertStringContainsString('Chỉ xem', $than);
+        $this->assertStringNotContainsString('Read only', $than);
+        $this->assertStringNotContainsString('read_only', $than);
     }
 
     public function test_show_route_returns_410_for_expired(): void
