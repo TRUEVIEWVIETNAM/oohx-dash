@@ -2904,7 +2904,9 @@ export interface components {
                 name?: string;
             } | null;
             /** @enum {string} */
-            method?: "bank_transfer";
+            method?: "bank_transfer" | "vnpay" | "momo";
+            /** @description Chữ tiếng Việt của `method`, từ `Payment::METHOD_LABELS`. Trước đây trang tự "làm đẹp mã" bằng `replace(/_/g, " ")`, nên `bank_transfer` ra "Bank transfer". */
+            method_label?: string;
             /** @enum {string} */
             currency?: "VND";
             amount?: number;

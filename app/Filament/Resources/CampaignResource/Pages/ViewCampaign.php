@@ -99,12 +99,7 @@ class ViewCampaign extends ViewRecord
                                 Infolists\Components\TextEntry::make('invoice_number')->label('Invoice'),
                                 Infolists\Components\TextEntry::make('amount')->label('Số tiền')->money('VND'),
                                 Infolists\Components\TextEntry::make('method')->label('Phương thức')
-                                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                                        'bank_transfer' => 'Chuyển khoản',
-                                        'vnpay' => 'VNPay',
-                                        'momo' => 'MoMo',
-                                        default => $state,
-                                    }),
+                                    ->formatStateUsing(fn (string $state): string => Payment::METHOD_LABELS[$state] ?? $state),
                                 Infolists\Components\TextEntry::make('status')->label('Trạng thái')->badge()
                                     ->color(fn (string $state): string => match ($state) {
                                         Payment::STATUS_PENDING,

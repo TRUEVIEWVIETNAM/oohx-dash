@@ -368,8 +368,9 @@
               + '<div class="wz-card-title">Lịch sử thanh toán</div><div class="pay-history">';
 
         ds.forEach(function (p) {
-            var cach = String(p.method || '').replace(/_/g, ' ');
-            cach = cach ? cach.charAt(0).toUpperCase() + cach.slice(1) : '';
+            // Chữ từ máy chủ. Bản cũ "làm đẹp mã" — `replace(/_/g, ' ')` rồi
+            // viết hoa chữ đầu — nên `bank_transfer` ra "Bank transfer".
+            var cach = p.method_label || p.method || '';
 
             h += '<div class="pay-history-row"><div>'
                + '<div style="font-weight:600;color:var(--t1);font-size:13px">' + chu(p.invoice_number || p.transaction_ref || p.id) + '</div>'

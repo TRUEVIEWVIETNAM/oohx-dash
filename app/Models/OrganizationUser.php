@@ -15,11 +15,25 @@ class OrganizationUser extends Model
     public const ROLE_PLANNER = 'planner';
     public const ROLE_VIEWER  = 'viewer';
 
-    /** Labels hiển thị cho UI */
-    public const ROLES = [
-        'admin'   => 'Admin',
-        'planner' => 'Planner',
-        'viewer'  => 'Viewer',
+    /**
+     * Chữ tiếng Việt cho vai trò trong tổ chức — **một định nghĩa**.
+     *
+     * ══ Hai lỗi bảng này sửa ══
+     *
+     *  1. Chữ là **tiếng Anh** ("Admin", "Planner", "Viewer") trong một panel
+     *     còn lại đều tiếng Việt, và nó ra tới cả thư mời (`InvitationController`,
+     *     `UserInvitationNotification`) — tức tới hộp thư của người được mời.
+     *  2. Hằng tên `ROLES`, **không** theo quy ước `<CỘT>_LABELS`, nên bộ tự
+     *     tìm của `NhanEnumMotNoiTest` không thấy nó: cột `role` có bảng chữ mà
+     *     không ai đối chiếu với enum CSDL. Đổi tên là để nó vào tầm.
+     *
+     * Chữ lấy theo `ROLE_DESCRIPTIONS` ngay dưới — "Toàn quyền", "Không quản lý
+     * team", "Chỉ xem" — chứ không đặt từ mới cho cùng một thứ.
+     */
+    public const ROLE_LABELS = [
+        self::ROLE_ADMIN   => 'Quản trị',
+        self::ROLE_PLANNER => 'Lập kế hoạch',
+        self::ROLE_VIEWER  => 'Chỉ xem',
     ];
 
     /** Mô tả ngắn về quyền của từng role — dùng làm helperText. */
@@ -62,10 +76,12 @@ class OrganizationUser extends Model
     public static function assignableRolesFor(?User $actor): array
     {
         if ($actor?->hasRole('super_admin')) {
-            return self::ROLES;
+            return self::ROLE_LABELS;
         }
-        $roles = self::ROLES;
-        unset($roles['admin']);
+
+        $roles = self::ROLE_LABELS;
+        unset($roles[self::ROLE_ADMIN]);
+
         return $roles;
     }
 }

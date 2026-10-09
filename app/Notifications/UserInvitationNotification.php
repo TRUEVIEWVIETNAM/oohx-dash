@@ -35,7 +35,7 @@ class UserInvitationNotification extends Notification implements ShouldQueue
 
         $roleLabel = match ($this->invitation->tenant_type) {
             UserInvitation::TENANT_OWNER        => OwnerUser::ROLES[$this->invitation->role] ?? $this->invitation->role,
-            UserInvitation::TENANT_ORGANIZATION => OrganizationUser::ROLES[$this->invitation->role] ?? $this->invitation->role,
+            UserInvitation::TENANT_ORGANIZATION => OrganizationUser::ROLE_LABELS[$this->invitation->role] ?? $this->invitation->role,
             default                             => $this->invitation->role,
         };
 

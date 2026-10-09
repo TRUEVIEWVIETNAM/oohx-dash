@@ -42,7 +42,13 @@ class PaymentResource extends JsonResource
                 'name' => $this->owner->name,
             ] : null,
 
-            'method'   => $this->method,
+            'method' => $this->method,
+
+            // Chữ đi cùng mã. Không có nó thì trang phải tự dịch — và cách nó
+            // tự dịch là `replace(/_/g, ' ')`, tức `bank_transfer` ra
+            // "Bank transfer" trên trang tiền của người mua.
+            'method_label' => Payment::METHOD_LABELS[$this->method] ?? $this->method,
+
             'currency' => $this->currency ?? 'VND',
             'amount'   => (int) round((float) $this->amount),
             'status'   => $this->status,

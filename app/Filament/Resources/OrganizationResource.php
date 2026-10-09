@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\OrganizationResource\Pages;
 use App\Models\Campaign;
 use App\Models\Organization;
+use App\Models\OrganizationUser;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Support\RawJs;
@@ -160,7 +161,8 @@ class OrganizationResource extends Resource
                         Infolists\Components\Grid::make(3)->schema([
                             Infolists\Components\TextEntry::make('user.name')->label('Tên'),
                             Infolists\Components\TextEntry::make('user.email')->label('Email'),
-                            Infolists\Components\TextEntry::make('role')->label('Vai trò')->badge(),
+                            Infolists\Components\TextEntry::make('role')->label('Vai trò')->badge()
+                                ->formatStateUsing(fn (string $state): string => OrganizationUser::ROLE_LABELS[$state] ?? $state),
                         ]),
                     ]),
             ])->collapsible(),
