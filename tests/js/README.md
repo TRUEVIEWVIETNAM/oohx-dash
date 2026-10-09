@@ -27,7 +27,9 @@ production, không canh một bản sao.
 Thứ nó **không** canh được, nói rõ để không ai coi đây là bằng chứng "trang
 chạy đúng":
 
-- **CSS.** Một khối vẽ ra đúng mà bị `display:none` thì test vẫn xanh.
+- **Cách trang hiện ra.** jsdom không chạy layout, nên một khối vẽ ra đúng mà
+  bị `display:none`, tràn khung hay chữ trắng trên trắng thì test vẫn xanh.
+  Phần *tên* class thì có người canh — xem `class-css.test.mjs` bên dưới.
 - **Việc Blade ghép cấu hình.** Cấu hình thật đến từ PHP qua khối `@json`; ở
   đây nó do test dựng. Phía PHP có phép kiểm riêng cho việc trang trỏ đúng vào
   endpoint nào.
@@ -71,3 +73,24 @@ URL của **chính trang**, không của API. Cần cho trang đọc trạng th�
 Ranh giới "script vẽ gì / trang có gì" là thứ dễ quên nhất khi thêm test cho một
 trang mới. `tuTao` và `linkDangNhapTrongMarkup` tồn tại để ranh giới đó là một
 **quyết định được ghi lại**, không phải một chỗ im lặng bỏ qua.
+
+## `class-css.test.mjs` — tên class phải có người định nghĩa
+
+Hai lỗi thật đã lên production vì không ai đối chiếu tên class với stylesheet:
+
+| Lỗi | Hậu quả |
+|---|---|
+| `.b-gray` **chưa từng** có trong `frontpage.css`, mà mười chỗ trong `resources/views` tham chiếu nó | Thẻ "Nháp", "Hoàn thành", "Đã hoàn tiền" và nhánh mặc định của mọi bảng màu ra DOM không nền, không màu chữ |
+| `b-green` ở trang thanh toán, CSS chỉ có `.b-grn` | Dấu "Đã ghi nhận" cho từng media owner mất nền xanh |
+
+Các test jsdom **có** chọn `.badge`, nhưng không khẳng định class *màu* — nên cả
+hai lỗi lọt qua 84 ca.
+
+Tệp này đối chiếu mọi tên class bốn trang có thể đặt vào DOM — gồm giá trị của
+**bảng tra cứu dùng ở vị trí class**, vì tên class ở đó không nằm trong một chuỗi
+`class="…"` nào — với tập class định nghĩa trong `frontpage.css`. Thêm một phép
+kiểm rộng hơn: **mọi token `b-*` trong mọi tệp Blade**, vì hai trang chưa chuyển
+sang đọc API cũng dùng `b-gray`, ở đó nó nằm trong biểu thức Blade.
+
+Nó **không** nói class đó trông đúng hay không; nó nói class đó có người định
+nghĩa. Một tên không có định nghĩa thì không bao giờ là cố ý.
