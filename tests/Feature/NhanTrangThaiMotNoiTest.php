@@ -396,4 +396,99 @@ class NhanTrangThaiMotNoiTest extends TestCase
             'Có thẻ trạng thái hiện mã nguyên văn tiếng Anh thay vì chữ Việt.',
         );
     }
+
+    /**
+     * Trang đầu khu người mua (`/my`) phải hiện chữ Việt cho **cả tám** trạng thái.
+     *
+     * ══ Lỗi test này chống ══
+     *
+     * `buyer/dashboard/index.blade.php` in thẳng `{{ $c->status }}`, nên tám mã
+     * chiến dịch ra nguyên văn tiếng Anh — `draft`, `pending_approval`,
+     * `completed` — ngay trên trang người mua thấy **đầu tiên** sau khi đăng
+     * nhập. Hai trang chiến dịch kia đã đi qua bảng chữ từ PR #41; trang này bị
+     * bỏ lại vì nó dựng bằng Blade chứ không đọc API, nên không test nào đi qua.
+     *
+     * ══ Vì sao chia lô ══
+     *
+     * `BuyerDashboardController` lấy `->take(5)`, nên một lần render không thể
+     * phủ tám trạng thái. Lặp theo lô năm: mỗi lô xóa sạch chiến dịch của tổ
+     * chức rồi tạo đúng một chiến dịch cho mỗi mã trong lô. Cách này cũng tự
+     * giãn nếu enum có thêm mã thứ chín.
+     */
+    public function test_trang_dau_khu_nguoi_mua_hien_chu_viet_cho_moi_trang_thai(): void
+    {
+        $org   = Organization::factory()->create(['status' => 'active']);
+        $buyer = User::factory()->create(['current_organization_id' => $org->id]);
+        OrganizationUser::create([
+            'organization_id' => $org->id,
+            'user_id'         => $buyer->id,
+            'role'            => OrganizationUser::ROLE_ADMIN,
+        ]);
+
+        foreach (array_chunk(array_keys(Campaign::STATUS_LABELS), 5) as $lo) {
+            Campaign::where('organization_id', $org->id)->delete();
+
+            foreach ($lo as $trangThai) {
+                Campaign::create([
+                    'organization_id' => $org->id,
+                    'created_by'      => $buyer->id,
+                    'code'            => 'CPN-' . Str::random(8),
+                    'name'            => 'CD ' . $trangThai,
+                    'start_date'      => now()->addMonth(),
+                    'end_date'        => now()->addMonths(2),
+                    'status'          => $trangThai,
+                ]);
+            }
+
+            $html = $this->actingAs($buyer)->get('/my')->assertOk()->getContent();
+
+            preg_match_all('/<span class="badge[^"]*"[^>]*>([^<]*)<\/span>/', $html, $khop);
+
+            $chuTrenThe = array_map('trim', $khop[1]);
+            sort($chuTrenThe);
+
+            $mongDoi = array_values(array_intersect_key(Campaign::STATUS_LABELS, array_flip($lo)));
+            sort($mongDoi);
+
+            $this->assertSame(
+                $mongDoi,
+                $chuTrenThe,
+                'Thẻ trạng thái trên /my hiện mã nguyên văn tiếng Anh thay vì chữ Việt, '
+                . 'lô: ' . implode(', ', $lo),
+            );
+        }
+    }
+
+    /**
+     * Bảng màu của trang đầu phải phủ **mọi** mã, không chỉ vài mã.
+     *
+     * Bản cũ là một ternary lồng tô đúng hai mã (`active`, `pending_approval`);
+     * sáu mã còn lại rơi vào nhánh xám, nên "Đã hủy" và "Hoàn thành" cùng màu
+     * với "Nháp". Phép kiểm trên chỉ đọc CHỮ bên trong thẻ nên nó không thấy
+     * việc đó — màu nằm ở thuộc tính `class`.
+     */
+    public function test_bang_mau_trang_dau_phu_moi_trang_thai_campaign(): void
+    {
+        $nguon = file_get_contents(resource_path('views/buyer/dashboard/index.blade.php'));
+
+        $this->assertMatchesRegularExpression(
+            '/\$mauTrangThai\s*=\s*\[/',
+            $nguon,
+            'không còn bảng màu `$mauTrangThai` trong trang — nếu đã đổi cách viết thì sửa test cùng lượt',
+        );
+
+        preg_match('/\$mauTrangThai\s*=\s*\[(.*?)\];/s', $nguon, $khop);
+
+        $tenHang = collect((new ReflectionClass(Campaign::class))->getConstants())
+            ->filter(fn ($v, $k) => str_starts_with($k, 'STATUS_') && is_string($v))
+            ->flip();
+
+        foreach (array_keys(Campaign::STATUS_LABELS) as $ma) {
+            $this->assertMatchesRegularExpression(
+                '/Campaign::' . preg_quote($tenHang[$ma], '/') . '\b/',
+                $khop[1],
+                "bảng màu trang đầu thiếu `{$ma}` — nó sẽ rơi vào nhánh xám cùng với `draft`",
+            );
+        }
+    }
 }
