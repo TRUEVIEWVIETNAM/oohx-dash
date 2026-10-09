@@ -25,7 +25,7 @@ class CreativeResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = Creative::where('status', 'pending_review')->count();
+        $count = Creative::where('status', Creative::STATUS_PENDING_REVIEW)->count();
         return $count > 0 ? (string) $count : null;
     }
 
@@ -86,18 +86,17 @@ class CreativeResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->label('Trạng thái')
                     ->badge()
+                    // Chỉ MÀU ở đây. Chữ đến từ `Creative::STATUS_LABELS` —
+                    // màu là từ vựng riêng của Filament (`warning`/`danger`),
+                    // không chia sẻ được với CSS của khu người mua (`b-org`/
+                    // `b-red`), nhưng chữ thì phải là một bảng.
                     ->color(fn (string $state): string => match ($state) {
-                        'pending_review' => 'warning',
-                        'approved' => 'success',
-                        'rejected' => 'danger',
+                        Creative::STATUS_PENDING_REVIEW => 'warning',
+                        Creative::STATUS_APPROVED => 'success',
+                        Creative::STATUS_REJECTED => 'danger',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'pending_review' => 'Chờ duyệt',
-                        'approved' => 'Đã duyệt',
-                        'rejected' => 'Từ chối',
-                        default => $state,
-                    }),
+                    ->formatStateUsing(fn (string $state): string => Creative::STATUS_LABELS[$state] ?? $state),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Upload')
@@ -106,11 +105,7 @@ class CreativeResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
-                    ->options([
-                        'pending_review' => 'Chờ duyệt',
-                        'approved' => 'Đã duyệt',
-                        'rejected' => 'Từ chối',
-                    ]),
+                    ->options(Creative::STATUS_LABELS),
                 Tables\Filters\SelectFilter::make('type')
                     ->options([
                         'image' => 'Image',
@@ -126,7 +121,7 @@ class CreativeResource extends Resource
                         ->label('Duyệt')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn (Creative $r) => $r->status === 'pending_review')
+                        ->visible(fn (Creative $r) => $r->status === Creative::STATUS_PENDING_REVIEW)
                         ->requiresConfirmation()
                         ->action(function (Creative $record) {
                             // Đi qua CreativeGate chứ không update thẳng: duyệt
@@ -141,7 +136,7 @@ class CreativeResource extends Resource
                         ->label('Từ chối')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
-                        ->visible(fn (Creative $r) => $r->status === 'pending_review')
+                        ->visible(fn (Creative $r) => $r->status === Creative::STATUS_PENDING_REVIEW)
                         ->requiresConfirmation()
                         ->modalHeading('Từ chối creative?')
                         ->action(function (Creative $record) {

@@ -38,7 +38,7 @@ class CreativeService
 
             // Chưa duyệt. Nội dung tự lên sóng là chỗ nặng nhất có thể sai ở
             // một sàn quảng cáo ngoài trời, nên mặc định phải là đóng.
-            'status'          => 'pending_review',
+            'status'          => Creative::STATUS_PENDING_REVIEW,
         ]);
     }
 

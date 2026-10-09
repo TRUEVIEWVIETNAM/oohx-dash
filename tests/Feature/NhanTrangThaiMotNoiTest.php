@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Filament\Publisher\Resources\BookingInboxResource;
 use App\Models\BookingLine;
 use App\Models\Campaign;
+use App\Models\Creative;
 use App\Models\Organization;
 use App\Models\OrganizationUser;
 use App\Models\Owner;
@@ -247,5 +248,152 @@ class NhanTrangThaiMotNoiTest extends TestCase
         $daKhai = collect(BookingInboxResource::VISIBLE_STATUSES)->sort()->values()->all();
 
         $this->assertSame($daKhai, $raTruyVan);
+    }
+
+    // ── Enum thứ ba: nội dung quảng cáo ─────────────────────────────────────
+
+    /**
+     * Mọi giá trị trong enum `creatives.status` phải có chữ, và không có chữ dư.
+     *
+     * Đọc enum thẳng từ `information_schema` như hai enum kia — chép tay danh
+     * sách là lại thêm một bản chép nữa.
+     */
+    public function test_moi_trang_thai_creative_deu_co_chu(): void
+    {
+        $cot = \DB::selectOne(
+            'SELECT COLUMN_TYPE AS t FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+            ['creatives', 'status'],
+        );
+
+        $this->assertNotNull($cot, 'không đọc được enum của creatives.status');
+
+        preg_match_all("/'([^']+)'/", $cot->t, $khop);
+        $enum = $khop[1];
+
+        $this->assertNotEmpty($enum);
+
+        foreach ($enum as $ma) {
+            $this->assertArrayHasKey(
+                $ma,
+                Creative::STATUS_LABELS,
+                "Trạng thái nội dung \"{$ma}\" có trong enum CSDL nhưng không có chữ."
+            );
+            $this->assertNotSame($ma, Creative::STATUS_LABELS[$ma], "Chữ của \"{$ma}\" vẫn là chính nó.");
+        }
+
+        foreach (array_keys(Creative::STATUS_LABELS) as $ma) {
+            $this->assertContains($ma, $enum, "Chữ cho \"{$ma}\" nhưng enum CSDL không có mã đó.");
+        }
+    }
+
+    /**
+     * Mỗi hằng `STATUS_*` của `Creative` phải có chữ.
+     *
+     * Đối xứng với phép kiểm của `Campaign`: thêm một hằng mà quên chữ thì giao
+     * diện hiện mã tiếng Anh và không có gì đỏ.
+     */
+    public function test_moi_hang_status_cua_creative_deu_co_chu(): void
+    {
+        $hang = collect((new ReflectionClass(Creative::class))->getConstants())
+            ->filter(fn ($v, $k) => str_starts_with($k, 'STATUS_') && is_string($v))
+            ->values();
+
+        $this->assertCount(3, $hang, 'đổi số trạng thái thì sửa cả test này cùng lượt');
+
+        foreach ($hang as $ma) {
+            $this->assertArrayHasKey($ma, Creative::STATUS_LABELS, "Hằng \"{$ma}\" không có chữ.");
+        }
+    }
+
+    /**
+     * BA bảng chữ, và "Chờ duyệt" có ba mã khác nhau.
+     *
+     * Đây là lý do ba bảng không gộp được, nói bằng một phép kiểm: cùng một
+     * nghĩa cho người đọc — "đang chờ ai đó duyệt" — nhưng chiến dịch gọi là
+     * `pending_approval`, dòng đặt chỗ gọi là `pending`, nội dung quảng cáo gọi
+     * là `pending_review`. Gộp bảng thì đúng hai trong ba mã rơi ra ngoài và
+     * hiện nguyên văn tiếng Anh. Việc gộp hai bảng đầu đã gây đúng lỗi đó.
+     */
+    public function test_ba_bang_chu_la_ba_bang_rieng(): void
+    {
+        $choDuyet = [];
+
+        foreach ([Campaign::class, BookingLine::class, Creative::class] as $lop) {
+            $ma = array_keys($lop::STATUS_LABELS, 'Chờ duyệt', true);
+
+            $this->assertCount(1, $ma, "{$lop} phải có đúng một mã mang chữ \"Chờ duyệt\".");
+            $choDuyet[] = $ma[0];
+        }
+
+        $this->assertSame(['pending_approval', 'pending', 'pending_review'], $choDuyet);
+        $this->assertCount(3, array_unique($choDuyet), 'Ba mã phải khác nhau — nếu trùng thì gộp được.');
+    }
+
+    /**
+     * Trang tải nội dung của NGƯỜI MUA hiện chữ Việt cho cả ba trạng thái.
+     *
+     * Lỗi thật đang có trên production: biểu thức trên trang chỉ biết một mã,
+     *
+     *     {{ $c->status === 'pending_review' ? 'Chờ duyệt' : $c->status }}
+     *
+     * nên `approved` hiện ra `approved` và `rejected` hiện ra `rejected`. Bảng
+     * đầy đủ có ở Filament, nhưng người mua không bao giờ thấy Filament.
+     *
+     * Phép kiểm đọc chữ **bên trong từng thẻ** `.badge` chứ không `assertDontSee`
+     * cả trang: mã trạng thái còn xuất hiện ở tên class và ở nơi khác, nên một
+     * phép kiểm trên toàn trang sẽ đỏ vì lý do sai.
+     */
+    public function test_trang_tai_noi_dung_hien_chu_viet_cho_ca_ba_trang_thai(): void
+    {
+        $org  = Organization::factory()->create(['status' => 'active']);
+        $buyer = User::factory()->create(['current_organization_id' => $org->id]);
+        OrganizationUser::create([
+            'organization_id' => $org->id,
+            'user_id'         => $buyer->id,
+            'role'            => OrganizationUser::ROLE_ADMIN,
+        ]);
+
+        $campaign = Campaign::create([
+            'organization_id' => $org->id,
+            'created_by'      => $buyer->id,
+            'code'            => 'CPN-' . Str::random(8),
+            'name'            => 'CD nội dung',
+            'start_date'      => now()->addMonth(),
+            'end_date'        => now()->addMonths(2),
+            'status'          => Campaign::STATUS_DRAFT,
+        ]);
+
+        foreach (array_keys(Creative::STATUS_LABELS) as $trangThai) {
+            Creative::create([
+                'campaign_id'     => $campaign->id,
+                'organization_id' => $org->id,
+                'name'            => 'Nội dung ' . $trangThai,
+                'type'            => 'image',
+                'file_size'       => 102_400,
+                'status'          => $trangThai,
+            ]);
+        }
+
+        $html = $this->actingAs($buyer)
+            ->get('/booking/' . $campaign->id . '/creative')
+            ->assertOk()
+            ->getContent();
+
+        preg_match_all('/<span class="badge[^"]*"[^>]*>([^<]*)<\/span>/', $html, $khop);
+
+        $chuTrenThe = array_map('trim', $khop[1]);
+
+        $this->assertCount(3, $chuTrenThe, 'phải có đúng ba thẻ trạng thái, một cho mỗi nội dung');
+
+        sort($chuTrenThe);
+        $mongDoi = array_values(Creative::STATUS_LABELS);
+        sort($mongDoi);
+
+        $this->assertSame(
+            $mongDoi,
+            $chuTrenThe,
+            'Có thẻ trạng thái hiện mã nguyên văn tiếng Anh thay vì chữ Việt.',
+        );
     }
 }
