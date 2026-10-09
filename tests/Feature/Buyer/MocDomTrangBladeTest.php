@@ -127,6 +127,46 @@ class MocDomTrangBladeTest extends TestCase
         return $campaign;
     }
 
+    /**
+     * Chiến dịch **đang chạy** — trang báo cáo chỉ mở cho `active|paused|completed`.
+     *
+     * Dùng `Campaign::STATUS_*` và `BookingLine::STATUS_*` chứ không chuỗi rời:
+     * hai enum lệch nhau ở đúng một mã, và chép tay là cách để lệch thêm.
+     */
+    private function campaignDangChay(): Campaign
+    {
+        $owner = Owner::factory()->create([
+            'name'   => 'Owner báo cáo',
+            'slug'   => Str::slug('Owner báo cáo') . '-' . uniqid(),
+            'status' => 'active',
+        ]);
+
+        $campaign = Campaign::create([
+            'organization_id' => $this->org->id,
+            'created_by'      => $this->buyer->id,
+            'code'            => 'CPN-' . Str::random(8),
+            'name'            => 'Chiến dịch đang chạy',
+            'start_date'      => now()->subDays(3),
+            'end_date'        => now()->addDays(3),
+            'status'          => Campaign::STATUS_ACTIVE,
+        ]);
+
+        $site   = Site::factory()->create(['owner_id' => $owner->id]);
+        $screen = Screen::factory()->create(['owner_id' => $owner->id, 'site_id' => $site->id]);
+
+        BookingLine::create([
+            'campaign_id'    => $campaign->id,
+            'screen_id'      => $screen->id,
+            'owner_id'       => $owner->id,
+            'start_date'     => now()->subDays(3),
+            'end_date'       => now()->addDays(3),
+            'status'         => BookingLine::STATUS_ACTIVE,
+            'estimated_cost' => 10_000_000,
+        ]);
+
+        return $campaign;
+    }
+
     /** @return array<string, string> đường dẫn tệp blade → HTML đã render */
     private function htmlCuaCacTrang(): array
     {
@@ -155,6 +195,13 @@ class MocDomTrangBladeTest extends TestCase
 
             'resources/views/buyer/dashboard/index.blade.php' => $this->actingAs($this->buyer)
                 ->get($this->urlFrontpage('/my'))
+                ->assertOk()
+                ->getContent(),
+
+            // Báo cáo chỉ mở cho chiến dịch đang chạy / tạm dừng / hoàn thành,
+            // nên nó cần một chiến dịch khác với `campaignDaDuyet()`.
+            'resources/views/buyer/dashboard/report.blade.php' => $this->actingAs($this->buyer)
+                ->get($this->urlFrontpage('/my/campaigns/' . $this->campaignDangChay()->id . '/report'))
                 ->assertOk()
                 ->getContent(),
         ];

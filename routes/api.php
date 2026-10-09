@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V2\CartController as V2CartController;
 use App\Http\Controllers\Api\V2\CatalogController as V2CatalogController;
 use App\Http\Controllers\Api\V2\MeController;
 use App\Http\Controllers\Api\V2\PaymentController as V2PaymentController;
+use App\Http\Controllers\Api\V2\CampaignReportController as V2CampaignReportController;
 use App\Http\Controllers\Api\V2\PaymentRecipientController as V2PaymentRecipientController;
 use App\Http\Controllers\Api\V2\PublicContentController as V2PublicContentController;
 use App\Http\Controllers\Api\V1\InventoryController;
@@ -217,6 +218,9 @@ Route::prefix('v2')
 
         Route::post('campaigns/{campaign}/submit', [V2BookingController::class, 'submit'])
             ->middleware('throttle:10,1');
+
+        // Báo cáo phát sóng. Ba đoạn nên không đụng `campaigns/{campaign}`.
+        Route::get('campaigns/{campaign}/report', V2CampaignReportController::class);
 
         // ── Thanh toán (mốc 3) ────────────────────────────────────────────
         Route::get('campaigns/{campaign}/payments', [V2PaymentController::class, 'index']);
