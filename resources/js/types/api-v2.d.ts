@@ -2908,7 +2908,10 @@ export interface components {
             /** @enum {string} */
             currency?: "VND";
             amount?: number;
-            status?: string;
+            /** @enum {string} */
+            status?: "pending" | "processing" | "completed" | "failed" | "refunded";
+            /** @description Chữ tiếng Việt của `status`, từ `Payment::STATUS_LABELS`. Trước đây DTO chỉ trả mã, nên trang thanh toán giữ một bảng chữ viết tay trong JS — bản duy nhất của năm chữ đó. */
+            status_label?: string;
             transaction_ref?: string | null;
             invoice_number?: string | null;
             /** Format: date */

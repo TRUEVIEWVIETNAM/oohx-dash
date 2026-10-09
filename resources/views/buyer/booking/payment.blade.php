@@ -358,8 +358,11 @@
     function veLichSu(ds) {
         if (! ds || ! ds.length) { return ''; }
 
-        var mau  = { pending: 'b-org', processing: 'b-org', completed: 'b-grn', failed: 'b-red', refunded: 'b-gray' };
-        var nhan = { pending: 'Chờ xác nhận', processing: 'Đang xử lý', completed: 'Thành công', failed: 'Thất bại', refunded: 'Hoàn tiền' };
+        // Màu do client sở hữu. CHỮ thì không còn ở đây: nó đến từ máy chủ
+        // qua `status_label`, cùng bảng `Payment::STATUS_LABELS` mà khu quản
+        // trị dùng. Bảng chữ viết tay từng ở đúng chỗ này là bản DUY NHẤT của
+        // năm chữ đó, nên khu quản trị không có gì để tra và hiện mã thô.
+        var mau = { pending: 'b-org', processing: 'b-org', completed: 'b-grn', failed: 'b-red', refunded: 'b-gray' };
 
         var h = '<div class="wz-card" style="margin-top:16px">'
               + '<div class="wz-card-title">Lịch sử thanh toán</div><div class="pay-history">';
@@ -373,7 +376,7 @@
                + '<div style="font-size:11px;color:var(--t4)">' + chu(cach) + ' &middot; ' + chu(gio(p.created_at)) + '</div>'
                + '</div><div style="text-align:right">'
                + '<div style="font-weight:700;color:var(--t1)">' + tien(p.amount) + ' ₫</div>'
-               + '<span class="badge ' + (mau[p.status] || 'b-gray') + '" style="font-size:10px">' + chu(nhan[p.status] || p.status) + '</span>'
+               + '<span class="badge ' + (mau[p.status] || 'b-gray') + '" style="font-size:10px">' + chu(p.status_label || p.status) + '</span>'
                + '</div></div>';
         });
 

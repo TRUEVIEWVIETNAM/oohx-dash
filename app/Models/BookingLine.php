@@ -11,6 +11,20 @@ class BookingLine extends Model
 {
     use HasUlids;
 
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_APPROVED = 'approved';
+
+    public const STATUS_REJECTED = 'rejected';
+
+    public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_PAUSED = 'paused';
+
+    public const STATUS_COMPLETED = 'completed';
+
+    public const STATUS_CANCELLED = 'cancelled';
+
     /**
      * Chữ tiếng Việt cho trạng thái của **một dòng đặt chỗ** — một định nghĩa.
      *
@@ -26,13 +40,13 @@ class BookingLine extends Model
      * `create_booking_lines_table`.
      */
     public const STATUS_LABELS = [
-        'pending'   => 'Chờ duyệt',
-        'approved'  => 'Đã duyệt',
-        'rejected'  => 'Từ chối',
-        'active'    => 'Đang chạy',
-        'paused'    => 'Tạm dừng',
-        'completed' => 'Hoàn thành',
-        'cancelled' => 'Đã hủy',
+        self::STATUS_PENDING   => 'Chờ duyệt',
+        self::STATUS_APPROVED  => 'Đã duyệt',
+        self::STATUS_REJECTED  => 'Từ chối',
+        self::STATUS_ACTIVE    => 'Đang chạy',
+        self::STATUS_PAUSED    => 'Tạm dừng',
+        self::STATUS_COMPLETED => 'Hoàn thành',
+        self::STATUS_CANCELLED => 'Đã hủy',
     ];
 
     protected $fillable = [

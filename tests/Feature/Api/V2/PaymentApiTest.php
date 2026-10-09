@@ -475,6 +475,53 @@ class PaymentApiTest extends TestCase
      * gọi liên tiếp luôn ra một khoản, nên một test "chống trùng" chạy trên
      * trạng thái đang chờ sẽ xanh mà không chạm tới cơ chế mã lần nào.
      */
+    /**
+     * Mỗi khoản mang **chữ** đi cùng mã, cho cả năm trạng thái.
+     *
+     * ══ Lỗi ca này chống ══
+     *
+     * DTO trước đây chỉ trả `status`. Năm chữ tiếng Việt của enum đó tồn tại ở
+     * **đúng một chỗ** trong cả repo: một bảng viết tay trong JS của
+     * `buyer/booking/payment.blade.php`. Hệ quả là khối "Payments" ở trang xem
+     * chiến dịch của khu quản trị không có gì để tra và hiện thẳng `pending`,
+     * `completed`, `failed`.
+     *
+     * Nay chữ ở `Payment::STATUS_LABELS` và ra ngoài qua `status_label`.
+     */
+    public function test_moi_khoan_mang_chu_cua_trang_thai(): void
+    {
+        $owner    = $this->owner('Kim Ngân ADV');
+        $campaign = $this->campaign([$owner->id => 10_000_000]);
+
+        foreach (array_keys(Payment::STATUS_LABELS) as $ma) {
+            Payment::create([
+                'campaign_id'     => $campaign->id,
+                'organization_id' => $this->org->id,
+                'owner_id'        => $owner->id,
+                'amount'          => 1_000_000,
+                'currency'        => 'VND',
+                'method'          => 'bank_transfer',
+                'status'          => $ma,
+                'idempotency_key' => Str::random(16),
+            ]);
+        }
+
+        $ds = $this->actingAs($this->buyer)
+            ->getJson($this->url($campaign))
+            ->assertOk()
+            ->json('data.payments');
+
+        $this->assertCount(count(Payment::STATUS_LABELS), $ds);
+
+        foreach ($ds as $khoan) {
+            $this->assertSame(
+                Payment::STATUS_LABELS[$khoan['status']],
+                $khoan['status_label'],
+                "khoản trạng thái `{$khoan['status']}` không mang chữ đúng",
+            );
+        }
+    }
+
     public function test_khoan_dang_cho_cua_cung_owner_duoc_dung_lai(): void
     {
         $owner    = $this->owner('Kim Ngân ADV');

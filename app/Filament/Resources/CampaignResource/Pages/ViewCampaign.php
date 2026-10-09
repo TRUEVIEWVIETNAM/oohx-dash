@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\CampaignResource\Pages;
 
 use App\Filament\Resources\CampaignResource;
+use App\Models\BookingLine;
 use App\Models\Campaign;
+use App\Models\Payment;
 use App\Services\Booking\CancellationService;
 use App\Services\PaymentService;
 use Filament\Actions;
@@ -31,10 +33,16 @@ class ViewCampaign extends ViewRecord
                             ->label('Trạng thái')
                             ->badge()
                             ->color(fn (string $state): string => match ($state) {
-                                'draft' => 'gray', 'pending_approval' => 'warning',
-                                'approved' => 'info', 'active' => 'success',
-                                'rejected' => 'danger', default => 'gray',
-                            }),
+                                Campaign::STATUS_DRAFT => 'gray',
+                                Campaign::STATUS_PENDING => 'warning',
+                                Campaign::STATUS_APPROVED => 'info',
+                                Campaign::STATUS_ACTIVE => 'success',
+                                Campaign::STATUS_PAUSED => 'warning',
+                                Campaign::STATUS_REJECTED,
+                                Campaign::STATUS_CANCELLED => 'danger',
+                                default => 'gray',
+                            })
+                            ->formatStateUsing(fn (string $state): string => Campaign::STATUS_LABELS[$state] ?? $state),
                     ]),
                     Infolists\Components\Grid::make(3)->schema([
                         Infolists\Components\TextEntry::make('organization.name')->label('Tổ chức'),
@@ -61,12 +69,22 @@ class ViewCampaign extends ViewRecord
                                 Infolists\Components\TextEntry::make('start_date')->label('Từ')->date('d/m'),
                                 Infolists\Components\TextEntry::make('end_date')->label('Đến')->date('d/m'),
                                 Infolists\Components\TextEntry::make('estimated_cost')->label('Chi phí')->money('VND'),
+                                // `BookingLine::`, KHÔNG `Campaign::` — dòng đặt
+                                // chỗ dùng `pending`, chiến dịch dùng
+                                // `pending_approval`. Dùng một bảng cho cả hai
+                                // là đúng lỗi đã làm dòng `pending` hiện ra
+                                // nguyên văn tiếng Anh (xem PR #41).
                                 Infolists\Components\TextEntry::make('status')->label('Trạng thái')->badge()
                                     ->color(fn (string $state): string => match ($state) {
-                                        'pending' => 'warning', 'approved' => 'info',
-                                        'active' => 'success', 'rejected' => 'danger',
+                                        BookingLine::STATUS_PENDING => 'warning',
+                                        BookingLine::STATUS_APPROVED => 'info',
+                                        BookingLine::STATUS_ACTIVE => 'success',
+                                        BookingLine::STATUS_PAUSED => 'warning',
+                                        BookingLine::STATUS_REJECTED,
+                                        BookingLine::STATUS_CANCELLED => 'danger',
                                         default => 'gray',
-                                    }),
+                                    })
+                                    ->formatStateUsing(fn (string $state): string => BookingLine::STATUS_LABELS[$state] ?? $state),
                             ]),
                         ]),
                 ])
@@ -89,9 +107,13 @@ class ViewCampaign extends ViewRecord
                                     }),
                                 Infolists\Components\TextEntry::make('status')->label('Trạng thái')->badge()
                                     ->color(fn (string $state): string => match ($state) {
-                                        'pending' => 'warning', 'completed' => 'success',
-                                        'failed' => 'danger', default => 'gray',
-                                    }),
+                                        Payment::STATUS_PENDING,
+                                        Payment::STATUS_PROCESSING => 'warning',
+                                        Payment::STATUS_COMPLETED => 'success',
+                                        Payment::STATUS_FAILED => 'danger',
+                                        default => 'gray',
+                                    })
+                                    ->formatStateUsing(fn (string $state): string => Payment::STATUS_LABELS[$state] ?? $state),
                                 Infolists\Components\TextEntry::make('paid_at')->label('Thanh toán lúc')->dateTime('d/m/Y H:i')->default('—'),
                             ]),
                         ]),

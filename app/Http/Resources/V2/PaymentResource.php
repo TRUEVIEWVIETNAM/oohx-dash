@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V2;
 
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -45,6 +46,11 @@ class PaymentResource extends JsonResource
             'currency' => $this->currency ?? 'VND',
             'amount'   => (int) round((float) $this->amount),
             'status'   => $this->status,
+
+            // Chữ đi cùng mã. Trước đây DTO chỉ trả mã, nên trang thanh toán
+            // giữ một bảng chữ viết tay trong JS — bản duy nhất của năm chữ
+            // đó, và khu quản trị thì hiện mã thô vì không có bảng nào để tra.
+            'status_label' => Payment::STATUS_LABELS[$this->status] ?? $this->status,
 
             // Mã do người mua tự ghi khi chuyển khoản — của họ, nên trả lại.
             'transaction_ref' => $this->transaction_ref,
