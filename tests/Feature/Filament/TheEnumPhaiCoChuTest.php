@@ -58,20 +58,11 @@ class TheEnumPhaiCoChuTest extends TestCase
      * Sửa được thì sửa rồi gạch khỏi đây.
      */
     private const DANG_THIEU = [
-        // Hộp thư đặt chỗ của media owner — trạng thái chiến dịch và dòng đặt
-        // chỗ đã có bảng chữ, nên hai chỗ này sửa được bất cứ lúc nào.
-        'app/Filament/Publisher/Resources/BookingInboxResource/Pages/ViewBookingInbox.php::status' => 2,
-        'app/Filament/Publisher/Resources/BookingInboxResource/Pages/ViewBookingInbox.php::type' => 1,
-
         // Sản phẩm: `type`, `status`, `listing_mode` chưa có bảng chữ nào.
         'app/Filament/Publisher/Resources/ProductResource.php::type' => 1,
         'app/Filament/Publisher/Resources/ProductResource.php::status' => 1,
         'app/Filament/Resources/ProductResource.php::type' => 1,
         'app/Filament/Resources/ProductResource.php::status' => 1,
-
-        // Trang xem chiến dịch: cột chính đã có chữ; ba chỗ này là trạng thái
-        // của dòng đặt chỗ và của nội dung trong các khối con.
-        'app/Filament/Resources/CampaignResource/Pages/ViewCampaign.php::status' => 3,
 
         // Trạng thái VẬN HÀNH nội bộ. Chữ tiếng Việt cho chúng là một quyết
         // định nghiệp vụ: người đọc là người vận hành, và mã thô có thể đúng là

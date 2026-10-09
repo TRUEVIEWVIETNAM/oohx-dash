@@ -3,7 +3,9 @@
 namespace App\Filament\Publisher\Resources\BookingInboxResource\Pages;
 
 use App\Filament\Publisher\Resources\BookingInboxResource;
+use App\Models\BookingLine;
 use App\Models\Campaign;
+use App\Models\Creative;
 use App\Services\CampaignService;
 use App\Services\TenantPermission;
 use Filament\Actions;
@@ -79,12 +81,21 @@ class ViewBookingInbox extends ViewRecord
                                 Infolists\Components\TextEntry::make('status')
                                     ->label('Trạng thái')
                                     ->badge()
+                                    // Bảy mã, không ba. Bản cũ tô `pending`,
+                                    // `approved`, `rejected` và để bốn mã còn
+                                    // lại rơi vào xám — nên một dòng ĐANG CHẠY
+                                    // trông giống một dòng ĐÃ HỦY trong hộp thư
+                                    // của chính media owner.
                                     ->color(fn (string $state): string => match ($state) {
-                                        'pending' => 'warning',
-                                        'approved' => 'success',
-                                        'rejected' => 'danger',
+                                        BookingLine::STATUS_PENDING => 'warning',
+                                        BookingLine::STATUS_APPROVED => 'info',
+                                        BookingLine::STATUS_ACTIVE => 'success',
+                                        BookingLine::STATUS_PAUSED => 'warning',
+                                        BookingLine::STATUS_REJECTED,
+                                        BookingLine::STATUS_CANCELLED => 'danger',
                                         default => 'gray',
-                                    }),
+                                    })
+                                    ->formatStateUsing(fn (string $state): string => BookingLine::STATUS_LABELS[$state] ?? $state),
                             ]),
                         ])
                         ->getStateUsing(function (Campaign $record) use ($ownerId) {
@@ -103,15 +114,20 @@ class ViewBookingInbox extends ViewRecord
                         ->schema([
                             Infolists\Components\Grid::make(3)->schema([
                                 Infolists\Components\TextEntry::make('name')->label('Tên'),
-                                Infolists\Components\TextEntry::make('type')->label('Loại')->badge(),
+                                Infolists\Components\TextEntry::make('type')->label('Loại')
+                                    ->badge()
+                                    // Thiếu dòng này thì `vast_tag` hiện thẳng
+                                    // ra — xem `Creative::TYPE_LABELS` (#48).
+                                    ->formatStateUsing(fn (string $state): string => Creative::TYPE_LABELS[$state] ?? $state),
                                 Infolists\Components\TextEntry::make('status')
                                     ->label('Trạng thái')
                                     ->badge()
                                     ->color(fn (string $state): string => match ($state) {
-                                        'approved' => 'success',
-                                        'rejected' => 'danger',
+                                        Creative::STATUS_APPROVED => 'success',
+                                        Creative::STATUS_REJECTED => 'danger',
                                         default => 'warning',
-                                    }),
+                                    })
+                                    ->formatStateUsing(fn (string $state): string => Creative::STATUS_LABELS[$state] ?? $state),
                             ]),
                         ]),
                 ])

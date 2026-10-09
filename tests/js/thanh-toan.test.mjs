@@ -443,6 +443,7 @@ test('thời điểm tạo khoản hiện theo giờ Việt Nam, ngày trước 
                 currency: 'VND',
                 amount: 10_800_000,
                 status: 'pending',
+                status_label: 'Chờ xác nhận',
                 transaction_ref: 'TXN-1',
                 invoice_number: 'HD-001',
                 created_at: '2026-10-08T02:11:14.000000Z',
@@ -460,6 +461,46 @@ test('thời điểm tạo khoản hiện theo giờ Việt Nam, ngày trước 
 
     assert.match(chu, /HD-001/);
     assert.match(chu, /Chờ xác nhận/);
+});
+
+/**
+ * Nhãn trạng thái khoản tiền đến từ **máy chủ**, trang không dịch.
+ *
+ * Trang này từng giữ bảng chữ của riêng nó:
+ *
+ *     var nhan = { pending: 'Chờ xác nhận', processing: 'Đang xử lý', … };
+ *
+ * Và đó là bản **duy nhất** của năm chữ đó trong cả repo — DTO `/api/v2` chỉ
+ * trả mã, nên khối "Payments" ở trang xem chiến dịch của khu quản trị không có
+ * gì để tra và hiện thẳng `pending` / `completed` / `failed`.
+ *
+ * Nay chữ ở `Payment::STATUS_LABELS` và đi ra qua `status_label`. Ca này dùng
+ * một chữ **không** có trong bảng cũ, nên nó đỏ nếu bảng kia quay lại.
+ */
+test('nhãn trạng thái khoản tiền lấy từ máy chủ, không dịch ở trang', async () => {
+    const { tai } = dungTrang(TRANG, {
+        cauHinh: CAU_HINH,
+        traLoi: duLieuDay({
+            payments: [{
+                id: 'pay-1',
+                owner: { id: 'own-a', name: 'Kim Ngân ADV' },
+                method: 'bank_transfer',
+                currency: 'VND',
+                amount: 10_800_000,
+                status: 'pending',
+                status_label: 'NHÃN TỪ MÁY CHỦ',
+                invoice_number: 'HD-001',
+                created_at: '2026-10-08T02:11:14.000000Z',
+            }],
+        }),
+    });
+
+    await choVeXong();
+
+    const chu = chuCua(tai, 'data-pay-main');
+
+    assert.match(chu, /NHÃN TỪ MÁY CHỦ/);
+    assert.doesNotMatch(chu, /Chờ xác nhận/, 'trang không được tự dịch mã trạng thái');
 });
 
 // ── Thanh bên ───────────────────────────────────────────────────────────────

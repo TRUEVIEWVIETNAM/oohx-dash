@@ -2335,7 +2335,11 @@ components:
         method:          { type: string, enum: [bank_transfer] }
         currency:        { type: string, enum: [VND] }
         amount:          { type: integer }
-        status:          { type: string }
+        # Năm giá trị, theo enum của `create_payments_table`. Đặc tả trước đây
+        # khai `status` là `string` không enum, nên TypeScript sinh ra từ đây
+        # không nói được bên tiêu thụ phải xử những mã nào.
+        status:          { type: string, enum: [pending, processing, completed, failed, refunded] }
+        status_label:    { type: string, description: 'Chữ tiếng Việt của `status`, từ `Payment::STATUS_LABELS`. Trước đây DTO chỉ trả mã, nên trang thanh toán giữ một bảng chữ viết tay trong JS — bản duy nhất của năm chữ đó.' }
         transaction_ref: { type: string, nullable: true }
         invoice_number:  { type: string, nullable: true }
         due_date:        { type: string, format: date, nullable: true }

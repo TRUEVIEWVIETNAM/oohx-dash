@@ -10,6 +10,44 @@ class Payment extends Model
 {
     use HasUlids;
 
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_PROCESSING = 'processing';
+
+    public const STATUS_COMPLETED = 'completed';
+
+    public const STATUS_FAILED = 'failed';
+
+    public const STATUS_REFUNDED = 'refunded';
+
+    /**
+     * Chữ tiếng Việt cho trạng thái khoản thanh toán — **một định nghĩa**.
+     *
+     * ══ Chữ này KHÔNG mới ══
+     *
+     * Năm chữ dưới đây lấy nguyên từ `buyer/booking/payment.blade.php`, nơi
+     * chúng đang là một bảng viết tay **trong JS**:
+     *
+     *     var nhan = { pending: 'Chờ xác nhận', processing: 'Đang xử lý', … };
+     *
+     * Nên đây không phải một lần dịch mà là một lần **gom**: bảng đó là bản
+     * duy nhất, DTO `/api/v2` không mang chữ, và khối "Payments" ở trang xem
+     * chiến dịch của khu quản trị có `->badge()` + màu mà không có nhãn — nên
+     * nó hiện thẳng `pending` / `completed` / `failed`.
+     *
+     * Đúng hình dạng đã làm chữ trạng thái chiến dịch trôi thành năm bản chép:
+     * một bản ở client, một chỗ hiện mã thô, và không ai biết bản nào đúng.
+     *
+     * Enum lấy từ `create_payments_table`: năm mã, mặc định `pending`.
+     */
+    public const STATUS_LABELS = [
+        self::STATUS_PENDING    => 'Chờ xác nhận',
+        self::STATUS_PROCESSING => 'Đang xử lý',
+        self::STATUS_COMPLETED  => 'Thành công',
+        self::STATUS_FAILED     => 'Thất bại',
+        self::STATUS_REFUNDED   => 'Hoàn tiền',
+    ];
+
     protected $fillable = [
         'campaign_id', 'organization_id', 'owner_id',
         'amount', 'currency', 'method',
