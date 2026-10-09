@@ -81,6 +81,55 @@ class CampaignPolicy
         return $this->allows($user, $campaign, 'upload_creative');
     }
 
+    /**
+     * Xem báo cáo phát sóng của chiến dịch.
+     *
+     * ══ Lỗ hổng quyền này đóng ══
+     *
+     * `BuyerReportController` trước đây tự so:
+     *
+     *     $campaign->organization_id === $request->user()->current_organization_id
+     *
+     * Cột đó client đổi được (có bộ chuyển tổ chức) và **không ai dọn** khi một
+     * người bị gỡ khỏi tổ chức — nên người đã bị cho ra khỏi nhóm vẫn đọc được
+     * báo cáo phát sóng của tổ chức ấy, và một tổ chức đã bị tạm ngưng cũng
+     * vậy. Đúng khe mà `listForUser()` đóng cho `/my/campaigns` ở PR #40 và
+     * `tuCachXemChienDich()` đóng cho trang đầu ở #46.
+     *
+     * Dùng `view_reports` chứ không `view_campaigns`: cả ba vai trò đều có cả
+     * hai, nên không vai trò nào đổi quyền hôm nay — nhưng đọc đúng quyền thì
+     * một vai trò thứ tư chỉ-xem-chiến-dịch sẽ không lặng lẽ có luôn báo cáo.
+     */
+    public function viewReports(User $user, Campaign $campaign): bool
+    {
+        return $this->allows($user, $campaign, 'view_reports');
+    }
+
+    /**
+     * Đánh giá media owner sau chiến dịch.
+     *
+     * ══ Cùng khe, cùng cách đóng ══
+     *
+     * `OwnerReviewController::store` cũng so `organization_id ===
+     * current_organization_id`, và đây là đường **GHI** — nó phát ra một nhận
+     * xét công khai về đối tác, đứng tên tổ chức người mua.
+     *
+     * ══ Vì sao `view_campaigns`, không phải một quyền chặt hơn ══
+     *
+     * Bộ quyền hiện có không có mục nào cho việc đánh giá. Chọn
+     * `submit_booking` thì vai trò `viewer` mất quyền đang có — tức PR này
+     * lặng lẽ phân phối lại quyền, trong khi việc của nó là đóng một lỗ hổng.
+     *
+     * Nên quyền này chọn mức làm **đúng một việc**: đòi tư cách thành viên còn
+     * hiệu lực, không đổi gì cho ba vai trò đang có. Câu hỏi "vai trò chỉ xem
+     * có nên đánh giá đối tác không" là một quyết định nghiệp vụ, và nó cần
+     * được hỏi riêng chứ không trả lời kèm.
+     */
+    public function review(User $user, Campaign $campaign): bool
+    {
+        return $this->allows($user, $campaign, 'view_campaigns');
+    }
+
     private function allows(User $user, Campaign $campaign, string $permission): bool
     {
         // Quản trị sàn xem được mọi chiến dịch, nhưng **không** tiêu tiền thay
