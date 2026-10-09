@@ -50,6 +50,31 @@
             <a href="{{ url('/explore') }}" class="btn btn-p btn-sm">Khám phá Inventory</a>
         </div>
         @else
+        @php
+            // Chữ từ mô hình, màu ở đây.
+            //
+            // Trước đây chỗ này in `{{ $c->status }}` nguyên văn — tám mã
+            // trạng thái chiến dịch ra tiếng Anh (`draft`, `pending_approval`,
+            // `completed`…) ngay trên trang người mua thấy đầu tiên sau khi
+            // đăng nhập. Hai trang chiến dịch kia đã đi qua bảng chữ từ PR #41;
+            // trang này bị bỏ lại vì nó dựng bằng Blade, không đọc API.
+            //
+            // Bảng màu giống `MAU` ở `buyer/dashboard/campaigns.blade.php` —
+            // đủ tám mã. Bản cũ chỉ tô hai mã (`active`, `pending_approval`),
+            // sáu mã còn lại rơi vào nhánh xám: "Đã hủy" và "Hoàn thành" cùng
+            // một màu với "Nháp".
+            $nhanTrangThai = \App\Models\Campaign::STATUS_LABELS;
+            $mauTrangThai  = [
+                \App\Models\Campaign::STATUS_DRAFT     => 'b-gray',
+                \App\Models\Campaign::STATUS_PENDING   => 'b-org',
+                \App\Models\Campaign::STATUS_APPROVED  => 'b-bl',
+                \App\Models\Campaign::STATUS_REJECTED  => 'b-red',
+                \App\Models\Campaign::STATUS_ACTIVE    => 'b-grn',
+                \App\Models\Campaign::STATUS_PAUSED    => 'b-org',
+                \App\Models\Campaign::STATUS_COMPLETED => 'b-gray',
+                \App\Models\Campaign::STATUS_CANCELLED => 'b-red',
+            ];
+        @endphp
         <div class="buyer-campaign-list">
             @foreach($recentCampaigns as $c)
             <div class="buyer-campaign-row">
@@ -57,7 +82,7 @@
                     <div style="font-size:14px;font-weight:700;color:var(--t1)">{{ $c->name }}</div>
                     <div style="font-size:12px;color:var(--t4);margin-top:2px">{{ $c->code }} &middot; {{ $c->start_date->format('d/m/Y') }} → {{ $c->end_date->format('d/m/Y') }}</div>
                 </div>
-                <span class="badge {{ $c->status === 'active' ? 'b-grn' : ($c->status === 'pending_approval' ? 'b-org' : 'b-gray') }}">{{ $c->status }}</span>
+                <span class="badge {{ $mauTrangThai[$c->status] ?? 'b-gray' }}">{{ $nhanTrangThai[$c->status] ?? $c->status }}</span>
             </div>
             @endforeach
         </div>
