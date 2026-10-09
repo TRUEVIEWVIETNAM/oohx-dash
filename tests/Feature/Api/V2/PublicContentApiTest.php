@@ -108,6 +108,74 @@ class PublicContentApiTest extends TestCase
         }
     }
 
+    /**
+     * Nhánh **chưa ban hành** của cờ `is_effective`, dựng bằng config tạm.
+     *
+     * ══ Vì sao cần ca riêng này ══
+     *
+     * Ngày 09/10/2026 cả bốn trang chính sách được ban hành, nên
+     * `effective_from` không còn rỗng ở đâu. Ca ở trên vẫn xanh — nhưng từ đó
+     * nó chỉ còn chạy nhánh `true`, và cờ này tồn tại **chính vì** nhánh
+     * `false`: trang Next hiện ô cảnh báo "bản nháp, chưa có hiệu lực" dựa vào
+     * nó, và hiện một bản nháp như văn bản đã có hiệu lực là nói sai với người
+     * đọc.
+     *
+     * Tức việc ban hành làm mất một nhánh test mà không ca nào đỏ. Ca này bù
+     * lại bằng cách tự dựng một trang chưa ban hành trong config, nên nó không
+     * phụ thuộc việc có hay không một bản nháp thật.
+     */
+    public function test_trang_chua_ban_hanh_thi_is_effective_bang_false(): void
+    {
+        config()->set('policies.pages.thu-nghiem-nhap', [
+            'key'            => 'thu_nghiem_nhap',
+            'title'          => 'Văn bản thử nghiệm',
+            'body'           => 'frontpage.policies.bodies.terms',
+            'version'        => '0.1-draft',
+            'effective_from' => null,
+        ]);
+
+        Cache::flush();
+
+        $than = collect($this->getJson('/api/v2/policies')->assertOk()->json('data'))
+            ->firstWhere('slug', 'thu-nghiem-nhap');
+
+        $this->assertNotNull($than, 'trang thử nghiệm không ra danh sách');
+        $this->assertNull($than['effective_from']);
+        $this->assertFalse($than['is_effective'], 'trang chưa ban hành phải báo is_effective = false');
+
+        Cache::flush();
+
+        $this->getJson('/api/v2/policies/thu-nghiem-nhap')
+            ->assertOk()
+            ->assertJsonPath('data.is_effective', false)
+            ->assertJsonPath('data.effective_from', null);
+    }
+
+    /**
+     * Ba văn bản ban hành 09/10/2026 **không** được lặng lẽ quay về nháp.
+     *
+     * Đây là một tuyên bố pháp lý trên một sàn đang nộp hồ sơ TMĐT: gỡ
+     * `effective_from` là rút hiệu lực của một văn bản đã công bố, và việc đó
+     * phải là một quyết định được nhìn thấy, không phải một lần sửa config
+     * trôi qua review.
+     */
+    public function test_bon_trang_chinh_sach_deu_da_ban_hanh(): void
+    {
+        foreach ($this->slugChinhSach() as $slug) {
+            $this->assertNotEmpty(
+                config("policies.pages.{$slug}.effective_from"),
+                "Trang {$slug} không còn ngày hiệu lực — rút hiệu lực một văn bản "
+                . 'đã công bố là một quyết định, không phải một lần sửa config.',
+            );
+
+            $this->assertStringNotContainsString(
+                'draft',
+                (string) config("policies.pages.{$slug}.version"),
+                "Trang {$slug} có ngày hiệu lực nhưng phiên bản vẫn mang hậu tố draft.",
+            );
+        }
+    }
+
     // ── Chi tiết một trang chính sách: thân văn bản ─────────────────────────
 
     /**
