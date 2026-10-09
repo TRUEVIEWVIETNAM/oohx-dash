@@ -197,6 +197,56 @@ class NhanEnumMotNoiTest extends TestCase
      * `video` là `Video`. Nhưng dấu gạch dưới là dấu của một mã CSDL — không
      * từ tiếng Việt nào có nó.
      */
+    /**
+     * Nhãn không được là chính mã đó **viết hoa chữ đầu**.
+     *
+     * ══ Khoảng trống phép kiểm này đóng ══
+     *
+     * Phép kiểm dấu gạch dưới ở dưới bắt `VAST_TAG`, nhưng **không** bắt
+     * `'admin' => 'Admin'`. Tôi phát hiện bằng đột biến: đổi chữ của vai trò
+     * `admin` về "Admin" thì cả bốn ca kia vẫn xanh — mà đó đúng là hình dạng
+     * của lỗi vừa sửa ở `OrganizationUser::ROLES` ("Admin", "Planner",
+     * "Viewer") và `Organization::TYPE_LABELS` (`ucfirst($org->type)`).
+     *
+     * ══ Một ngoại lệ, và chỉ một ══
+     *
+     * `Creative::TYPE_LABELS['video'] === 'Video'`, và đó là **đúng**: "Video"
+     * là từ tiếng Việt đã dùng, không phải một mã chưa dịch. Nên nó được khai
+     * ra ở đây thay vì làm phép kiểm lỏng đi.
+     *
+     * Ba nhãn trông giống mã mà **không** bị bắt, vì `ucfirst` cho ra chuỗi
+     * khác: `HTML5` (`Html5`), `VNPAY` (`Vnpay`), `MoMo` (`Momo`). Cả ba là
+     * tên riêng viết theo cách chủ sở hữu viết — hướng sai này an toàn.
+     */
+    public function test_nhan_khong_phai_ma_viet_hoa_chu_dau(): void
+    {
+        $choPhep = [
+            'App\Models\Creative::type.video' => 'Video',
+        ];
+
+        $xau = [];
+
+        foreach ($this->moiBangChu() as $m) {
+            foreach ($m['nhan'] as $ma => $chu) {
+                $khoa = "{$m['lop']}::{$m['cot']}.{$ma}";
+
+                if (($choPhep[$khoa] ?? null) === $chu) {
+                    continue;
+                }
+
+                if (is_string($chu) && $chu === ucfirst($ma)) {
+                    $xau[] = "{$khoa} = '{$chu}' — vẫn là mã viết hoa chữ đầu";
+                }
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $xau,
+            "Nhãn sau chưa được dịch:\n  " . implode("\n  ", $xau),
+        );
+    }
+
     public function test_khong_nhan_nao_la_mot_ma_csdl(): void
     {
         $xau = [];
