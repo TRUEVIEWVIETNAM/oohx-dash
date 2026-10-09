@@ -64,6 +64,7 @@
                     // từ chối → đỏ. Bản cũ cho `rejected` màu xám, cùng màu với
                     // `pending_review` — hai nghĩa khác nhau một màu.
                     $nhanTrangThai = \App\Models\Creative::STATUS_LABELS;
+                    $nhanLoai      = \App\Models\Creative::TYPE_LABELS;
                     $mauTrangThai  = [
                         \App\Models\Creative::STATUS_PENDING_REVIEW => 'b-org',
                         \App\Models\Creative::STATUS_APPROVED       => 'b-grn',
@@ -74,7 +75,7 @@
                     @foreach($creatives as $c)
                     <div class="wz-creative-item">
                         <div class="wz-creative-thumb">
-                            @if($c->type === 'image')
+                            @if($c->type === \App\Models\Creative::TYPE_IMAGE)
                             <img src="{{ $c->file_url }}" alt="{{ $c->name }}">
                             @else
                             <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:var(--bg2)">
@@ -84,7 +85,8 @@
                         </div>
                         <div class="wz-creative-info">
                             <div style="font-weight:600;color:var(--t1)">{{ $c->name }}</div>
-                            <div style="font-size:11px;color:var(--t4)">{{ strtoupper($c->type) }} &middot; {{ number_format($c->file_size / 1024) }} KB</div>
+                            {{-- Chữ từ bảng, không `strtoupper`: `vast_tag` ra `VAST_TAG`. --}}
+                            <div style="font-size:11px;color:var(--t4)">{{ $nhanLoai[$c->type] ?? $c->type }} &middot; {{ number_format($c->file_size / 1024) }} KB</div>
                         </div>
                         <span class="badge {{ $mauTrangThai[$c->status] ?? 'b-gray' }}" style="font-size:10px">{{ $nhanTrangThai[$c->status] ?? $c->status }}</span>
                     </div>

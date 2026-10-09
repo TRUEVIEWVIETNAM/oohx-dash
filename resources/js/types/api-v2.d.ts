@@ -2677,6 +2677,8 @@ export interface components {
             name?: string | null;
             /** @enum {string} */
             type?: "image" | "video" | "html5" | "vast_tag";
+            /** @description Chữ tiếng Việt của `type`, từ `Creative::TYPE_LABELS`. Có vì `vast_tag` là mã có dấu gạch dưới — bên tiêu thụ tự dịch sẽ tự quyết cách viết. */
+            type_label?: string;
             dimensions?: {
                 width_px?: number | null;
                 height_px?: number | null;

@@ -67,13 +67,18 @@ class CreativeResource extends Resource
                 Tables\Columns\TextColumn::make('type')
                     ->label('Loại')
                     ->badge()
+                    // Chỉ MÀU ở đây; chữ đến từ `Creative::TYPE_LABELS`.
+                    //
+                    // Thiếu `formatStateUsing` thì thẻ có màu mà không có chữ,
+                    // nên Filament in thẳng giá trị cột — `vast_tag`.
                     ->color(fn (string $state): string => match ($state) {
-                        'image' => 'info',
-                        'video' => 'success',
-                        'html5' => 'warning',
-                        'vast_tag' => 'gray',
+                        Creative::TYPE_IMAGE => 'info',
+                        Creative::TYPE_VIDEO => 'success',
+                        Creative::TYPE_HTML5 => 'warning',
+                        Creative::TYPE_VAST_TAG => 'gray',
                         default => 'gray',
-                    }),
+                    })
+                    ->formatStateUsing(fn (string $state): string => Creative::TYPE_LABELS[$state] ?? $state),
 
                 Tables\Columns\TextColumn::make('dimensions')
                     ->label('Kích thước')
@@ -107,12 +112,7 @@ class CreativeResource extends Resource
                 Tables\Filters\SelectFilter::make('status')
                     ->options(Creative::STATUS_LABELS),
                 Tables\Filters\SelectFilter::make('type')
-                    ->options([
-                        'image' => 'Image',
-                        'video' => 'Video',
-                        'html5' => 'HTML5',
-                        'vast_tag' => 'VAST Tag',
-                    ]),
+                    ->options(Creative::TYPE_LABELS),
             ])
             ->defaultSort('created_at', 'desc')
             ->actions([

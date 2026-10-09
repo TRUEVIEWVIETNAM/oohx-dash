@@ -52,6 +52,8 @@ class CreativeService
      */
     private function type(UploadedFile $file): string
     {
-        return str_starts_with((string) $file->getMimeType(), 'video/') ? 'video' : 'image';
+        return str_starts_with((string) $file->getMimeType(), 'video/')
+            ? Creative::TYPE_VIDEO
+            : Creative::TYPE_IMAGE;
     }
 }
