@@ -147,13 +147,17 @@ class NhanEnumMotNoiTest extends TestCase
      * model, không bỏ canh.
      */
     private const COT_KHONG_PHAI_ENUM = [
-        // `varchar(255)`. Máy trạng thái của trình nhập Excel, bảy bước, do mã
-        // của dự án ghi — không có migration nào ràng buộc nó.
-        'screen_imports.status' => 'App\Models\ScreenImport',
-
         // `varchar(32)`. Tên ba dịch vụ POI bên ngoài; thêm một nguồn là sửa mã,
         // không phải sửa enum.
         'poi_snapshots.source'  => 'App\Models\PoiSnapshot',
+
+        // `screen_imports.status` đã gạch khỏi đây 10/10/2026: migration
+        // `2026_10_10_000002` siết nó từ `varchar(255)` sang enum bảy giá trị,
+        // nên nó quay về phép kiểm chuẩn ở trên.
+        //
+        // Và chính `test_khong_co_ngoai_le_chet` ngay dưới đã bắt tôi gạch:
+        // migration vào trước, danh sách này chưa sửa, test đỏ với đúng một câu
+        // "giờ ĐÃ là enum". Đó là chiều mà một chốt một-chiều sẽ bỏ qua.
     ];
 
     public function test_moi_cot_co_bang_chu_deu_la_enum_doc_duoc(): void

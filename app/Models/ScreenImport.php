@@ -66,6 +66,38 @@ class ScreenImport extends Model
         self::STATUS_CANCELLED => 'Đã huỷ',
     ];
 
+    /**
+     * Chưa ghi dòng nào — còn sửa được bảng ghép cột.
+     *
+     * Bốn chỗ trong `ViewScreenImport` và `ScreenImportService` viết tay đúng
+     * tập `['uploaded', 'mapping', 'previewed']`. Bốn bản chép của cùng một ý:
+     * thêm một bước vào máy trạng thái là phải sửa cả bốn, và chỗ bị sót sẽ ẩn
+     * một cái nút thay vì vỡ ồn ào.
+     */
+    public const EDITABLE_STATUSES = [
+        self::STATUS_UPLOADED,
+        self::STATUS_MAPPING,
+        self::STATUS_PREVIEWED,
+    ];
+
+    /** Đã ghi (hoặc đang ghi) dòng vào kho — có kết quả để xem. */
+    public const STARTED_STATUSES = [
+        self::STATUS_IMPORTING,
+        self::STATUS_DONE,
+    ];
+
+    /**
+     * Đã chạy xong và có báo cáo lỗi để đọc.
+     *
+     * `cancelled` **không** nằm đây, có chủ ý: một lần nhập bị huỷ thì dừng
+     * trước khi sinh báo cáo, nên hiện nút "tải báo cáo lỗi" cho nó là mời
+     * người dùng bấm vào một tệp không tồn tại.
+     */
+    public const FINISHED_STATUSES = [
+        self::STATUS_DONE,
+        self::STATUS_FAILED,
+    ];
+
     protected $fillable = [
         'owner_id', 'uploaded_by',
         'original_filename', 'file_path',

@@ -39,28 +39,28 @@ class ScreenImportService
 
         if (empty($analysis['headers'])) {
             $import->update([
-                'status'        => 'failed',
+                'status'        => ScreenImport::STATUS_FAILED,
                 'error_summary' => 'File không có header row hoặc không đọc được.',
             ]);
             return;
         }
         if ($analysis['total_rows'] === 0) {
             $import->update([
-                'status'        => 'failed',
+                'status'        => ScreenImport::STATUS_FAILED,
                 'error_summary' => 'File không có data rows.',
             ]);
             return;
         }
         if ($analysis['total_rows'] > SpreadsheetReader::MAX_ROWS) {
             $import->update([
-                'status'        => 'failed',
+                'status'        => ScreenImport::STATUS_FAILED,
                 'error_summary' => "File vượt limit " . SpreadsheetReader::MAX_ROWS . " rows (có {$analysis['total_rows']} rows).",
             ]);
             return;
         }
 
         $import->update([
-            'status'      => 'uploaded',
+            'status'      => ScreenImport::STATUS_UPLOADED,
             'headers'     => $analysis['headers'],
             'sample_rows' => $analysis['sample_rows'],
             'total_rows'  => $analysis['total_rows'],
@@ -79,7 +79,7 @@ class ScreenImportService
         try {
             $result = $this->ai->propose($import->headers, $import->sample_rows ?? []);
             $import->update([
-                'status'     => 'mapping',
+                'status'     => ScreenImport::STATUS_MAPPING,
                 'ai_mapping' => $result['mapping'],
             ]);
         } catch (\Throwable $e) {
@@ -89,7 +89,7 @@ class ScreenImportService
             ]);
             // Graceful fallback: empty mapping, user maps manually
             $import->update([
-                'status'        => 'mapping',
+                'status'        => ScreenImport::STATUS_MAPPING,
                 'ai_mapping'    => [],
                 'error_summary' => 'AI service không available — vui lòng map thủ công. (' . $e->getMessage() . ')',
             ]);
@@ -200,7 +200,7 @@ class ScreenImportService
         }
 
         $import->update([
-            'status'            => 'previewed',
+            'status'            => ScreenImport::STATUS_PREVIEWED,
             'preview_data'      => $preview,
             'validation_errors' => $errors,
             'success_count'     => 0,
@@ -217,11 +217,11 @@ class ScreenImportService
      */
     public function queueExecution(ScreenImport $import): void
     {
-        if ($import->status !== 'previewed') {
+        if ($import->status !== ScreenImport::STATUS_PREVIEWED) {
             throw new \RuntimeException("Chỉ queue được sau khi preview. Status hiện tại: {$import->status}");
         }
         $import->update([
-            'status'          => 'importing',
+            'status'          => ScreenImport::STATUS_IMPORTING,
             'started_at'      => now(),
             'processed_count' => 0,
             'success_count'   => 0,
@@ -236,14 +236,14 @@ class ScreenImportService
      */
     public function execute(ScreenImport $import): void
     {
-        if (! in_array($import->status, ['previewed', 'importing'], true)) {
+        if (! in_array($import->status, [ScreenImport::STATUS_PREVIEWED, ScreenImport::STATUS_IMPORTING], true)) {
             throw new \RuntimeException("Chỉ execute được sau khi preview. Status hiện tại: {$import->status}");
         }
 
         // Idempotent re-entry: if already in 'importing' via queue, skip the reset that queueExecution did.
-        if ($import->status === 'previewed') {
+        if ($import->status === ScreenImport::STATUS_PREVIEWED) {
             $import->update([
-                'status'          => 'importing',
+                'status'          => ScreenImport::STATUS_IMPORTING,
                 'started_at'      => now(),
                 'processed_count' => 0,
                 'success_count'   => 0,
@@ -304,7 +304,7 @@ class ScreenImportService
                     // nào tên 'status'. Import lớn đi tới mốc này sẽ hỏng sau khi đã ghi
                     // một phần (Codex F13). Đọc thẳng cột từ DB.
                     $currentStatus = $import->newQuery()->whereKey($import->getKey())->value('status');
-                    if ($currentStatus === 'cancelled') {
+                    if ($currentStatus === ScreenImport::STATUS_CANCELLED) {
                         $import->update([
                             'processed_count' => $processed,
                             'success_count'   => $success,
@@ -318,7 +318,7 @@ class ScreenImportService
             }
 
             $import->update([
-                'status'            => 'done',
+                'status'            => ScreenImport::STATUS_DONE,
                 'processed_count'   => $processed,
                 'success_count'     => $success,
                 'failed_count'      => $failed,
@@ -328,7 +328,7 @@ class ScreenImportService
             ]);
         } catch (\Throwable $e) {
             $import->update([
-                'status'        => 'failed',
+                'status'        => ScreenImport::STATUS_FAILED,
                 'error_summary' => 'Fatal error: ' . $e->getMessage(),
                 'finished_at'   => now(),
             ]);
