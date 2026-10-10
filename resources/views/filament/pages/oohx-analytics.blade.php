@@ -21,7 +21,7 @@
         <x-filament::section>
             <div class="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                    <div class="text-xs uppercase text-gray-500 tracking-wide mb-1">Last refresh</div>
+                    <div class="text-xs uppercase text-gray-500 tracking-wide mb-1">Làm mới lần cuối</div>
                     <div class="flex items-center gap-2">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                      bg-{{ $staleness['color'] }}-100 text-{{ $staleness['color'] }}-800
@@ -46,17 +46,17 @@
                 @if($cur)
                     <div class="grid grid-cols-3 gap-3 flex-1 max-w-2xl">
                         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-center">
-                            <div class="text-xs text-gray-500 uppercase tracking-wide">Campaigns this week</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Chiến dịch tuần này</div>
                             <div class="text-2xl font-bold">{{ number_format($cur->campaigns_count ?? 0) }}</div>
                             @if(isset($diff['campaigns_count']['absolute']))
                                 @php $abs = $diff['campaigns_count']['absolute']; @endphp
                                 <div class="text-xs {{ $abs >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                                    {{ $abs >= 0 ? '+' : '' }}{{ $abs }} vs last week
+                                    {{ $abs >= 0 ? '+' : '' }}{{ $abs }} so với tuần trước
                                 </div>
                             @endif
                         </div>
                         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-center">
-                            <div class="text-xs text-gray-500 uppercase tracking-wide">Impressions</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Lượt hiển thị</div>
                             <div class="text-2xl font-bold">{{ number_format($cur->total_impressions ?? 0) }}</div>
                             @if(isset($diff['total_impressions']['pct']))
                                 @php $pct = $diff['total_impressions']['pct']; @endphp
@@ -66,7 +66,7 @@
                             @endif
                         </div>
                         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-center">
-                            <div class="text-xs text-gray-500 uppercase tracking-wide">Reach</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Tiếp cận</div>
                             <div class="text-2xl font-bold">{{ number_format($cur->total_reach ?? 0) }}</div>
                             @if(isset($diff['total_reach']['pct']))
                                 @php $pct = $diff['total_reach']['pct']; @endphp
@@ -116,16 +116,16 @@
             {{-- ── Section 2: Top cities ────────────────────────────── --}}
             <x-filament::section icon="heroicon-o-map" heading="Top cities by daily impressions">
                 @if($topCities->isEmpty())
-                    <p class="text-sm text-gray-500 italic">No city data.</p>
+                    <p class="text-sm text-gray-500 italic">Chưa có dữ liệu tỉnh/thành.</p>
                 @else
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead class="text-xs text-gray-500 uppercase border-b border-gray-200 dark:border-gray-700">
                                 <tr>
-                                    <th class="text-left py-2">City</th>
-                                    <th class="text-right py-2">Screens</th>
-                                    <th class="text-right py-2">Daily impr</th>
-                                    <th class="text-right py-2">Avg conf</th>
+                                    <th class="text-left py-2">Tỉnh/thành</th>
+                                    <th class="text-right py-2">Màn hình</th>
+                                    <th class="text-right py-2">Lượt HT/ngày</th>
+                                    <th class="text-right py-2">Tin cậy TB</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -163,7 +163,7 @@
             {{-- ── Section 4: Formula versions impact ───────────────── --}}
             <x-filament::section icon="heroicon-o-variable" heading="Formula versions impact">
                 @if($formulaVersions->isEmpty())
-                    <p class="text-sm text-gray-500 italic">No formula data.</p>
+                    <p class="text-sm text-gray-500 italic">Chưa có dữ liệu công thức.</p>
                 @else
                     <div class="space-y-2">
                         @foreach($formulaVersions as $f)
@@ -172,7 +172,7 @@
                                     <div class="flex items-center gap-2">
                                         <span class="font-mono text-sm font-medium truncate">{{ $f->tag ?? '—' }}</span>
                                         @if($f->is_active)
-                                            <span class="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">ACTIVE</span>
+                                            <span class="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">ĐANG BẬT</span>
                                         @endif
                                     </div>
                                     @if($f->activated_at)
@@ -182,7 +182,7 @@
                                     @endif
                                 </div>
                                 <div class="text-right text-xs">
-                                    <div><span class="font-mono">{{ $f->screens_with_this_version ?? 0 }}</span> screens</div>
+                                    <div><span class="font-mono">{{ $f->screens_with_this_version ?? 0 }}</span> màn hình</div>
                                     <div class="text-gray-500">
                                         Σ {{ number_format($f->total_daily_impressions ?? 0) }}
                                     </div>
@@ -198,20 +198,20 @@
         <x-filament::section icon="heroicon-o-tv" heading="Top utilized screens (90 days)">
             <div class="flex items-center gap-4 mb-3 text-sm">
                 <span class="text-gray-500">
-                    <strong class="text-gray-900 dark:text-gray-100">{{ $utilizationCounts['booked'] }}</strong> screens booked / {{ $utilizationCounts['total_with_data'] }} with data
+                    <strong class="text-gray-900 dark:text-gray-100">{{ $utilizationCounts['booked'] }}</strong> màn hình đã đặt / {{ $utilizationCounts['total_with_data'] }} có dữ liệu
                 </span>
             </div>
             @if($topUtilizedScreens->isEmpty())
-                <p class="text-sm text-gray-500 italic">No utilization data.</p>
+                <p class="text-sm text-gray-500 italic">Chưa có dữ liệu mức sử dụng.</p>
             @else
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead class="text-xs text-gray-500 uppercase border-b border-gray-200 dark:border-gray-700">
                             <tr>
-                                <th class="text-left py-2">DE Screen ID</th>
-                                <th class="text-right py-2">Campaigns 90d</th>
-                                <th class="text-right py-2">Allocated impressions</th>
-                                <th class="text-right py-2">Last used</th>
+                                <th class="text-left py-2">Mã màn hình phía DE</th>
+                                <th class="text-right py-2">Chiến dịch 90 ngày</th>
+                                <th class="text-right py-2">Lượt hiển thị đã phân bổ</th>
+                                <th class="text-right py-2">Dùng lần cuối</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -234,7 +234,7 @@
         </x-filament::section>
 
         <div class="text-xs text-gray-500 text-center">
-            Data refresh daily 04:15 UTC qua DE cron <code>refresh-analytics</code>.
+            Dữ liệu làm mới hằng ngày 04:15 UTC qua cron của DE <code>refresh-analytics</code>.
         </div>
     @endif
 </x-filament-panels::page>

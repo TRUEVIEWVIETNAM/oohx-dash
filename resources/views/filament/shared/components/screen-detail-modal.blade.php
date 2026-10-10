@@ -14,7 +14,7 @@
             @foreach($photos as $photo)
                 <img
                     src="{{ asset('storage/' . $photo) }}"
-                    alt="Screen photo"
+                    alt="Ảnh màn hình"
                     class="h-28 rounded-lg object-cover ring-1 ring-gray-200 dark:ring-gray-700"
                 />
             @endforeach
@@ -25,15 +25,15 @@
     {{-- Row 1: Identity --}}
     <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
         <div>
-            <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Owner</div>
+            <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Chủ sở hữu</div>
             <div class="mt-0.5 text-sm text-gray-900 dark:text-white">{{ $screen->owner?->name ?? '—' }}</div>
         </div>
         <div>
-            <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Site</div>
+            <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Địa điểm</div>
             <div class="mt-0.5 text-sm text-gray-900 dark:text-white">{{ $site?->name ?? '—' }}</div>
         </div>
         <div>
-            <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Network</div>
+            <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Mạng lưới</div>
             <div class="mt-0.5 text-sm text-gray-900 dark:text-white">{{ $site?->network?->name ?? '—' }}</div>
         </div>
     </div>
@@ -51,7 +51,7 @@
             <div class="mt-0.5 text-sm text-gray-900 dark:text-white">{{ $site?->city ?? '—' }}</div>
         </div>
         <div>
-            <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Screen ID</div>
+            <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Mã màn hình</div>
             <div class="mt-0.5 text-sm font-mono text-gray-900 dark:text-white">{{ $screen->external_id ?? '—' }}</div>
         </div>
     </div>
@@ -65,7 +65,7 @@
         <div>
             <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
                 <div>
-                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Resolution</div>
+                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Độ phân giải</div>
                     <div class="mt-0.5 text-sm text-gray-900 dark:text-white">
                         {{ $spec?->width_px ? $spec->width_px . '×' . $spec->height_px . ' px' : '—' }}
                     </div>
@@ -77,7 +77,7 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Floor CPM</div>
+                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Giá sàn CPM</div>
                     <div class="mt-0.5 text-sm font-semibold text-gray-900 dark:text-white">
                         {{ $inv?->floor_cpm ? number_format((float) $inv->floor_cpm, 0, '.', ',') . ' ' . ($inv->floor_cpm_currency ?? 'VND') : '—' }}
                     </div>

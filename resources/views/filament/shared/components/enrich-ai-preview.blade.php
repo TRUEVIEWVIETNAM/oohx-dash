@@ -3,7 +3,7 @@
     if (! empty($result['_error'])):
 @endphp
 <div class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
-    <div class="font-bold mb-2">Enrichment failed</div>
+    <div class="font-bold mb-2">Bổ sung ngữ cảnh không được</div>
     <div class="text-sm font-mono whitespace-pre-wrap break-words">{{ $result['_error'] }}</div>
     <div class="text-xs mt-3 text-red-600 dark:text-red-400">
         Đóng modal, fix lỗi (top up Anthropic credit / set ANTHROPIC_API_KEY / check network), rồi click "Enrich AI Context" lại.
@@ -33,26 +33,26 @@
 
     {{-- ── Metadata bar ───────────────────────────────────────── --}}
     <div class="flex flex-wrap items-center gap-3 text-xs px-3 py-2 bg-gray-50 dark:bg-gray-900/40 rounded-lg border border-gray-200 dark:border-gray-700">
-        <span><strong>{{ $features['total_pois'] ?? 0 }}</strong> POIs</span>
+        <span><strong>{{ $features['total_pois'] ?? 0 }}</strong> POI</span>
         <span class="text-gray-400">·</span>
-        <span><strong>{{ count($features['categories'] ?? []) }}</strong> categories</span>
+        <span><strong>{{ count($features['categories'] ?? []) }}</strong> danh mục</span>
         <span class="text-gray-400">·</span>
-        <span>{{ $meta['tokens_in'] ?? 0 }} in / {{ $meta['tokens_out'] ?? 0 }} out tokens</span>
+        <span>{{ $meta['tokens_in'] ?? 0 }} in / {{ $meta['tokens_out'] ?? 0 }} token ra</span>
         <span class="text-gray-400">·</span>
-        <span>cost ≈ <strong>${{ number_format($meta['cost_usd'] ?? 0, 4) }}</strong></span>
+        <span>chi phí ≈ <strong>${{ number_format($meta['cost_usd'] ?? 0, 4) }}</strong></span>
         <span class="text-gray-400">·</span>
-        <span>latency {{ $meta['latency_ms'] ?? 0 }}ms</span>
+        <span>độ trễ {{ $meta['latency_ms'] ?? 0 }}ms</span>
         @if($confidence)
             <span class="text-gray-400">·</span>
             <span class="px-2 py-0.5 rounded-full bg-{{ $confColor }}-100 text-{{ $confColor }}-700 font-semibold uppercase tracking-wide">
-                Confidence: {{ $confidence }}
+                Độ tin cậy: {{ $confidence }}
             </span>
         @endif
     </div>
 
     @if(! $ai)
         <div class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            <strong>AI inference failed.</strong> Kiểm tra ANTHROPIC_API_KEY hoặc Overpass response. Không có data để apply.
+            <strong>AI không suy luận được.</strong> Kiểm tra ANTHROPIC_API_KEY hoặc Overpass response. Không có data để apply.
         </div>
     @endif
 
@@ -126,7 +126,7 @@
 
             <div class="flex flex-wrap items-center gap-3 text-xs">
                 @if(! empty($audience['income_tier']))
-                    <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">Income: {{ $audience['income_tier'] }}</span>
+                    <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">Thu nhập: {{ $audience['income_tier'] }}</span>
                 @endif
                 @foreach($audience['lifestyle_tags'] ?? [] as $tag)
                     <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{{ $tag }}</span>
@@ -146,9 +146,9 @@
         </div>
         <div class="p-4 space-y-3">
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <div><div class="text-[10px] uppercase font-bold text-gray-500">Peak start</div><div class="text-lg font-bold">{{ $time['peak_hour_start'] ?? '—' }}</div></div>
-                <div><div class="text-[10px] uppercase font-bold text-gray-500">Peak end</div><div class="text-lg font-bold">{{ $time['peak_hour_end'] ?? '—' }}</div></div>
-                <div><div class="text-[10px] uppercase font-bold text-gray-500">Best day</div><div class="text-lg font-bold uppercase">{{ $time['best_day'] ?? '—' }}</div></div>
+                <div><div class="text-[10px] uppercase font-bold text-gray-500">Giờ cao điểm bắt đầu</div><div class="text-lg font-bold">{{ $time['peak_hour_start'] ?? '—' }}</div></div>
+                <div><div class="text-[10px] uppercase font-bold text-gray-500">Giờ cao điểm kết thúc</div><div class="text-lg font-bold">{{ $time['peak_hour_end'] ?? '—' }}</div></div>
+                <div><div class="text-[10px] uppercase font-bold text-gray-500">Ngày tốt nhất</div><div class="text-lg font-bold uppercase">{{ $time['best_day'] ?? '—' }}</div></div>
                 <div><div class="text-[10px] uppercase font-bold text-gray-500">Sáng</div><div class="text-lg font-bold">{{ $time['morning_pct'] ?? '—' }}%</div></div>
                 <div><div class="text-[10px] uppercase font-bold text-gray-500">Chiều/Tối</div><div class="text-sm font-bold">{{ $time['afternoon_pct'] ?? '—' }}% / {{ $time['evening_pct'] ?? '—' }}%</div></div>
             </div>
@@ -190,7 +190,7 @@
     {{-- ── Nearby context ────────────────────────────────────── --}}
     <div class="border border-purple-200 dark:border-purple-800 rounded-lg overflow-hidden">
         <div class="px-3 py-2 bg-purple-50 dark:bg-purple-900/30 font-semibold text-purple-800 dark:text-purple-100 border-b border-purple-200 dark:border-purple-800">
-            📍 Nearby Context
+            📍 Bối cảnh xung quanh
         </div>
         <div class="p-4 space-y-3">
             @if(! empty($nearby['highlights']))

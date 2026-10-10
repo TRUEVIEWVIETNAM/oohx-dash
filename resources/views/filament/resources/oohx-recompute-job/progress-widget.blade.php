@@ -42,11 +42,11 @@
     {{-- Label + timestamps --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
         <div>
-            <div class="text-xs font-medium text-gray-500 uppercase">Action</div>
+            <div class="text-xs font-medium text-gray-500 uppercase">Hành động</div>
             <div class="mt-1 font-mono text-gray-900 dark:text-gray-100">{{ $label }}</div>
         </div>
         <div>
-            <div class="text-xs font-medium text-gray-500 uppercase">Started</div>
+            <div class="text-xs font-medium text-gray-500 uppercase">Bắt đầu</div>
             <div class="mt-1 text-gray-900 dark:text-gray-100">
                 @if($started)
                     {{ \Illuminate\Support\Carbon::parse($started)->diffForHumans() }}
@@ -56,7 +56,7 @@
             </div>
         </div>
         <div>
-            <div class="text-xs font-medium text-gray-500 uppercase">Updated</div>
+            <div class="text-xs font-medium text-gray-500 uppercase">Cập nhật</div>
             <div class="mt-1 text-gray-900 dark:text-gray-100">
                 @if($updated)
                     {{ \Illuminate\Support\Carbon::parse($updated)->diffForHumans() }}
@@ -73,7 +73,7 @@
             <div class="font-semibold text-gray-900 dark:text-gray-100">
                 {{ number_format($done + $failed) }} / {{ number_format($total) }}
                 @if($failed > 0)
-                    · <span class="text-danger-600">{{ $failed }} failed</span>
+                    · <span class="text-danger-600">{{ $failed }} lỗi</span>
                 @endif
             </div>
             <div class="text-sm font-mono text-gray-600 dark:text-gray-400">{{ $percent }}%</div>
@@ -86,7 +86,7 @@
         @endif
         @if($cancelledAt !== null)
             <div class="mt-2 text-xs text-warning-600">
-                Worker stopped at screen #{{ $cancelledAt }} (cooperative cancel).
+                Worker dừng ở màn hình #{{ $cancelledAt }} (cooperative cancel).
             </div>
         @endif
     </div>
@@ -96,20 +96,20 @@
         @if($finished)
             <span class="flex items-center gap-1">
                 <x-filament::icon icon="heroicon-m-check-circle" class="h-4 w-4 text-success-500" />
-                Finished
+                Xong
             </span>
         @elseif($record->status === 'processing')
             <span class="flex items-center gap-1">
                 <x-filament::icon icon="heroicon-m-arrow-path" class="h-4 w-4 text-info-500 animate-spin" />
-                Running · auto-refresh 10s
+                Đang chạy · tự làm mới 10 giây
             </span>
         @elseif($record->status === 'cancelled')
             <span class="flex items-center gap-1">
                 <x-filament::icon icon="heroicon-m-x-circle" class="h-4 w-4 text-gray-500" />
-                Cancelled
+                Đã huỷ
             </span>
         @endif
 
-        <span>Flush every 25 screens</span>
+        <span>Ghi xuống CSDL mỗi 25 màn hình</span>
     </div>
 </div>

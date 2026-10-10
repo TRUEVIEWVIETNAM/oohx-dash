@@ -56,7 +56,7 @@
     @if(! $hasAnything)
         <div class="p-6 text-center bg-gray-50 dark:bg-gray-900/40 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 text-gray-500">
             Chưa có Inventory Intelligence data.<br>
-            Dùng nút <strong>Enrich AI Context</strong> ở table actions để generate.
+            Dùng nút <strong>Bổ sung ngữ cảnh bằng AI</strong> ở table actions để generate.
         </div>
     @endif
 
@@ -118,7 +118,7 @@
     @if($hasAudience)
     <div class="rounded-lg border border-primary-200 dark:border-primary-800 overflow-hidden">
         <div class="px-4 py-2 bg-primary-50 dark:bg-primary-900/30 font-bold text-primary-800 dark:text-primary-100 text-xs uppercase tracking-wide">
-            🎯 Audience Profile
+            🎯 Chân dung khán giả
         </div>
         <div class="p-4 space-y-3">
             @if(($audience['male_pct'] ?? null) !== null || ($audience['female_pct'] ?? null) !== null)
@@ -165,7 +165,7 @@
             <div class="flex flex-wrap items-center gap-2 pt-2 text-xs">
                 @if(! empty($audience['income_tier']))
                     <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 font-semibold">
-                        Income: {{ $audience['income_tier'] }}
+                        Thu nhập: {{ $audience['income_tier'] }}
                     </span>
                 @endif
                 @foreach((array) ($audience['lifestyle_tags'] ?? []) as $tag)
@@ -184,7 +184,7 @@
     @if($hasTime)
     <div class="rounded-lg border border-orange-200 dark:border-orange-800 overflow-hidden">
         <div class="px-4 py-2 bg-orange-50 dark:bg-orange-900/30 font-bold text-orange-800 dark:text-orange-100 text-xs uppercase tracking-wide">
-            ⏰ Time Performance
+            ⏰ Hiệu suất theo thời gian
         </div>
         <div class="p-4 space-y-3">
             @if(! empty($time['best_day']))
@@ -201,7 +201,7 @@
                         </div>
                     @endforeach
                 </div>
-                <div class="text-[11px] text-gray-500 mt-1">Best day: <strong class="text-orange-600">{{ $dayLabels[$time['best_day']] ?? '' }}</strong></div>
+                <div class="text-[11px] text-gray-500 mt-1">Ngày tốt nhất: <strong class="text-orange-600">{{ $dayLabels[$time['best_day']] ?? '' }}</strong></div>
             </div>
             @endif
 
@@ -277,11 +277,11 @@
     <div class="px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg text-xs text-gray-600 dark:text-gray-400 break-words space-y-1">
         @if($de)
             <div>
-                <strong class="text-gray-700 dark:text-gray-200">Traffic source:</strong>
+                <strong class="text-gray-700 dark:text-gray-200">Nguồn lưu lượng:</strong>
                 OOHX Data Engine
-                @if($de->estimation_method) · method <code class="text-[11px]">{{ $de->estimation_method }}</code>@endif
+                @if($de->estimation_method) · cách tính <code class="text-[11px]">{{ $de->estimation_method }}</code>@endif
                 @if($de->confidence_score !== null)
-                    · confidence
+                    · độ tin cậy
                     @php $c = (float) $de->confidence_score; $tier = $c >= 0.7 ? 'high' : ($c >= 0.5 ? 'mid' : 'low'); @endphp
                     <strong>{{ number_format($c, 2) }} ({{ $tier }})</strong>
                 @endif
@@ -292,7 +292,7 @@
         @endif
         @if(! empty($screen->traffic_methodology_note))
             <div>
-                <strong class="text-gray-700 dark:text-gray-200">Audience/context:</strong> {{ $screen->traffic_methodology_note }}
+                <strong class="text-gray-700 dark:text-gray-200">Khán giả / bối cảnh:</strong> {{ $screen->traffic_methodology_note }}
             </div>
         @endif
     </div>

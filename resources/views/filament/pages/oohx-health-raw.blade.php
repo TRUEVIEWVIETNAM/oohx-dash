@@ -1,7 +1,7 @@
 <div class="space-y-3">
     @if($path)
         <div class="text-xs text-gray-500">
-            Source: <code>{{ $path }}</code>
+            Nguồn: <code>{{ $path }}</code>
         </div>
     @endif
 

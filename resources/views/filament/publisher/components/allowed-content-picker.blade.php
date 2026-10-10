@@ -25,7 +25,7 @@
     x-init="init()"
     class="mt-2"
 >
-    <p class="mb-2 text-sm font-medium text-gray-700">Allowed content <span class="text-red-500">*</span></p>
+    <p class="mb-2 text-sm font-medium text-gray-700">Nội dung được phép <span class="text-red-500">*</span></p>
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <template x-for="item in items" :key="item.key">
             <div

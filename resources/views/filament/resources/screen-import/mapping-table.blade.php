@@ -12,11 +12,11 @@
         <thead class="bg-gray-50 dark:bg-gray-800">
             <tr>
                 <th class="p-2 text-left font-semibold border-b dark:border-gray-700">#</th>
-                <th class="p-2 text-left font-semibold border-b dark:border-gray-700">File column</th>
-                <th class="p-2 text-left font-semibold border-b dark:border-gray-700">Sample values</th>
-                <th class="p-2 text-left font-semibold border-b dark:border-gray-700">→ DB field</th>
-                <th class="p-2 text-left font-semibold border-b dark:border-gray-700">Confidence</th>
-                <th class="p-2 text-left font-semibold border-b dark:border-gray-700">Reason</th>
+                <th class="p-2 text-left font-semibold border-b dark:border-gray-700">Cột trong tệp</th>
+                <th class="p-2 text-left font-semibold border-b dark:border-gray-700">Giá trị mẫu</th>
+                <th class="p-2 text-left font-semibold border-b dark:border-gray-700">→ trường CSDL</th>
+                <th class="p-2 text-left font-semibold border-b dark:border-gray-700">Độ tin cậy</th>
+                <th class="p-2 text-left font-semibold border-b dark:border-gray-700">Lý do</th>
             </tr>
         </thead>
         <tbody>
@@ -68,7 +68,7 @@
                                 {{ $fieldDisplay }}
                             </span>
                         @else
-                            <span class="text-gray-400 italic">— skipped —</span>
+                            <span class="text-gray-400 italic">— bỏ qua —</span>
                         @endif
                     </td>
                     <td class="p-2 {{ $confColor }} text-xs font-mono">

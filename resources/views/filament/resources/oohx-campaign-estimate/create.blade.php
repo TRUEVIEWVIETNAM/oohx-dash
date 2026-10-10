@@ -8,11 +8,11 @@
                 color="gray"
                 tag="a"
                 :href="\App\Filament\Resources\OohxCampaignEstimateResource::getUrl('index')">
-                Cancel
+                Huỷ
             </x-filament::button>
 
             <x-filament::button type="submit" icon="heroicon-o-rocket-launch">
-                Forecast campaign
+                Dự báo chiến dịch
             </x-filament::button>
         </div>
     </form>

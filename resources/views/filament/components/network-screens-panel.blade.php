@@ -92,7 +92,7 @@
                     {{-- Site --}}
                     <div class="flex flex-col gap-y-1.5">
                         <label class="text-sm font-medium leading-6 text-gray-950 dark:text-white">
-                            Site
+                            Địa điểm
                         </label>
                         <div class="fi-input-wrp flex rounded-lg shadow-sm ring-1 transition duration-75 bg-white dark:bg-white/5 ring-gray-950/10 dark:ring-white/20 [&:not(:has(.fi-ac-action:focus))]:focus-within:ring-2 [&:not(:has(.fi-ac-action:focus))]:focus-within:ring-primary-600 dark:[&:not(:has(.fi-ac-action:focus))]:focus-within:ring-primary-500">
                             <select
@@ -192,13 +192,13 @@
                     <thead>
                         <tr class="bg-gray-50 dark:bg-white/5">
                             <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
-                                <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Screen ID</span>
+                                <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Mã màn hình</span>
                             </th>
                             <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
                                 <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Tên màn hình</span>
                             </th>
                             <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
-                                <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Site</span>
+                                <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Địa điểm</span>
                             </th>
                             <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
                                 <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Tỉnh / Thành</span>
@@ -207,7 +207,7 @@
                                 <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Phường / Xã</span>
                             </th>
                             <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
-                                <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Floor CPM</span>
+                                <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Giá sàn CPM</span>
                             </th>
                             <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
                                 <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Trạng thái</span>
