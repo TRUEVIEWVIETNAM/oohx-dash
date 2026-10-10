@@ -90,6 +90,38 @@ class MocDomTrangBladeTest extends TestCase
         return 'http://' . config('domains.frontpage', 'oohx.net') . $duong;
     }
 
+    /**
+     * Một món trong giỏ của người mua — điều kiện để `/booking/create` trả 200.
+     *
+     * Controller `redirect()` về `/cart` khi giỏ trống, và phép kiểm đó cố ý ở
+     * máy chủ: để nó ở JS là hiện một trang tạo chiến dịch rồi mới đẩy người
+     * dùng đi.
+     */
+    private function gioCoMon(): void
+    {
+        $owner  = Owner::factory()->create([
+            'name'   => 'Owner giỏ',
+            'slug'   => Str::slug('Owner giỏ') . '-' . uniqid(),
+            'status' => 'active',
+        ]);
+        $site   = Site::factory()->create(['owner_id' => $owner->id]);
+        $screen = Screen::factory()->create(['owner_id' => $owner->id, 'site_id' => $site->id]);
+
+        $cart = \App\Models\Cart::create([
+            'user_id'         => $this->buyer->id,
+            'organization_id' => $this->org->id,
+        ]);
+
+        \App\Models\CartItem::create([
+            'cart_id'        => $cart->id,
+            'screen_id'      => $screen->id,
+            'buy_mode'       => 'individual',
+            'start_date'     => now(),
+            'end_date'       => now()->addMonth(),
+            'estimated_cost' => 5_000_000,
+        ]);
+    }
+
     private function campaignDaDuyet(): Campaign
     {
         $owner = Owner::factory()->create([
@@ -172,6 +204,9 @@ class MocDomTrangBladeTest extends TestCase
     {
         $campaign = $this->campaignDaDuyet();
 
+        // Giỏ phải có món TRƯỚC khi gọi `/booking/create`.
+        $this->gioCoMon();
+
         return [
             'resources/views/buyer/cart.blade.php' => $this->actingAs($this->buyer)
                 ->get($this->urlFrontpage('/cart'))
@@ -207,6 +242,35 @@ class MocDomTrangBladeTest extends TestCase
 
             'resources/views/buyer/dashboard/settings.blade.php' => $this->actingAs($this->buyer)
                 ->get($this->urlFrontpage('/my/settings'))
+                ->assertOk()
+                ->getContent(),
+
+            // ── Bốn bước của luồng đặt chỗ, chuyển 10/10/2026 ──
+            //
+            // `booking/create` cần giỏ KHÔNG rỗng: controller `redirect()` về
+            // `/cart` khi giỏ trống, và phép kiểm đó cố ý ở máy chủ — để ở JS
+            // là hiện một trang tạo chiến dịch rồi mới đẩy người dùng đi.
+            //
+            // Nên fixture phải nhét một món vào giỏ. Không nhét thì trang trả
+            // 302 và cả ba ca của tệp này đỏ với "Expected 200, received 302"
+            // — một thông điệp không nói gì về giỏ.
+            'resources/views/buyer/booking/create.blade.php' => $this->actingAs($this->buyer)
+                ->get($this->urlFrontpage('/booking/create'))
+                ->assertOk()
+                ->getContent(),
+
+            'resources/views/buyer/booking/creative.blade.php' => $this->actingAs($this->buyer)
+                ->get($this->urlFrontpage('/booking/' . $campaign->id . '/creative'))
+                ->assertOk()
+                ->getContent(),
+
+            'resources/views/buyer/booking/review.blade.php' => $this->actingAs($this->buyer)
+                ->get($this->urlFrontpage('/booking/' . $campaign->id . '/review'))
+                ->assertOk()
+                ->getContent(),
+
+            'resources/views/buyer/booking/payment-success.blade.php' => $this->actingAs($this->buyer)
+                ->get($this->urlFrontpage('/booking/' . $campaign->id . '/payment/success'))
                 ->assertOk()
                 ->getContent(),
         ];
@@ -249,6 +313,92 @@ class MocDomTrangBladeTest extends TestCase
                 "Ô `{$moc}` phải `disabled` trong markup — thiếu nó là người dùng gõ được vào một ô "
                 . 'mà giá trị chưa về, và lượt điền sẽ ghi đè thứ họ vừa gõ.',
             );
+        }
+    }
+
+    /**
+     * Bốn trang đặt chỗ cũng mang trạng thái ban đầu trong markup.
+     *
+     * Cùng một trục với ca trên, và cùng một lý do: phía JS dựng mỗi móc thành
+     * một thẻ **trống**, nên `hidden` của Blade không tới được đó.
+     *
+     * ══ Vì sao canh cả hai phía, không chọn một ══
+     *
+     * Từ 10/10/2026 bốn script này **tự đặt** trạng thái ban đầu, và phía JS
+     * kiểm việc ấy. Hai chỗ canh hai khoảng khác nhau:
+     *
+     *  - markup canh khoảng **trước khi script chạy** — khoảng người dùng nhìn
+     *    thấy, và là khoảng duy nhất mà một ô lỗi rỗng đang hiện sẽ lọt ra;
+     *  - script canh khoảng **sau đó**, kể cả khi markup bị sửa.
+     *
+     * Đúng là hai nguồn sự thật cho một thứ. Nhưng chúng không trôi khỏi nhau
+     * được khi cả hai đều bị canh — và bỏ bên markup là chấp nhận một nháy
+     * giao diện mà không test nào thấy, còn bỏ bên script là giữ lại đúng
+     * khoảng trống mà `payment-success` đã rơi vào.
+     *
+     * Ba móc được chọn cho mỗi trang, không phải tất cả: thân/khối kết quả
+     * (thứ không được hiện trống), ô lỗi (thứ không được hiện rỗng) và — nơi
+     * có — ô báo thành công. Các ô lỗi theo từng trường nằm ngoài, vì chúng
+     * rỗng và không chiếm chỗ.
+     */
+    public function test_bon_trang_dat_cho_mang_trang_thai_ban_dau_trong_markup(): void
+    {
+        $campaign = $this->campaignDaDuyet();
+        $this->gioCoMon();
+
+        $can = [
+            '/booking/create' => ['data-tc-ds', 'data-tc-tong', 'data-tc-loi'],
+            '/booking/' . $campaign->id . '/creative'
+                => ['data-nd-khoi-ds', 'data-nd-loi', 'data-nd-thanhcong'],
+            '/booking/' . $campaign->id . '/review'
+                => ['data-xn-than', 'data-xn-loi', 'data-xn-xungdot', 'data-xn-form', 'data-xn-chan'],
+            '/booking/' . $campaign->id . '/payment/success'
+                => ['data-ok-the', 'data-ok-loi'],
+        ];
+
+        foreach ($can as $duong => $mocCanAn) {
+            $html = $this->actingAs($this->buyer)
+                ->get($this->urlFrontpage($duong))
+                ->assertOk()
+                ->getContent();
+
+            foreach ($mocCanAn as $moc) {
+                // `hidden` phải là một token riêng trong CHÍNH thẻ mang móc đó,
+                // không phải ở đâu đó trên cùng dòng: `aria-hidden="true"` của
+                // khung chờ nằm ngay cạnh, và một phép khớp lỏng sẽ nhận nó.
+                $this->assertMatchesRegularExpression(
+                    '/<[a-z]+[^<>]*\b' . preg_quote($moc, '/') . '\b[^<>]*\shidden[\s>]/',
+                    $html,
+                    "{$duong}: `{$moc}` phải mang `hidden` trong markup — thiếu nó là người dùng "
+                    . 'thấy một khối rỗng trông như đã tải xong, trong khoảng trước khi script chạy.',
+                );
+            }
+
+            // Khung chờ thì NGƯỢC LẠI: nó phải hiện ngay, và phải ở ngoài cây
+            // trợ năng. Một khung chờ `hidden` là một trang trắng cho tới khi
+            // script chạy, tức đúng thứ khung chờ sinh ra để tránh.
+            //
+            // Lọc theo trang bằng `str_contains`, không bằng một bảng đường →
+            // móc thứ hai: một bảng nữa là một chỗ nữa để quên cập nhật.
+            foreach (['data-tc-cho', 'data-nd-kt-cho', 'data-xn-cho', 'data-ok-cho'] as $moc) {
+                if (! str_contains($html, $moc)) {
+                    continue;
+                }
+
+                $this->assertMatchesRegularExpression(
+                    '/<[a-z]+[^<>]*\b' . preg_quote($moc, '/') . '\b[^<>]*aria-hidden="true"/',
+                    $html,
+                    "{$duong}: khung chờ `{$moc}` phải có `aria-hidden=\"true\"` — nó là chỗ "
+                    . 'giữ chỗ, không phải nội dung để đọc lên.',
+                );
+
+                $this->assertDoesNotMatchRegularExpression(
+                    '/<[a-z]+[^<>]*\b' . preg_quote($moc, '/') . '\b[^<>]*\shidden[\s>]/',
+                    $html,
+                    "{$duong}: khung chờ `{$moc}` KHÔNG được `hidden` — ẩn nó là một trang "
+                    . 'trắng cho tới khi script chạy.',
+                );
+            }
         }
     }
 

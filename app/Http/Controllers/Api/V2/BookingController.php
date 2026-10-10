@@ -22,6 +22,7 @@ use App\Services\CampaignService;
 use App\Services\CartService;
 use App\Services\CreativeService;
 use App\Services\OwnerReviewService;
+use App\Services\PaymentService;
 use App\Services\PolicyConsentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -74,6 +75,7 @@ class BookingController extends Controller
         private readonly CreativeService $creatives,
         private readonly OwnerReviewService $reviews,
         private readonly CancellationService $cancellations,
+        private readonly PaymentService $payments,
     ) {}
 
     /**
@@ -365,6 +367,12 @@ class BookingController extends Controller
 
         $conflicts = $this->availability->validateCampaign($campaign->id);
 
+        // Chốt về VND nguyên TRƯỚC khi tính VAT, rồi `withVat()` một lần. Hai
+        // biến vì `summary` dưới dùng cả hai, và gọi `sum()` ba lần trên cùng
+        // một collection là ba lần đi qua nó.
+        $truocVat = (int) round((float) $lines->sum('estimated_cost'));
+        $tongCong = (int) round($this->payments->withVat($truocVat));
+
         return [
             'campaign'  => (new CampaignResource($campaign))->resolve(),
             'lines'     => BookingLineResource::collection($lines)->resolve(),
@@ -386,8 +394,25 @@ class BookingController extends Controller
                 // `PaymentService::withVat()`; cộng ở đây là một phép làm tròn
                 // thứ hai, và hai chỗ làm tròn khác nhau là cách sinh ra "công
                 // nợ bằng 0 nhưng chưa trả đủ".
-                'subtotal'    => (int) round((float) $lines->sum('estimated_cost')),
+                'subtotal'    => $truocVat,
                 'impressions' => (int) $lines->sum('estimated_impressions'),
+
+                // VAT và tổng cộng, tính qua `PaymentService::withVat()` —
+                // **đúng cái một chỗ** mà chú thích trên nói tới.
+                //
+                // Thêm 10/10/2026 vì trang `booking/{campaign}/review` cần
+                // chúng: nó là trang người mua xác nhận nghĩa vụ tiền, và không
+                // hiện tổng kèm VAT là bắt họ cam kết một con số họ chưa thấy.
+                //
+                // Bản Blade cũ tự nhân `config('pricing.vat_rate')` NGAY TRONG
+                // VIEW — đúng hình dạng lỗi "VAT nhân hai lần" mà trang giỏ từng
+                // mắc, và là lý do đường này tồn tại.
+                //
+                // `vat` là HIỆU của hai số đã làm tròn, không phải một phép
+                // nhân thứ hai: `tongCong - truocVat`. Nhân lại rồi làm tròn
+                // riêng là mở ra chênh một đồng giữa `vat` và `total - subtotal`.
+                'vat'   => $tongCong - $truocVat,
+                'total' => $tongCong,
 
                 // Gửi được hay không do MÁY CHỦ trả lời, không để client tự
                 // suy từ `status` và `conflicts`. Giao diện ẩn nút không phải

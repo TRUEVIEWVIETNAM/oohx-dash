@@ -331,20 +331,31 @@ class NhanTrangThaiMotNoiTest extends TestCase
     }
 
     /**
-     * Trang tải nội dung của NGƯỜI MUA hiện chữ Việt cho cả ba trạng thái.
+     * Đường API của trang tải nội dung trả chữ Việt cho cả ba trạng thái.
      *
-     * Lỗi thật đang có trên production: biểu thức trên trang chỉ biết một mã,
+     * ══ Lỗi thật mà ca này tồn tại để chặn ══
+     *
+     * Biểu thức trên trang chỉ biết một mã,
      *
      *     {{ $c->status === 'pending_review' ? 'Chờ duyệt' : $c->status }}
      *
      * nên `approved` hiện ra `approved` và `rejected` hiện ra `rejected`. Bảng
      * đầy đủ có ở Filament, nhưng người mua không bao giờ thấy Filament.
      *
-     * Phép kiểm đọc chữ **bên trong từng thẻ** `.badge` chứ không `assertDontSee`
-     * cả trang: mã trạng thái còn xuất hiện ở tên class và ở nơi khác, nên một
-     * phép kiểm trên toàn trang sẽ đỏ vì lý do sai.
+     * ══ Chỗ đọc đã chuyển 10/10/2026, phép kiểm thì không ══
+     *
+     * Bản cũ đọc `.badge` trong HTML của `/booking/{campaign}/creative`. Trang
+     * đó nay đọc `/api/v2` từ trình duyệt nên máy chủ không render thẻ nào, và
+     * một `preg_match_all` trên HTML sẽ đếm được 0 — đỏ vì trang đổi cách
+     * dựng, không vì chữ sai.
+     *
+     * Nên ca này đọc **đúng đường trang gọi**, và trục "chữ tới được DOM" nằm
+     * ở `tests/js/noi-dung.test.mjs`, chạy trên đúng khối script sẽ lên
+     * production. Thêm một trục bản cũ không canh được: ba trạng thái phải ra
+     * **ba màu khác nhau** — `rejected` từng cùng màu xám với `pending_review`,
+     * tức hai nghĩa trái nhau một màu.
      */
-    public function test_trang_tai_noi_dung_hien_chu_viet_cho_ca_ba_trang_thai(): void
+    public function test_api_trang_tai_noi_dung_tra_chu_viet_cho_ca_ba_trang_thai(): void
     {
         $org  = Organization::factory()->create(['status' => 'active']);
         $buyer = User::factory()->create(['current_organization_id' => $org->id]);
@@ -375,25 +386,79 @@ class NhanTrangThaiMotNoiTest extends TestCase
             ]);
         }
 
-        $html = $this->actingAs($buyer)
-            ->get('/booking/' . $campaign->id . '/creative')
+        $ds = $this->actingAs($buyer)
+            ->getJson('/api/v2/campaigns/' . $campaign->id)
             ->assertOk()
-            ->getContent();
+            ->json('data.creatives');
 
-        preg_match_all('/<span class="badge[^"]*"[^>]*>([^<]*)<\/span>/', $html, $khop);
+        $this->assertCount(3, $ds, 'phải có đúng một nội dung cho mỗi trạng thái');
 
-        $chuTrenThe = array_map('trim', $khop[1]);
+        $chu = array_column($ds, 'status_label');
+        sort($chu);
 
-        $this->assertCount(3, $chuTrenThe, 'phải có đúng ba thẻ trạng thái, một cho mỗi nội dung');
-
-        sort($chuTrenThe);
         $mongDoi = array_values(Creative::STATUS_LABELS);
         sort($mongDoi);
 
         $this->assertSame(
             $mongDoi,
-            $chuTrenThe,
-            'Có thẻ trạng thái hiện mã nguyên văn tiếng Anh thay vì chữ Việt.',
+            $chu,
+            'Có `status_label` trả về mã nguyên văn tiếng Anh thay vì chữ Việt.',
+        );
+
+        // Và không có mã CSDL nào lọt ra: `pending_review` có dấu gạch dưới,
+        // nên một mã bị trả thẳng sẽ hiện ra ngay ở đây.
+        foreach ($chu as $s) {
+            $this->assertStringNotContainsString('_', $s, "`status_label` còn in mã CSDL: \"{$s}\"");
+        }
+    }
+
+    /**
+     * Trang tải nội dung KHÔNG render sẵn thẻ trạng thái nào ở máy chủ.
+     *
+     * Đối xứng với ca trên, và là nửa còn lại của việc chuyển chỗ: nếu một
+     * ngày ai đó render lại thẻ ở Blade thì có hai nguồn chữ cho một thứ, và
+     * cái ở Blade sẽ là cái không ai canh.
+     */
+    public function test_trang_tai_noi_dung_khong_render_san_the_trang_thai(): void
+    {
+        $org  = Organization::factory()->create(['status' => 'active']);
+        $buyer = User::factory()->create(['current_organization_id' => $org->id]);
+        OrganizationUser::create([
+            'organization_id' => $org->id,
+            'user_id'         => $buyer->id,
+            'role'            => OrganizationUser::ROLE_ADMIN,
+        ]);
+
+        $campaign = Campaign::create([
+            'organization_id' => $org->id,
+            'created_by'      => $buyer->id,
+            'code'            => 'CPN-' . Str::random(8),
+            'name'            => 'CD nội dung',
+            'start_date'      => now()->addMonth(),
+            'end_date'        => now()->addMonths(2),
+            'status'          => Campaign::STATUS_DRAFT,
+        ]);
+
+        Creative::create([
+            'campaign_id'     => $campaign->id,
+            'organization_id' => $org->id,
+            'name'            => 'Nội dung đã duyệt',
+            'type'            => 'image',
+            'file_size'       => 102_400,
+            'status'          => Creative::STATUS_APPROVED,
+        ]);
+
+        $html = $this->actingAs($buyer)
+            ->get('http://' . config('domains.frontpage', 'oohx.net') . '/booking/' . $campaign->id . '/creative')
+            ->assertOk()
+            ->getContent();
+
+        preg_match_all('/<span class="badge[^"]*"[^>]*>([^<]*)<\/span>/', $html, $khop);
+
+        $this->assertSame(
+            [],
+            array_values(array_filter(array_map('trim', $khop[1]))),
+            'Máy chủ vẫn render thẻ trạng thái — chữ phải tới qua `/api/v2`.',
         );
     }
 

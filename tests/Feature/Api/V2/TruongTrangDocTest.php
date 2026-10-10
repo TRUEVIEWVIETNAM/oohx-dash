@@ -179,6 +179,16 @@ class TruongTrangDocTest extends TestCase
         // hai phía.
         $schemas = [];
 
+        // Mã thành công: **200 VÀ 201**. Một `POST` tạo bản ghi trả 201, và bản
+        // đầu chỉ đọc 200 — nên nó đỏ với "không khai schema phản hồi 200" ở
+        // đúng những đường tạo mới.
+        //
+        // Kiểu thân: `application/json` VÀ `multipart/form-data`. Đường tải nội
+        // dung quảng cáo là đường duy nhất của `/api/v2` nhận tệp, và bản đầu
+        // không thấy thân của nó.
+        $maThanhCong = [200, 201];
+        $kieuThan    = ['application/json', 'multipart/form-data'];
+
         foreach (['get', 'put', 'post', 'patch', 'delete'] as $pt) {
             $pheo = $spec['paths'][$khoa][$pt] ?? null;
 
@@ -186,16 +196,22 @@ class TruongTrangDocTest extends TestCase
                 continue;
             }
 
-            $s = $pheo['responses'][200]['content']['application/json']['schema'] ?? null;
+            foreach ($maThanhCong as $ma) {
+                foreach ($kieuThan as $kieu) {
+                    $s = $pheo['responses'][$ma]['content'][$kieu]['schema'] ?? null;
 
-            if ($s !== null) {
-                $schemas[] = $s;
+                    if ($s !== null) {
+                        $schemas[] = $s;
+                    }
+                }
             }
 
-            $rb = $pheo['requestBody']['content']['application/json']['schema'] ?? null;
+            foreach ($kieuThan as $kieu) {
+                $rb = $pheo['requestBody']['content'][$kieu]['schema'] ?? null;
 
-            if ($rb !== null) {
-                $schemas[] = $rb;
+                if ($rb !== null) {
+                    $schemas[] = $rb;
+                }
             }
         }
 

@@ -37,6 +37,26 @@ class BookingLineResource extends JsonResource
 
             'screen' => $this->screen ? (new ScreenSummaryResource($this->screen))->resolve() : null,
 
+            /**
+             * Độ phân giải PIXEL của màn hình — thứ một tệp quảng cáo phải khớp.
+             *
+             * `ScreenSummaryResource.size` chỉ có mét (`width_m`, `height_m`),
+             * và mét không nói được tệp phải bao nhiêu pixel. Trang
+             * `booking/{campaign}/creative` cần đúng con số này: nó là bảng
+             * "kích thước màn hình tham khảo" người mua nhìn trước khi xuất
+             * tệp.
+             *
+             * Đặt ở ĐÂY, không thêm vào `ScreenSummaryResource`: DTO đó dùng ở
+             * giỏ hàng và danh mục công khai, nên thêm hai trường vào nó là nới
+             * phạm vi ở những chỗ không cần. Ở đây phạm vi hẹp đúng mức —
+             * `BookingLineResource` chỉ xuất hiện trong chiến dịch của chính
+             * người đang đăng nhập.
+             */
+            'creative_spec' => [
+                'width_px'  => $this->screen?->spec?->width_px !== null ? (int) $this->screen->spec->width_px : null,
+                'height_px' => $this->screen?->spec?->height_px !== null ? (int) $this->screen->spec->height_px : null,
+            ],
+
             'period' => [
                 'start_date' => $this->start_date?->toDateString(),
                 'end_date'   => $this->end_date?->toDateString(),

@@ -100,11 +100,15 @@ class PaymentController extends Controller
     {
         $this->authorize($request, $campaign, 'view');
 
-        $payment = $campaign->payments()->latest()->first();
-
+        // `$payment` không còn truyền vào view: trang đọc
+        // `GET /api/v2/campaigns/{campaign}/payments` từ trình duyệt và lấy
+        // `payments[0]` — DTO đã sắp theo `latest()`.
+        //
+        // `$campaign` vẫn truyền, nhưng CHỈ để sinh hai đường liên kết ở cuối
+        // trang. Nó đã nằm trong URL người dùng vừa gọi, nên không có gì thêm
+        // bị phơi ra.
         return view('buyer.booking.payment-success', [
             'campaign' => $campaign,
-            'payment'  => $payment,
         ]);
     }
 

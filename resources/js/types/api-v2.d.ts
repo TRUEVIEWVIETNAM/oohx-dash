@@ -2998,6 +2998,23 @@ export interface components {
         BookingLine: {
             id?: string;
             screen?: components["schemas"]["ScreenSummary"];
+            /**
+             * @description Độ phân giải **pixel** của màn hình — thứ một tệp quảng cáo phải
+             *     khớp. `ScreenSummary.size` chỉ có mét, và mét không nói được tệp
+             *     phải bao nhiêu pixel.
+             *
+             *     Đặt ở đây chứ không thêm vào `ScreenSummary`: DTO đó dùng ở giỏ
+             *     hàng và danh mục công khai, nên thêm hai trường vào nó là nới phạm
+             *     vi ở những chỗ không cần. `BookingLine` chỉ xuất hiện trong chiến
+             *     dịch của chính người đang đăng nhập.
+             *
+             *     Trang `booking/{campaign}/creative` đọc hai số này cho bảng "kích
+             *     thước màn hình tham khảo".
+             */
+            creative_spec?: {
+                width_px: number | null;
+                height_px: number | null;
+            };
             period?: {
                 /** Format: date */
                 start_date?: string | null;
@@ -3257,9 +3274,28 @@ export interface components {
                 /** @enum {string} */
                 currency?: "VND";
                 line_count?: number;
-                /** @description Tổng CHƯA gồm VAT. VAT cộng một chỗ duy nhất, lúc tính công nợ. */
+                /** @description Tổng CHƯA gồm VAT. */
                 subtotal?: number;
                 impressions?: number;
+                /**
+                 * @description HIỆU của `total` và `subtotal`, không phải một phép nhân thứ
+                 *     hai: nhân lại rồi làm tròn riêng là mở ra chênh một đồng giữa
+                 *     `vat` và `total - subtotal`.
+                 */
+                vat?: number;
+                /**
+                 * @description Tổng cộng đã gồm VAT, tính qua `PaymentService::withVat()` —
+                 *     **một chỗ duy nhất** trong cả hệ thống.
+                 *
+                 *     Thêm 10/10/2026 vì trang `booking/{campaign}/review` cần nó: nó
+                 *     là trang người mua xác nhận nghĩa vụ tiền, và không hiện tổng
+                 *     kèm VAT là bắt họ cam kết một con số họ chưa thấy.
+                 *
+                 *     Bản Blade cũ tự nhân `config('pricing.vat_rate')` NGAY TRONG
+                 *     VIEW — đúng hình dạng lỗi "VAT nhân hai lần" mà trang giỏ từng
+                 *     mắc, và là lý do đường này tồn tại.
+                 */
+                total?: number;
                 /**
                  * @description Do máy chủ trả lời, không để client tự suy từ `status` và
                  *     `conflicts`. Giao diện ẩn nút không phải phân quyền, nhưng

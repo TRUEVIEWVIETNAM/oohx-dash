@@ -73,13 +73,24 @@ class CreativePrivateDiskTest extends TestCase
     }
 
     /**
-     * Route Blade nằm trong nhóm `Route::domain($fpDomain)`, nên URL phải mang
-     * đúng host đó — host mặc định của test là `localhost` và route sẽ không
-     * khớp, trả 404 vì một lý do không liên quan gì tới điều đang kiểm.
+     * Đường tải tệp — từ 10/10/2026 là `/api/v2`, không còn `POST /booking/…`.
+     *
+     * Trang `booking/{campaign}/creative` nay gửi `FormData` tới
+     * `POST /api/v2/campaigns/{campaign}/creatives`, và đường `POST` của Blade
+     * đã gỡ: nó làm cùng việc với endpoint kia, qua cùng
+     * `UploadCreativeRequest` và cùng `CreativeService::store()`.
+     *
+     * Khác một điểm với bản cũ, và nó đổi cách đọc kết quả ở hai ca dưới:
+     * endpoint v2 trả **201 kèm JSON**, còn đường Blade trả chuyển hướng kèm
+     * lỗi trong session. Phần đang canh — tệp nằm disk nào, định dạng nào bị
+     * chặn — không đổi.
+     *
+     * Route `/api/v2` không nằm trong nhóm `Route::domain()` nào, nên không
+     * cần tiền tố host như đường Blade cũ.
      */
     private function uploadUrl(Campaign $campaign): string
     {
-        return 'http://' . config('domains.frontpage', 'oohx.net') . '/booking/' . $campaign->id . '/creative';
+        return '/api/v2/campaigns/' . $campaign->id . '/creatives';
     }
 
     private function campaign(string $status = Campaign::STATUS_DRAFT): Campaign
@@ -119,7 +130,7 @@ class CreativePrivateDiskTest extends TestCase
 
         $this->actingAs($this->buyer)->post($this->uploadUrl($campaign), [
             'file' => UploadedFile::fake()->image('banner.png', 400, 200),
-        ])->assertRedirect();
+        ], ['Accept' => 'application/json'])->assertCreated();
 
         $creative = Creative::firstOrFail();
 
@@ -163,9 +174,18 @@ class CreativePrivateDiskTest extends TestCase
         // TÊN (`Testing\File::getMimeType()`), nên nó không chứng minh được
         // rằng mime đọc từ nội dung. Nó chứng minh danh sách cho phép có hiệu
         // lực — phần đọc nội dung thật chỉ xảy ra với tệp thật.
-        $this->actingAs($this->buyer)->post($this->uploadUrl($campaign), [
+        $ra = $this->actingAs($this->buyer)->post($this->uploadUrl($campaign), [
             'file' => UploadedFile::fake()->create('evil.exe', 10),
-        ])->assertSessionHasErrors('file');
+        ], ['Accept' => 'application/json'])->assertStatus(422);
+
+        // Định dạng lỗi thống nhất của `/api/v2` (CLAUDE.md §2): lỗi phải nói
+        // rõ nó thuộc trường `file`, không chỉ là một thông báo chung — trang
+        // đặt chữ đó ngay cạnh ô chọn tệp.
+        $this->assertContains(
+            'file',
+            array_column($ra->json('details') ?? [], 'field'),
+            'Lỗi phải mang `field: "file"` trong `details[]`: ' . $ra->getContent(),
+        );
 
         $this->assertSame(0, Creative::count());
     }
