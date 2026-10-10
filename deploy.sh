@@ -50,10 +50,10 @@
 # Cũng đã loại: không có lời gọi HTTP/SSH nào trên đường trang chủ, và
 # `storage/framework/cache/data` thuộc `www` và ghi được bình thường.
 #
-# ── Phép đo đã bấm đồng hồ, 09–10/10/2026, ba lần deploy ──
+# ── Phép đo đã bấm đồng hồ, 09–10/10/2026, sáu lần deploy ──
 #
 # Bản chú thích cũ dặn "ở lần deploy tới, bấm đồng hồ ngay lần gọi đầu tiên TỪ
-# NGOÀI vào". Đã làm, ba lần. Số đo, theo đúng thứ tự gọi:
+# NGOÀI vào". Đã làm, sáu lần. Số đo, theo đúng thứ tự gọi:
 #
 #   deploy #59+#60 (09/10 ~15:01)
 #     1. dash.oohx.net/login            → TIMEOUT ở 25s
@@ -77,6 +77,49 @@
 #     2. dash.oohx.net/publisher/login  → 200 trong 1,52s  ← KHÔNG timeout
 #     3. dash.oohx.net/admin/login      → 200 trong 1,14s
 #     Không treo lần nào, nên lần này KHÔNG phân biệt được (a) với (b).
+#
+#   deploy #64 (10/10 ~04:13) — CHƯA có bảng cache component
+#     1. invitations/khong-ton-tai      → 410 trong 2,02s
+#     2. publisher/login ×3             → 1,25s · 1,19s · 1,14s
+#     3. admin/login                    → 1,17s
+#
+#   deploy #65 (10/10 ~04:4x) — lần ĐẦU `filament:optimize` thật sự chạy
+#     1. invitations/khong-ton-tai      → 410 trong 1,08s
+#     2. publisher/login ×4             → 0,39s · 0,27s · 0,36s · 0,32s
+#     3. admin/login ×2                 → 0,26s · 0,26s
+#     Rồi đo lại sau vài phút, xen kẽ hai đường trong cùng một lượt:
+#       dò 0,27s / panel 0,30s · dò 0,27s / panel 0,36s · dò 0,18s / panel 0,28s
+#
+# Hiện tượng timeout: 2 trong 6 lần deploy (#59+#60 và #62).
+#
+# ── CẢNH BÁO về cách đọc bảng trên: so #64 với #65 là SO SAI ──
+#
+# Nhìn bảng thì panel đi từ ~1,19s xuống ~0,28s và dễ kết luận
+# `filament:optimize` cắt 76%. **Không được kết luận thế**, và bằng chứng nằm
+# trong chính bảng đó: đường dò — đường KHÔNG đi qua Filament — cũng đi từ
+# 2,02s xuống 0,19s. Một đường không liên quan gì tới Filament không thể nhanh
+# lên 10 lần nhờ `filament:optimize`. Nên cả hai số của #64 bị nhiễu khởi động
+# chi phối, không phải chi phí quét.
+#
+# Nguyên nhân của nhiễu: số của #64 đo ngay sau deploy, số của #65 đo sau khi
+# mọi thứ đã ấm. Hai mốc không so với nhau được.
+#
+# Cách đo đúng, và là cách dòng "xen kẽ" ở trên làm: gọi đường dò và trang panel
+# **cạnh nhau trong cùng một lượt**, nhiều cặp, rồi đọc KHOẢNG CHÊNH giữa hai
+# đường chứ không đọc số tuyệt đối. Khoảng chênh đo được: ~0,06–0,10s.
+#
+# Khoảng chênh đó là tín hiệu thuận — nếu Filament còn quét 169 tệp mỗi request
+# thì một trang panel phải chậm hơn một trang Blade thuần nhiều hơn thế. Nhưng
+# nó KHÔNG phải một phép so trước/sau: không ai đo khoảng chênh này khi chưa có
+# bảng cache, và lấy mốc đó đồng nghĩa với việc xoá cache trên production.
+#
+# Số đáng tin duy nhất về mức cải thiện vẫn là phép đo CỤC BỘ ở dưới, nơi cache
+# được bật/tắt giữa hai lượt trong cùng một môi trường: −51…−56% ở request thứ
+# hai.
+#
+# Chi phí lệnh trên production (log deploy #65): ghi 1,52ms + 29,63ms; xoá
+# 0,73ms + 0,20ms. Rẻ hơn hẳn số cục bộ (158ms + 4s) — production có opcache và
+# đĩa thật, máy dev thì không.
 #
 # ── Phép đo này LOẠI một giả thuyết ──
 #
@@ -115,10 +158,15 @@
 # khi đo, cái phải bấm đồng hồ là lời gọi ĐẦU TIÊN tới dash — gọi một trang
 # panel khác trước là tự trả tiền hộ rồi đo ra số sai.
 #
-# Hiện tượng là **không đều**: hai trong bốn lần deploy có treo (#59+#60, #62),
-# hai lần không (#61, #63). Nên một lần đo nhanh KHÔNG chứng minh đã hết — và
-# đó cũng là lý do không được kết luận rằng `filament:optimize` dưới đây đã
+# Hiện tượng là **không đều**: 2 trong 6 lần deploy có treo (#59+#60, #62), bốn
+# lần không (#61, #63, #64, #65). Nên một lần đo nhanh KHÔNG chứng minh đã hết —
+# và đó cũng là lý do không được kết luận rằng `filament:optimize` dưới đây đã
 # chữa được, chỉ vì lần deploy sau nó chạy nhanh.
+#
+# Riêng #65 thì càng không được dùng làm bằng chứng: đúng là nó là lần deploy
+# ĐẦU có bảng cache và nó không treo — nhưng #61, #63 và #64 cũng không treo khi
+# CHƯA có bảng cache. Bốn lần không treo trên sáu lần là tỷ lệ nền, không phải
+# một kết quả.
 #
 # ── Đã thêm `filament:optimize`, 10/10/2026 — và nó là MỘT NƯỚC ĐI, chưa phải lời giải ──
 #
