@@ -59,6 +59,12 @@
 #     4. dash.oohx.net/admin/login      → 200 trong 1,84s
 #     5. publisher/login ×3             → 1,83s · 1,23s · 1,26s
 #
+#   deploy #63 (10/10 ~03:40) — lần đầu chạy ĐÚNG quy trình dò bên dưới
+#     1. invitations/khong-ton-tai      → 410 trong 1,85s  ← đường dò, không Filament
+#     2. dash.oohx.net/publisher/login  → 200 trong 1,52s  ← KHÔNG timeout
+#     3. dash.oohx.net/admin/login      → 200 trong 1,14s
+#     Không treo lần nào, nên lần này KHÔNG phân biệt được (a) với (b).
+#
 # ── Phép đo này LOẠI một giả thuyết ──
 #
 # "Cả ứng dụng lạnh sau `git reset --hard`" là **sai**. Ở deploy #62,
@@ -96,21 +102,54 @@
 # khi đo, cái phải bấm đồng hồ là lời gọi ĐẦU TIÊN tới dash — gọi một trang
 # panel khác trước là tự trả tiền hộ rồi đo ra số sai.
 #
-# Hiện tượng là **không đều**: deploy #61 không timeout lần nào. Nên một lần
-# đo nhanh KHÔNG chứng minh đã hết.
+# Hiện tượng là **không đều**: hai trong bốn lần deploy có treo (#59+#60, #62),
+# hai lần không (#61, #63). Nên một lần đo nhanh KHÔNG chứng minh đã hết — và
+# đó cũng là lý do không được kết luận rằng `filament:optimize` dưới đây đã
+# chữa được, chỉ vì lần deploy sau nó chạy nhanh.
 #
-# ── Ứng viên chữa cho (a), CHƯA thêm vào script này ──
+# ── Đã thêm `filament:optimize`, 10/10/2026 — và nó là MỘT NƯỚC ĐI, chưa phải lời giải ──
 #
-# Filament 3.3 có `php artisan filament:optimize` — nó gọi
-# `filament:cache-components` (ghi sẵn bảng resource/page/widget của từng
-# panel) và `icons:cache`. Đúng là phần việc giả thuyết (a) nói đang tốn.
+# `filament:optimize` (bước [8]) ghi sẵn bảng resource/page/widget của từng
+# panel, cộng bảng icon; `filament:optimize-clear` (bước [6]) dọn bảng cũ. Nó
+# nhắm vào đúng phần việc giả thuyết (a) nói đang tốn: quét 169 tệp dưới
+# `app/Filament` ở lần boot panel đầu tiên.
 #
-# Chưa thêm, và lý do phải đọc trước khi ai đó thêm: bước [6] `optimize:clear`
-# KHÔNG xoá cache đó — lệnh xoá nó là `filament:optimize-clear`. Nên nếu thêm
-# `filament:optimize` vào bước [8] mà deploy hỏng giữa bước [3] và [8], máy chủ
-# sẽ phục vụ bảng component của bản TRƯỚC trong khi mã đã là bản mới: một
-# resource vừa đổi tên hoặc vừa xoá sẽ được nạp từ bảng cũ. Thêm nó thì phải
-# thêm `filament:optimize-clear` vào bước [6] cùng lượt, không thêm lẻ.
+# Nhưng nó KHÔNG chứng minh (a) đúng:
+#  - nếu nguyên nhân là (b) — vòng đời tiến trình theo vhost — thì bảng cache
+#    này không giúp gì, và hiện tượng sẽ còn;
+#  - mà vì hiện tượng không đều, vài lần deploy nhanh liên tiếp cũng không nói
+#    được là nhờ nó.
+#
+# Cách duy nhất còn lại vẫn là quy trình dò ở trên, ở **lần treo tiếp theo**.
+# Nếu sau khi có cache mà vẫn treo, thì (a) bị loại và chỉ còn (b).
+#
+# ── Đo end-to-end qua HTTP, 10/10/2026 ──
+#
+# PHPUnit KHÔNG canh được đường này: `hasCachedComponents()` trả false khi
+# `runningInConsole()`, nên mọi test đều quét tươi và không bao giờ đọc bảng
+# cache. Nên phép đo phải dựng server thật — `php -S` trong docker, có
+# `route:cache`, gọi mỗi đường hai lần:
+#
+#   đường               không cache     có cache      giảm
+#   /admin/login  (1)      15,44s         9,39s        −39%
+#   /publisher/.. (1)       5,30s         3,46s        −35%
+#   /admin/login  (2)       5,33s         2,36s        −56%
+#   /publisher/.. (2)       5,45s         2,68s        −51%
+#
+# Điều quan trọng nằm ở hai dòng CUỐI, không phải hai dòng đầu: **mọi** request
+# panel đều trả phí quét, không chỉ request đầu sau deploy. Không có bảng cache
+# thì lần gọi thứ hai vẫn 5,3s; có bảng thì còn 2,4s. Nên việc này không phải
+# chỉ để chữa cái timeout — nó bớt việc cho từng lần bấm trong panel.
+#
+# Số TUYỆT ĐỐI ở trên không mang sang production được: `php -S` không có
+# opcache, và mọi `require` đi qua bind mount Windows. Chỉ TỶ LỆ là tín hiệu.
+# Cũng không chạy `config:cache` khi đo, có chủ ý: nó sẽ đóng băng cấu hình CSDL
+# vào `bootstrap/cache/config.php` trong cây làm việc, đúng cái bẫy CLAUDE.md §7
+# cảnh báo.
+#
+# Chi phí ghi cache (cùng môi trường): `filament:optimize` 158ms cho ba panel +
+# 4s cho bảng icon; `filament:optimize-clear` 45ms + 87ms. Ba tệp sinh ra:
+# admin 19,7KB · publisher 7,0KB · buyer 1,6KB.
 
 set -e
 trap 'php artisan up || true' ERR
@@ -172,6 +211,19 @@ echo "[6/11] Clear old caches"
 # lần deploy TRƯỚC. Một migration dựa vào config mới sẽ lặng lẽ dùng giá trị cũ.
 $PHP_BIN artisan optimize:clear
 
+# `optimize:clear` KHÔNG xoá cache của Filament — nó không biết về nó.
+#
+# Cache component của Filament nằm ở `bootstrap/cache/filament/panels/{id}.php`
+# (ba tệp: admin, publisher, buyer) cộng `bootstrap/cache/blade-icons.php`. Cả
+# `bootstrap/cache` bị .gitignore chặn, nên `git reset --hard` ở bước [3]
+# KHÔNG dọn chúng: không xoá tay thì bản cũ sống qua deploy.
+#
+# Hệ quả nếu để sống: tệp đó là một mảng PHP ghi thẳng TÊN CLASS
+# (`livewireComponents`, `resources`, `pages`, `widgets`), và `HasComponents`
+# nạp nó bằng `require` rồi tin hẳn. Một resource vừa đổi tên hoặc vừa xoá sẽ
+# được nạp từ bảng cũ → 500 trên mọi trang của panel đó, không phải một lỗi nhẹ.
+$PHP_BIN artisan filament:optimize-clear
+
 echo ""
 echo "[7/11] Run migrations"
 $PHP_BIN artisan migrate --force
@@ -182,6 +234,24 @@ $PHP_BIN artisan config:cache
 $PHP_BIN artisan route:cache
 $PHP_BIN artisan view:cache
 $PHP_BIN artisan event:cache || true
+
+# Filament: ghi sẵn bảng resource/page/widget của từng panel, cộng bảng icon.
+#
+# Phải SAU `config:cache`, vì đường ghi cache đọc `config('filament.cache_path')`.
+#
+# KHÔNG `|| true`. Nếu lệnh này hỏng thì bảng component vừa bị xoá ở bước [6]
+# không được dựng lại, và panel quay về quét 169 tệp mỗi request — tức đúng cái
+# chi phí ta đang muốn bỏ, nhưng lặng lẽ. Thà deploy đỏ ngay: `trap … ERR` ở đầu
+# file vẫn đưa ứng dụng trở lại online.
+#
+# An toàn với artisan: `hasCachedComponents()` trả false khi
+# `app()->runningInConsole()`, nên migration và mọi lệnh artisan LUÔN quét tươi,
+# không bao giờ đọc bảng này. Chỉ request HTTP đọc nó.
+#
+# Quyền đọc: bước [9] ngay dưới chmod 775 cho thư mục và 664 cho tệp dưới
+# `bootstrap/cache`, nên `www` đọc được — cùng cơ chế `config.php` và
+# `routes-v7.php` đang dùng. Thứ tự [8] rồi [9] là bắt buộc, không đổi được.
+$PHP_BIN artisan filament:optimize
 
 echo ""
 echo "[9/11] Fix permissions and restart workers"
