@@ -35,14 +35,16 @@ class OwnerResource extends Resource
                     ->unique(ignoreRecord:true)
                     ->helperText('Tự động từ tên. Có thể sửa tay.'),
                 Forms\Components\Select::make('type')
-                    ->options(['retailer'=>'Retailer','media_owner'=>'Media Owner','self'=>'Self'])
+                    ->label('Loại đơn vị')
+                    ->options(Owner::TYPE_LABELS)
                     ->required(),
                 Forms\Components\Select::make('onboard_method')
                     ->options(['cms'=>'CMS + Player','api'=>'API','vast'=>'VAST','hardware'=>'Hardware Bundle'])
                     ->required(),
                 Forms\Components\Select::make('status')
-                    ->options(['pending'=>'Pending','active'=>'Active','suspended'=>'Suspended'])
-                    ->default('pending')->required()
+                    ->label('Trạng thái')
+                    ->options(Owner::STATUS_LABELS)
+                    ->default(Owner::STATUS_PENDING)->required()
                     ->helperText('Chỉ owner ở trạng thái Active mới hiển thị công khai trên sàn. Duyệt sau khi đã rà xong hồ sơ pháp lý bên dưới.'),
             ]),
 
@@ -147,16 +149,20 @@ class OwnerResource extends Resource
                 Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('slug')->searchable(),
                 Tables\Columns\BadgeColumn::make('type')
+                    ->label('Loại đơn vị')
+                    ->formatStateUsing(fn ($state) => Owner::TYPE_LABELS[$state] ?? $state ?? '—')
                     ->colors(['primary'=>'media_owner','success'=>'retailer','warning'=>'self']),
                 Tables\Columns\BadgeColumn::make('status')
+                    ->label('Trạng thái')
+                    ->formatStateUsing(fn ($state) => Owner::STATUS_LABELS[$state] ?? $state ?? '—')
                     ->colors(['warning'=>'pending','success'=>'active','danger'=>'suspended']),
                 Tables\Columns\TextColumn::make('screens_count')
                     ->label('Screens')->counts('screens')->sortable(),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(),
             ])
             ->filters([
-                SelectFilter::make('status')->options(['pending'=>'Pending','active'=>'Active','suspended'=>'Suspended']),
-                SelectFilter::make('type')->options(['retailer'=>'Retailer','media_owner'=>'Media Owner']),
+                SelectFilter::make('status')->label('Trạng thái')->options(Owner::STATUS_LABELS),
+                SelectFilter::make('type')->label('Loại đơn vị')->options(Owner::TYPE_LABELS),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -174,8 +180,10 @@ class OwnerResource extends Resource
         return $infolist->schema([
             Infolists\Components\Section::make('Overview')->columns(3)->schema([
                 Infolists\Components\TextEntry::make('name'),
-                Infolists\Components\TextEntry::make('status')->badge(),
-                Infolists\Components\TextEntry::make('type')->badge(),
+                Infolists\Components\TextEntry::make('status')->label('Trạng thái')->badge()
+                    ->formatStateUsing(fn ($state) => Owner::STATUS_LABELS[$state] ?? $state ?? '—'),
+                Infolists\Components\TextEntry::make('type')->label('Loại đơn vị')->badge()
+                    ->formatStateUsing(fn ($state) => Owner::TYPE_LABELS[$state] ?? $state ?? '—'),
                 Infolists\Components\TextEntry::make('onboard_method'),
                 Infolists\Components\TextEntry::make('created_at')->dateTime(),
             ]),

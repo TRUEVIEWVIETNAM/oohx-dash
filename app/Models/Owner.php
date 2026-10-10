@@ -15,6 +15,60 @@ class Owner extends Model
 {
     use HasFactory, HasUlids, HasSlug, SoftDeletes;
 
+    public const STATUS_PENDING   = 'pending';
+    public const STATUS_ACTIVE    = 'active';
+    public const STATUS_SUSPENDED = 'suspended';
+
+    /**
+     * Chữ tiếng Việt cho trạng thái media owner.
+     *
+     * ══ Ba chỗ tự quyết chữ, và không chỗ nào dịch ══
+     *
+     *  1. Cột bảng (`BadgeColumn::make('status')`) không khai chữ → in `pending`,
+     *     `active`, `suspended` nguyên văn.
+     *  2. Khối thông tin (`TextEntry::make('status')->badge()`) cũng vậy.
+     *  3. Ô chọn của form và của bộ lọc CÓ chữ, nhưng là tiếng Anh và là **hai
+     *     bản chép** rời nhau: `['pending'=>'Pending', …]` viết hai lần.
+     *
+     * Đúng hình dạng lỗi đã sửa ở `Organization::STATUS_LABELS` — và hai bảng đó
+     * là hai phía của cùng một sàn, nên chữ phải giống nhau: "Đang hoạt động",
+     * "Tạm ngưng".
+     *
+     * "Tạm ngưng" chứ không "Tạm dừng", có chủ ý: `Network::STATUS_LABELS` và
+     * `Site::STATUS_LABELS` đã dùng "Tạm dừng" cho `paused`. `suspended` là một
+     * quyết định của sàn với media owner, `paused` là media owner tự tắt một
+     * mạng lưới — hai việc khác nhau không nên đọc giống nhau.
+     *
+     * `pending` là "Chờ duyệt", không phải "Đang chờ": nó chờ sàn rà xong hồ sơ
+     * pháp lý, và chính ô chọn của form nói thế trong `helperText`.
+     */
+    public const STATUS_LABELS = [
+        self::STATUS_PENDING   => 'Chờ duyệt',
+        self::STATUS_ACTIVE    => 'Đang hoạt động',
+        self::STATUS_SUSPENDED => 'Tạm ngưng',
+    ];
+
+    public const TYPE_RETAILER    = 'retailer';
+    public const TYPE_MEDIA_OWNER = 'media_owner';
+    public const TYPE_SELF        = 'self';
+
+    /**
+     * Chữ tiếng Việt cho loại đơn vị sở hữu điểm phát.
+     *
+     * Cùng ba chỗ, cùng hai bản chép tiếng Anh như `status` ở trên
+     * (`['retailer'=>'Retailer','media_owner'=>'Media Owner','self'=>'Self']`),
+     * và bộ lọc của bảng còn thiếu hẳn `self`.
+     *
+     * `self` là "Tự khai thác": đơn vị tự dựng điểm phát và tự bán, không qua
+     * một chủ sở hữu khác. "Self" dịch thẳng thành "Bản thân" thì vô nghĩa ở
+     * đây, nên chữ nói việc chứ không dịch từ.
+     */
+    public const TYPE_LABELS = [
+        self::TYPE_RETAILER    => 'Nhà bán lẻ',
+        self::TYPE_MEDIA_OWNER => 'Chủ điểm quảng cáo',
+        self::TYPE_SELF        => 'Tự khai thác',
+    ];
+
     protected $fillable = [
         'name', 'slug', 'type', 'onboard_method',
         'revenue_share_pct', 'status', 'billing_info', 'notes',

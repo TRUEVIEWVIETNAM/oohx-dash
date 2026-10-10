@@ -296,7 +296,9 @@ class ViewScreenImport extends ViewRecord
                 ->columns(4)
                 ->schema([
                     Infolists\Components\TextEntry::make('status')
+                        ->label('Trạng thái')
                         ->badge()
+                        ->formatStateUsing(fn ($state) => ScreenImport::STATUS_LABELS[$state] ?? $state ?? '—')
                         ->color(fn (string $state) => match ($state) {
                             'uploaded', 'mapping' => 'info',
                             'previewed'           => 'warning',

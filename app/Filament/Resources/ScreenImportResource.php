@@ -32,7 +32,9 @@ class ScreenImportResource extends Resource
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('status')
+                    ->label('Trạng thái')
                     ->badge()
+                    ->formatStateUsing(fn ($state) => ScreenImport::STATUS_LABELS[$state] ?? $state ?? '—')
                     ->color(fn (string $state) => match ($state) {
                         'uploaded', 'mapping' => 'info',
                         'previewed'           => 'warning',

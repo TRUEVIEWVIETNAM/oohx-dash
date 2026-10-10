@@ -58,24 +58,50 @@ class TheEnumPhaiCoChuTest extends TestCase
      * Sửa được thì sửa rồi gạch khỏi đây.
      */
     private const DANG_THIEU = [
-        // Bốn dòng của `ProductResource` (publisher + admin, `type` + `status`)
-        // đã gạch ngày 10/10/2026: `Product::TYPE_LABELS` và
-        // `Product::STATUS_LABELS` ra đời cùng lượt dịch panel publisher, và cả
-        // bốn thẻ nay đi qua `formatStateUsing`.
+        // Trống từ 10/10/2026. Lịch sử, để không ai tưởng danh sách này chưa
+        // từng dùng:
+        //
+        //  - bốn dòng `ProductResource` (publisher + admin, `type` + `status`)
+        //    gạch cùng lượt dịch panel publisher — `Product::TYPE_LABELS` và
+        //    `STATUS_LABELS` ra đời ở đó;
+        //  - năm dòng còn lại (`OwnerResource` ×2, `ScreenImportResource` ×2,
+        //    `PoiSnapshotResource`) gạch ở lượt "nhãn vận hành".
+        //
+        // Hai dòng của OOHX Data Engine KHÔNG gạch, và cũng không còn là nợ —
+        // xem `KHONG_DICH` ngay dưới.
+    ];
 
-        // Trạng thái VẬN HÀNH nội bộ. Chữ tiếng Việt cho chúng là một quyết
-        // định nghiệp vụ: người đọc là người vận hành, và mã thô có thể đúng là
-        // thứ họ cần đối chiếu với log.
+    /**
+     * Cố ý GIỮ mã thô, kèm lý do — không phải nợ.
+     *
+     * ══ Vì sao hai chỗ này khác bảy chỗ kia ══
+     *
+     * Chú thích cũ gộp cả bảy vào một nhóm "trạng thái vận hành nội bộ mà mã
+     * thô có thể đúng là thứ người vận hành cần đối chiếu với log". Khảo sát
+     * ngày 10/10/2026 cho thấy lý do đó chỉ đúng với **hai** chỗ:
+     *
+     *  - `CollectorRun` và `RecomputeJob` sống trên connection `oohx_control`,
+     *    tức một CSDL KHÁC, do một worker Python sở hữu. Bảng của chúng không
+     *    có migration nào trong repo này — `information_schema` của CSDL chính
+     *    không biết chúng tồn tại.
+     *  - Người đọc hai trang đó là người vận hành sàn đang đối chiếu với log
+     *    của worker Python, nơi trạng thái in ra là `pending` / `running` /
+     *    `done` / `failed` / `cancelled`. Dịch ở một phía làm việc đối chiếu khó
+     *    hơn, không dễ hơn.
+     *
+     * Năm chỗ còn lại thì KHÔNG như vậy, và đó là lý do chúng đã được sửa:
+     * `owners.status` / `owners.type` là enum của chính dự án; còn
+     * `screen_imports.status` và `poi_snapshots.source` thì người đọc là **media
+     * owner đang tự nhập kho của mình**, không phải người vận hành sàn.
+     *
+     * Đổi ý thì đổi — nhưng đổi ở đây, với một lý do viết ra, chứ không để nó
+     * nằm im trong danh sách nợ như một việc chưa làm.
+     *
+     * @var array<string, int>
+     */
+    private const KHONG_DICH = [
         'app/Filament/Resources/OohxCollectorRunResource.php::status' => 2,
         'app/Filament/Resources/OohxRecomputeJobResource.php::status' => 2,
-        'app/Filament/Resources/PoiSnapshotResource.php::source' => 2,
-        'app/Filament/Resources/ScreenImportResource.php::status' => 1,
-        'app/Filament/Resources/ScreenImportResource/Pages/ViewScreenImport.php::status' => 1,
-
-        // Media owner: `owners.status` và `owners.type` chưa có bảng chữ.
-        'app/Filament/Resources/OwnerResource.php::status' => 1,
-        'app/Filament/Resources/OwnerResource.php::type' => 1,
-
     ];
 
     /** @return array<int, string> tên mọi cột enum trong CSDL */
@@ -199,7 +225,11 @@ class TheEnumPhaiCoChuTest extends TestCase
     public function test_khong_them_the_enum_nao_thieu_chu(): void
     {
         $thuc = $this->timThieuChu();
-        $ghi  = self::DANG_THIEU;
+
+        // Hai danh sách, một phép so: nợ chưa trả CỘNG chỗ cố ý giữ mã thô.
+        // Tách làm hai là để đọc được ý định, không phải để lỏng phép kiểm —
+        // tổng vẫn phải khớp từng con số với thực tế.
+        $ghi = self::DANG_THIEU + self::KHONG_DICH;
 
         ksort($ghi);
 

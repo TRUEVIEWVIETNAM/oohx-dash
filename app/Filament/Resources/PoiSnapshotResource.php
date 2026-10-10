@@ -51,8 +51,9 @@ class PoiSnapshotResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('source')
-                    ->label('Source')
+                    ->label('Nguồn')
                     ->badge()
+                    ->formatStateUsing(fn ($state) => PoiSnapshot::SOURCE_LABELS[$state] ?? $state ?? '—')
                     ->color(fn (string $state) => match ($state) {
                         'osm'           => 'info',
                         'google_places' => 'success',
@@ -109,11 +110,8 @@ class PoiSnapshotResource extends Resource
             ->defaultSort('fetched_at', 'desc')
             ->filters([
                 SelectFilter::make('source')
-                    ->options([
-                        'osm'           => 'OSM',
-                        'google_places' => 'Google Places',
-                        'foursquare'    => 'Foursquare',
-                    ]),
+                    ->label('Nguồn')
+                    ->options(PoiSnapshot::SOURCE_LABELS),
                 SelectFilter::make('radius')
                     ->options([
                         '500'  => '500m',
@@ -205,7 +203,9 @@ class PoiSnapshotResource extends Resource
                 ->columns(4)
                 ->schema([
                     Infolists\Components\TextEntry::make('source')
+                        ->label('Nguồn')
                         ->badge()
+                        ->formatStateUsing(fn ($state) => PoiSnapshot::SOURCE_LABELS[$state] ?? $state ?? '—')
                         ->color(fn (string $state) => match ($state) {
                             'osm'           => 'info',
                             'google_places' => 'success',
