@@ -31,14 +31,14 @@ class ViewPoiSnapshot extends ViewRecord
                             $r->radius,
                         );
                         Notification::make()
-                            ->title('Refreshed')
+                            ->title('Làm mới lúc')
                             ->body(count($pois) . ' POIs cập nhật')
                             ->success()
                             ->send();
                         $this->refreshFormData(['pois', 'poi_count', 'features', 'fetched_at', 'expires_at']);
                     } catch (\Throwable $e) {
                         Notification::make()
-                            ->title('Refresh failed')
+                            ->title('Làm mới không được')
                             ->body($e->getMessage())
                             ->danger()
                             ->send();

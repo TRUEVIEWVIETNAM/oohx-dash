@@ -2,12 +2,11 @@
 
 namespace Tests\Feature\Filament;
 
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
+use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
 /**
- * Chữ người dùng đọc trong panel publisher phải là tiếng Việt.
+ * Chữ người dùng đọc trong MỌI panel Filament phải là tiếng Việt.
  *
  * ══ Lỗi tệp này canh ══
  *
@@ -48,7 +47,7 @@ use Tests\TestCase;
  *  - dịch một chuỗi trong `CHO_PHEP` mà quên gạch nó khỏi đây → tập thật ngắn
  *    hơn → **đỏ**. Một chốt chỉ siết một chiều thì sẽ mục.
  */
-class ChuPanelPublisherTest extends TestCase
+class ChuPanelPhaiCoDauTest extends TestCase
 {
     /**
      * Chuỗi không dấu được giữ, và lý do — tính tới 10/10/2026.
@@ -57,24 +56,40 @@ class ChuPanelPublisherTest extends TestCase
      */
     private const CHO_PHEP = [
         // Thuật ngữ ngành quảng cáo ngoài trời, dùng nguyên trong tiếng Việt.
-        'AdOps', 'Programmatic', 'Media Owner',
+        'AdOps', 'Programmatic', 'Media Owner', 'Media owner', 'Hivestack',
+        'CPM', 'OTS', 'I/O', 'POI',
+
+        // Tên sản phẩm / chuẩn / dịch vụ — dịch thì sai, không phải chưa dịch.
+        'Data Engine', 'OOHX Data Engine', 'OOHX · Data Engine',
+        'Vietcombank (VCB)',
 
         // Từ mượn đã vào tiếng Việt, không có bản dịch nào tự nhiên hơn.
-        'Email', 'Website', 'Logo', 'Slug',
+        'Email', 'Website', 'Logo', 'Slug', 'Guard',
 
-        // Viết tắt toạ độ trên đầu cột bảng, nơi "Vĩ độ"/"Kinh độ" quá dài.
-        'Lat', 'Lon',
+        // Viết tắt trên đầu cột, nơi chữ đầy đủ quá dài.
+        'Lat', 'Lon', 'ID', 'UUID', 'MST', '#',
 
         // Tiếng Việt KHÔNG dấu — đúng chính tả, chỉ là không có dấu nào.
-        'Xem', 'Nam %',
+        'Xem', 'Sao', 'Sau', 'Nam %',
 
         // Nhóm tuổi: con số, không phải chữ.
         '18-24 %', '25-34 %', '35-44 %', '45+ %',
 
         // Ví dụ trong ô trống (placeholder), cố tình trông như dữ liệu thật.
-        '1', '105.8542', '21.0285', '0912 345 6789',
+        '1', '0', '24', '105.8542', '21.0285', '105.70', '106.00', '20.90',
+        '21.15', '0912 345 6789',
         'contact@company.com', 'user@example.com', 'www.company.com',
-        'Starbucks, Highlands, KFC',
+        'Starbucks, Highlands, KFC', 'CONG TY TNHH ...',
+        'VD: 00001', 'VD: TAY_BAC, DBSH, BTB', 'VD: VCB-123456789',
+        'vd: 42', 'vd: v-2026-05-15',
+        'vd: 1f5cbf19-c9c3-4637-ad1a-b5cc37381bd9',
+        'vd: Transit : Airports : Arrival Hall',
+        'vd: transit.airports.arrivals_hall',
+        'Vd: entrance, escalator, food_court, checkout, facade, roadside',
+        'VD: material → hiflex, size_m → 12x4, resolution → P4',
+
+        // Bảng tra mã → đường dẫn. Hai bên đều là mã, không có chữ nào để dịch.
+        'super_admin → /admin | publisher → /publisher',
 
         // Dấu gạch ngang cho ô rỗng.
         '—',
@@ -105,20 +120,57 @@ class ChuPanelPublisherTest extends TestCase
      */
     private const MAKE_LA_CHU = ['Section', 'Fieldset', 'Tab', 'NavigationGroup', 'Step'];
 
-    private const THU_MUC = ['app/Filament/Publisher', 'app/Filament/Shared'];
+    /**
+     * CẢ BA panel, không chỉ publisher.
+     *
+     * Bản đầu chỉ phủ `Publisher` và `Shared`. Mở ra cả `Resources` (panel
+     * admin), `Pages`, `Widgets` và `Buyer` khi dịch panel admin — và chính lúc
+     * mở ra mới lộ lỗi ở `tep()` bên dưới.
+     */
+    private const THU_MUC = [
+        'app/Filament/Buyer',
+        'app/Filament/Pages',
+        'app/Filament/Publisher',
+        'app/Filament/Resources',
+        'app/Filament/Shared',
+        'app/Filament/Widgets',
+    ];
 
-    private const TEP_LE = ['app/Providers/Filament/PublisherPanelProvider.php'];
+    private const TEP_LE = [
+        'app/Providers/Filament/AdminPanelProvider.php',
+        'app/Providers/Filament/BuyerPanelProvider.php',
+        'app/Providers/Filament/PublisherPanelProvider.php',
+    ];
 
-    /** @return array<int, string> mọi tệp PHP trong tầm */
+    /**
+     * Mọi tệp PHP trong tầm.
+     *
+     * ══ `File::allFiles()`, KHÔNG `RecursiveIteratorIterator` ══
+     *
+     * Bản đầu dùng `new RecursiveIteratorIterator(new RecursiveDirectoryIterator($d))`
+     * — thiếu `SKIP_DOTS`, nên iterator nhận cả `.` và `..` là thư mục rồi **đệ
+     * quy vào `..`**, đi ngược lên cây và mất dấu. Nó trả **9 mục** cho
+     * `app/Filament/Resources` (115 tệp PHP), và 9 mục đó toàn là một nhánh
+     * cuối bảng chữ cái:
+     *
+     *     VietnamProvinceResource.php
+     *     VietnamRegionResource/.
+     *     VietnamRegionResource/..
+     *     VietnamRegionResource/Pages/.
+     *     …
+     *
+     * Đây KHÔNG phải nhiễu — tái lập được, và là đúng lỗi `TheEnumPhaiCoChuTest`
+     * đã ghi (59 trên 169 tệp). Với `app/Filament/Publisher` nó tình cờ trả
+     * đủ 35/35, nên bản đầu của tệp này xanh và tôi tin nó. Tức cái chốt đó đã
+     * đứng nhờ **hình dạng thư mục**, không nhờ mã đúng.
+     */
     private function tep(): array
     {
         $ra = array_map(fn ($t) => base_path($t), self::TEP_LE);
 
         foreach (self::THU_MUC as $tm) {
-            $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(base_path($tm)));
-
-            foreach ($it as $f) {
-                if ($f->isFile() && $f->getExtension() === 'php') {
+            foreach (File::allFiles(base_path($tm)) as $f) {
+                if ($f->getExtension() === 'php') {
                     $ra[] = $f->getPathname();
                 }
             }
@@ -184,25 +236,31 @@ class ChuPanelPublisherTest extends TestCase
     /**
      * Bộ quét phải tìm ra thứ gì — một regex vỡ không được thành test xanh.
      *
-     * Hai ngưỡng, cả hai đặt sát con số thật: 42 tệp trong tầm, và hơn 400
-     * chuỗi hiển thị trích được. Một ngưỡng quá lỏng là một phép kiểm
-     * chống-rỗng không chống gì — bài học của `TheEnumPhaiCoChuTest`, nơi
-     * ngưỡng `>= 20` để một bộ quét thấy 59 trong 169 tệp đi qua.
+     * Hai ngưỡng, cả hai đặt sát con số thật: **167** tệp trong tầm (3 provider
+     * + 164 tệp dưới sáu thư mục) và **1750** chuỗi hiển thị trích được. Một
+     * ngưỡng quá lỏng là một phép kiểm chống-rỗng không chống gì — bài học của
+     * `TheEnumPhaiCoChuTest`, nơi ngưỡng `>= 20` để một bộ quét thấy 59 trong
+     * 169 tệp đi qua.
+     *
+     * Và bài học đó vừa lặp lại ở chính tệp này: ngưỡng cũ `>= 40` tệp vẫn qua
+     * trong khi `tep()` bỏ sót 106 trong 115 tệp của `app/Filament/Resources`,
+     * bởi lúc đó tầm quét chưa gồm thư mục ấy. Ngưỡng chỉ canh được phạm vi nó
+     * biết.
      */
     public function test_bo_quet_khong_rong(): void
     {
         $this->assertGreaterThanOrEqual(
-            40,
+            160,
             count($this->tep()),
-            'Chỉ thấy ' . count($this->tep()) . ' tệp trong khi tầm quét có ~42 — '
+            'Chỉ thấy ' . count($this->tep()) . ' tệp trong khi tầm quét có ~167 — '
             . 'bộ liệt kê đã bỏ sót.',
         );
 
         $this->assertGreaterThanOrEqual(
-            380,
+            1700,
             $this->demChuHienThi(),
             'Chỉ trích được ' . $this->demChuHienThi() . ' chuỗi hiển thị trong khi '
-            . 'thực tế có hơn 400 — các regex đã vỡ, và phép so dưới đây đang '
+            . 'thực tế có hơn 1750 — các regex đã vỡ, và phép so dưới đây đang '
             . 'canh ít hơn nó nói.',
         );
     }

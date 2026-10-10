@@ -21,9 +21,9 @@ class OrganizationResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
 
-    protected static ?string $navigationGroup = 'Marketplace';
+    protected static ?string $navigationGroup = 'Sàn';
 
-    protected static ?string $navigationLabel = 'Organizations';
+    protected static ?string $navigationLabel = 'Tổ chức';
 
     protected static ?int $navigationSort = 3;
 
@@ -97,7 +97,7 @@ class OrganizationResource extends Resource
                         ->label('Website')
                         ->url(),
                     Forms\Components\TextInput::make('logo_url')
-                        ->label('Logo URL'),
+                        ->label('Đường dẫn logo'),
                 ]),
             ])->collapsible(),
         ]);
@@ -127,14 +127,14 @@ class OrganizationResource extends Resource
                 ]),
                 Infolists\Components\Grid::make(3)->schema([
                     Infolists\Components\TextEntry::make('tax_id')->label('MST')->default('—'),
-                    Infolists\Components\TextEntry::make('billing_email')->label('Email TT')->default('—'),
+                    Infolists\Components\TextEntry::make('billing_email')->label('Email thanh toán')->default('—'),
                     Infolists\Components\TextEntry::make('billing_phone')->label('SĐT')->default('—'),
                 ]),
             ]),
             Infolists\Components\Section::make('Thống kê')->schema([
                 Infolists\Components\Grid::make(4)->schema([
                     Infolists\Components\TextEntry::make('campaigns_count')
-                        ->label('Campaigns')
+                        ->label('Chiến dịch')
                         ->getStateUsing(fn (Organization $r) => $r->campaigns()->count()),
                     Infolists\Components\TextEntry::make('active_campaigns')
                         ->label('Đang chạy')
@@ -190,12 +190,12 @@ class OrganizationResource extends Resource
                     ->formatStateUsing(fn (string $state): string => Organization::TYPE_LABELS[$state] ?? $state),
 
                 Tables\Columns\TextColumn::make('organization_users_count')
-                    ->label('Users')
+                    ->label('Người dùng')
                     ->counts('organizationUsers')
                     ->alignCenter(),
 
                 Tables\Columns\TextColumn::make('campaigns_count')
-                    ->label('Campaigns')
+                    ->label('Chiến dịch')
                     ->counts('campaigns')
                     ->alignCenter(),
 

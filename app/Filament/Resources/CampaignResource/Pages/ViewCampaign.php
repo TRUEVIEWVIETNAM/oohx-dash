@@ -46,26 +46,26 @@ class ViewCampaign extends ViewRecord
                     ]),
                     Infolists\Components\Grid::make(3)->schema([
                         Infolists\Components\TextEntry::make('organization.name')->label('Tổ chức'),
-                        Infolists\Components\TextEntry::make('brand_name')->label('Brand')->default('—'),
+                        Infolists\Components\TextEntry::make('brand_name')->label('Thương hiệu')->default('—'),
                         Infolists\Components\TextEntry::make('category')->label('Ngành hàng')->default('—'),
                     ]),
                     Infolists\Components\Grid::make(4)->schema([
                         Infolists\Components\TextEntry::make('start_date')->label('Bắt đầu')->date('d/m/Y'),
                         Infolists\Components\TextEntry::make('end_date')->label('Kết thúc')->date('d/m/Y'),
                         Infolists\Components\TextEntry::make('total_screens')->label('Màn hình'),
-                        Infolists\Components\TextEntry::make('total_budget')->label('Budget')->money('VND')->default('—'),
+                        Infolists\Components\TextEntry::make('total_budget')->label('Ngân sách')->money('VND')->default('—'),
                     ]),
                     Infolists\Components\TextEntry::make('notes')->label('Ghi chú')->default('—')->columnSpanFull(),
                 ]),
 
-            Infolists\Components\Section::make('Booking Lines')
+            Infolists\Components\Section::make('Dòng đặt chỗ')
                 ->schema([
                     Infolists\Components\RepeatableEntry::make('bookingLines')
                         ->label('')
                         ->schema([
                             Infolists\Components\Grid::make(6)->schema([
                                 Infolists\Components\TextEntry::make('screen.name')->label('Màn hình'),
-                                Infolists\Components\TextEntry::make('owner.name')->label('Owner'),
+                                Infolists\Components\TextEntry::make('owner.name')->label('Chủ sở hữu'),
                                 Infolists\Components\TextEntry::make('start_date')->label('Từ')->date('d/m'),
                                 Infolists\Components\TextEntry::make('end_date')->label('Đến')->date('d/m'),
                                 Infolists\Components\TextEntry::make('estimated_cost')->label('Chi phí')->money('VND'),
@@ -90,13 +90,13 @@ class ViewCampaign extends ViewRecord
                 ])
                 ->collapsible(),
 
-            Infolists\Components\Section::make('Payments')
+            Infolists\Components\Section::make('Thanh toán')
                 ->schema([
                     Infolists\Components\RepeatableEntry::make('payments')
                         ->label('')
                         ->schema([
                             Infolists\Components\Grid::make(5)->schema([
-                                Infolists\Components\TextEntry::make('invoice_number')->label('Invoice'),
+                                Infolists\Components\TextEntry::make('invoice_number')->label('Hoá đơn'),
                                 Infolists\Components\TextEntry::make('amount')->label('Số tiền')->money('VND'),
                                 Infolists\Components\TextEntry::make('method')->label('Phương thức')
                                     ->formatStateUsing(fn (string $state): string => Payment::METHOD_LABELS[$state] ?? $state),
@@ -126,7 +126,7 @@ class ViewCampaign extends ViewRecord
                         ->schema([
                             Infolists\Components\Grid::make(5)->schema([
                                 Infolists\Components\TextEntry::make('bookingLine.screen.name')->label('Màn hình')->default('—'),
-                                Infolists\Components\TextEntry::make('owner.name')->label('Owner')->default('—'),
+                                Infolists\Components\TextEntry::make('owner.name')->label('Chủ sở hữu')->default('—'),
                                 Infolists\Components\TextEntry::make('refund_pct')->label('Tỉ lệ')->suffix('%'),
                                 Infolists\Components\TextEntry::make('amount')->label('Phải hoàn')->money('VND'),
                                 Infolists\Components\TextEntry::make('status')->label('Trạng thái')->badge()

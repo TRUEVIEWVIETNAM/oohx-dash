@@ -13,12 +13,12 @@ class ScreenImportResource extends Resource
     protected static ?string $model = ScreenImport::class;
 
     protected static ?string $navigationIcon  = 'heroicon-o-arrow-up-tray';
-    protected static ?string $navigationLabel = 'Screen imports';
-    protected static ?string $navigationGroup = 'Inventory';
+    protected static ?string $navigationLabel = 'Lần nhập màn hình';
+    protected static ?string $navigationGroup = 'Kho điểm phát';
     protected static ?int    $navigationSort  = 10;
 
-    protected static ?string $modelLabel       = 'Screen import';
-    protected static ?string $pluralModelLabel = 'Screen imports';
+    protected static ?string $modelLabel       = 'Lần nhập màn hình';
+    protected static ?string $pluralModelLabel = 'Lần nhập màn hình';
 
     public static function table(Table $table): Table
     {
@@ -26,7 +26,7 @@ class ScreenImportResource extends Resource
             ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('original_filename')
-                    ->label('File')
+                    ->label('Tệp')
                     ->limit(40)
                     ->tooltip(fn ($record) => $record->original_filename)
                     ->searchable(),
@@ -45,29 +45,29 @@ class ScreenImportResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('total_rows')
-                    ->label('Rows')
+                    ->label('Số dòng')
                     ->numeric()
                     ->alignRight()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('success_count')
-                    ->label('Imported')
+                    ->label('Đã nhập')
                     ->numeric()
                     ->alignRight()
                     ->color('success'),
 
                 Tables\Columns\TextColumn::make('failed_count')
-                    ->label('Failed')
+                    ->label('Lỗi')
                     ->numeric()
                     ->alignRight()
                     ->color(fn ($state) => $state > 0 ? 'danger' : 'gray'),
 
                 Tables\Columns\TextColumn::make('uploader.name')
-                    ->label('Uploaded by')
+                    ->label('Người tải lên')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label('Tạo lúc')
                     ->since()
                     ->sortable(),
             ])

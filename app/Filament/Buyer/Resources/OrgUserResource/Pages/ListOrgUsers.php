@@ -24,19 +24,19 @@ class ListOrgUsers extends ListRecords
 
         return [
             Actions\Action::make('invite_user')
-                ->label('Invite User')
+                ->label('Mời thành viên')
                 ->icon('heroicon-o-user-plus')
                 ->color('primary')
                 ->form([
                     Forms\Components\TextInput::make('email')
-                        ->label('Email address')
+                        ->label('Địa chỉ email')
                         ->email()
                         ->required()
                         ->placeholder('user@example.com')
                         ->helperText('Email lời mời sẽ được gửi đến địa chỉ này.'),
 
                     Forms\Components\Select::make('role')
-                        ->label('Role')
+                        ->label('Vai trò')
                         ->options(fn() => OrganizationUser::assignableRolesFor(auth()->user()))
                         ->default('viewer')
                         ->required()
@@ -55,7 +55,7 @@ class ListOrgUsers extends ListRecords
                         );
                         Notification::make()
                             ->title("✅ Đã gửi lời mời tới {$data['email']}")
-                            ->body('Role: ' . (OrganizationUser::ROLE_LABELS[$data['role']] ?? $data['role']) . ' · hết hạn sau 7 ngày')
+                            ->body('Vai trò: ' . (OrganizationUser::ROLE_LABELS[$data['role']] ?? $data['role']) . ' · hết hạn sau 7 ngày')
                             ->success()->send();
                     } catch (\Throwable $e) {
                         Notification::make()

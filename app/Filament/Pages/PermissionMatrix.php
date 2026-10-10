@@ -11,10 +11,10 @@ use Illuminate\Support\Facades\DB;
 class PermissionMatrix extends Page
 {
     protected static ?string $navigationIcon  = 'heroicon-o-shield-check';
-    protected static ?string $navigationGroup = 'Organizations';
-    protected static ?string $navigationLabel = 'Permissions';
+    protected static ?string $navigationGroup = 'Tổ chức';
+    protected static ?string $navigationLabel = 'Quyền';
     protected static ?int    $navigationSort  = 7;
-    protected static ?string $title           = 'Role & Permission Management';
+    protected static ?string $title           = 'Quản lý vai trò và quyền';
 
     protected static string $view = 'filament.pages.permission-matrix';
 

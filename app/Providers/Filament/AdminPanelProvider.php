@@ -39,11 +39,11 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('OOHX Admin')
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
-                NavigationGroup::make('Inventory')->icon('heroicon-o-squares-2x2'),
-                NavigationGroup::make('Organizations')->icon('heroicon-o-building-office'),
-                NavigationGroup::make('System Settings')->icon('heroicon-o-cog-6-tooth'),
-                NavigationGroup::make('Analytics')->icon('heroicon-o-chart-bar'),
-                NavigationGroup::make('Tools')->icon('heroicon-o-wrench-screwdriver'),
+                NavigationGroup::make('Kho điểm phát')->icon('heroicon-o-squares-2x2'),
+                NavigationGroup::make('Tổ chức')->icon('heroicon-o-building-office'),
+                NavigationGroup::make('Cấu hình hệ thống')->icon('heroicon-o-cog-6-tooth'),
+                NavigationGroup::make('Phân tích')->icon('heroicon-o-chart-bar'),
+                NavigationGroup::make('Công cụ')->icon('heroicon-o-wrench-screwdriver'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')

@@ -13,7 +13,7 @@ class ScreensRelationManager extends RelationManager
 {
     protected static string $relationship = 'screens';
 
-    protected static ?string $title = 'Screens';
+    protected static ?string $title = 'Màn hình';
 
     public function table(Table $table): Table
     {
@@ -21,23 +21,23 @@ class ScreensRelationManager extends RelationManager
             ->heading(null)
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Screen Name')
+                    ->label('Tên màn hình')
                     ->searchable()
                     ->sortable()
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('external_id')
-                    ->label('Screen ID')
+                    ->label('Mã màn hình')
                     ->searchable()
                     ->copyable()
                     ->fontFamily('mono'),
 
                 Tables\Columns\IconColumn::make('active')
-                    ->label('Enabled')
+                    ->label('Đang bật')
                     ->boolean(),
 
                 Tables\Columns\BadgeColumn::make('status')
-                    ->label('Device')
+                    ->label('Thiết bị')
                     ->colors([
                         'success' => 'online',
                         'danger'  => 'offline',
@@ -47,10 +47,10 @@ class ScreensRelationManager extends RelationManager
             ])
             ->filters([
                 TernaryFilter::make('active')
-                    ->label('Enabled'),
+                    ->label('Đang bật'),
 
                 SelectFilter::make('status')
-                    ->label('Device status')
+                    ->label('Trạng thái thiết bị')
                     ->options([
                         'online'      => 'Online',
                         'offline'     => 'Offline',
@@ -69,20 +69,20 @@ class ScreensRelationManager extends RelationManager
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('view')
-                        ->label('View')
+                        ->label('Xem')
                         ->icon('heroicon-o-eye')
                         ->url(fn(Screen $record) =>
                             \App\Filament\Resources\ScreenResource::getUrl('view', ['record' => $record])
                         ),
                     Tables\Actions\Action::make('edit')
-                        ->label('Edit')
+                        ->label('Sửa')
                         ->icon('heroicon-o-pencil')
                         ->url(fn(Screen $record) =>
                             \App\Filament\Resources\ScreenResource::getUrl('edit', ['record' => $record])
                         ),
                 ]),
             ])
-            ->emptyStateHeading('No screens at this site yet')
+            ->emptyStateHeading('Địa điểm này chưa có màn hình nào')
             ->emptyStateIcon('heroicon-o-device-tablet');
     }
 }

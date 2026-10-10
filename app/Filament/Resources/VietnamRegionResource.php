@@ -14,7 +14,7 @@ class VietnamRegionResource extends Resource
 {
     protected static ?string $model            = VietnamRegion::class;
     protected static ?string $navigationIcon   = null;
-    protected static ?string $navigationGroup  = 'System Settings';
+    protected static ?string $navigationGroup  = 'Cấu hình hệ thống';
     protected static ?string $navigationLabel  = 'Vùng kinh tế';
     protected static ?string $modelLabel       = 'Vùng kinh tế';
     protected static ?string $pluralModelLabel = 'Vùng kinh tế';

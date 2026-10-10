@@ -21,9 +21,9 @@ class ProductResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-cube';
 
-    protected static ?string $navigationGroup = 'Marketplace';
+    protected static ?string $navigationGroup = 'Sàn';
 
-    protected static ?string $navigationLabel = 'Products';
+    protected static ?string $navigationLabel = 'Sản phẩm';
 
     protected static ?int $navigationSort = 0;
 
@@ -64,20 +64,20 @@ class ProductResource extends Resource
                 ]),
                 Forms\Components\Grid::make(3)->schema([
                     Forms\Components\Select::make('owner_id')
-                        ->label('Media Owner')
+                        ->label('Media owner')
                         ->options(Owner::active()->pluck('name', 'id'))
                         ->required()
                         ->searchable()
                         ->reactive(),
                     Forms\Components\Select::make('network_id')
-                        ->label('Network')
+                        ->label('Mạng lưới')
                         ->options(fn (Forms\Get $get) => $get('owner_id')
                             ? Network::where('owner_id', $get('owner_id'))->pluck('name', 'id')
                             : [])
                         ->searchable()
                         ->nullable(),
                     Forms\Components\Select::make('site_id')
-                        ->label('Site')
+                        ->label('Địa điểm')
                         ->options(fn (Forms\Get $get) => $get('owner_id')
                             ? Site::where('owner_id', $get('owner_id'))->pluck('name', 'id')
                             : [])
@@ -179,7 +179,7 @@ class ProductResource extends Resource
 
             Forms\Components\Section::make('Thông số kỹ thuật')->schema([
                 Forms\Components\KeyValue::make('specs')
-                    ->label('Specs')
+                    ->label('Thông số')
                     ->keyLabel('Thuộc tính')
                     ->valueLabel('Giá trị')
                     ->helperText('VD: material → hiflex, size_m → 12x4, resolution → P4'),
@@ -203,7 +203,7 @@ class ProductResource extends Resource
 
             Forms\Components\Section::make('Gắn Screens')->schema([
                 Forms\Components\Select::make('screenIds')
-                    ->label('Screens')
+                    ->label('Màn hình')
                     ->multiple()
                     ->options(fn (Forms\Get $get) => $get('owner_id')
                         ? Screen::withoutGlobalScope('owner_scope')
@@ -242,7 +242,7 @@ class ProductResource extends Resource
                     ->limit(40),
 
                 Tables\Columns\TextColumn::make('owner.name')
-                    ->label('Owner')
+                    ->label('Chủ sở hữu')
                     ->sortable()
                     ->limit(20),
 
@@ -272,7 +272,7 @@ class ProductResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('screens_count')
-                    ->label('Screens')
+                    ->label('Màn hình')
                     ->counts('screens')
                     ->alignCenter(),
 
@@ -297,7 +297,7 @@ class ProductResource extends Resource
                 Tables\Filters\SelectFilter::make('status')
                     ->options(Product::STATUS_LABELS),
                 Tables\Filters\SelectFilter::make('owner_id')
-                    ->label('Owner')
+                    ->label('Chủ sở hữu')
                     ->options(Owner::active()->pluck('name', 'id'))
                     ->searchable(),
             ])

@@ -29,9 +29,9 @@ class PoiSnapshotResource extends Resource
     protected static ?string $model = PoiSnapshot::class;
 
     protected static ?string $navigationIcon  = 'heroicon-o-map-pin';
-    protected static ?string $navigationGroup = 'System Settings';
-    protected static ?string $navigationLabel = 'POI Snapshots';
-    protected static ?string $modelLabel      = 'POI Snapshot';
+    protected static ?string $navigationGroup = 'Cấu hình hệ thống';
+    protected static ?string $navigationLabel = 'Ảnh chụp POI';
+    protected static ?string $modelLabel      = 'Ảnh chụp POI';
     protected static ?int    $navigationSort  = 50;
 
     public static function canCreate(): bool { return false; }
@@ -63,46 +63,46 @@ class PoiSnapshotResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('lat_key')
-                    ->label('Lat / Lon')
+                    ->label('Vĩ độ / Kinh độ')
                     ->formatStateUsing(fn ($record) => "{$record->lat_key}, {$record->lon_key}")
                     ->copyable()
                     ->copyMessage('Đã copy toạ độ')
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('radius')
-                    ->label('Radius')
+                    ->label('Bán kính')
                     ->formatStateUsing(fn ($state) => "{$state}m")
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('poi_count')
-                    ->label('POIs')
+                    ->label('POI')
                     ->numeric()
                     ->sortable()
                     ->color(fn ($state) => $state > 0 ? 'success' : 'danger'),
 
                 Tables\Columns\IconColumn::make('has_features')
-                    ->label('Features')
+                    ->label('Đặc trưng')
                     ->state(fn ($record) => ! empty($record->features))
                     ->boolean()
                     ->toggleable(),
 
                 Tables\Columns\IconColumn::make('has_scoring')
-                    ->label('Scoring')
+                    ->label('Tính điểm')
                     ->state(fn ($record) => ! empty($record->scoring))
                     ->boolean()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('fetched_at')
-                    ->label('Fetched')
+                    ->label('Tải lúc')
                     ->dateTime()
                     ->since()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('expires_at')
-                    ->label('Expires')
+                    ->label('Hết hạn')
                     ->dateTime()
                     ->since()
-                    ->placeholder('never')
+                    ->placeholder('không bao giờ')
                     ->color(fn ($state) => $state && $state->isPast() ? 'danger' : 'gray')
                     ->sortable()
                     ->toggleable(),
@@ -119,8 +119,8 @@ class PoiSnapshotResource extends Resource
                         '2000' => '2km',
                     ]),
                 TernaryFilter::make('expired')
-                    ->label('Expired?')
-                    ->placeholder('All')
+                    ->label('Đã hết hạn?')
+                    ->placeholder('Tất cả')
                     ->trueLabel('Expired only')
                     ->falseLabel('Fresh only')
                     ->queries(
@@ -128,7 +128,7 @@ class PoiSnapshotResource extends Resource
                         false: fn (Builder $q) => $q->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now())),
                     ),
                 TernaryFilter::make('has_pois')
-                    ->label('Has POIs?')
+                    ->label('Có POI?')
                     ->queries(
                         true:  fn (Builder $q) => $q->where('poi_count', '>', 0),
                         false: fn (Builder $q) => $q->where('poi_count', '=', 0),
@@ -152,13 +152,13 @@ class PoiSnapshotResource extends Resource
                                     $record->radius,
                                 );
                                 Notification::make()
-                                    ->title('Refreshed')
+                                    ->title('Làm mới lúc')
                                     ->body(count($pois) . ' POIs cập nhật')
                                     ->success()
                                     ->send();
                             } catch (\Throwable $e) {
                                 Notification::make()
-                                    ->title('Refresh failed')
+                                    ->title('Làm mới không được')
                                     ->body($e->getMessage())
                                     ->danger()
                                     ->send();
@@ -171,7 +171,7 @@ class PoiSnapshotResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\BulkAction::make('refresh_bulk')
-                        ->label('Refresh selected')
+                        ->label('Làm mới các mục đã chọn')
                         ->icon('heroicon-o-arrow-path')
                         ->color('info')
                         ->requiresConfirmation()
@@ -199,7 +199,7 @@ class PoiSnapshotResource extends Resource
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
-            Infolists\Components\Section::make('Location')
+            Infolists\Components\Section::make('Vị trí')
                 ->columns(4)
                 ->schema([
                     Infolists\Components\TextEntry::make('source')
@@ -212,35 +212,35 @@ class PoiSnapshotResource extends Resource
                             'foursquare'    => 'warning',
                             default         => 'gray',
                         }),
-                    Infolists\Components\TextEntry::make('lat_key')->label('Latitude'),
-                    Infolists\Components\TextEntry::make('lon_key')->label('Longitude'),
+                    Infolists\Components\TextEntry::make('lat_key')->label('Vĩ độ'),
+                    Infolists\Components\TextEntry::make('lon_key')->label('Kinh độ'),
                     Infolists\Components\TextEntry::make('radius')
                         ->formatStateUsing(fn ($state) => "{$state}m"),
                 ]),
 
-            Infolists\Components\Section::make('Stats')
+            Infolists\Components\Section::make('Số liệu')
                 ->columns(3)
                 ->schema([
                     Infolists\Components\TextEntry::make('poi_count')
-                        ->label('POIs')
+                        ->label('POI')
                         ->numeric(),
                     Infolists\Components\TextEntry::make('fetched_at')
-                        ->label('Fetched')
+                        ->label('Tải lúc')
                         ->dateTime(),
                     Infolists\Components\TextEntry::make('expires_at')
-                        ->label('Expires')
+                        ->label('Hết hạn')
                         ->dateTime()
-                        ->placeholder('never')
+                        ->placeholder('không bao giờ')
                         ->color(fn ($state) => $state && $state->isPast() ? 'danger' : 'gray'),
                 ]),
 
-            Infolists\Components\Section::make('Map & POIs')
+            Infolists\Components\Section::make('Bản đồ và POI')
                 ->schema([
                     Infolists\Components\ViewEntry::make('map_and_pois')
                         ->view('filament.resources.poi-snapshot-resource.map-and-pois'),
                 ]),
 
-            Infolists\Components\Section::make('Scoring (microservice)')
+            Infolists\Components\Section::make('Tính điểm (microservice)')
                 ->collapsible()
                 ->visible(fn ($record) => ! empty($record->scoring))
                 ->schema([

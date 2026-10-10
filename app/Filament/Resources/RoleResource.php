@@ -16,9 +16,9 @@ class RoleResource extends Resource
 {
     protected static ?string $model = Role::class;
 
-    protected static ?string $navigationGroup = 'Organizations';
-    protected static ?string $navigationLabel = 'Roles';
-    protected static ?string $modelLabel      = 'System Role';
+    protected static ?string $navigationGroup = 'Tổ chức';
+    protected static ?string $navigationLabel = 'Vai trò';
+    protected static ?string $modelLabel      = 'Vai trò hệ thống';
     protected static ?int    $navigationSort  = 6;
 
     // ── Form ─────────────────────────────────────────────────────────────────
@@ -26,7 +26,7 @@ class RoleResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Role Info')
+            Forms\Components\Section::make('Thông tin vai trò')
                 ->columns(2)
                 ->schema([
                     Forms\Components\TextInput::make('name')
@@ -66,7 +66,7 @@ class RoleResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Role')
+                    ->label('Vai trò')
                     ->badge()
                     ->color(fn(string $state) => match ($state) {
                         'super_admin' => 'danger',
@@ -82,12 +82,12 @@ class RoleResource extends Resource
                     ->color('gray'),
 
                 Tables\Columns\TextColumn::make('users_count')
-                    ->label('Users')
+                    ->label('Người dùng')
                     ->counts('users')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label('Tạo lúc')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -117,11 +117,11 @@ class RoleResource extends Resource
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
-            Infolists\Components\Section::make('Role Details')
+            Infolists\Components\Section::make('Chi tiết vai trò')
                 ->columns(3)
                 ->schema([
                     Infolists\Components\TextEntry::make('name')
-                        ->label('Role')
+                        ->label('Vai trò')
                         ->badge()
                         ->color(fn(string $state) => match ($state) {
                             'super_admin' => 'danger',
@@ -131,7 +131,7 @@ class RoleResource extends Resource
                     Infolists\Components\TextEntry::make('guard_name')
                         ->label('Guard'),
                     Infolists\Components\TextEntry::make('created_at')
-                        ->label('Created')
+                        ->label('Tạo lúc')
                         ->dateTime(),
                 ]),
 

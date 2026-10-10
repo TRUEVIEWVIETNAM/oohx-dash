@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class RefundResource extends BaseRefundResource
 {
-    protected static ?string $navigationGroup = 'Marketplace';
+    protected static ?string $navigationGroup = 'Sàn';
 
     protected static ?int $navigationSort = 3;
 

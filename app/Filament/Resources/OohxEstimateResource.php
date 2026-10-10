@@ -29,9 +29,9 @@ class OohxEstimateResource extends Resource
     protected static ?string $model = ScreenEstimate::class;
 
     protected static ?string $navigationIcon  = 'heroicon-o-chart-bar';
-    protected static ?string $navigationGroup = 'System Settings';
-    protected static ?string $navigationLabel = 'Traffic Estimates';
-    protected static ?string $modelLabel      = 'Traffic Estimate';
+    protected static ?string $navigationGroup = 'Cấu hình hệ thống';
+    protected static ?string $navigationLabel = 'Ước lượng lưu lượng';
+    protected static ?string $modelLabel      = 'Ước lượng lưu lượng';
     protected static ?int    $navigationSort  = 55;
 
     public static function canCreate(): bool { return false; }
@@ -67,7 +67,7 @@ class OohxEstimateResource extends Resource
                     ->tooltip(fn (?string $state) => $state),
 
                 Tables\Columns\TextColumn::make('screen.name')
-                    ->label('Screen')
+                    ->label('Màn hình')
                     ->searchable(query: function (Builder $q, string $search): Builder {
                         return $q->whereHas('screen', fn ($q) => $q->where('name', 'ilike', "%{$search}%"));
                     })
@@ -75,7 +75,7 @@ class OohxEstimateResource extends Resource
                     ->limit(50),
 
                 Tables\Columns\TextColumn::make('screen.city')
-                    ->label('City')
+                    ->label('Tỉnh/thành')
                     ->badge()
                     ->sortable(query: function (Builder $q, string $direction): Builder {
                         return $q->join('core.screens as s', 's.id', '=', 'output.screen_traffic_estimates.screen_id')
@@ -93,12 +93,12 @@ class OohxEstimateResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('screen.zone_type')
-                    ->label('Zone')
+                    ->label('Khu vực')
                     ->toggleable(),
 
                 // Phase 3.A Part 2 + 4.2.1 — data completeness 3-tier badge
                 Tables\Columns\TextColumn::make('data_completeness')
-                    ->label('Data')
+                    ->label('Dữ liệu')
                     ->badge()
                     ->getStateUsing(fn ($record) => $record->contextMetrics
                         ? $record->contextMetrics->completeness_badge_label
@@ -113,7 +113,7 @@ class OohxEstimateResource extends Resource
 
                 // Phase 4.2.1 — population density (toggleable, hidden by default)
                 Tables\Columns\TextColumn::make('contextMetrics.population_density_300m')
-                    ->label('Pop density (300m)')
+                    ->label('Mật độ dân số (300m)')
                     ->numeric(decimalPlaces: 0, thousandsSeparator: ',')
                     ->suffix(' /km²')
                     ->placeholder('—')
@@ -127,7 +127,7 @@ class OohxEstimateResource extends Resource
 
                 // Phase 4.2.2 — venue footfall source (toggleable, hidden by default)
                 Tables\Columns\TextColumn::make('contextMetrics.venue_footfall_source')
-                    ->label('VF source')
+                    ->label('Nguồn lượt khách')
                     ->badge()
                     ->color(fn ($record) => $record->contextMetrics?->venue_footfall_source_color ?? 'gray')
                     ->placeholder('—')
@@ -138,7 +138,7 @@ class OohxEstimateResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('estimated_daily_impressions')
-                    ->label('Daily imps')
+                    ->label('Lượt HT/ngày')
                     ->numeric(decimalPlaces: 0, thousandsSeparator: ',')
                     ->sortable()
                     ->color(fn (?float $state) => match (true) {
@@ -149,19 +149,19 @@ class OohxEstimateResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('estimated_monthly_impressions')
-                    ->label('Monthly imps')
+                    ->label('Lượt HT/tháng')
                     ->numeric(decimalPlaces: 0, thousandsSeparator: ',')
                     ->sortable()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('estimated_daily_ots')
-                    ->label('Daily OTS')
+                    ->label('OTS mỗi ngày')
                     ->numeric(decimalPlaces: 0, thousandsSeparator: ',')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('confidence_score')
-                    ->label('Confidence')
+                    ->label('Độ tin cậy')
                     ->badge()
                     ->formatStateUsing(fn (?float $state) => $state !== null
                         ? number_format($state, 2) . ' · ' . self::tierLabel($state)
@@ -176,7 +176,7 @@ class OohxEstimateResource extends Resource
 
                 // Phase 2.D — contextual factors từ metrics.screen_context_metrics
                 Tables\Columns\TextColumn::make('contextMetrics.weather_factor')
-                    ->label('Weather')
+                    ->label('Thời tiết')
                     ->badge()
                     ->formatStateUsing(fn (?float $state) => $state !== null
                         ? number_format($state, 2)
@@ -191,7 +191,7 @@ class OohxEstimateResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('contextMetrics.seasonality_factor')
-                    ->label('Seasonality')
+                    ->label('Mùa vụ')
                     ->badge()
                     ->formatStateUsing(fn (?float $state) => $state !== null
                         ? number_format($state, 2)
@@ -202,21 +202,21 @@ class OohxEstimateResource extends Resource
                         $state < 0.95   => 'danger',
                         default         => 'warning',
                     })
-                    ->tooltip('seasonality_factor — >1 peak (summer), <1 low (Tet)')
+                    ->tooltip('seasonality_factor — lớn hơn 1 là cao điểm (hè), nhỏ hơn 1 là thấp điểm (Tết)')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('estimation_method')
-                    ->label('Method')
+                    ->label('Cách trả')
                     ->badge()
                     ->color('gray')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('model_version')
-                    ->label('Model')
+                    ->label('Mô hình')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('last_calculated_at')
-                    ->label('Calculated')
+                    ->label('Đã tính')
                     ->dateTime()
                     ->since()
                     ->sortable()
@@ -225,7 +225,7 @@ class OohxEstimateResource extends Resource
             ->defaultSort('estimated_daily_impressions', 'desc')
             ->filters([
                 SelectFilter::make('city')
-                    ->label('City')
+                    ->label('Tỉnh/thành')
                     ->options(fn () => \App\Models\Oohx\Screen::query()
                         ->whereNotNull('city')
                         ->distinct()
@@ -237,7 +237,7 @@ class OohxEstimateResource extends Resource
                         : $q),
 
                 SelectFilter::make('indoor_outdoor')
-                    ->label('Indoor / Outdoor')
+                    ->label('Trong nhà / ngoài trời')
                     ->options([
                         'indoor'  => 'Indoor',
                         'outdoor' => 'Outdoor',
@@ -247,7 +247,7 @@ class OohxEstimateResource extends Resource
                         : $q),
 
                 SelectFilter::make('confidence_tier')
-                    ->label('Confidence tier')
+                    ->label('Bậc tin cậy')
                     ->options([
                         'high' => 'High (≥ 0.7)',
                         'mid'  => 'Medium (0.5 – 0.7)',
@@ -261,7 +261,7 @@ class OohxEstimateResource extends Resource
                     }),
 
                 SelectFilter::make('estimation_method')
-                    ->label('Method')
+                    ->label('Cách trả')
                     ->options(fn () => ScreenEstimate::query()
                         ->whereNotNull('estimation_method')
                         ->distinct()
@@ -269,8 +269,8 @@ class OohxEstimateResource extends Resource
                         ->toArray()),
 
                 TernaryFilter::make('stale')
-                    ->label('Data freshness')
-                    ->placeholder('All')
+                    ->label('Độ mới của dữ liệu')
+                    ->placeholder('Tất cả')
                     ->trueLabel('Stale (> 24h)')
                     ->falseLabel('Fresh (≤ 24h)')
                     ->queries(
@@ -290,22 +290,22 @@ class OohxEstimateResource extends Resource
     {
         return $infolist->schema([
             // ── Screen context ────────────────────────────────────────────
-            Infolists\Components\Section::make('Screen')
+            Infolists\Components\Section::make('Màn hình')
                 ->icon('heroicon-o-tv')
                 ->columns(3)
                 ->schema([
                     Infolists\Components\TextEntry::make('screen.external_id')
-                        ->label('External ID (UUID)')
+                        ->label('Mã ngoài (UUID)')
                         ->copyable()
                         ->columnSpan(2),
                     Infolists\Components\TextEntry::make('screen.name')
-                        ->label('Name')
+                        ->label('Tên')
                         ->columnSpan(1),
                     Infolists\Components\TextEntry::make('screen.city')
-                        ->label('City')
+                        ->label('Tỉnh/thành')
                         ->badge(),
                     Infolists\Components\TextEntry::make('screen.indoor_outdoor')
-                        ->label('Indoor / Outdoor')
+                        ->label('Trong nhà / ngoài trời')
                         ->badge()
                         ->color(fn (?string $state) => match ($state) {
                             'indoor'  => 'info',
@@ -313,21 +313,21 @@ class OohxEstimateResource extends Resource
                             default   => 'gray',
                         }),
                     Infolists\Components\TextEntry::make('screen.zone_type')
-                        ->label('Zone')
+                        ->label('Khu vực')
                         ->placeholder('—'),
                 ]),
 
             // ── Daily metrics ─────────────────────────────────────────────
-            Infolists\Components\Section::make('Daily metrics')
+            Infolists\Components\Section::make('Số liệu theo ngày')
                 ->icon('heroicon-o-calendar-days')
                 ->columns(5)
                 ->schema([
                     Infolists\Components\TextEntry::make('estimated_daily_passby')
-                        ->label('Passby')
+                        ->label('Lượt qua điểm')
                         ->numeric()
                         ->placeholder('—'),
                     Infolists\Components\TextEntry::make('estimated_daily_screen_flow')
-                        ->label('Screen flow')
+                        ->label('Luồng qua màn hình')
                         ->numeric()
                         ->placeholder('—'),
                     Infolists\Components\TextEntry::make('estimated_daily_ots')
@@ -335,57 +335,57 @@ class OohxEstimateResource extends Resource
                         ->numeric()
                         ->placeholder('—'),
                     Infolists\Components\TextEntry::make('estimated_daily_impressions')
-                        ->label('Impressions')
+                        ->label('Lượt hiển thị')
                         ->numeric()
                         ->weight('bold')
                         ->placeholder('—'),
                     Infolists\Components\TextEntry::make('estimated_daily_reach')
-                        ->label('Reach')
+                        ->label('Tiếp cận')
                         ->numeric()
                         ->placeholder('—'),
                 ]),
 
             // ── Aggregated metrics ────────────────────────────────────────
-            Infolists\Components\Section::make('Weekly & Monthly')
+            Infolists\Components\Section::make('Theo tuần và theo tháng')
                 ->icon('heroicon-o-chart-bar-square')
                 ->columns(4)
                 ->schema([
                     Infolists\Components\TextEntry::make('estimated_weekly_impressions')
-                        ->label('Weekly imps')
+                        ->label('Lượt HT/tuần')
                         ->numeric()
                         ->placeholder('—'),
                     Infolists\Components\TextEntry::make('estimated_monthly_impressions')
-                        ->label('Monthly imps')
+                        ->label('Lượt HT/tháng')
                         ->numeric()
                         ->weight('bold')
                         ->placeholder('—'),
                     Infolists\Components\TextEntry::make('estimated_weekly_reach')
-                        ->label('Weekly reach')
+                        ->label('Tiếp cận/tuần')
                         ->numeric()
                         ->placeholder('—'),
                     Infolists\Components\TextEntry::make('estimated_monthly_reach')
-                        ->label('Monthly reach')
+                        ->label('Tiếp cận/tháng')
                         ->numeric()
                         ->placeholder('—'),
                     Infolists\Components\TextEntry::make('estimated_frequency')
-                        ->label('Frequency')
+                        ->label('Tần suất')
                         ->numeric(decimalPlaces: 2)
                         ->placeholder('—')
-                        ->helperText('Impressions per reach'),
+                        ->helperText('Lượt hiển thị trên mỗi người'),
                     Infolists\Components\TextEntry::make('impression_multiplier')
-                        ->label('Multiplier')
+                        ->label('Hệ số nhân')
                         ->numeric(decimalPlaces: 3)
                         ->placeholder('—')
-                        ->helperText('Visibility × share_of_voice'),
+                        ->helperText('Độ nhìn thấy × share_of_voice'),
                 ]),
 
             // ── Quality & meta ────────────────────────────────────────────
-            Infolists\Components\Section::make('Quality & meta')
+            Infolists\Components\Section::make('Chất lượng và siêu dữ liệu')
                 ->icon('heroicon-o-shield-check')
                 ->columns(4)
                 ->schema([
                     Infolists\Components\TextEntry::make('confidence_score')
-                        ->label('Confidence')
+                        ->label('Độ tin cậy')
                         ->badge()
                         ->formatStateUsing(fn (?float $state) => $state !== null
                             ? number_format($state, 2) . ' · ' . self::tierLabel($state)
@@ -397,49 +397,49 @@ class OohxEstimateResource extends Resource
                             default         => 'danger',
                         }),
                     Infolists\Components\TextEntry::make('estimation_method')
-                        ->label('Method')
+                        ->label('Cách trả')
                         ->badge()
                         ->placeholder('—'),
                     Infolists\Components\TextEntry::make('model_version')
-                        ->label('Model version')
+                        ->label('Phiên bản mô hình')
                         ->placeholder('—'),
                     Infolists\Components\TextEntry::make('last_calculated_at')
-                        ->label('Last calculated')
+                        ->label('Tính lần cuối')
                         ->dateTime()
                         ->since()
                         ->placeholder('—'),
                     Infolists\Components\TextEntry::make('estimated_cpm')
-                        ->label('Estimated CPM')
+                        ->label('CPM ước lượng')
                         ->money('VND')
                         ->placeholder('—')
                         ->columnSpan(2),
                 ]),
 
             // Phase 3.A Part 2 + Phase 4.2.1 — Data completeness 3-source check
-            Infolists\Components\Section::make('Data completeness')
+            Infolists\Components\Section::make('Độ đầy đủ của dữ liệu')
                 ->icon('heroicon-o-shield-exclamation')
                 ->description('3-source check: road + POI + population (HRSL). Warning hiện khi thiếu source nào.')
                 ->columns(4)
                 ->visible(fn ($record) => $record->contextMetrics !== null)
                 ->schema([
                     Infolists\Components\TextEntry::make('contextMetrics.completeness_badge_label')
-                        ->label('Status')
+                        ->label('Trạng thái')
                         ->badge()
                         ->color(fn ($record) => $record->contextMetrics?->completeness_badge_color ?? 'gray'),
 
                     Infolists\Components\TextEntry::make('contextMetrics.nearest_road_id')
-                        ->label('Nearest road ID')
+                        ->label('Mã đường gần nhất')
                         ->placeholder('—')
                         ->color(fn ($state) => $state === null ? 'danger' : null),
 
                     Infolists\Components\TextEntry::make('contextMetrics.poi_count_300m')
-                        ->label('POI count (300m)')
+                        ->label('Số POI (300m)')
                         ->numeric()
                         ->placeholder('0')
                         ->color(fn ($state) => ($state ?? 0) === 0 ? 'danger' : null),
 
                     Infolists\Components\TextEntry::make('contextMetrics.population_density_300m')
-                        ->label('Population (300m)')
+                        ->label('Dân số (300m)')
                         ->numeric(decimalPlaces: 0)
                         ->suffix(' /km²')
                         ->placeholder('— (HRSL chưa cover)')
@@ -457,21 +457,21 @@ class OohxEstimateResource extends Resource
                         }),
 
                     Infolists\Components\TextEntry::make('missing_reasons')
-                        ->label('Issues')
+                        ->label('Vấn đề')
                         ->getStateUsing(fn ($record) => implode(' · ', $record->contextMetrics?->missing_data_reasons ?? []) ?: '—')
                         ->columnSpanFull()
                         ->visible(fn ($record) => ! ($record->contextMetrics?->has_complete_data ?? true)),
                 ]),
 
             // Phase 4.2.2 — Venue Footfall multi-provider (handoff §3.4)
-            Infolists\Components\Section::make('Venue Footfall')
+            Infolists\Components\Section::make('Lượt khách tại địa điểm')
                 ->icon('heroicon-o-map-pin')
                 ->description('Signal + source tracking. Source winner được chọn bởi priority chain trên DE (Foursquare > OSM fallback).')
                 ->columns(3)
                 ->visible(fn ($record) => $record->contextMetrics !== null)
                 ->schema([
                     Infolists\Components\TextEntry::make('contextMetrics.venue_footfall')
-                        ->label('Signal (footfall proxy)')
+                        ->label('Tín hiệu (thay cho lượt khách)')
                         ->numeric(decimalPlaces: 2)
                         ->placeholder('— (chưa fetch)')
                         ->suffixAction(
@@ -483,7 +483,7 @@ class OohxEstimateResource extends Resource
                         ),
 
                     Infolists\Components\TextEntry::make('contextMetrics.venue_footfall_source')
-                        ->label('Source')
+                        ->label('Nguồn')
                         ->badge()
                         ->color(fn ($record) => $record->contextMetrics?->venue_footfall_source_color ?? 'gray')
                         ->placeholder('—')
@@ -496,22 +496,22 @@ class OohxEstimateResource extends Resource
                         }),
 
                     Infolists\Components\TextEntry::make('contextMetrics.venue_footfall_updated_at')
-                        ->label('Last fetched')
+                        ->label('Tải lần cuối')
                         ->dateTime()
                         ->since()
-                        ->placeholder('never')
+                        ->placeholder('không bao giờ')
                         ->color(fn ($record) => $record->contextMetrics?->venue_footfall_is_stale ? 'danger' : 'gray'),
                 ]),
 
             // Phase 2.D — Contextual factors applied bởi formula
-            Infolists\Components\Section::make('Contextual factors (Phase 2.D)')
+            Infolists\Components\Section::make('Hệ số bối cảnh (Giai đoạn 2.D)')
                 ->icon('heroicon-o-sparkles')
                 ->description('Weather/seasonality/calibration multiplier apply vào passby (outdoor) hoặc screen_flow (indoor, sensitivity 0.3).')
                 ->columns(3)
                 ->visible(fn ($record) => $record->contextMetrics !== null)
                 ->schema([
                     Infolists\Components\TextEntry::make('contextMetrics.weather_factor')
-                        ->label('Weather factor')
+                        ->label('Hệ số thời tiết')
                         ->badge()
                         ->formatStateUsing(fn (?float $state) => $state !== null
                             ? number_format($state, 3)
@@ -525,7 +525,7 @@ class OohxEstimateResource extends Resource
                         ->helperText('0.70-1.00, < 1 khi mưa/thời tiết xấu. NULL nếu weather snapshot > 6h'),
 
                     Infolists\Components\TextEntry::make('contextMetrics.seasonality_factor')
-                        ->label('Seasonality factor')
+                        ->label('Hệ số mùa vụ')
                         ->badge()
                         ->formatStateUsing(fn (?float $state) => $state !== null
                             ? number_format($state, 3)
@@ -539,7 +539,7 @@ class OohxEstimateResource extends Resource
                         ->helperText('> 1 peak season · < 1 low (Tet) · theo city + month hiện tại'),
 
                     Infolists\Components\TextEntry::make('contextMetrics.calibration_factor')
-                        ->label('Calibration factor')
+                        ->label('Hệ số hiệu chỉnh')
                         ->badge()
                         ->placeholder('—')
                         ->color('gray')

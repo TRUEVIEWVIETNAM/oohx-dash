@@ -31,9 +31,9 @@ class BuyerPanelProvider extends PanelProvider
             ->brandName('OOHX Buyer')
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
-                NavigationGroup::make('Campaigns')->icon('heroicon-o-megaphone'),
-                NavigationGroup::make('Reports')->icon('heroicon-o-chart-bar'),
-                NavigationGroup::make('Settings')->icon('heroicon-o-cog-6-tooth'),
+                NavigationGroup::make('Chiến dịch')->icon('heroicon-o-megaphone'),
+                NavigationGroup::make('Báo cáo')->icon('heroicon-o-chart-bar'),
+                NavigationGroup::make('Cài đặt')->icon('heroicon-o-cog-6-tooth'),
             ])
             ->discoverResources(
                 in: app_path('Filament/Buyer/Resources'),

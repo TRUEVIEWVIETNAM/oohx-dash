@@ -12,34 +12,34 @@ use Filament\Tables\Table;
 class VenueTypesRelationManager extends RelationManager
 {
     protected static string $relationship = 'venueTypes';
-    protected static ?string $title = 'Mapped OpenOOH Venue Types';
+    protected static ?string $title = 'Loại địa điểm OpenOOH đã ghép';
     protected static ?string $recordTitleAttribute = 'venue_type';
 
     public function form(Form $form): Form
     {
         return $form->schema([
             Forms\Components\TextInput::make('enumeration_id')
-                ->label('Enumeration ID')
+                ->label('Mã enum')
                 ->numeric()
                 ->disabled(),
 
             Forms\Components\TextInput::make('string_value')
-                ->label('String Value')
+                ->label('Giá trị chuỗi')
                 ->disabled(),
 
             Forms\Components\TextInput::make('venue_type')
-                ->label('Venue Type')
+                ->label('Loại địa điểm')
                 ->required(),
 
             Forms\Components\TextInput::make('category')
-                ->label('OpenOOH Category')
+                ->label('Danh mục OpenOOH')
                 ->required(),
 
             Forms\Components\TextInput::make('subcategory')
-                ->label('Subcategory'),
+                ->label('Danh mục con'),
 
             Forms\Components\Toggle::make('is_active')
-                ->label('Active')
+                ->label('Đang bật')
                 ->default(true),
         ]);
     }
@@ -54,7 +54,7 @@ class VenueTypesRelationManager extends RelationManager
                     ->width('70px'),
 
                 Tables\Columns\TextColumn::make('venue_type')
-                    ->label('Venue Type')
+                    ->label('Loại địa điểm')
                     ->searchable()
                     ->sortable()
                     ->formatStateUsing(fn (VenueType $record) =>
@@ -63,12 +63,12 @@ class VenueTypesRelationManager extends RelationManager
                     ->description(fn (VenueType $record) => $record->string_value),
 
                 Tables\Columns\TextColumn::make('category')
-                    ->label('OpenOOH Category')
+                    ->label('Danh mục OpenOOH')
                     ->badge()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('depth')
-                    ->label('Level')
+                    ->label('Cấp')
                     ->badge()
                     ->formatStateUsing(fn ($state) => match ((int) $state) {
                         0 => 'Root',
@@ -84,7 +84,7 @@ class VenueTypesRelationManager extends RelationManager
                     }),
 
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label('Đang bật')
                     ->boolean(),
 
                 Tables\Columns\IconColumn::make('hivestack_supported')
@@ -93,11 +93,11 @@ class VenueTypesRelationManager extends RelationManager
             ])
             ->defaultSort('enumeration_id', 'asc')
             ->filters([
-                Tables\Filters\TernaryFilter::make('is_active')->label('Active'),
+                Tables\Filters\TernaryFilter::make('is_active')->label('Đang bật'),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('assign_types')
-                    ->label('Assign Venue Types')
+                    ->label('Gán loại địa điểm')
                     ->icon('heroicon-o-plus')
                     ->form([
                         Forms\Components\Select::make('venue_type_ids')

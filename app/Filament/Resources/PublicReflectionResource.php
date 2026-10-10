@@ -24,7 +24,7 @@ class PublicReflectionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-megaphone';
 
-    protected static ?string $navigationGroup = 'Marketplace';
+    protected static ?string $navigationGroup = 'Sàn';
 
     protected static ?string $navigationLabel = 'Phản ánh của TCXH';
 

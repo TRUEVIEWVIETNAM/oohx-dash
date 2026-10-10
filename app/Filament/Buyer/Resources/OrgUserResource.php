@@ -18,10 +18,10 @@ class OrgUserResource extends Resource
 {
     protected static ?string $model = OrganizationUser::class;
 
-    protected static ?string $navigationGroup  = 'Settings';
-    protected static ?string $navigationLabel  = 'Team Members';
-    protected static ?string $modelLabel       = 'Team Member';
-    protected static ?string $pluralModelLabel = 'Team Members';
+    protected static ?string $navigationGroup  = 'Cài đặt';
+    protected static ?string $navigationLabel  = 'Thành viên';
+    protected static ?string $modelLabel       = 'Thành viên';
+    protected static ?string $pluralModelLabel = 'Thành viên';
     protected static ?string $navigationIcon   = 'heroicon-o-users';
     protected static ?int    $navigationSort   = 90;
     protected static ?string $slug             = 'team';
@@ -47,7 +47,7 @@ class OrgUserResource extends Resource
     {
         return $form->schema([
             Forms\Components\Section::make()
-                ->heading(fn(string $operation) => $operation === 'edit' ? 'Edit Team Member' : 'Invite Team Member')
+                ->heading(fn(string $operation) => $operation === 'edit' ? 'Sửa thành viên' : 'Mời thành viên')
                 ->columns(1)
                 ->schema([
                     Forms\Components\Placeholder::make('user_email')
@@ -56,7 +56,7 @@ class OrgUserResource extends Resource
                         ->visibleOn('edit'),
 
                     Forms\Components\Select::make('role')
-                        ->label('Role')
+                        ->label('Vai trò')
                         ->options(fn() => OrganizationUser::assignableRolesFor(auth()->user()))
                         ->required()
                         ->default('viewer')
@@ -71,16 +71,16 @@ class OrgUserResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Name')
+                    ->label('Tên')
                     ->searchable()
                     ->sortable()
-                    ->placeholder('(no name)'),
+                    ->placeholder('(chưa có tên)'),
                 Tables\Columns\TextColumn::make('user.email')
                     ->label('Email')
                     ->searchable()
                     ->copyable(),
                 Tables\Columns\BadgeColumn::make('role')
-                    ->label('Role')
+                    ->label('Vai trò')
                     ->formatStateUsing(fn($state) => OrganizationUser::ROLE_LABELS[$state] ?? $state)
                     ->colors([
                         'danger'  => 'admin',
@@ -88,7 +88,7 @@ class OrgUserResource extends Resource
                         'gray'    => 'viewer',
                     ]),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Joined')
+                    ->label('Tham gia từ')
                     ->date()
                     ->sortable()
                     ->toggleable(),
@@ -106,11 +106,11 @@ class OrgUserResource extends Resource
                         }),
 
                     Tables\Actions\Action::make('remove')
-                        ->label('Remove')
+                        ->label('Xoá khỏi team')
                         ->icon('heroicon-o-user-minus')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->modalHeading('Remove team member?')
+                        ->modalHeading('Xoá thành viên này khỏi team?')
                         ->modalDescription('User sẽ không còn truy cập organization này.')
                         ->visible(fn(OrganizationUser $record) => Gate::allows('delete', $record))
                         ->action(function (OrganizationUser $record): void {

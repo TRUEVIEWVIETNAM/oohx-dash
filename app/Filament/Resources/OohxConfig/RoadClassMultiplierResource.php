@@ -18,8 +18,8 @@ class RoadClassMultiplierResource extends Resource
 
     protected static ?string $navigationIcon  = 'heroicon-o-truck';
     protected static ?string $navigationGroup = 'OOHX · Data Engine';
-    protected static ?string $navigationLabel = 'Road class multipliers';
-    protected static ?string $modelLabel      = 'Road multiplier';
+    protected static ?string $navigationLabel = 'Hệ số theo cấp đường';
+    protected static ?string $modelLabel      = 'Hệ số theo đường';
     protected static ?int    $navigationSort  = 72;
 
     public static function canDelete($r): bool { return false; }
@@ -29,15 +29,15 @@ class RoadClassMultiplierResource extends Resource
     {
         return $form->schema([
             Forms\Components\TextInput::make('road_class')
-                ->label('Road class')
-                ->helperText('OSM class — vd: highway, primary, secondary, tertiary, residential, service')
+                ->label('Cấp đường')
+                ->helperText('Cấp đường theo OSM — vd: highway, primary, secondary, tertiary, residential, service')
                 ->required()
                 ->disabled(fn ($record) => (bool) $record)
                 ->dehydrated(true)
                 ->maxLength(50),
 
             Forms\Components\TextInput::make('multiplier')
-                ->label('Multiplier')
+                ->label('Hệ số nhân')
                 ->helperText('Khoảng (0, 5]. 1.0 = neutral, > 1 amplify, < 1 dampen.')
                 ->required()
                 ->numeric()
@@ -46,7 +46,7 @@ class RoadClassMultiplierResource extends Resource
                 ->step(0.01),
 
             Forms\Components\Textarea::make('note')
-                ->label('Note')
+                ->label('Ghi chú')
                 ->rows(2)
                 ->maxLength(500),
         ]);
@@ -57,13 +57,13 @@ class RoadClassMultiplierResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('road_class')
-                    ->label('Road class')
+                    ->label('Cấp đường')
                     ->badge()
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('multiplier')
-                    ->label('Multiplier')
+                    ->label('Hệ số nhân')
                     ->numeric(decimalPlaces: 2)
                     ->sortable()
                     ->color(fn (float $state) => match (true) {
@@ -92,7 +92,7 @@ class RoadClassMultiplierResource extends Resource
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
-                    ->label('Add road class')
+                    ->label('Thêm cấp đường')
                     ->using(function (array $data) {
                         app(ConfigManagerService::class)->updateCoefficient(
                             'road_class',

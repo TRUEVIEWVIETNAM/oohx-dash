@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Gate;
 class OrganizationUsersRelationManager extends RelationManager
 {
     protected static string $relationship = 'organizationUsers';
-    protected static ?string $title = 'Team Members';
+    protected static ?string $title = 'Thành viên';
     protected static ?string $icon  = 'heroicon-o-users';
 
     public function form(Form $form): Form
@@ -30,7 +30,7 @@ class OrganizationUsersRelationManager extends RelationManager
                     ->visibleOn('edit'),
 
                 Forms\Components\Select::make('role')
-                    ->label('Role')
+                    ->label('Vai trò')
                     ->options(fn() => OrganizationUser::assignableRolesFor(auth()->user()))
                     ->default('viewer')
                     ->required()
@@ -46,10 +46,10 @@ class OrganizationUsersRelationManager extends RelationManager
             ->recordTitleAttribute('user.email')
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Name')
+                    ->label('Tên')
                     ->searchable()
                     ->sortable()
-                    ->placeholder('(no name)'),
+                    ->placeholder('(chưa có tên)'),
                 Tables\Columns\TextColumn::make('user.email')
                     ->label('Email')
                     ->searchable()
@@ -62,7 +62,7 @@ class OrganizationUsersRelationManager extends RelationManager
                         'gray'    => 'viewer',
                     ]),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Joined')
+                    ->label('Tham gia từ')
                     ->date()
                     ->sortable()
                     ->toggleable(),
@@ -70,20 +70,20 @@ class OrganizationUsersRelationManager extends RelationManager
             ->defaultSort('created_at', 'desc')
             ->headerActions([
                 Tables\Actions\Action::make('invite')
-                    ->label('Invite Member')
+                    ->label('Mời thành viên')
                     ->icon('heroicon-o-user-plus')
                     ->color('primary')
                     ->visible(fn() => Gate::allows('create', OrganizationUser::class))
                     ->form([
                         Forms\Components\TextInput::make('email')
-                            ->label('Email address')
+                            ->label('Địa chỉ email')
                             ->email()
                             ->required()
                             ->placeholder('user@example.com')
                             ->helperText('Email lời mời sẽ được gửi đến địa chỉ này.'),
 
                         Forms\Components\Select::make('role')
-                            ->label('Role')
+                            ->label('Vai trò')
                             ->options(fn() => OrganizationUser::assignableRolesFor(auth()->user()))
                             ->default('viewer')
                             ->required()
@@ -102,7 +102,7 @@ class OrganizationUsersRelationManager extends RelationManager
                             );
                             Notification::make()
                                 ->title("✅ Đã gửi lời mời tới {$data['email']}")
-                                ->body('Role: ' . (OrganizationUser::ROLE_LABELS[$data['role']] ?? $data['role']) . ' · hết hạn sau 7 ngày')
+                                ->body('Vai trò: ' . (OrganizationUser::ROLE_LABELS[$data['role']] ?? $data['role']) . ' · hết hạn sau 7 ngày')
                                 ->success()->send();
                         } catch (\Throwable $e) {
                             Notification::make()->title('Không gửi được lời mời')->body($e->getMessage())->danger()->send();
@@ -121,11 +121,11 @@ class OrganizationUsersRelationManager extends RelationManager
                         }),
 
                     Tables\Actions\Action::make('remove')
-                        ->label('Remove')
+                        ->label('Xoá khỏi team')
                         ->icon('heroicon-o-user-minus')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->modalHeading('Remove team member?')
+                        ->modalHeading('Xoá thành viên này khỏi team?')
                         ->modalDescription('User sẽ không còn truy cập organization này.')
                         ->visible(fn(OrganizationUser $record) => Gate::allows('delete', $record))
                         ->action(function (OrganizationUser $record): void {

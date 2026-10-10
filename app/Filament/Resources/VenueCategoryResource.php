@@ -16,10 +16,10 @@ class VenueCategoryResource extends Resource
 {
     protected static ?string $model = VenueCategory::class;
     protected static ?string $navigationIcon = null;
-    protected static ?string $navigationGroup = 'System Settings';
-    protected static ?string $navigationLabel = 'VN Categories';
-    protected static ?string $modelLabel = 'VN Category';
-    protected static ?string $pluralModelLabel = 'VN DOOH Categories';
+    protected static ?string $navigationGroup = 'Cấu hình hệ thống';
+    protected static ?string $navigationLabel = 'Danh mục Việt Nam';
+    protected static ?string $modelLabel = 'Danh mục Việt Nam';
+    protected static ?string $pluralModelLabel = 'Danh mục DOOH Việt Nam';
     protected static ?int $navigationSort = 9;
 
     public static function form(Form $form): Form
@@ -27,7 +27,7 @@ class VenueCategoryResource extends Resource
         return $form->schema([
             Forms\Components\Section::make('Thông tin danh mục')->columns(2)->schema([
                 Forms\Components\TextInput::make('name')
-                    ->label('Name (EN)')
+                    ->label('Tên (tiếng Anh)')
                     ->required()
                     ->maxLength(100),
 
@@ -45,14 +45,14 @@ class VenueCategoryResource extends Resource
                     ->helperText('Tự động từ tên tiếng Việt'),
 
                 Forms\Components\TextInput::make('icon')
-                    ->label('Material Icon')
+                    ->label('Biểu tượng Material')
                     ->required()
                     ->maxLength(50)
-                    ->helperText('Material Icons name, e.g. "storefront", "directions_bus"')
+                    ->helperText('Tên biểu tượng Material Icons — vd: "storefront", "directions_bus"')
                     ->suffixAction(
                         Forms\Components\Actions\Action::make('preview_icon')
                             ->icon('heroicon-o-eye')
-                            ->tooltip('Preview icon at fonts.google.com/icons')
+                            ->tooltip('Xem trước biểu tượng tại fonts.google.com/icons')
                     ),
 
                 Forms\Components\FileUpload::make('thumb')
@@ -99,19 +99,19 @@ class VenueCategoryResource extends Resource
                     ->alignCenter(),
 
                 Tables\Columns\ImageColumn::make('thumb')
-                    ->label('Thumb')
+                    ->label('Ảnh nhỏ')
                     ->disk('public')
                     ->width(60)
                     ->height(40)
                     ->defaultImageUrl('https://placehold.co/60x40/f5f5f7/999?text=—'),
 
                 Tables\Columns\TextColumn::make('icon')
-                    ->label('Icon')
+                    ->label('Biểu tượng')
                     ->badge()
                     ->color('gray'),
 
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Name (EN)')
+                    ->label('Tên (tiếng Anh)')
                     ->searchable()
                     ->sortable(),
 
@@ -127,7 +127,7 @@ class VenueCategoryResource extends Resource
                     ->copyable(),
 
                 Tables\Columns\TextColumn::make('venue_types_count')
-                    ->label('OpenOOH Types')
+                    ->label('Loại theo OpenOOH')
                     ->counts('venueTypes')
                     ->sortable()
                     ->alignCenter()
@@ -135,7 +135,7 @@ class VenueCategoryResource extends Resource
                     ->color('info'),
 
                 Tables\Columns\TextColumn::make('screen_count')
-                    ->label('Screens')
+                    ->label('Màn hình')
                     ->alignCenter()
                     ->badge()
                     ->color('success')
@@ -149,7 +149,7 @@ class VenueCategoryResource extends Resource
                     }),
 
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label('Đang bật')
                     ->boolean()
                     ->trueColor('success')
                     ->falseColor('danger'),
@@ -157,7 +157,7 @@ class VenueCategoryResource extends Resource
             ->defaultSort('sort_order', 'asc')
             ->reorderable('sort_order')
             ->filters([
-                Tables\Filters\TernaryFilter::make('is_active')->label('Active'),
+                Tables\Filters\TernaryFilter::make('is_active')->label('Đang bật'),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -172,18 +172,18 @@ class VenueCategoryResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\BulkAction::make('activate')
-                        ->label('Activate selected')
+                        ->label('Bật các mục đã chọn')
                         ->icon('heroicon-o-eye')
                         ->action(fn ($records) => $records->each->update(['is_active' => true])),
                     Tables\Actions\BulkAction::make('deactivate')
-                        ->label('Deactivate selected')
+                        ->label('Tắt các mục đã chọn')
                         ->icon('heroicon-o-eye-slash')
                         ->action(fn ($records) => $records->each->update(['is_active' => false])),
                 ]),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('reseed')
-                    ->label('Re-sync VN Categories')
+                    ->label('Đồng bộ lại danh mục Việt Nam')
                     ->icon('heroicon-o-arrow-path')
                     ->color('gray')
                     ->requiresConfirmation()
@@ -199,7 +199,7 @@ class VenueCategoryResource extends Resource
             ->emptyStateDescription('Chạy seeder để tạo 12 danh mục DOOH Việt Nam')
             ->emptyStateActions([
                 Tables\Actions\Action::make('seed')
-                    ->label('Import VN Categories')
+                    ->label('Nhập danh mục Việt Nam')
                     ->action(function () {
                         \Artisan::call('db:seed', ['--class' => 'VenueCategorySeeder', '--force' => true]);
                         \Filament\Notifications\Notification::make()
