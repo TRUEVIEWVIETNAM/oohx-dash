@@ -35,7 +35,7 @@ class ImportScreensJob implements ShouldQueue
     public function handle(ScreenImportService $service): void
     {
         $import = ScreenImport::withoutGlobalScopes()->findOrFail($this->importId);
-        if ($import->status !== 'previewed' && $import->status !== 'importing') {
+        if ($import->status !== ScreenImport::STATUS_PREVIEWED && $import->status !== ScreenImport::STATUS_IMPORTING) {
             return; // Status changed — skip stale job
         }
         $service->execute($import);
@@ -45,7 +45,7 @@ class ImportScreensJob implements ShouldQueue
     {
         $import = ScreenImport::withoutGlobalScopes()->find($this->importId);
         $import?->update([
-            'status'        => 'failed',
+            'status'        => ScreenImport::STATUS_FAILED,
             'error_summary' => 'Queue job failed: ' . $e->getMessage(),
             'finished_at'   => now(),
         ]);

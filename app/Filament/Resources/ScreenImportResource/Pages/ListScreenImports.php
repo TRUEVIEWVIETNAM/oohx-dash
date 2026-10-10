@@ -89,7 +89,7 @@ class ListScreenImports extends ListRecords
                         'uploaded_by'       => auth()->id(),
                         'original_filename' => $originalName,
                         'file_path'         => $filePath,
-                        'status'            => 'uploaded',
+                        'status'            => ScreenImport::STATUS_UPLOADED,
                         'upsert_mode'       => $data['upsert_mode'] ?? 'skip',
                     ]);
 
@@ -97,7 +97,7 @@ class ListScreenImports extends ListRecords
                         $service = app(ScreenImportService::class);
                         $service->analyze($import);
 
-                        if ($import->fresh()->status === 'failed') {
+                        if ($import->fresh()->status === ScreenImport::STATUS_FAILED) {
                             Notification::make()
                                 ->title('File không hợp lệ')
                                 ->body($import->error_summary)
@@ -117,7 +117,7 @@ class ListScreenImports extends ListRecords
                         );
                     } catch (\Throwable $e) {
                         $import->update([
-                            'status'        => 'failed',
+                            'status'        => ScreenImport::STATUS_FAILED,
                             'error_summary' => $e->getMessage(),
                         ]);
                         // Keep the uploaded file for debugging

@@ -36,11 +36,11 @@ class ScreenImportResource extends Resource
                     ->badge()
                     ->formatStateUsing(fn ($state) => ScreenImport::STATUS_LABELS[$state] ?? $state ?? '—')
                     ->color(fn (string $state) => match ($state) {
-                        'uploaded', 'mapping' => 'info',
-                        'previewed'           => 'warning',
-                        'importing'           => 'primary',
-                        'done'                => 'success',
-                        'failed', 'cancelled' => 'danger',
+                        ScreenImport::STATUS_UPLOADED, ScreenImport::STATUS_MAPPING => 'info',
+                        ScreenImport::STATUS_PREVIEWED           => 'warning',
+                        ScreenImport::STATUS_IMPORTING           => 'primary',
+                        ScreenImport::STATUS_DONE                => 'success',
+                        ScreenImport::STATUS_FAILED, ScreenImport::STATUS_CANCELLED => 'danger',
                         default               => 'gray',
                     }),
 
@@ -74,13 +74,13 @@ class ScreenImportResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
-                        'uploaded'  => 'Uploaded',
-                        'mapping'   => 'Mapping',
-                        'previewed' => 'Previewed',
-                        'importing' => 'Importing',
-                        'done'      => 'Done',
-                        'failed'    => 'Failed',
-                        'cancelled' => 'Cancelled',
+                        ScreenImport::STATUS_UPLOADED  => 'Uploaded',
+                        ScreenImport::STATUS_MAPPING   => 'Mapping',
+                        ScreenImport::STATUS_PREVIEWED => 'Previewed',
+                        ScreenImport::STATUS_IMPORTING => 'Importing',
+                        ScreenImport::STATUS_DONE      => 'Done',
+                        ScreenImport::STATUS_FAILED    => 'Failed',
+                        ScreenImport::STATUS_CANCELLED => 'Cancelled',
                     ]),
             ])
             ->actions([

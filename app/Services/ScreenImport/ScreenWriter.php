@@ -46,7 +46,7 @@ class ScreenWriter
         if (! empty($inventoryData['network_name'])) {
             $network = Network::firstOrCreate(
                 ['owner_id' => $this->ownerId, 'name' => $inventoryData['network_name']],
-                ['code' => Str::slug($inventoryData['network_name']), 'status' => 'active']
+                ['code' => Str::slug($inventoryData['network_name']), 'status' => Network::STATUS_ACTIVE]
             );
             $networkId = $network->id;
             Site::where('id', $siteId)->whereNull('network_id')->update(['network_id' => $networkId]);
@@ -69,7 +69,7 @@ class ScreenWriter
                 'name'           => $screenData['name']           ?? null,
                 'slug'           => Screen::generateUniqueSlug($screenData['name'] ?? $externalId),
                 'description'    => $screenData['description']    ?? null,
-                'status'         => $screenData['status']         ?? 'offline',
+                'status'         => $screenData['status']         ?? Screen::STATUS_OFFLINE,
                 'active'         => $screenData['active']         ?? true,
                 'placement_zone' => $screenData['placement_zone'] ?? null,
                 'orientation'    => $screenData['orientation']    ?? null,
@@ -152,7 +152,7 @@ class ScreenWriter
         // Auto-derive a default network so Site.network_id is satisfied
         $networkId = Network::firstOrCreate(
             ['owner_id' => $this->ownerId, 'name' => 'Default'],
-            ['code' => 'default', 'status' => 'active']
+            ['code' => 'default', 'status' => Network::STATUS_ACTIVE]
         )->id;
 
         $site = Site::create([
@@ -165,7 +165,7 @@ class ScreenWriter
             'city'        => $siteData['city']    ?? null,
             'lat'         => $siteData['lat']     ?? null,
             'lon'         => $siteData['lon']     ?? null,
-            'status'      => 'active',
+            'status'      => Site::STATUS_ACTIVE,
             'country'     => 'VN',
         ]);
         return $site->id;
