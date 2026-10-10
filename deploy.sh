@@ -12,6 +12,19 @@
 # Lần ĐẦU phải sao chép tay (xem README của repo), vì thay nội dung một script
 # bash đang chạy giữa chừng là chuyện không nên làm.
 #
+# ══ Sửa file này thì nó có hiệu lực từ lần deploy SAU, không phải lần này ══
+#
+# Bước [3] thay chính file đang chạy. Bash đã đọc xong bản CŨ vào bộ nhớ trước
+# đó, nên lần deploy mang theo thay đổi của `deploy.sh` vẫn chạy bản cũ.
+#
+# Đo được ngày 10/10/2026: deploy #64 thêm `filament:optimize` vào bước [8], và
+# log của chính lần deploy đó KHÔNG có dòng nào của lệnh mới — bước [8] chỉ in
+# bốn cache của Laravel. Thời gian phản hồi panel trên production cũng không đổi
+# (1,14–1,25s, bằng trước khi sửa), đúng như một lệnh chưa chạy.
+#
+# Hệ quả thực tế: đừng kết luận một thay đổi `deploy.sh` đã chạy chỉ vì lần
+# deploy đó xanh. Phải đọc log của lần deploy TIẾP THEO.
+#
 # ══ Ba lỗi đã sửa so với bản cũ ══
 #
 # 1. KHÔNG build asset. Bản cũ chỉ `composer install` rồi `view:cache`, trong
@@ -209,20 +222,25 @@ echo "[6/11] Clear old caches"
 #
 # Bản cũ migrate trước rồi mới xoá cache, nên migration đọc config đã cache của
 # lần deploy TRƯỚC. Một migration dựa vào config mới sẽ lặng lẽ dùng giá trị cũ.
+#
+# Lệnh này ĐÃ xoá luôn cache của Filament, không cần thêm gì ở đây. Filament
+# 3.3 tự đăng ký vào sổ optimize của Laravel — `SupportServiceProvider` gọi
+# `$this->optimizes(optimize: 'filament:optimize',
+# clear: 'filament:optimize-clear', key: 'filament')` — nên `optimize:clear`
+# chạy nhánh clear giúp. Log deploy 10/10 in ra đúng thế:
+#
+#   config … cache … compiled … events … routes … views …
+#   blade-icons ... DONE
+#   filament ....... DONE
+#
+# Bản đầu của chỗ này thêm một dòng `filament:optimize-clear` nữa, kèm chú thích
+# nói `optimize:clear` "không biết về nó". **Sai.** Đọc log deploy mới thấy, nên
+# dòng đó đã gỡ: chạy hai lần không hỏng gì, nhưng một chú thích sai thì làm
+# người sau kết luận sai.
+#
+# Phần Filament THẬT SỰ còn thiếu là nhánh **ghi**, không phải nhánh xoá — xem
+# bước [8].
 $PHP_BIN artisan optimize:clear
-
-# `optimize:clear` KHÔNG xoá cache của Filament — nó không biết về nó.
-#
-# Cache component của Filament nằm ở `bootstrap/cache/filament/panels/{id}.php`
-# (ba tệp: admin, publisher, buyer) cộng `bootstrap/cache/blade-icons.php`. Cả
-# `bootstrap/cache` bị .gitignore chặn, nên `git reset --hard` ở bước [3]
-# KHÔNG dọn chúng: không xoá tay thì bản cũ sống qua deploy.
-#
-# Hệ quả nếu để sống: tệp đó là một mảng PHP ghi thẳng TÊN CLASS
-# (`livewireComponents`, `resources`, `pages`, `widgets`), và `HasComponents`
-# nạp nó bằng `require` rồi tin hẳn. Một resource vừa đổi tên hoặc vừa xoá sẽ
-# được nạp từ bảng cũ → 500 trên mọi trang của panel đó, không phải một lỗi nhẹ.
-$PHP_BIN artisan filament:optimize-clear
 
 echo ""
 echo "[7/11] Run migrations"
@@ -237,12 +255,26 @@ $PHP_BIN artisan event:cache || true
 
 # Filament: ghi sẵn bảng resource/page/widget của từng panel, cộng bảng icon.
 #
+# ĐÂY là phần Filament thật sự còn thiếu, và lý do nó thiếu rất cụ thể: bốn dòng
+# trên cache từng thứ MỘT, chứ không gọi `artisan optimize`. Sổ optimize của
+# Laravel — nơi Filament đã đăng ký cả hai nhánh (xem bước [6]) — chỉ nổ ở
+# `artisan optimize` và `artisan optimize:clear`. Nên nhánh **xoá** vẫn chạy
+# (qua `optimize:clear`), còn nhánh **ghi** thì không ai gọi.
+#
+# Không đổi bốn dòng trên thành `artisan optimize`, có chủ ý: `event:cache` ở
+# đây có `|| true` (xem lịch sử), còn `artisan optimize` thì không tha thứ cho
+# bước nào. Gọi thẳng `filament:optimize` là đổi ít nhất.
+#
 # Phải SAU `config:cache`, vì đường ghi cache đọc `config('filament.cache_path')`.
 #
 # KHÔNG `|| true`. Nếu lệnh này hỏng thì bảng component vừa bị xoá ở bước [6]
 # không được dựng lại, và panel quay về quét 169 tệp mỗi request — tức đúng cái
 # chi phí ta đang muốn bỏ, nhưng lặng lẽ. Thà deploy đỏ ngay: `trap … ERR` ở đầu
 # file vẫn đưa ứng dụng trở lại online.
+#
+# Không có bảng cache thì panel VẪN CHẠY ĐÚNG, chỉ chậm — `HasComponents` quét
+# tươi khi không thấy tệp. Nên đây là một bước hiệu năng, không phải một bước
+# đúng-sai; đừng đọc `|| true` ở `rollback.sh` như một chỗ bất nhất.
 #
 # An toàn với artisan: `hasCachedComponents()` trả false khi
 # `app()->runningInConsole()`, nên migration và mọi lệnh artisan LUÔN quét tươi,
