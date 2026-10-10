@@ -117,23 +117,49 @@ class DoiTenVaiTroOperatorTest extends TestCase
     }
 
     /**
-     * Chạy lại `up()` không làm hỏng dữ liệu (CLAUDE.md §6).
+     * Chạy lại `up()` phải KHÔNG LÀM GÌ, không chỉ là không làm hỏng gì.
      *
-     * Nói đúng ca này canh gì, vì đọc tên nó dễ tưởng nhiều hơn: nó khẳng định
-     * sáu hàng **vẫn đúng vai trò** sau lần `up()` thứ hai. Nó **không** thấy
-     * được chốt `if (! str_contains($kieu, ...)) return;` có chặn hay không —
-     * bỏ chốt đó đi thì cột bị dựng lại ba lần vô ích nhưng dữ liệu vẫn đúng,
-     * và ca này vẫn xanh. Đã đo bằng đột biến, không suy luận.
+     * ══ Bản đầu của ca này là một phép kiểm rỗng ══
      *
-     * Thứ nó thật sự bắt là hình dạng mất dữ liệu: một `up()` chạy lại mà quên
-     * sao `role` sang `role_tmp` sẽ đưa cả sáu hàng về `read_only` — mặc định
-     * của cột — và đó là mất **quyền**, không phải mất một nhãn.
+     * Nó chỉ khẳng định sáu hàng vẫn đúng vai trò sau lần `up()` thứ hai. Đo
+     * bằng đột biến thì nó **không bắt được gì**: bỏ chốt
+     * `if (! str_contains($kieu, ...)) return;` đi, cột bị dựng lại ba lần vô
+     * ích — nhưng dữ liệu vẫn đúng, nên nó vẫn xanh. Và hình dạng mất dữ liệu
+     * (quên sao `role` sang `role_tmp`) thì nó cũng không thấy, vì chính cái
+     * chốt đó chặn trước khi tới bước sai.
+     *
+     * Nên nó đọc **nhật ký truy vấn**: lần `up()` thứ hai được phép đọc
+     * `information_schema` để biết là không cần làm gì, và không được phát ra
+     * một `ALTER` hay `UPDATE` nào. Đó là điều cái chốt hứa, và giờ có người
+     * canh.
+     *
+     * Vì sao chốt đó đáng canh: `migrate --force` chạy ở bước [7] của
+     * `deploy.sh` trên production. Một lần chạy lại dựng lại cột `role` của
+     * `owner_users` ba lần là ba lần `ALTER TABLE` không vì lý do gì, trên
+     * đúng bảng quyết định ai sửa được kho.
      */
-    public function test_chay_lai_up_khong_doi_gi(): void
+    public function test_chay_lai_up_khong_lam_gi(): void
     {
         $ids = $this->sauThanhVien();
 
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
         $this->migration()->up();
+
+        $ghi = array_values(array_filter(
+            array_map(fn ($q) => $q['query'], DB::getQueryLog()),
+            fn (string $q) => (bool) preg_match('/^\s*(alter table|update|insert|drop)/i', $q),
+        ));
+
+        DB::disableQueryLog();
+
+        $this->assertSame(
+            [],
+            $ghi,
+            "Chạy lại `up()` phải không phát ra lệnh ghi nào — chốt chống-chạy-lại\n"
+            . "đã mất tác dụng. Những lệnh đã phát ra:\n  " . implode("\n  ", $ghi),
+        );
 
         $this->assertSame(
             array_combine(array_values($ids), array_keys($ids)),
