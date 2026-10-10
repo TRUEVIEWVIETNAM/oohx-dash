@@ -4,47 +4,46 @@ namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Organization;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class BuyerSettingsController extends Controller
 {
     /**
-     * Trang cài đặt — **vẫn do máy chủ render**, có chủ ý.
+     * Trang cài đặt — chỉ trả KHUNG, dữ liệu do trình duyệt gọi `/api/v2`.
      *
-     * Năm trang khu người mua đã chuyển sang đọc `/api/v2` từ trình duyệt.
-     * Trang này thì không, và ba lý do đều thuộc về việc nó là một **biểu mẫu**:
+     * ══ Trang này từng do máy chủ render, và tôi từng bảo vệ việc đó ══
      *
-     *  1. Giá trị ban đầu của ô nhập là thứ render phía máy chủ làm đúng. Lấy
-     *     qua API nghĩa là ô trống trong một nhịp, rồi mới điền.
-     *  2. Trong nhịp đó người dùng gõ được — và lượt điền sau sẽ ghi đè thứ họ
-     *     vừa gõ.
-     *  3. `old('name', $user->name)` giữ lại thứ họ vừa nhập khi validate thất
-     *     bại. Chuyển sang đọc API là mất việc đó, hoặc phải dựng lại nó bằng
-     *     JS — thêm mã để làm điều Laravel đang làm sẵn.
+     * Ba lý do tôi nêu đều về việc nó là một biểu mẫu: giá trị ban đầu của ô
+     * nhập là thứ render máy chủ làm đúng; lấy qua API nghĩa là ô trống trong
+     * một nhịp mà người dùng gõ được; và `old()` giữ lại thứ vừa nhập khi
+     * validate thất bại.
      *
-     * Khoảng trống mà giai đoạn 5 muốn đóng (tầng DTO/lỗi có lưu lượng thật
-     * chạy qua) đã đóng bằng năm trang kia. Chuyển thêm một trang biểu mẫu
-     * không đóng thêm gì, mà làm trang tệ hơn.
+     * Quyết định là chuyển, và bản mới xử cả ba thay vì bỏ qua — khung chờ thay
+     * cho ô trống, `disabled` cho tới khi điền xong, và biểu mẫu gửi qua API
+     * nên không có vòng chuyển hướng nào để `old()` phục vụ. Chi tiết ở
+     * `Api\V2\SettingsController` và trong chú thích đầu tệp Blade.
      *
-     * ══ Thứ trang này THẬT SỰ cần sửa ══
+     * ══ Vì sao vẫn kiểm quyền ở đây, dù trang không mang dữ liệu nào ══
      *
-     * `currentOrganization` là một `belongsTo` thuần trên
-     * `current_organization_id`, nên bản cũ cho người đã bị gỡ khỏi tổ chức
-     * **xem** email thanh toán, số điện thoại và mã số thuế của tổ chức cũ.
-     * Xem `OrganizationPolicy`.
+     * Không phải để che dữ liệu — không còn dữ liệu nào trong HTML để che. Mà
+     * để người đã bị gỡ khỏi tổ chức nhận 403 ngay ở trang, thay vì thấy một
+     * khung chờ rồi một thông báo lỗi. Hai chốt cho cùng một luật, và chốt
+     * trong `SettingsController` mới là chốt chặn dữ liệu.
      */
     public function index(Request $request): View
     {
-        $org = $this->toChuc($request);
+        $this->toChuc($request);
 
-        return view('buyer.dashboard.settings', [
-            'user' => $request->user(),
-            'org'  => $org,
-        ]);
+        // Cấu hình KHÔNG dựng ở đây — nó dựng trong khối `@php` của Blade, như
+        // năm trang kia. Lý do không phải văn phong:
+        //
+        // `TruongTrangDocTest` trích đường API bằng cách tìm `url('/api/v2…')`
+        // trong **tệp Blade**. Dựng cấu hình ở controller là lấy trang ra khỏi
+        // tầm chốt đó: nó báo "không trích được đường API nào" và phép so
+        // trường-đọc ↔ schema-endpoint không còn canh gì. Tôi đã gặp đúng thế
+        // ở bản đầu của trang này.
+        return view('buyer.dashboard.settings');
     }
 
     /**
@@ -61,59 +60,5 @@ class BuyerSettingsController extends Controller
         abort_unless($request->user()->can('view', $org), 403);
 
         return $org;
-    }
-
-    public function updateProfile(Request $request): RedirectResponse
-    {
-        $data = $request->validate([
-            'name'  => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $request->user()->id],
-        ]);
-
-        $request->user()->update($data);
-
-        return back()->with('success', 'Thông tin cá nhân đã được cập nhật');
-    }
-
-    public function updatePassword(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'current_password' => ['required', 'current_password'],
-            'password'         => ['required', 'confirmed', Password::min(8)],
-        ]);
-
-        $request->user()->update([
-            'password' => Hash::make($request->input('password')),
-        ]);
-
-        return back()->with('success', 'Mật khẩu đã được đổi');
-    }
-
-    /**
-     * Sửa thông tin tổ chức — **chỉ vai trò quản trị**.
-     *
-     * Bản cũ chạy `$request->user()->currentOrganization->update($data)` mà
-     * không policy, không kiểm tư cách thành viên, không kiểm vai trò. `$data`
-     * gồm `tax_id` và `billing_*`, nên một vai trò `viewer` — "chỉ xem, không
-     * chỉnh sửa" theo chính mô tả trong mã — ghi lại được mã số thuế của tổ
-     * chức. Chi tiết ở `OrganizationPolicy`.
-     */
-    public function updateOrganization(Request $request): RedirectResponse
-    {
-        $org = $this->toChuc($request);
-
-        abort_unless($request->user()->can('update', $org), 403);
-
-        $data = $request->validate([
-            'name'          => ['required', 'string', 'max:255'],
-            'billing_email' => ['nullable', 'email', 'max:255'],
-            'billing_phone' => ['nullable', 'string', 'max:30'],
-            'tax_id'        => ['nullable', 'string', 'max:50'],
-            'website'       => ['nullable', 'url', 'max:255'],
-        ]);
-
-        $org->update($data);
-
-        return back()->with('success', 'Thông tin tổ chức đã được cập nhật');
     }
 }

@@ -108,10 +108,16 @@ Route::domain($fpDomain)->group(function () {
         Route::post('/campaigns/{campaign}/lines/{line}/cancel', [BuyerCancellationController::class, 'store'])
             ->name('campaigns.lines.cancel');
         Route::post('/campaigns/{campaign}/reviews', [OwnerReviewController::class, 'store'])->name('campaigns.reviews.store');
+        // Chỉ còn đường ĐỌC, và nó chỉ trả khung trang.
+        //
+        // Ba đường `PUT /my/settings/*` đã gỡ 10/10/2026: trang gửi qua
+        // `PUT /api/v2/me/{profile,password,organization}`. Giữ lại cả hai là
+        // có hai nơi định nghĩa cùng một luật ghi (CLAUDE.md §1), và nơi không
+        // ai gọi sẽ là nơi không ai sửa khi luật đổi.
+        //
+        // Ca test bảo mật của chúng (`CaiDatToChucTest`) chuyển sang đường API
+        // cùng lượt — một chốt canh một đường không ai gọi thì không canh gì.
         Route::get('/settings',                        [BuyerSettingsController::class, 'index'])->name('settings');
-        Route::put('/settings/profile',                [BuyerSettingsController::class, 'updateProfile'])->name('settings.profile');
-        Route::put('/settings/password',               [BuyerSettingsController::class, 'updatePassword'])->name('settings.password');
-        Route::put('/settings/organization',           [BuyerSettingsController::class, 'updateOrganization'])->name('settings.organization');
     });
 
 });
