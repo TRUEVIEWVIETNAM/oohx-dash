@@ -37,10 +37,80 @@
 # Cũng đã loại: không có lời gọi HTTP/SSH nào trên đường trang chủ, và
 # `storage/framework/cache/data` thuộc `www` và ghi được bình thường.
 #
-# Nguyên nhân vẫn chưa biết. Khả năng còn lại chưa loại được: opcache lạnh sau
-# khi `git reset --hard` thay toàn bộ file PHP (vendor có Filament, rất lớn),
-# PHP-FPM đang nạp lại, hoặc một sự cố nhất thời của Cloudflare. Cách đo: ở lần
-# deploy tới, bấm đồng hồ ngay lần gọi đầu tiên TỪ NGOÀI vào.
+# ── Phép đo đã bấm đồng hồ, 09–10/10/2026, ba lần deploy ──
+#
+# Bản chú thích cũ dặn "ở lần deploy tới, bấm đồng hồ ngay lần gọi đầu tiên TỪ
+# NGOÀI vào". Đã làm, ba lần. Số đo, theo đúng thứ tự gọi:
+#
+#   deploy #59+#60 (09/10 ~15:01)
+#     1. dash.oohx.net/login            → TIMEOUT ở 25s
+#     2. dash.oohx.net/login (gọi lại)  → 404 trong 1,71s   ← 404 là ĐÚNG, /login do Next phục vụ
+#
+#   deploy #61 (09/10 ~15:55)
+#     1. oohx.net/                      → 200 trong 1,70s
+#     2. oohx.net/my                    → 302 trong 1,31s
+#     3. dash.oohx.net/admin/login      → 200 trong 2,18s   ← KHÔNG timeout
+#     4. dash.oohx.net/publisher/login  → 200 trong 1,13s
+#
+#   deploy #62 (10/10 ~02:38)
+#     1. oohx.net/                      → 200 trong 0,41s
+#     2. oohx.net/my                    → 302 trong 1,12s
+#     3. dash.oohx.net/publisher/login  → TIMEOUT ở 45s
+#     4. dash.oohx.net/admin/login      → 200 trong 1,84s
+#     5. publisher/login ×3             → 1,83s · 1,23s · 1,26s
+#
+# ── Phép đo này LOẠI một giả thuyết ──
+#
+# "Cả ứng dụng lạnh sau `git reset --hard`" là **sai**. Ở deploy #62,
+# `oohx.net/my` là **cùng một ứng dụng Laravel** (routes/web.php khai cả hai
+# tên miền trong một app) và nó trả 302 trong 1,12s — 44 giây TRƯỚC khi
+# dash.oohx.net timeout. Ứng dụng đã ấm, PHP đã nạp, mà dash vẫn treo.
+#
+# ── Và nó CHIA giả thuyết còn lại thành hai, chưa phân biệt được ──
+#
+#  (a) Lần khởi động panel Filament đầu tiên. `/my` là Blade thuần — Filament
+#      không bao giờ boot ở đó. Mọi đường treo đều là đường của panel Filament,
+#      nơi Filament phải quét và nạp toàn bộ resource / page / widget (~169 tệp
+#      dưới app/Filament, cộng cây class của vendor).
+#  (b) Vòng đời tiến trình theo TỪNG vhost. OpenLiteSpeed có thể phục vụ
+#      oohx.net và dash.oohx.net bằng hai vhost với hai pool LSPHP riêng, nên
+#      "ấm" ở vhost này không có nghĩa gì với vhost kia.
+#
+# Không phân biệt được từ ngoài, vì tôi không có quyền vào VPS. Nhưng phân biệt
+# được bằng MỘT lời gọi, và đây là lời gọi đó — một đường có thật trên dash,
+# chạy Laravel và render Blade, mà KHÔNG boot panel Filament nào:
+#
+#   curl -o /dev/null -w '%{http_code} %{time_total}\n' \
+#     https://dash.oohx.net/invitations/khong-ton-tai/accept
+#
+# Nó phải trả **410** (đo 10/10: 410 trong 1,19s). Gọi nó TRƯỚC mọi trang panel:
+#   - 410 nhanh, rồi trang panel treo → (a), lỗi ở lần boot Filament đầu
+#   - 410 cũng treo                   → (b), lỗi ở vòng đời vhost của dash
+#
+# Đường nhẹ hơn nếu chỉ cần biết Laravel có sống: `dash.oohx.net/api/v2/health`
+# không tồn tại và trả 404 theo đúng định dạng lỗi của dự án
+# (`{"error":"not_found",…}`) — tức router Laravel đã nhận. Nhưng nó không chạy
+# qua trình biên dịch Blade, nên để phân biệt (a)/(b) thì dùng đường trên.
+#
+# Lưu ý thứ tự gọi: ở cả hai lần timeout, lời gọi NGAY SAU đó trả nhanh. Nên
+# khi đo, cái phải bấm đồng hồ là lời gọi ĐẦU TIÊN tới dash — gọi một trang
+# panel khác trước là tự trả tiền hộ rồi đo ra số sai.
+#
+# Hiện tượng là **không đều**: deploy #61 không timeout lần nào. Nên một lần
+# đo nhanh KHÔNG chứng minh đã hết.
+#
+# ── Ứng viên chữa cho (a), CHƯA thêm vào script này ──
+#
+# Filament 3.3 có `php artisan filament:optimize` — nó gọi
+# `filament:cache-components` (ghi sẵn bảng resource/page/widget của từng
+# panel) và `icons:cache`. Đúng là phần việc giả thuyết (a) nói đang tốn.
+#
+# Chưa thêm, và lý do phải đọc trước khi ai đó thêm: bước [6] `optimize:clear`
+# KHÔNG xoá cache đó — lệnh xoá nó là `filament:optimize-clear`. Nên nếu thêm
+# `filament:optimize` vào bước [8] mà deploy hỏng giữa bước [3] và [8], máy chủ
+# sẽ phục vụ bảng component của bản TRƯỚC trong khi mã đã là bản mới: một
+# resource vừa đổi tên hoặc vừa xoá sẽ được nạp từ bảng cũ. Thêm nó thì phải
+# thêm `filament:optimize-clear` vào bước [6] cùng lượt, không thêm lẻ.
 
 set -e
 trap 'php artisan up || true' ERR
