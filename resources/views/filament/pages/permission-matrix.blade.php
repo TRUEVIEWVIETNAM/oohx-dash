@@ -5,7 +5,7 @@
         <x-slot name="heading">
             <div class="flex items-center gap-2">
                 <x-heroicon-o-shield-check class="w-5 h-5 text-primary-500" />
-                Tenant Permission Matrix
+                Ma trận quyền theo tenant
             </div>
         </x-slot>
         <x-slot name="description">
@@ -17,13 +17,13 @@
                 <thead>
                     <tr class="border-b-2 border-gray-200 dark:border-gray-700">
                         <th class="text-left py-3 pr-4 font-semibold text-gray-700 dark:text-gray-200 min-w-[200px]">
-                            Permission
+                            Quyền
                         </th>
                         @foreach($roles as $roleKey => $roleLabel)
                             <th class="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-200 min-w-[100px]">
                                 <div>{{ $roleLabel }}</div>
                                 <div class="text-xs font-normal text-gray-400 dark:text-gray-500 mt-0.5">
-                                    {{ $roleStats[$roleKey] ?? 0 }} users
+                                    {{ $roleStats[$roleKey] ?? 0 }} người dùng
                                 </div>
                             </th>
                         @endforeach
@@ -67,7 +67,7 @@
         <x-slot name="heading">
             <div class="flex items-center gap-2">
                 <x-heroicon-o-user-group class="w-5 h-5 text-primary-500" />
-                Tenant Role Distribution
+                Phân bố vai trò theo tenant
             </div>
         </x-slot>
         <x-slot name="description">
@@ -104,7 +104,7 @@
             <x-slot name="heading">
                 <div class="flex items-center gap-2">
                     <x-heroicon-o-building-office-2 class="w-5 h-5 text-primary-500" />
-                    Top Owners by Team Size
+                    Media owner có nhóm lớn nhất
                 </div>
             </x-slot>
             <x-slot name="description">
@@ -115,9 +115,9 @@
                 <table class="w-full text-sm border-collapse">
                     <thead>
                         <tr class="border-b-2 border-gray-200 dark:border-gray-700">
-                            <th class="text-left py-2.5 pr-4 font-semibold text-gray-700 dark:text-gray-200">Owner</th>
-                            <th class="text-center py-2.5 px-2 font-semibold text-gray-700 dark:text-gray-200">Status</th>
-                            <th class="text-center py-2.5 px-2 font-semibold text-gray-700 dark:text-gray-200">Team</th>
+                            <th class="text-left py-2.5 pr-4 font-semibold text-gray-700 dark:text-gray-200">Chủ sở hữu</th>
+                            <th class="text-center py-2.5 px-2 font-semibold text-gray-700 dark:text-gray-200">Trạng thái</th>
+                            <th class="text-center py-2.5 px-2 font-semibold text-gray-700 dark:text-gray-200">Nhóm</th>
                             @foreach($roles as $roleKey => $roleLabel)
                                 <th class="text-center py-2.5 px-2 font-semibold text-gray-700 dark:text-gray-200 text-xs">{{ $roleLabel }}</th>
                             @endforeach
@@ -178,7 +178,7 @@
                 <table class="w-full text-sm border-collapse">
                     <thead>
                         <tr class="border-b-2 border-gray-200 dark:border-gray-700">
-                            <th class="text-left py-2.5 pr-4 font-semibold text-gray-700 dark:text-gray-200">Role</th>
+                            <th class="text-left py-2.5 pr-4 font-semibold text-gray-700 dark:text-gray-200">Vai trò</th>
                             <th class="text-left py-2.5 pr-4 font-semibold text-gray-700 dark:text-gray-200">Panel</th>
                             <th class="text-left py-2.5 pr-4 font-semibold text-gray-700 dark:text-gray-200">Mô tả</th>
                         </tr>

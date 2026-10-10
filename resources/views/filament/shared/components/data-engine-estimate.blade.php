@@ -22,7 +22,7 @@
             </div>
             <div class="text-xs text-warning-700 dark:text-warning-300 mt-1">
                 Có thể chưa được sync hoặc Data Engine cron chưa recompute. Kiểm tra
-                <a href="{{ route('filament.admin.pages.oohx-data-engine') }}" class="underline">Data Engine dashboard</a>
+                <a href="{{ route('filament.admin.pages.oohx-data-engine') }}" class="underline">Bảng điều khiển Data Engine</a>
                 hoặc trigger sync thủ công.
             </div>
             <div class="text-xs text-gray-500 mt-2 font-mono">UUID: {{ $screen->uuid }}</div>
@@ -31,7 +31,7 @@
 @else
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
-            <div class="text-xs font-medium text-gray-500 uppercase">Daily impressions</div>
+            <div class="text-xs font-medium text-gray-500 uppercase">Lượt hiển thị mỗi ngày</div>
             <div class="mt-1 text-xl font-semibold text-gray-900 dark:text-gray-100">
                 {{ $estimate->estimated_daily_impressions !== null ? number_format((float) $estimate->estimated_daily_impressions) : '—' }}
             </div>
@@ -42,7 +42,7 @@
             @endif
         </div>
         <div>
-            <div class="text-xs font-medium text-gray-500 uppercase">Monthly impressions</div>
+            <div class="text-xs font-medium text-gray-500 uppercase">Lượt hiển thị mỗi tháng</div>
             <div class="mt-1 text-xl font-semibold text-gray-900 dark:text-gray-100">
                 {{ $estimate->estimated_monthly_impressions !== null ? number_format((float) $estimate->estimated_monthly_impressions) : '—' }}
             </div>
@@ -53,7 +53,7 @@
             @endif
         </div>
         <div>
-            <div class="text-xs font-medium text-gray-500 uppercase">Daily OTS</div>
+            <div class="text-xs font-medium text-gray-500 uppercase">OTS mỗi ngày</div>
             <div class="mt-1 text-xl font-semibold text-gray-900 dark:text-gray-100">
                 {{ $estimate->estimated_daily_ots !== null ? number_format((float) $estimate->estimated_daily_ots) : '—' }}
             </div>
@@ -64,7 +64,7 @@
             @endif
         </div>
         <div>
-            <div class="text-xs font-medium text-gray-500 uppercase">Confidence</div>
+            <div class="text-xs font-medium text-gray-500 uppercase">Độ tin cậy</div>
             <div class="mt-1 flex items-center gap-2">
                 <span class="text-xl font-semibold text-gray-900 dark:text-gray-100">
                     {{ $estimate->confidence_score !== null ? number_format((float) $estimate->confidence_score, 2) : '—' }}
@@ -85,15 +85,15 @@
 
     <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
         <div>
-            <span class="text-xs text-gray-500">Method:</span>
+            <span class="text-xs text-gray-500">Cách tính:</span>
             <span class="ml-1 font-medium text-gray-900 dark:text-gray-100">{{ $estimate->estimation_method ?? '—' }}</span>
         </div>
         <div>
-            <span class="text-xs text-gray-500">Model version:</span>
+            <span class="text-xs text-gray-500">Phiên bản mô hình:</span>
             <span class="ml-1 font-medium text-gray-900 dark:text-gray-100">{{ $estimate->model_version ?? '—' }}</span>
         </div>
         <div>
-            <span class="text-xs text-gray-500">Last calc:</span>
+            <span class="text-xs text-gray-500">Tính lần cuối:</span>
             <span class="ml-1 font-medium text-gray-900 dark:text-gray-100">
                 @if($estimate->last_calculated_at)
                     {{ \Illuminate\Support\Carbon::parse($estimate->last_calculated_at)->diffForHumans() }}

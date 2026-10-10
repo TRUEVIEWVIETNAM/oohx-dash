@@ -15,6 +15,6 @@
 
     <p class="text-xs text-gray-500">
         Laravel UI không duplicate defaults bên Python để tránh drift khi Data Engine tune curves.
-        Add city mới qua <strong>Add factor</strong> button hoặc sửa file bên Python.
+        Add city mới qua <strong>Thêm hệ số</strong> button hoặc sửa file bên Python.
     </p>
 </div>

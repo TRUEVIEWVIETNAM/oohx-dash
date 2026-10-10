@@ -15,10 +15,10 @@
         <table class="min-w-full text-sm">
             <thead class="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase text-gray-500 sticky top-0">
                 <tr>
-                    <th class="px-3 py-2 text-left">Type</th>
-                    <th class="px-3 py-2 text-left">Name</th>
-                    <th class="px-3 py-2 text-left">Tag</th>
-                    <th class="px-3 py-2 text-right">Lat / Lon</th>
+                    <th class="px-3 py-2 text-left">Loại</th>
+                    <th class="px-3 py-2 text-left">Tên</th>
+                    <th class="px-3 py-2 text-left">Thẻ</th>
+                    <th class="px-3 py-2 text-right">Vĩ độ / Kinh độ</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">

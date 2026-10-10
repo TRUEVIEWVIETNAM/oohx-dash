@@ -60,7 +60,7 @@
         {{-- Sheet 1: Sites --}}
         <div class="rounded-xl border border-primary-200 bg-primary-50 p-4 dark:border-primary-800 dark:bg-primary-950/40">
             <h4 class="mb-2 flex items-center gap-1.5 text-sm font-semibold text-primary-700 dark:text-primary-400">
-                <x-heroicon-s-map-pin class="h-4 w-4"/> Sheet: <code class="ml-1 rounded bg-primary-100 px-1 dark:bg-primary-900">Sites</code>
+                <x-heroicon-s-map-pin class="h-4 w-4"/> Sheet: <code class="ml-1 rounded bg-primary-100 px-1 dark:bg-primary-900">Địa điểm</code>
                 <span class="ml-auto text-xs font-normal text-primary-500">Row 5+ là dữ liệu</span>
             </h4>
             <div class="overflow-x-auto">
@@ -68,8 +68,8 @@
                     <thead>
                         <tr class="border-b border-primary-200 dark:border-primary-700">
                             <th class="pb-1.5 pr-4 text-left font-semibold">Cột</th>
-                            <th class="pb-1.5 pr-4 text-left font-semibold">Header</th>
-                            <th class="pb-1.5 text-left font-semibold">Field</th>
+                            <th class="pb-1.5 pr-4 text-left font-semibold">Tiêu đề cột</th>
+                            <th class="pb-1.5 text-left font-semibold">Trường</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-primary-100 dark:divide-primary-800">
@@ -96,7 +96,7 @@
         {{-- Sheet 2: Screens --}}
         <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-800 dark:bg-indigo-950/40">
             <h4 class="mb-2 flex items-center gap-1.5 text-sm font-semibold text-indigo-700 dark:text-indigo-400">
-                <x-heroicon-s-computer-desktop class="h-4 w-4"/> Sheet: <code class="ml-1 rounded bg-indigo-100 px-1 dark:bg-indigo-900">Screens</code>
+                <x-heroicon-s-computer-desktop class="h-4 w-4"/> Sheet: <code class="ml-1 rounded bg-indigo-100 px-1 dark:bg-indigo-900">Màn hình</code>
                 <span class="ml-auto text-xs font-normal text-indigo-500">Row 5+ là dữ liệu</span>
             </h4>
             <div class="overflow-x-auto">
@@ -104,8 +104,8 @@
                     <thead>
                         <tr class="border-b border-indigo-200 dark:border-indigo-700">
                             <th class="pb-1.5 pr-4 text-left font-semibold">Cột</th>
-                            <th class="pb-1.5 pr-4 text-left font-semibold">Header</th>
-                            <th class="pb-1.5 text-left font-semibold">Field</th>
+                            <th class="pb-1.5 pr-4 text-left font-semibold">Tiêu đề cột</th>
+                            <th class="pb-1.5 text-left font-semibold">Trường</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-indigo-100 dark:divide-indigo-800">
@@ -175,7 +175,7 @@
             {{-- Sites --}}
             <div class="flex items-center gap-2">
                 <x-heroicon-s-map-pin class="h-4 w-4 text-primary-500"/>
-                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Sites:</span>
+                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Địa điểm:</span>
                 <span class="rounded-full bg-success-100 px-2 py-0.5 text-xs font-bold text-success-700 dark:bg-success-900/40 dark:text-success-400">{{ $s['sites_new'] ?? 0 }} mới</span>
                 <span class="rounded-full bg-warning-100 px-2 py-0.5 text-xs font-bold text-warning-700 dark:bg-warning-900/40 dark:text-warning-400">{{ $s['sites_update'] ?? 0 }} cập nhật</span>
                 @if(($s['sites_error'] ?? 0) > 0)
@@ -187,7 +187,7 @@
             {{-- Screens --}}
             <div class="flex items-center gap-2">
                 <x-heroicon-s-computer-desktop class="h-4 w-4 text-indigo-500"/>
-                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Screens:</span>
+                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Màn hình:</span>
                 <span class="rounded-full bg-success-100 px-2 py-0.5 text-xs font-bold text-success-700 dark:bg-success-900/40 dark:text-success-400">{{ $s['screens_new'] ?? 0 }} mới</span>
                 <span class="rounded-full bg-warning-100 px-2 py-0.5 text-xs font-bold text-warning-700 dark:bg-warning-900/40 dark:text-warning-400">{{ $s['screens_update'] ?? 0 }} cập nhật</span>
                 @if(($s['screens_error'] ?? 0) > 0)
@@ -221,7 +221,7 @@
 <div class="mb-2 flex items-center justify-between">
     <div class="flex items-center gap-2">
         <x-heroicon-o-map-pin class="h-5 w-5 text-primary-500"/>
-        <h3 class="text-base font-semibold text-gray-800 dark:text-white">Sites</h3>
+        <h3 class="text-base font-semibold text-gray-800 dark:text-white">Địa điểm</h3>
     </div>
     {{-- Inline filter pills --}}
     <div class="flex gap-1">
@@ -256,10 +256,10 @@
         <table class="min-w-full text-sm">
             <thead class="border-b border-gray-200 bg-gray-50 text-xs dark:border-gray-700 dark:bg-gray-800">
                 <tr>
-                    <th class="w-12 px-3 py-2.5 text-left font-semibold text-gray-500">Row</th>
-                    <th class="w-24 px-3 py-2.5 text-left font-semibold text-gray-500">Status</th>
+                    <th class="w-12 px-3 py-2.5 text-left font-semibold text-gray-500">Dòng</th>
+                    <th class="w-24 px-3 py-2.5 text-left font-semibold text-gray-500">Trạng thái</th>
                     <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Site ID (generated) / Chain ID</th>
-                    <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Site Name</th>
+                    <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Tên địa điểm</th>
                     <th class="px-3 py-2.5 text-left font-semibold text-gray-500">GPS</th>
                     <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Thay đổi / Lỗi</th>
                 </tr>
@@ -289,7 +289,7 @@
                         </span>
                         @if(!empty($site['duplicate_in_file']))
                             <span class="mt-0.5 inline-flex items-center rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-600 dark:bg-orange-900/40 dark:text-orange-400">
-                                ⊕ DUP
+                                ⊕ TRÙNG
                             </span>
                         @endif
                     </td>
@@ -348,7 +348,7 @@
 <div class="mb-2 flex items-center justify-between">
     <div class="flex items-center gap-2">
         <x-heroicon-o-computer-desktop class="h-5 w-5 text-indigo-500"/>
-        <h3 class="text-base font-semibold text-gray-800 dark:text-white">Screens</h3>
+        <h3 class="text-base font-semibold text-gray-800 dark:text-white">Màn hình</h3>
     </div>
     <div class="flex gap-1">
         @foreach([
@@ -382,14 +382,14 @@
         <table class="min-w-full text-sm">
             <thead class="border-b border-gray-200 bg-gray-50 text-xs dark:border-gray-700 dark:bg-gray-800">
                 <tr>
-                    <th class="w-12 px-3 py-2.5 text-left font-semibold text-gray-500">Row</th>
-                    <th class="w-24 px-3 py-2.5 text-left font-semibold text-gray-500">Status</th>
-                    <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Screen ID</th>
-                    <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Screen Name</th>
-                    <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Site ID</th>
-                    <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Network</th>
-                    <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Resolution</th>
-                    <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Venue Type</th>
+                    <th class="w-12 px-3 py-2.5 text-left font-semibold text-gray-500">Dòng</th>
+                    <th class="w-24 px-3 py-2.5 text-left font-semibold text-gray-500">Trạng thái</th>
+                    <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Mã màn hình</th>
+                    <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Tên màn hình</th>
+                    <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Mã địa điểm</th>
+                    <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Mạng lưới</th>
+                    <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Độ phân giải</th>
+                    <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Loại địa điểm</th>
                     <th class="px-3 py-2.5 text-left font-semibold text-gray-500">Thay đổi / Lỗi</th>
                 </tr>
             </thead>
@@ -417,7 +417,7 @@
                         </span>
                         @if(!empty($screen['duplicate_in_file']))
                             <span class="mt-0.5 inline-flex items-center rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-600 dark:bg-orange-900/40 dark:text-orange-400">
-                                ⊕ DUP
+                                ⊕ TRÙNG
                             </span>
                         @endif
                     </td>
@@ -565,7 +565,7 @@
                 {{-- Sites --}}
                 <div class="flex items-center gap-2">
                     <x-heroicon-s-map-pin class="h-4 w-4 text-primary-500"/>
-                    <span class="text-sm text-gray-600 dark:text-gray-400">Sites:</span>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">Địa điểm:</span>
                     @if($sitesCreated > 0)
                     <span class="rounded-full bg-success-100 px-2 py-0.5 text-xs font-bold text-success-700 dark:bg-success-900/40 dark:text-success-400">{{ $sitesCreated }} mới</span>
                     @endif
@@ -579,7 +579,7 @@
                 {{-- Screens --}}
                 <div class="flex items-center gap-2">
                     <x-heroicon-s-computer-desktop class="h-4 w-4 text-indigo-500"/>
-                    <span class="text-sm text-gray-600 dark:text-gray-400">Screens:</span>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">Màn hình:</span>
                     @if($screensCreated > 0)
                     <span class="rounded-full bg-success-100 px-2 py-0.5 text-xs font-bold text-success-700 dark:bg-success-900/40 dark:text-success-400">{{ $screensCreated }} mới</span>
                     @endif
@@ -646,7 +646,7 @@
                         <span class="ml-1 rounded bg-orange-100 px-1.5 py-0.5 text-[10px] text-orange-600 dark:bg-orange-900/40">{{ $dup['count'] }} bản ghi</span>
                     </p>
                     <p class="mt-0.5 font-mono text-[11px] text-gray-500">
-                        IDs: {{ implode(', ', array_column($dup['records'], 'id')) }}
+                        Mã: {{ implode(', ', array_column($dup['records'], 'id')) }}
                     </p>
                 </div>
                 @endforeach
@@ -669,7 +669,7 @@
                         <span class="ml-1 rounded bg-orange-100 px-1.5 py-0.5 text-[10px] text-orange-600 dark:bg-orange-900/40">{{ $dup['count'] }} bản ghi</span>
                     </p>
                     <p class="mt-0.5 font-mono text-[11px] text-gray-500">
-                        IDs: {{ implode(', ', array_column($dup['records'], 'id')) }}
+                        Mã: {{ implode(', ', array_column($dup['records'], 'id')) }}
                     </p>
                 </div>
                 @endforeach
@@ -678,7 +678,7 @@
         @endif
 
         <p class="mt-3 text-xs text-orange-500">
-            Vào <strong>Sites</strong> hoặc <strong>Screens</strong> để xem và xoá bản ghi trùng lặp không cần thiết.
+            Vào <strong>Địa điểm</strong> hoặc <strong>Màn hình</strong> để xem và xoá bản ghi trùng lặp không cần thiết.
         </p>
     </div>
     @else

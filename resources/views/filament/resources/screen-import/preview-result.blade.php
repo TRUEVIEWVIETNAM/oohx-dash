@@ -11,17 +11,17 @@
     {{-- Stats banner --}}
     <div class="grid grid-cols-3 gap-4">
         <div class="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-3">
-            <div class="text-xs text-green-700 dark:text-green-400 uppercase tracking-wide">Valid</div>
+            <div class="text-xs text-green-700 dark:text-green-400 uppercase tracking-wide">Hợp lệ</div>
             <div class="text-2xl font-bold text-green-900 dark:text-green-100">{{ number_format($validTotal) }}</div>
             <div class="text-xs text-green-700 dark:text-green-400">{{ $pctValid }}%</div>
         </div>
         <div class="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3">
-            <div class="text-xs text-red-700 dark:text-red-400 uppercase tracking-wide">Errors</div>
+            <div class="text-xs text-red-700 dark:text-red-400 uppercase tracking-wide">Lỗi</div>
             <div class="text-2xl font-bold text-red-900 dark:text-red-100">{{ number_format(count($errors)) }}</div>
             <div class="text-xs text-red-700 dark:text-red-400">{{ $totalRows ? round((count($errors) / $totalRows) * 100) : 0 }}%</div>
         </div>
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 p-3">
-            <div class="text-xs text-gray-700 dark:text-gray-400 uppercase tracking-wide">Total</div>
+            <div class="text-xs text-gray-700 dark:text-gray-400 uppercase tracking-wide">Tổng</div>
             <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ number_format($totalRows) }}</div>
         </div>
     </div>
@@ -32,13 +32,13 @@
             <table class="w-full text-sm border-collapse">
                 <thead class="bg-gray-50 dark:bg-gray-800">
                     <tr>
-                        <th class="p-2 text-left font-semibold border-b dark:border-gray-700 w-16">Row</th>
+                        <th class="p-2 text-left font-semibold border-b dark:border-gray-700 w-16">Dòng</th>
                         <th class="p-2 text-left font-semibold border-b dark:border-gray-700">external_id</th>
-                        <th class="p-2 text-left font-semibold border-b dark:border-gray-700">name</th>
-                        <th class="p-2 text-left font-semibold border-b dark:border-gray-700">site</th>
-                        <th class="p-2 text-left font-semibold border-b dark:border-gray-700">size</th>
+                        <th class="p-2 text-left font-semibold border-b dark:border-gray-700">tên</th>
+                        <th class="p-2 text-left font-semibold border-b dark:border-gray-700">địa điểm</th>
+                        <th class="p-2 text-left font-semibold border-b dark:border-gray-700">kích thước</th>
                         <th class="p-2 text-left font-semibold border-b dark:border-gray-700">cpm</th>
-                        <th class="p-2 text-left font-semibold border-b dark:border-gray-700">Status</th>
+                        <th class="p-2 text-left font-semibold border-b dark:border-gray-700">Trạng thái</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -59,7 +59,7 @@
                             <td class="p-2 text-xs">{{ isset($d['inventory']['floor_cpm']) ? number_format($d['inventory']['floor_cpm']) : '—' }}</td>
                             <td class="p-2">
                                 @if($row['is_valid'])
-                                    <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700">valid</span>
+                                    <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700">hợp lệ</span>
                                 @else
                                     <div class="text-xs space-y-0.5">
                                         @foreach($row['errors'] as $err)
@@ -76,7 +76,7 @@
 
         @if($totalRows > count($preview))
             <div class="text-xs text-gray-500">
-                Hiển thị {{ count($preview) }} rows đầu tiên. Tổng {{ number_format($totalRows) }} rows trong file.
+                Hiển thị {{ count($preview) }} rows đầu tiên. Tổng {{ number_format($totalRows) }} dòng trong tệp.
             </div>
         @endif
     @endif
@@ -90,7 +90,7 @@
             <div class="mt-2 max-h-96 overflow-y-auto text-xs font-mono space-y-1 bg-red-50 dark:bg-red-900/10 p-3 rounded">
                 @foreach($errors as $rowNum => $rowErrors)
                     <div class="border-b border-red-200 dark:border-red-800 py-1">
-                        <strong>Row {{ $rowNum }}:</strong>
+                        <strong>Dòng {{ $rowNum }}:</strong>
                         {{ implode(' · ', $rowErrors) }}
                     </div>
                 @endforeach

@@ -18,17 +18,17 @@
             <div class="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
                 <x-filament::icon :icon="'heroicon-o-' . $icon" class="h-4 w-4 text-gray-500" />
                 <span class="font-semibold text-sm text-gray-900 dark:text-gray-100">{{ $label }}</span>
-                <span class="ml-auto text-xs text-gray-500">{{ count($entries) }} entries</span>
+                <span class="ml-auto text-xs text-gray-500">{{ count($entries) }} mục</span>
             </div>
             @if(empty($entries))
-                <div class="p-4 text-sm text-gray-500 italic">— empty —</div>
+                <div class="p-4 text-sm text-gray-500 italic">— trống —</div>
             @else
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-sm">
                         <thead class="bg-gray-50 dark:bg-gray-800/30 text-xs uppercase text-gray-500">
                             <tr>
-                                <th class="px-4 py-2 text-left">Key</th>
-                                <th class="px-4 py-2 text-right">Value</th>
+                                <th class="px-4 py-2 text-left">Khoá</th>
+                                <th class="px-4 py-2 text-right">Giá trị</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">

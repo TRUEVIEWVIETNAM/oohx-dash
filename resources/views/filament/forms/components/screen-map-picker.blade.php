@@ -240,7 +240,7 @@
     </div>
 
     <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-        Click ban do hoac keo marker de dat toa do. Tim kiem dung
+        Bấm bản đồ hoặc kéo ghim để đặt toạ độ. Tìm kiếm dùng
         <a href="https://www.openstreetmap.org" target="_blank" class="underline">OpenStreetMap</a> Nominatim.
     </p>
 </div>

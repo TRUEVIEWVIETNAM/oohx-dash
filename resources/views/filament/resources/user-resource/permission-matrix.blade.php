@@ -24,7 +24,7 @@
         <table class="w-full text-sm border-collapse">
             <thead>
                 <tr class="border-b border-gray-200 dark:border-gray-700">
-                    <th class="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">Permission</th>
+                    <th class="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">Quyền</th>
                     @foreach($ownerUsers as $ou)
                         <th class="text-center py-2 px-3 font-medium text-gray-600 dark:text-gray-400">
                             <div>{{ $ou->owner?->name ?? '?' }}</div>

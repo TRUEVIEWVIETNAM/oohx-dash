@@ -78,7 +78,7 @@
     {{-- ── LEFT: grouped list ─────────────────────────────────────────── --}}
     <div class="poi-browser-list" id="poi-browser-list">
         <div class="poi-browser-summary">
-            <strong>{{ $totalNamed }}</strong> POIs có tên / {{ $totalRaw }} raw ·
+            <strong>{{ $totalNamed }}</strong> POIs có tên / {{ $totalRaw }} thô ·
             <strong>{{ count($grouped) }}</strong> nhóm
         </div>
 

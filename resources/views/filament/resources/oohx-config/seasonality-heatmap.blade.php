@@ -1,10 +1,10 @@
 <x-filament-panels::page>
     <x-filament::section>
-        <x-slot name="heading">Seasonality factors — 12 months × N cities</x-slot>
+        <x-slot name="heading">Hệ số mùa vụ — 12 tháng × N tỉnh/thành</x-slot>
         <x-slot name="description">
-            Color scale: <strong class="text-success-600">green</strong> = amplify (&gt; 1.05),
-            <strong class="text-warning-600">yellow</strong> = neutral (0.95-1.05),
-            <strong class="text-danger-600">red</strong> = dampen (&lt; 0.95),
+            Thang màu: <strong class="text-success-600">xanh</strong> = amplify (&gt; 1.05),
+            <strong class="text-warning-600">vàng</strong> = neutral (0.95-1.05),
+            <strong class="text-danger-600">đỏ</strong> = dampen (&lt; 0.95),
             gray = no data.
         </x-slot>
 
@@ -20,7 +20,7 @@
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
                             <th class="sticky left-0 z-10 bg-gray-50 dark:bg-gray-800/80 px-4 py-2 text-left text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                                City
+                                Tỉnh/thành
                             </th>
                             @foreach($months as $m => $label)
                                 <th class="px-3 py-2 text-center text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
@@ -75,7 +75,7 @@
 
             <div class="mt-4 text-xs text-gray-500 space-y-1">
                 <div>Hover cell để xem note + updated_by.</div>
-                <div>Chỉnh 1 cell: click <strong>Back to list</strong> → Edit row (table).</div>
+                <div>Chỉnh 1 cell: click <strong>Về danh sách</strong> → Edit row (table).</div>
             </div>
         @endif
     </x-filament::section>

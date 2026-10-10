@@ -58,8 +58,8 @@
                     <select x-model="filterActive"
                             class="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/5 text-gray-950 dark:text-white text-sm py-1.5 px-2.5 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none">
                         <option value="">Tất cả</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
+                        <option value="active">Đang bật</option>
+                        <option value="inactive">Đã tắt</option>
                     </select>
                 </div>
 
@@ -110,7 +110,7 @@
                     <thead>
                         <tr class="bg-gray-50 dark:bg-white/5">
                             <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
-                                <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Screen ID</span>
+                                <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Mã màn hình</span>
                             </th>
                             <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
                                 <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Tên màn hình</span>
@@ -119,7 +119,7 @@
                                 <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Mô tả</span>
                             </th>
                             <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
-                                <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Floor CPM</span>
+                                <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Giá sàn CPM</span>
                             </th>
                             <th class="fi-ta-header-cell px-3 py-3.5 sm:first-of-type:ps-6 sm:last-of-type:pe-6">
                                 <span class="fi-ta-header-cell-label text-sm font-semibold text-gray-950 dark:text-white whitespace-nowrap">Trạng thái</span>
@@ -186,7 +186,7 @@
                         :disabled="page === 1"
                         class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg shadow-sm gap-1 px-2.5 py-1.5 text-sm bg-white text-gray-950 hover:bg-gray-50 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 ring-1 ring-gray-950/10 dark:ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed justify-self-start"
                     >
-                        Previous
+                        Trước
                     </button>
 
                     <span class="fi-pagination-overview text-sm font-medium text-gray-700 dark:text-gray-200 text-center">
@@ -202,7 +202,7 @@
                         :disabled="page >= totalPages"
                         class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg shadow-sm gap-1 px-2.5 py-1.5 text-sm bg-white text-gray-950 hover:bg-gray-50 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 ring-1 ring-gray-950/10 dark:ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed justify-self-end"
                     >
-                        Next
+                        Sau
                     </button>
                 </nav>
             </div>

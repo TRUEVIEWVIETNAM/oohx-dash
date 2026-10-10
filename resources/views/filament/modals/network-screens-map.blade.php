@@ -230,7 +230,7 @@
 
         {{-- Site filter --}}
         <div class="flex items-center gap-2">
-            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Site:</label>
+            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Địa điểm:</label>
             <div class="fi-input-wrp flex rounded-lg shadow-sm ring-1 transition duration-75 bg-white dark:bg-white/5 ring-gray-950/10 dark:ring-white/20">
                 <select
                     id="{{ $mapKey }}_site"

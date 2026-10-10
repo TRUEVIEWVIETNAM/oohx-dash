@@ -1,7 +1,7 @@
 <x-filament-panels::page>
     {{-- ── Status counters ──────────────────────────────────────────── --}}
     <x-filament::section>
-        <x-slot name="heading">Queue status</x-slot>
+        <x-slot name="heading">Trạng thái hàng đợi</x-slot>
 
         <div class="flex flex-wrap items-center gap-6 text-sm">
             @php
@@ -32,7 +32,7 @@
                 <div class="ml-auto">
                     <span class="fi-badge inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold ring-1 ring-inset bg-danger-50 text-danger-700 ring-danger-600/20 dark:bg-danger-950/50 dark:text-danger-400">
                         <x-filament::icon icon="heroicon-m-exclamation-triangle" class="h-3.5 w-3.5" />
-                        {{ $overdue }} overdue
+                        {{ $overdue }} quá hạn
                     </span>
                 </div>
             @endif
@@ -62,11 +62,11 @@
 
             {{-- Meta row --}}
             <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 pb-3 mb-4">
-                <div><strong class="text-gray-700 dark:text-gray-300">Provider:</strong> {{ $meta['provider'] ?? '—' }}</div>
-                <div><strong class="text-gray-700 dark:text-gray-300">Cost:</strong> {{ $meta['cost'] ?? '—' }}</div>
-                <div><strong class="text-gray-700 dark:text-gray-300">Rate limit:</strong> {{ $meta['rate_limit'] ?? '—' }}</div>
+                <div><strong class="text-gray-700 dark:text-gray-300">Nguồn:</strong> {{ $meta['provider'] ?? '—' }}</div>
+                <div><strong class="text-gray-700 dark:text-gray-300">Chi phí:</strong> {{ $meta['cost'] ?? '—' }}</div>
+                <div><strong class="text-gray-700 dark:text-gray-300">Giới hạn tần suất:</strong> {{ $meta['rate_limit'] ?? '—' }}</div>
                 <div>
-                    <strong class="text-gray-700 dark:text-gray-300">Cadence:</strong>
+                    <strong class="text-gray-700 dark:text-gray-300">Chu kỳ:</strong>
                     @php
                         $hours = (int) ($meta['cadence_hours'] ?? 0);
                         $cadenceLabel = $hours >= 168
@@ -76,10 +76,10 @@
                     {{ $cadenceLabel }}
                 </div>
                 @if(($meta['cache_ttl_hours'] ?? 0) > 0)
-                    <div><strong class="text-gray-700 dark:text-gray-300">Cache:</strong> {{ $meta['cache_ttl_hours'] }}h</div>
+                    <div><strong class="text-gray-700 dark:text-gray-300">Bộ đệm:</strong> {{ $meta['cache_ttl_hours'] }}h</div>
                 @endif
                 @if($meta['expected_runtime_seconds'] ?? null)
-                    <div><strong class="text-gray-700 dark:text-gray-300">Runtime:</strong> ~{{ $meta['expected_runtime_seconds'] }}s</div>
+                    <div><strong class="text-gray-700 dark:text-gray-300">Thời gian chạy:</strong> ~{{ $meta['expected_runtime_seconds'] }}s</div>
                 @endif
             </div>
 
@@ -121,7 +121,7 @@
                                     · {{ $run->bytes_fetched_human }}
                                 @endif
                                 @if($run->error_message)
-                                    · <span class="text-danger-600">error</span>
+                                    · <span class="text-danger-600">lỗi</span>
                                 @endif
                                 ·
                                 <a href="{{ route('filament.admin.resources.oohx-collector-runs.view', $run->id) }}"
@@ -129,7 +129,7 @@
                                     run #{{ $run->id }}
                                 </a>
                             @else
-                                <span class="italic">never triggered</span>
+                                <span class="italic">chưa chạy lần nào</span>
                             @endif
                         </div>
 

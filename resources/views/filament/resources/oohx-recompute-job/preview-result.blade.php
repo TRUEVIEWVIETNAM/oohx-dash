@@ -34,7 +34,7 @@
                 }"
                 class="h-6 w-6 flex-shrink-0 mt-0.5" />
             <div>
-                <div class="font-semibold text-base">{{ $overallWarning['label'] }} impact</div>
+                <div class="font-semibold text-base">{{ $overallWarning['label'] }} tác động</div>
                 <div class="text-sm mt-1">{{ $overallWarning['message'] }}</div>
             </div>
         </div>
@@ -57,22 +57,22 @@
             <div class="text-xs text-gray-500">#{{ $result['target_version_id'] ?? '?' }}</div>
         </div>
         <div>
-            <div class="text-xs font-medium text-gray-500 uppercase">Sample</div>
+            <div class="text-xs font-medium text-gray-500 uppercase">Mẫu</div>
             <div class="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
                 {{ $fmt::num($result['sample_size_computed'] ?? 0) }}
                 <span class="text-gray-500">/ {{ $fmt::num($result['sample_size_requested'] ?? 0) }}</span>
             </div>
             @if(($result['skipped'] ?? 0) > 0)
-                <div class="text-xs text-warning-600">{{ $result['skipped'] }} skipped</div>
+                <div class="text-xs text-warning-600">{{ $result['skipped'] }} bỏ qua</div>
             @endif
         </div>
         <div>
-            <div class="text-xs font-medium text-gray-500 uppercase">Filter</div>
+            <div class="text-xs font-medium text-gray-500 uppercase">Lọc</div>
             <div class="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
                 {{ $result['city'] ?? 'All cities' }}
             </div>
             @if(isset($result['seed']) && $result['seed'] !== null)
-                <div class="text-xs text-gray-500">seed: {{ $result['seed'] }}</div>
+                <div class="text-xs text-gray-500">nạp: {{ $result['seed'] }}</div>
             @endif
         </div>
     </div>
@@ -85,7 +85,7 @@
             </summary>
             <ul class="mt-2 space-y-1 text-xs text-gray-600 dark:text-gray-400 font-mono">
                 @foreach($result['skipped_examples'] as $ex)
-                    <li>Screen #{{ $ex['screen_id'] ?? '?' }}: {{ $ex['reason'] ?? '?' }}</li>
+                    <li>Màn hình #{{ $ex['screen_id'] ?? '?' }}: {{ $ex['reason'] ?? '?' }}</li>
                 @endforeach
             </ul>
         </details>
@@ -130,21 +130,21 @@
                             <x-filament::icon icon="heroicon-m-arrow-trending-up" class="h-4 w-4 text-success-500" />
                             <div>
                                 <div class="font-semibold text-gray-900 dark:text-gray-100">{{ $fmt::num($m['screens_increased'] ?? 0) }}</div>
-                                <div class="text-xs text-gray-500">increased</div>
+                                <div class="text-xs text-gray-500">tăng</div>
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
                             <x-filament::icon icon="heroicon-m-arrow-trending-down" class="h-4 w-4 text-danger-500" />
                             <div>
                                 <div class="font-semibold text-gray-900 dark:text-gray-100">{{ $fmt::num($m['screens_decreased'] ?? 0) }}</div>
-                                <div class="text-xs text-gray-500">decreased</div>
+                                <div class="text-xs text-gray-500">giảm</div>
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
                             <x-filament::icon icon="heroicon-m-minus" class="h-4 w-4 text-gray-400" />
                             <div>
                                 <div class="font-semibold text-gray-900 dark:text-gray-100">{{ $fmt::num($m['screens_unchanged'] ?? 0) }}</div>
-                                <div class="text-xs text-gray-500">unchanged</div>
+                                <div class="text-xs text-gray-500">không đổi</div>
                             </div>
                         </div>
                         @if(($m['screens_undefined'] ?? 0) > 0)
@@ -152,7 +152,7 @@
                             <x-filament::icon icon="heroicon-m-question-mark-circle" class="h-4 w-4 text-gray-400" />
                             <div>
                                 <div class="font-semibold text-gray-900 dark:text-gray-100">{{ $fmt::num($m['screens_undefined'] ?? 0) }}</div>
-                                <div class="text-xs text-gray-500">undefined</div>
+                                <div class="text-xs text-gray-500">chưa có</div>
                             </div>
                         </div>
                         @endif
@@ -162,11 +162,11 @@
                     @if(isset($m['baseline_sum']) || isset($m['target_sum']))
                         <div class="pt-3 border-t border-gray-100 dark:border-gray-800 grid grid-cols-2 gap-3 text-sm">
                             <div>
-                                <div class="text-xs text-gray-500">Baseline sum</div>
+                                <div class="text-xs text-gray-500">Tổng mức nền</div>
                                 <div class="font-mono font-semibold text-gray-900 dark:text-gray-100">{{ $fmt::num($m['baseline_sum'] ?? null) }}</div>
                             </div>
                             <div>
-                                <div class="text-xs text-gray-500">Target sum</div>
+                                <div class="text-xs text-gray-500">Tổng mục tiêu</div>
                                 <div class="font-mono font-semibold text-primary-600">{{ $fmt::num($m['target_sum'] ?? null) }}</div>
                             </div>
                         </div>
@@ -174,14 +174,14 @@
 
                     {{-- Delta distribution — text-based percentile lines --}}
                     <div class="pt-3 border-t border-gray-100 dark:border-gray-800">
-                        <div class="text-xs font-medium text-gray-500 uppercase mb-2">Delta distribution</div>
+                        <div class="text-xs font-medium text-gray-500 uppercase mb-2">Phân bố chênh lệch</div>
                         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
                             <div><span class="text-xs text-gray-500">p50</span><div class="font-mono font-semibold">{{ $fmt::pct($m['delta_pct_p50'] ?? null, 1) }}</div></div>
                             <div><span class="text-xs text-gray-500">p90</span><div class="font-mono font-semibold">{{ $fmt::pct($m['delta_pct_p90'] ?? null, 1) }}</div></div>
                             <div><span class="text-xs text-gray-500">p99</span><div class="font-mono font-semibold">{{ $fmt::pct($m['delta_pct_p99'] ?? null, 1) }}</div></div>
-                            <div><span class="text-xs text-gray-500">min</span><div class="font-mono text-danger-600">{{ $fmt::pct($m['delta_pct_min'] ?? null, 1) }}</div></div>
-                            <div><span class="text-xs text-gray-500">max</span><div class="font-mono text-success-600">{{ $fmt::pct($m['delta_pct_max'] ?? null, 1) }}</div></div>
-                            <div><span class="text-xs text-gray-500">mean</span><div class="font-mono font-semibold">{{ $fmt::pct($m['delta_pct_mean'] ?? null, 1) }}</div></div>
+                            <div><span class="text-xs text-gray-500">nhỏ nhất</span><div class="font-mono text-danger-600">{{ $fmt::pct($m['delta_pct_min'] ?? null, 1) }}</div></div>
+                            <div><span class="text-xs text-gray-500">lớn nhất</span><div class="font-mono text-success-600">{{ $fmt::pct($m['delta_pct_max'] ?? null, 1) }}</div></div>
+                            <div><span class="text-xs text-gray-500">trung bình</span><div class="font-mono font-semibold">{{ $fmt::pct($m['delta_pct_mean'] ?? null, 1) }}</div></div>
                         </div>
                     </div>
                 </div>
@@ -193,17 +193,17 @@
     @if(! empty($result['top_deltas']))
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="px-4 py-2 bg-gray-50 dark:bg-gray-900/40 border-b border-gray-200 dark:border-gray-700">
-                <div class="font-semibold text-gray-900 dark:text-gray-100">Top {{ count($result['top_deltas']) }} deltas</div>
+                <div class="font-semibold text-gray-900 dark:text-gray-100">Nhiều nhất {{ count($result['top_deltas']) }} chênh lệch</div>
                 <div class="text-xs text-gray-500">Sorted by |delta_pct| — biggest changes đầu tiên. Click screen ID để xem estimate detail.</div>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-sm">
                     <thead class="bg-gray-50 dark:bg-gray-800/30 text-xs uppercase text-gray-500">
                         <tr>
-                            <th class="px-4 py-2 text-left">Screen ID</th>
-                            <th class="px-4 py-2 text-right">Baseline</th>
-                            <th class="px-4 py-2 text-right">Target</th>
-                            <th class="px-4 py-2 text-right">Delta</th>
+                            <th class="px-4 py-2 text-left">Mã màn hình</th>
+                            <th class="px-4 py-2 text-right">Mức nền</th>
+                            <th class="px-4 py-2 text-right">Mục tiêu</th>
+                            <th class="px-4 py-2 text-right">Chênh lệch</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -221,10 +221,10 @@
                                 <td class="px-4 py-2 font-mono">
                                     @if($viewUrl)
                                         <a href="{{ $viewUrl }}" class="text-primary-600 hover:underline">
-                                            Screen #{{ $screenId }}
+                                            Màn hình #{{ $screenId }}
                                         </a>
                                     @else
-                                        Screen #{{ $screenId ?? '?' }}
+                                        Màn hình #{{ $screenId ?? '?' }}
                                     @endif
                                 </td>
                                 <td class="px-4 py-2 text-right font-mono text-gray-700 dark:text-gray-300">
