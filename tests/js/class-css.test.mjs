@@ -191,10 +191,16 @@ test('bộ trích không rỗng — một regex vỡ phải đỏ, không đư�
 });
 
 test('mọi class b-* trong mọi tệp Blade đều có trong CSS', () => {
-    // Rộng hơn bốn trang trên, vì `.b-gray` còn ở hai trang CHƯA chuyển sang
-    // đọc API (`buyer/booking/creative`, `buyer/dashboard/index`) và ở đó nó
-    // nằm trong biểu thức Blade. Thẻ trạng thái là chỗ các bản chép tụ lại, nên
+    // Rộng hơn các trang đọc API ở trên, vì `.b-gray` còn ở những trang CHƯA
+    // chuyển (`buyer/dashboard/index` và các trang Filament) và ở đó nó nằm
+    // trong biểu thức Blade. Thẻ trạng thái là chỗ các bản chép tụ lại, nên
     // tiền tố `b-` là chỗ đáng canh toàn bộ.
+    //
+    // Phép quét này KHÔNG bỏ chú thích, và đó là cố ý: bỏ chú thích nghĩa là
+    // phải hiểu bốn kiểu chú thích (`{{-- --}}`, `<!-- -->`, `//`, `/* */`)
+    // lồng nhau trong cùng một tệp, tức một bộ phân tích cú pháp nữa để sai.
+    // Giá phải trả là không được nhắc tên một class chết trong chú thích —
+    // `buyer/booking/payment-success` ghi lại đúng rào đó ở chỗ nó gặp.
     const tep = [];
 
     (function quet(thuMuc) {

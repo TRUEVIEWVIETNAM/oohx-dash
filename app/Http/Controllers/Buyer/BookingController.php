@@ -3,164 +3,91 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Booking\StoreCampaignRequest;
-use App\Http\Requests\Booking\SubmitCampaignRequest;
-use App\Http\Requests\Booking\UploadCreativeRequest;
 use App\Models\Campaign;
-use App\Models\PolicyConsent;
-use App\Services\AvailabilityService;
-use App\Services\CampaignService;
 use App\Services\CartService;
-use App\Services\CreativeService;
-use App\Services\PolicyConsentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
+/**
+ * Ba bước đặt chỗ — từ 10/10/2026 chỉ còn ĐỌC, và chỉ trả khung trang.
+ *
+ * ══ Ba phương thức ghi đã gỡ ══
+ *
+ * `store()`, `uploadCreative()` và `submit()` từng nhận ba `POST` của ba
+ * trang Blade. Ba trang đó nay gửi qua `POST /api/v2/campaigns`,
+ * `.../creatives` và `.../submit`.
+ *
+ * Gỡ chứ không để lại, vì ba phương thức đó và ba endpoint kia làm **cùng một
+ * việc ghi**: cùng `StoreCampaignRequest` / `UploadCreativeRequest` /
+ * `SubmitCampaignRequest`, cùng `CampaignService` / `CreativeService`, cùng
+ * `PolicyConsentService::record()` với cùng `CONTEXT_BOOKING`. Hai đường cho
+ * một luật là hai nơi phải sửa khi luật đổi (CLAUDE.md §1), và đường không ai
+ * gọi là đường không ai sửa.
+ *
+ * Trước khi gỡ, thứ đáng kiểm nhất không phải luật kiểm mà là **bản ghi đồng
+ * ý**: `submit()` cũ ghi lại việc người mua đồng ý Quy chế và Chính sách bảo
+ * mật kèm IP và thời điểm, và đó là bằng chứng khi có tranh chấp. Endpoint
+ * `/api/v2/.../submit` gọi đúng `$this->consents->record(['terms', 'privacy'],
+ * PolicyConsent::CONTEXT_BOOKING, …)` với cùng `subjectId` là mã chiến dịch,
+ * nên bản ghi đó không mất.
+ *
+ * ══ Vì sao `create()` vẫn còn một truy vấn ══
+ *
+ * Phép kiểm "giỏ trống" ở lại máy chủ. Để nó sang JS là hiện một biểu mẫu tạo
+ * chiến dịch rồi mới đẩy người dùng về giỏ — họ đã gõ xong tên chiến dịch khi
+ * biết mình không có gì để đặt.
+ */
 class BookingController extends Controller
 {
     public function __construct(
-        private CampaignService $campaignService,
         private CartService $cartService,
-        private AvailabilityService $availabilityService,
-        private PolicyConsentService $consents,
-        private CreativeService $creatives,
     ) {}
 
     /**
-     * Step 1: GET /booking/create — Campaign info form
+     * Bước 1: GET /booking/create — khung biểu mẫu thông tin chiến dịch.
      */
     public function create(Request $request): View|RedirectResponse
     {
         $cart = $this->cartService->getOrCreateCart($request->user());
-        $items = $cart->items()->with(['screen.spec', 'screen.inventory', 'screen.owner'])->get();
 
-        if ($items->isEmpty()) {
+        if (! $cart->items()->exists()) {
             return redirect()->route('buyer.cart')->withErrors(['cart' => 'Plan trống. Thêm màn hình trước khi tạo campaign.']);
         }
 
-        return view('buyer.booking.create', [
-            'cart'  => $cart,
-            'items' => $items,
-        ]);
+        // Không truyền giỏ vào view: thanh bên đọc `GET /api/v2/cart` từ trình
+        // duyệt. Chỉ cần biết giỏ **có món hay không**, nên `exists()` thay cho
+        // lượt nạp cả giỏ kèm `screen.spec`, `screen.inventory`, `screen.owner`
+        // — ba quan hệ mà view không còn đọc.
+        return view('buyer.booking.create');
     }
 
     /**
-     * Step 1: POST /booking/create — Store campaign
-     */
-    public function store(StoreCampaignRequest $request): RedirectResponse
-    {
-        // Luật kiểm nằm ở `StoreCampaignRequest`, dùng chung với
-        // `Api\V2\BookingController`. Hai bộ luật cho cùng một đường tạo
-        // `booking_lines` là mở một cửa mà bên kia không có (CLAUDE.md mục 4
-        // nói về quyền, và lý lẽ y hệt cho luật kiểm — giỏ hàng đã làm vậy từ
-        // `App\Http\Requests\Cart\*`).
-        $data = $request->validated();
-
-        $user = $request->user();
-        $org = $user->currentOrganization ?? $user->organizations()->first();
-        abort_unless($org, 403, 'Bạn chưa thuộc tổ chức nào. Vui lòng đăng ký tại /register.');
-
-        $cart = $this->cartService->getOrCreateCart($user);
-        abort_unless($cart->items()->exists(), 422, 'Plan trống');
-
-        $campaign = $this->campaignService->createFromCart($org, $user, $cart, $data);
-
-        return redirect()->route('buyer.booking.creative', $campaign);
-    }
-
-    /**
-     * Step 2: GET /booking/{campaign}/creative — Upload creatives
+     * Bước 2: GET /booking/{campaign}/creative — khung trang tải nội dung.
      */
     public function creative(Request $request, Campaign $campaign): View
     {
         $this->authorizeCampaign($request, $campaign);
 
-        $lines = $campaign->bookingLines()
-            ->with(['screen.spec'])
-            ->get();
-
-        $creatives = $campaign->creatives()->get();
-
-        return view('buyer.booking.creative', [
-            'campaign'  => $campaign,
-            'lines'     => $lines,
-            'creatives' => $creatives,
-        ]);
+        // Trang đọc `GET /api/v2/campaigns/{campaign}` từ trình duyệt —
+        // endpoint đó đã trả `campaign`, `lines` và `creatives`. `$campaign`
+        // vẫn truyền, nhưng CHỈ để sinh đường liên kết; nó đã nằm trong URL.
+        return view('buyer.booking.creative', ['campaign' => $campaign]);
     }
 
     /**
-     * Step 2: POST /booking/{campaign}/creative — Upload file
-     */
-    public function uploadCreative(UploadCreativeRequest $request, Campaign $campaign): RedirectResponse
-    {
-        $this->authorizeCampaign($request, $campaign, 'uploadCreative');
-
-        // Luật kiểm ở `UploadCreativeRequest`, việc lưu ở `CreativeService` —
-        // cả hai dùng chung với `Api\V2\BookingController`.
-        //
-        // Ba thứ trước đây nằm trong hàm này và sẽ bị nhân đôi khi có đường
-        // API: lưu vào disk nào, kiểu tệp là gì, trạng thái ban đầu. Nhân đôi
-        // chúng là cách chắc chắn để một ngày một đường lưu vào `public` và
-        // đường kia lưu vào `private`.
-        $this->creatives->store($campaign, $request->file('file'), $request->input('name'));
-
-        return redirect()->route('buyer.booking.creative', $campaign)->with('success', 'Creative đã được upload');
-    }
-
-    /**
-     * Step 3: GET /booking/{campaign}/review — Review & submit
+     * Bước 3: GET /booking/{campaign}/review — khung trang xác nhận.
      */
     public function review(Request $request, Campaign $campaign): View
     {
         $this->authorizeCampaign($request, $campaign);
 
-        $lines = $campaign->bookingLines()
-            ->with(['screen.spec', 'screen.inventory', 'screen.owner', 'screen.site'])
-            ->get();
-
-        $creatives = $campaign->creatives()->get();
-        $conflicts = $this->availabilityService->validateCampaign($campaign->id);
-
-        return view('buyer.booking.review', [
-            'campaign'  => $campaign,
-            'lines'     => $lines,
-            'creatives' => $creatives,
-            'conflicts' => $conflicts,
-        ]);
+        // Cùng một endpoint với bước 2, và nó trả luôn `conflicts` cùng
+        // `summary` đã tính VAT ở MỘT chỗ. Bản cũ tự nhân `vat_rate` trong
+        // view — đúng hình dạng lỗi "VAT nhân hai lần" của trang giỏ.
+        return view('buyer.booking.review', ['campaign' => $campaign]);
     }
 
-    /**
-     * Step 3: POST /booking/{campaign}/submit — Submit for approval
-     */
-    public function submit(SubmitCampaignRequest $request, Campaign $campaign): RedirectResponse
-    {
-        $this->authorizeCampaign($request, $campaign, 'submit');
-
-        // Luật kiểm ở `SubmitCampaignRequest`, dùng chung với `/api/v2`. Hai ô
-        // xác nhận không phải thủ tục: `PolicyConsentService` ghi lại việc đồng
-        // ý kèm IP và thời điểm, và đó là bằng chứng khi có tranh chấp.
-        $conflicts = $this->availabilityService->validateCampaign($campaign->id);
-        if (! empty($conflicts)) {
-            return back()->withErrors(['conflicts' => 'Có ' . count($conflicts) . ' màn hình bị xung đột SOV. Vui lòng điều chỉnh.']);
-        }
-
-        $this->campaignService->submit($campaign, $request->user());
-
-        $this->consents->record(
-            ['terms', 'privacy'],
-            PolicyConsent::CONTEXT_BOOKING,
-            $request,
-            subjectId: $campaign->id,
-        );
-
-        return redirect()->route('buyer.campaigns.show', $campaign)->with('success', 'Campaign đã được gửi chờ duyệt!');
-    }
-
-    /**
-     * Ensure user owns the campaign.
-     */
     /**
      * Quyền đi qua CampaignPolicy, không so `organization_id` bằng tay.
      *

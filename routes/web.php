@@ -86,12 +86,20 @@ Route::domain($fpDomain)->group(function () {
 
     // ── Booking wizard (auth required) ──
     Route::middleware(['auth'])->group(function () {
+        // Ba bước đặt chỗ — chỉ còn đường ĐỌC, và chúng chỉ trả khung trang.
+        //
+        // Ba đường GHI (`POST /booking/create`, `POST .../creative`,
+        // `POST .../submit`) đã gỡ 10/10/2026: ba trang gửi qua
+        // `POST /api/v2/campaigns`, `.../creatives` và `.../submit`. Cả ba
+        // endpoint đó dùng ĐÚNG `StoreCampaignRequest`, `UploadCreativeRequest`
+        // và `SubmitCampaignRequest` mà bản Blade dùng, nên không có hai bộ
+        // luật validate.
+        //
+        // Giữ lại cả hai đường cho cùng một việc ghi là có hai nơi định nghĩa
+        // một luật (CLAUDE.md §1), và nơi không ai gọi sẽ là nơi không ai sửa.
         Route::get('/booking/create',                  [BookingController::class, 'create'])->name('buyer.booking.create');
-        Route::post('/booking/create',                 [BookingController::class, 'store'])->name('buyer.booking.store');
         Route::get('/booking/{campaign}/creative',     [BookingController::class, 'creative'])->name('buyer.booking.creative');
-        Route::post('/booking/{campaign}/creative',    [BookingController::class, 'uploadCreative'])->name('buyer.booking.creative.upload');
         Route::get('/booking/{campaign}/review',       [BookingController::class, 'review'])->name('buyer.booking.review');
-        Route::post('/booking/{campaign}/submit',      [BookingController::class, 'submit'])->name('buyer.booking.submit');
         Route::get('/booking/{campaign}/payment',      [PaymentController::class, 'show'])->name('buyer.payment');
         Route::post('/booking/{campaign}/payment',     [PaymentController::class, 'process'])->name('buyer.payment.process');
         Route::get('/booking/{campaign}/payment/success', [PaymentController::class, 'success'])->name('buyer.payment.success');

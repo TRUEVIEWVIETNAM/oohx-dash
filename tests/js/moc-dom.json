@@ -1,146 +1,256 @@
 {
-  "//": "Móc DOM mà phần JS của mỗi trang Blade dựa vào. ĐỌC BỞI HAI PHÍA — xem tests/js/README.md.",
-  "// cauHinh": "Thuộc tính của khối <script type=application/json> mang cấu hình từ PHP.",
-  "// moc": "Móc trang Blade PHẢI render ra. Phía PHP đòi từng móc có mặt trong HTML; phía JS dựng bộ khung từ đúng danh sách này.",
-  "// tuTao": "Móc script tự gắn vào phần tử do CHÍNH NÓ vẽ ra, nên trang Blade không có. Không nằm trong phép kiểm phía PHP, nhưng vẫn phải khai: không khai thì phép kiểm trùng khít báo 'thừa', mà khai bừa thì nó mất tác dụng.",
-  "// linkDangNhapTrongMarkup": "Lối 'Đăng nhập lại' nằm trong markup trang (true) hay do script vẽ khi nhận 401 (false). Trang true được canh ở phía PHP bằng cách đọc HTML; trang false được canh ở phía JS bằng cách nhận 401 rồi tìm thẻ a. Cả hai đều phải có lối đó — xử 401 bằng cách nói thẳng ra mà không cho chỗ bấm là một ngõ cụt.",
-  "// the": "Thẻ HTML của móc khi KHÔNG phải div. Bộ khung jsdom dựng đúng thẻ đó, và phía PHP đòi trang thật render đúng thẻ đó — một input vẽ thành div thì script đọc .value ra undefined.",
-  "resources/views/buyer/cart.blade.php": {
-    "cauHinh": "data-cart-config",
-    "moc": [
-      "data-cart-sub",
-      "data-cart-add",
-      "data-cart-error",
-      "data-cart-error-msg",
-      "data-cart-empty",
-      "data-cart-layout",
-      "data-cart-items",
-      "data-cart-count",
-      "data-cart-subtotal",
-      "data-cart-vat",
-      "data-cart-total",
-      "data-cart-retry"
-    ],
-    "linkDangNhapTrongMarkup": true
-  },
-  "resources/views/buyer/booking/payment.blade.php": {
-    "cauHinh": "data-pay-config",
-    "moc": [
-      "data-pay-main",
-      "data-pay-meta"
-    ],
-    "linkDangNhapTrongMarkup": false
-  },
-  "resources/views/buyer/dashboard/campaign-detail.blade.php": {
-    "cauHinh": "data-cd-config",
-    "moc": [
-      "data-cd-than",
-      "data-cd-trangthai",
-      "data-cd-nut",
-      "data-cd-loi",
-      "data-cd-loi-msg"
-    ],
-    "tuTao": [
-      "data-cd-huy"
-    ],
-    "linkDangNhapTrongMarkup": true
-  },
-  "resources/views/buyer/dashboard/index.blade.php": {
-    "cauHinh": "data-td-config",
-    "moc": [
-      "data-td-thongke",
-      "data-td-than",
-      "data-td-loi",
-      "data-td-loi-msg"
-    ],
-    "linkDangNhapTrongMarkup": true
-  },
-  "resources/views/buyer/dashboard/report.blade.php": {
-    "cauHinh": "data-rpt-config",
-    "moc": [
-      "data-rpt-thongke",
-      "data-rpt-tiendo",
-      "data-rpt-bieudo",
-      "data-rpt-bang",
-      "data-rpt-loi",
-      "data-rpt-loi-msg"
-    ],
-    "linkDangNhapTrongMarkup": true,
-    "the": { "data-rpt-bieudo": "canvas" }
-  },
-  "resources/views/buyer/dashboard/campaigns.blade.php": {
-    "cauHinh": "data-ds-config",
-    "moc": [
-      "data-ds-than",
-      "data-ds-trang",
-      "data-ds-tim",
-      "data-ds-trangthai",
-      "data-ds-loi",
-      "data-ds-loi-msg"
-    ],
-    "tuTao": [
-      "data-ds-lui",
-      "data-ds-tien",
-      "data-ds-xoaloc"
-    ],
-    "linkDangNhapTrongMarkup": true,
-    "the": {
-      "data-ds-tim": "input",
-      "data-ds-trangthai": "select"
+    "//": "Móc DOM mà phần JS của mỗi trang Blade dựa vào. ĐỌC BỞI HAI PHÍA — xem tests/js/README.md.",
+    "// cauHinh": "Thuộc tính của khối <script type=application/json> mang cấu hình từ PHP.",
+    "// moc": "Móc trang Blade PHẢI render ra. Phía PHP đòi từng móc có mặt trong HTML; phía JS dựng bộ khung từ đúng danh sách này.",
+    "// tuTao": "Móc script tự gắn vào phần tử do CHÍNH NÓ vẽ ra, nên trang Blade không có. Không nằm trong phép kiểm phía PHP, nhưng vẫn phải khai: không khai thì phép kiểm trùng khít báo 'thừa', mà khai bừa thì nó mất tác dụng.",
+    "// linkDangNhapTrongMarkup": "Lối 'Đăng nhập lại' nằm trong markup trang (true) hay do script vẽ khi nhận 401 (false). Trang true được canh ở phía PHP bằng cách đọc HTML; trang false được canh ở phía JS bằng cách nhận 401 rồi tìm thẻ a. Cả hai đều phải có lối đó — xử 401 bằng cách nói thẳng ra mà không cho chỗ bấm là một ngõ cụt.",
+    "// the": "Thẻ HTML của móc khi KHÔNG phải div. Bộ khung jsdom dựng đúng thẻ đó, và phía PHP đòi trang thật render đúng thẻ đó — một input vẽ thành div thì script đọc .value ra undefined.",
+    "resources/views/buyer/cart.blade.php": {
+        "cauHinh": "data-cart-config",
+        "moc": [
+            "data-cart-sub",
+            "data-cart-add",
+            "data-cart-error",
+            "data-cart-error-msg",
+            "data-cart-empty",
+            "data-cart-layout",
+            "data-cart-items",
+            "data-cart-count",
+            "data-cart-subtotal",
+            "data-cart-vat",
+            "data-cart-total",
+            "data-cart-retry"
+        ],
+        "linkDangNhapTrongMarkup": true
+    },
+    "resources/views/buyer/booking/payment.blade.php": {
+        "cauHinh": "data-pay-config",
+        "moc": [
+            "data-pay-main",
+            "data-pay-meta"
+        ],
+        "linkDangNhapTrongMarkup": false
+    },
+    "resources/views/buyer/dashboard/campaign-detail.blade.php": {
+        "cauHinh": "data-cd-config",
+        "moc": [
+            "data-cd-than",
+            "data-cd-trangthai",
+            "data-cd-nut",
+            "data-cd-loi",
+            "data-cd-loi-msg"
+        ],
+        "tuTao": [
+            "data-cd-huy"
+        ],
+        "linkDangNhapTrongMarkup": true
+    },
+    "resources/views/buyer/dashboard/index.blade.php": {
+        "cauHinh": "data-td-config",
+        "moc": [
+            "data-td-thongke",
+            "data-td-than",
+            "data-td-loi",
+            "data-td-loi-msg"
+        ],
+        "linkDangNhapTrongMarkup": true
+    },
+    "resources/views/buyer/dashboard/report.blade.php": {
+        "cauHinh": "data-rpt-config",
+        "moc": [
+            "data-rpt-thongke",
+            "data-rpt-tiendo",
+            "data-rpt-bieudo",
+            "data-rpt-bang",
+            "data-rpt-loi",
+            "data-rpt-loi-msg"
+        ],
+        "linkDangNhapTrongMarkup": true,
+        "the": {
+            "data-rpt-bieudo": "canvas"
+        }
+    },
+    "resources/views/buyer/dashboard/campaigns.blade.php": {
+        "cauHinh": "data-ds-config",
+        "moc": [
+            "data-ds-than",
+            "data-ds-trang",
+            "data-ds-tim",
+            "data-ds-trangthai",
+            "data-ds-loi",
+            "data-ds-loi-msg"
+        ],
+        "tuTao": [
+            "data-ds-lui",
+            "data-ds-tien",
+            "data-ds-xoaloc"
+        ],
+        "linkDangNhapTrongMarkup": true,
+        "the": {
+            "data-ds-tim": "input",
+            "data-ds-trangthai": "select"
+        }
+    },
+    "resources/views/buyer/dashboard/settings.blade.php": {
+        "cauHinh": "data-td-cauhinh",
+        "moc": [
+            "data-td-cho",
+            "data-td-than",
+            "data-td-loi",
+            "data-td-thanhcong",
+            "data-td-chixem",
+            "data-td-form-hoso",
+            "data-td-form-matkhau",
+            "data-td-form-tochuc",
+            "data-td-hoso-name",
+            "data-td-hoso-email",
+            "data-td-mk-hientai",
+            "data-td-mk-moi",
+            "data-td-mk-xacnhan",
+            "data-td-tc-name",
+            "data-td-tc-email",
+            "data-td-tc-phone",
+            "data-td-tc-tax",
+            "data-td-tc-web",
+            "data-td-luu-hoso",
+            "data-td-luu-matkhau",
+            "data-td-luu-tochuc",
+            "data-td-loi-name",
+            "data-td-loi-email",
+            "data-td-loi-mk-hientai",
+            "data-td-loi-password",
+            "data-td-loi-tc-name",
+            "data-td-loi-billing-email",
+            "data-td-loi-billing-phone",
+            "data-td-loi-tax-id",
+            "data-td-loi-website"
+        ],
+        "linkDangNhapTrongMarkup": false,
+        "the": {
+            "data-td-form-hoso": "form",
+            "data-td-form-matkhau": "form",
+            "data-td-form-tochuc": "form",
+            "data-td-hoso-name": "input",
+            "data-td-hoso-email": "input",
+            "data-td-mk-hientai": "input",
+            "data-td-mk-moi": "input",
+            "data-td-mk-xacnhan": "input",
+            "data-td-tc-name": "input",
+            "data-td-tc-email": "input",
+            "data-td-tc-phone": "input",
+            "data-td-tc-tax": "input",
+            "data-td-tc-web": "input",
+            "data-td-luu-hoso": "button",
+            "data-td-luu-matkhau": "button",
+            "data-td-luu-tochuc": "button"
+        }
+    },
+    "resources/views/buyer/booking/create.blade.php": {
+        "cauHinh": "data-tc-cauhinh",
+        "moc": [
+            "data-tc-brand",
+            "data-tc-budget",
+            "data-tc-category",
+            "data-tc-cho",
+            "data-tc-ds",
+            "data-tc-form",
+            "data-tc-loi",
+            "data-tc-loi-brand-name",
+            "data-tc-loi-category",
+            "data-tc-loi-name",
+            "data-tc-loi-notes",
+            "data-tc-loi-total-budget",
+            "data-tc-name",
+            "data-tc-notes",
+            "data-tc-tiep",
+            "data-tc-tong",
+            "data-tc-tong-tien"
+        ],
+        "linkDangNhapTrongMarkup": false,
+        "the": {
+            "data-tc-form": "form",
+            "data-tc-name": "input",
+            "data-tc-brand": "input",
+            "data-tc-category": "select",
+            "data-tc-budget": "input",
+            "data-tc-notes": "textarea",
+            "data-tc-tiep": "button"
+        }
+    },
+    "resources/views/buyer/booking/creative.blade.php": {
+        "cauHinh": "data-nd-cauhinh",
+        "moc": [
+            "data-nd-ds",
+            "data-nd-ds-tieude",
+            "data-nd-form",
+            "data-nd-khoi-ds",
+            "data-nd-kichthuoc",
+            "data-nd-kt-cho",
+            "data-nd-loi",
+            "data-nd-loi-file",
+            "data-nd-loi-name",
+            "data-nd-tai",
+            "data-nd-ten",
+            "data-nd-tep",
+            "data-nd-thanhcong",
+            "data-nd-tieude"
+        ],
+        "linkDangNhapTrongMarkup": false,
+        "the": {
+            "data-nd-form": "form",
+            "data-nd-ten": "input",
+            "data-nd-tep": "input",
+            "data-nd-tai": "button"
+        }
+    },
+    "resources/views/buyer/booking/review.blade.php": {
+        "cauHinh": "data-xn-cauhinh",
+        "moc": [
+            "data-xn-brand",
+            "data-xn-chan",
+            "data-xn-cho",
+            "data-xn-dong",
+            "data-xn-dong-tieude",
+            "data-xn-dongy",
+            "data-xn-form",
+            "data-xn-gui",
+            "data-xn-ky",
+            "data-xn-loi",
+            "data-xn-nd",
+            "data-xn-nd-tieude",
+            "data-xn-nd-trong",
+            "data-xn-nganh",
+            "data-xn-ngansach",
+            "data-xn-soman",
+            "data-xn-ten",
+            "data-xn-than",
+            "data-xn-tieude",
+            "data-xn-tong",
+            "data-xn-truocvat",
+            "data-xn-vat",
+            "data-xn-xacnhan",
+            "data-xn-xungdot",
+            "data-xn-xungdot-ds"
+        ],
+        "linkDangNhapTrongMarkup": false,
+        "the": {
+            "data-xn-form": "form",
+            "data-xn-xacnhan": "input",
+            "data-xn-dongy": "input",
+            "data-xn-gui": "button"
+        }
+    },
+    "resources/views/buyer/booking/payment-success.blade.php": {
+        "cauHinh": "data-ok-cauhinh",
+        "moc": [
+            "data-ok-cho",
+            "data-ok-hoadon",
+            "data-ok-loi",
+            "data-ok-ma",
+            "data-ok-the",
+            "data-ok-tien",
+            "data-ok-trangthai"
+        ],
+        "linkDangNhapTrongMarkup": false
     }
-  },
-  "resources/views/buyer/dashboard/settings.blade.php": {
-    "cauHinh": "data-td-cauhinh",
-    "moc": [
-      "data-td-cho",
-      "data-td-than",
-      "data-td-loi",
-      "data-td-thanhcong",
-      "data-td-chixem",
-      "data-td-form-hoso",
-      "data-td-form-matkhau",
-      "data-td-form-tochuc",
-      "data-td-hoso-name",
-      "data-td-hoso-email",
-      "data-td-mk-hientai",
-      "data-td-mk-moi",
-      "data-td-mk-xacnhan",
-      "data-td-tc-name",
-      "data-td-tc-email",
-      "data-td-tc-phone",
-      "data-td-tc-tax",
-      "data-td-tc-web",
-      "data-td-luu-hoso",
-      "data-td-luu-matkhau",
-      "data-td-luu-tochuc",
-      "data-td-loi-name",
-      "data-td-loi-email",
-      "data-td-loi-mk-hientai",
-      "data-td-loi-password",
-      "data-td-loi-tc-name",
-      "data-td-loi-billing-email",
-      "data-td-loi-billing-phone",
-      "data-td-loi-tax-id",
-      "data-td-loi-website"
-    ],
-    "linkDangNhapTrongMarkup": false,
-    "the": {
-      "data-td-form-hoso": "form",
-      "data-td-form-matkhau": "form",
-      "data-td-form-tochuc": "form",
-      "data-td-hoso-name": "input",
-      "data-td-hoso-email": "input",
-      "data-td-mk-hientai": "input",
-      "data-td-mk-moi": "input",
-      "data-td-mk-xacnhan": "input",
-      "data-td-tc-name": "input",
-      "data-td-tc-email": "input",
-      "data-td-tc-phone": "input",
-      "data-td-tc-tax": "input",
-      "data-td-tc-web": "input",
-      "data-td-luu-hoso": "button",
-      "data-td-luu-matkhau": "button",
-      "data-td-luu-tochuc": "button"
-    }
-  }
 }

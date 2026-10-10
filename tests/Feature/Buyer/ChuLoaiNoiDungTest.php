@@ -118,23 +118,61 @@ class ChuLoaiNoiDungTest extends TestCase
         }
     }
 
-    public function test_trang_tai_noi_dung_hien_chu_cho_moi_loai(): void
+    /**
+     * Hai ca cũ đọc ô loại trong HTML của hai trang đặt chỗ. Từ 10/10/2026 hai
+     * trang đó đọc `/api/v2` nên máy chủ không render ô nào — nhưng thứ hai ca
+     * đó canh **không mất**, nó chuyển chỗ:
+     *
+     *  - chữ do API trả: `test_api_tra_chu_cho_moi_loai` ngay dưới, đọc
+     *    `GET /api/v2/campaigns/{campaign}` — tức đúng đường trang gọi;
+     *  - chữ tới được DOM: `tests/js/noi-dung.test.mjs` và `xem-lai.test.mjs`,
+     *    chạy trên đúng khối script sẽ lên production.
+     *
+     * Phép kiểm "không có dấu gạch dưới" — hình dạng cụ thể của lỗi
+     * `strtoupper('vast_tag')` → `VAST_TAG` — giữ nguyên, chỉ đổi chỗ đọc.
+     */
+    public function test_api_tra_chu_cho_moi_loai(): void
     {
-        $html = $this->actingAs($this->buyer)
-            ->get('/booking/' . $this->campaign->id . '/creative')
+        $ds = $this->actingAs($this->buyer)
+            ->getJson('/api/v2/campaigns/' . $this->campaign->id)
             ->assertOk()
-            ->getContent();
+            ->json('data.creatives');
 
-        $this->khangDinh($html, 'trang tải nội dung');
+        $this->assertCount(
+            count(Creative::TYPE_LABELS),
+            $ds,
+            'API phải trả đúng một nội dung cho mỗi loại',
+        );
+
+        $chu = array_map(fn (array $c) => $c['type_label'], $ds);
+
+        foreach (Creative::TYPE_LABELS as $ma => $nhan) {
+            $this->assertContains($nhan, $chu, "Không thấy chữ \"{$nhan}\" của loại `{$ma}`");
+        }
+
+        foreach ($chu as $s) {
+            $this->assertStringNotContainsString(
+                '_',
+                $s,
+                "`type_label` còn in mã CSDL (\"{$s}\") — `strtoupper` đã quay lại?",
+            );
+        }
     }
 
-    public function test_trang_xem_lai_hien_chu_cho_moi_loai(): void
+    /** Hai trang KHÔNG render sẵn chữ loại trong HTML nữa. */
+    public function test_hai_trang_khong_render_san_chu_loai(): void
     {
-        $html = $this->actingAs($this->buyer)
-            ->get('/booking/' . $this->campaign->id . '/review')
-            ->assertOk()
-            ->getContent();
+        foreach (['creative', 'review'] as $buoc) {
+            $html = $this->actingAs($this->buyer)
+                ->get('/booking/' . $this->campaign->id . '/' . $buoc)
+                ->assertOk()
+                ->getContent();
 
-        $this->khangDinh($html, 'trang xem lại');
+            $this->assertSame(
+                [],
+                $this->chuTrenO($html),
+                "trang {$buoc}: vẫn còn ô loại render ở máy chủ — chữ phải tới qua API",
+            );
+        }
     }
 }
