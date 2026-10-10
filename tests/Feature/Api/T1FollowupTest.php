@@ -57,12 +57,12 @@ class T1FollowupTest extends TestCase
 
     // ── 1. Tạo màn hình kèm giá ──────────────────────────────────────────────
 
-    public function test_scheduler_khong_tao_duoc_man_hinh_kem_gia(): void
+    public function test_operator_khong_tao_duoc_man_hinh_kem_gia(): void
     {
         $owner = $this->activeOwner();
         $site  = Site::factory()->create(['owner_id' => $owner->id, 'external_id' => 'SITE-1']);
 
-        Sanctum::actingAs($this->member($owner, 'scheduler'), ['manage']);
+        Sanctum::actingAs($this->member($owner, 'operator'), ['manage']);
 
         $this->postJson('/api/v1/screens', [
             'site_external_id' => 'SITE-1',
@@ -93,12 +93,12 @@ class T1FollowupTest extends TestCase
         $this->assertDatabaseHas('screens', ['external_id' => 'SCR-OK']);
     }
 
-    public function test_scheduler_van_tao_duoc_man_hinh_khong_kem_gia(): void
+    public function test_operator_van_tao_duoc_man_hinh_khong_kem_gia(): void
     {
         $owner = $this->activeOwner();
         Site::factory()->create(['owner_id' => $owner->id, 'external_id' => 'SITE-1']);
 
-        Sanctum::actingAs($this->member($owner, 'scheduler'), ['manage']);
+        Sanctum::actingAs($this->member($owner, 'operator'), ['manage']);
 
         $this->postJson('/api/v1/screens', [
             'site_external_id' => 'SITE-1',
@@ -109,7 +109,7 @@ class T1FollowupTest extends TestCase
 
     // ── 2. Vá inventory không được đụng tới giá ──────────────────────────────
 
-    public function test_scheduler_va_inventory_khong_lam_reset_programmatic_va_tien_te(): void
+    public function test_operator_va_inventory_khong_lam_reset_programmatic_va_tien_te(): void
     {
         $owner  = $this->activeOwner();
         $site   = Site::factory()->create(['owner_id' => $owner->id]);
@@ -124,7 +124,7 @@ class T1FollowupTest extends TestCase
             'weekly_impressions'   => 100,
         ]);
 
-        Sanctum::actingAs($this->member($owner, 'scheduler'), ['manage']);
+        Sanctum::actingAs($this->member($owner, 'operator'), ['manage']);
 
         // Payload không chạm trường giá nào ⇒ được phép.
         $this->putJson("/api/v1/screens/{$screen->id}", [

@@ -12,9 +12,13 @@ use App\Services\TenantPermission;
  * Sửa sau review T1 của Codex:
  *  - Đọc dùng `view_inventory` (loại reporting_only), không chỉ so current_owner_id.
  *  - Sửa giá dùng `manage_pricing` (chỉ owner/manager), tách khỏi `manage_inventory`
- *    vốn cho cả scheduler.
+ *    vốn cho cả `operator`.
  *  - Mọi quyền đi qua TenantPermission nên membership bị gỡ hoặc owner bị tạm ngưng
  *    đều mất quyền ngay.
+ *
+ * Vai trò `operator` ở đây tên cũ là `scheduler` — các văn bản review trong
+ * `docs/audit-5-vung-2026-09-23/` vẫn gọi nó bằng tên cũ, và đó là bản ghi lịch
+ * sử nên không sửa. Đổi tên ngày 10/10/2026, migration `2026_10_10_000001`.
  */
 class ScreenPolicy
 {
@@ -64,7 +68,7 @@ class ScreenPolicy
 
     /**
      * Sửa giá sàn, CPM, multiplier, bật/tắt programmatic.
-     * Scheduler quản được inventory nhưng KHÔNG được đụng tới giá.
+     * Vai trò `operator` quản được kho nhưng KHÔNG được đụng tới giá.
      */
     public function managePricing(User $user, Screen $screen): bool
     {

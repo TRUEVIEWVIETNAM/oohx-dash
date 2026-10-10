@@ -34,14 +34,14 @@ class OwnerUserResource extends Resource
      * bằng tiếng Anh. Đổi chữ ở `ROLE_LABELS` mà câu kia không đổi theo là một
      * chỗ trôi im lặng, nên câu đó giờ dựng từ chính bảng chữ.
      */
-    private const GIOI_HAN_THEO_NETWORK = ['scheduler', 'read_only'];
+    private const GIOI_HAN_THEO_NETWORK = ['operator', 'read_only'];
 
     // ── Chỉ hiển thị nếu user có quyền manage_users ──────────────────────────
 
     public static function canViewAny(): bool
     {
         // Chỉ owner-role và super_admin được xem danh sách team members
-        // (sales_manager / read_only / scheduler / reporting_only không có manage_users).
+        // (sales_manager / read_only / operator / reporting_only không có manage_users).
         return TenantPermission::check('manage_users');
     }
 
@@ -91,7 +91,7 @@ class OwnerUserResource extends Resource
                         ->pluck('name', 'id'))
                     ->columns(2)
                     ->visible(fn(Forms\Get $get) => in_array($get('role'), self::GIOI_HAN_THEO_NETWORK))
-                    // Khi role không thuộc scheduler/read_only, dehydrate null để xoá restriction cũ.
+                    // Khi role không thuộc operator/read_only, dehydrate null để xoá restriction cũ.
                     ->dehydrateStateUsing(fn($state, Forms\Get $get) => in_array($get('role'), self::GIOI_HAN_THEO_NETWORK) ? $state : null),
 
             ])->columns(1),
@@ -120,7 +120,7 @@ class OwnerUserResource extends Resource
                     ->colors([
                         'danger'  => 'owner',
                         'primary' => 'manager',
-                        'warning' => 'scheduler',
+                        'warning' => 'operator',
                         'gray'    => 'read_only',
                         'info'    => 'reporting_only',
                         'success' => 'sales_manager',

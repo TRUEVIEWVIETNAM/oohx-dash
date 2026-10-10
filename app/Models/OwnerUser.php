@@ -37,19 +37,27 @@ class OwnerUser extends Model
      *     là để nó vào tầm — và từ nay thêm một giá trị vào enum mà quên chữ là
      *     **đỏ**.
      *
-     * ══ Một chỗ chữ và mã không khớp nhau, nói ra ══
+     * ══ `scheduler` → `operator`: mã nói sai việc, nên đổi cả mã ══
      *
-     * `scheduler` dịch thẳng là "Lập lịch", nhưng bộ quyền của nó
-     * (`manage_inventory`, `import_inventory`, `view_inventory`) **không** có
-     * việc lên lịch phát nào — nó là vai trò vận hành điểm phát. Chữ ở đây giữ
-     * đúng nghĩa của mã; sửa cho khớp thực tế là đổi **tên vai trò**, tức một
-     * quyết định nghiệp vụ kéo theo cả `ROLE_DESCRIPTIONS` và migration enum,
-     * không phải một lần dịch.
+     * Tên cũ hứa việc lên lịch phát, nhưng bộ quyền của vai trò này chỉ có
+     * `manage_inventory`, `import_inventory` và `view_inventory` — không
+     * `manage_pricing`, không `view_reports`, không `manage_bookings`. Nó là
+     * vai trò **vận hành kho điểm phát**.
+     *
+     * Lần dịch chữ trước giữ nghĩa của mã (`scheduler` → "Lập lịch") và ghi
+     * chỗ lệch vào đây thay vì tự quyết, vì đổi tên một vai trò là quyết định
+     * nghiệp vụ kéo theo một migration enum. Quyết định đó đã chốt 10/10/2026:
+     * mã thành `operator`, chữ thành "Vận hành".
+     *
+     * Migration `2026_10_10_000001` map dữ liệu đang có, cả `owner_users.role`
+     * lẫn lời mời **chưa nhận** ở `user_invitations.role` — hàng đã nhận là
+     * lịch sử, không sửa. `down()` đi về được mà không mất thông tin, và có ca
+     * test đi cả hai chiều với dữ liệu thật của cả sáu vai trò.
      */
     public const ROLE_LABELS = [
         'owner'          => 'Chủ sở hữu',
         'manager'        => 'Quản lý',
-        'scheduler'      => 'Lập lịch',
+        'operator'       => 'Vận hành',
         'read_only'      => 'Chỉ xem',
         'reporting_only' => 'Chỉ báo cáo',
         'sales_manager'  => 'Quản lý bán hàng',
@@ -71,7 +79,7 @@ class OwnerUser extends Model
     public const ROLE_DESCRIPTIONS = [
         'owner'          => '👑 Toàn quyền: quản lý team, inventory, pricing, reports.',
         'manager'        => '🔧 Quản lý inventory & pricing, duyệt đặt chỗ, khai hoàn tiền, xem reports. Không quản lý được users.',
-        'scheduler'      => '📅 Thêm/sửa screens và import inventory. Không xem được reports.',
+        'operator'       => '🔨 Thêm/sửa screens và import inventory. Không sửa được giá, không xem được reports.',
         'read_only'      => '👁 Chỉ xem screens và sites, không chỉnh sửa.',
         'reporting_only' => '📊 Chỉ xem và export reports, không thấy inventory.',
         'sales_manager'  => '💼 Xem inventory, sales dashboard và duyệt đặt chỗ. Không sửa được inventory, không khai hoàn tiền.',
@@ -87,13 +95,13 @@ class OwnerUser extends Model
         // Sửa thông tin owner (name, billing...)
         'edit_owner'       => ['owner', 'manager'],
         // Thêm/sửa/xoá site & screen
-        'manage_inventory' => ['owner', 'manager', 'scheduler'],
+        'manage_inventory' => ['owner', 'manager', 'operator'],
         // Bật/tắt programmatic, sửa floor CPM
         'manage_pricing'   => ['owner', 'manager'],
         // Xem screens, sites (read)
-        'view_inventory'   => ['owner', 'manager', 'scheduler', 'read_only', 'sales_manager'],
+        'view_inventory'   => ['owner', 'manager', 'operator', 'read_only', 'sales_manager'],
         // Import bulk xlsx
-        'import_inventory' => ['owner', 'manager', 'scheduler'],
+        'import_inventory' => ['owner', 'manager', 'operator'],
         // Xem revenue & impression reports
         'view_reports'     => ['owner', 'manager', 'reporting_only', 'sales_manager'],
         // Export report CSV/Excel
@@ -101,7 +109,7 @@ class OwnerUser extends Model
         // Xem sales dashboard (CPM, deals)
         'view_sales'       => ['owner', 'manager', 'sales_manager'],
         // Duyệt / từ chối yêu cầu đặt chỗ. Đây là quyết định thương mại có hệ
-        // quả tiền, nên không mở cho scheduler hay read_only — trước đây action
+        // quả tiền, nên không mở cho operator hay read_only — trước đây action
         // duyệt không kiểm quyền nào cả, chỉ dựa vào việc giao diện có hiện nút.
         'manage_bookings'  => ['owner', 'manager', 'sales_manager'],
         // Đánh dấu đã hoàn tiền cho người mua. Sàn không giữ tiền — người mua

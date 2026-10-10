@@ -122,7 +122,7 @@ class UserInvitationService
                 ['owner_id' => $tenant->id, 'user_id' => $user->id],
                 [
                     'role'                => $invitation->role,
-                    'allowed_network_ids' => in_array($invitation->role, ['scheduler', 'read_only'])
+                    'allowed_network_ids' => in_array($invitation->role, ['operator', 'read_only'])
                         ? $invitation->allowed_network_ids
                         : null,
                 ],
