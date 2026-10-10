@@ -24,19 +24,19 @@ class ListOwnerUsers extends ListRecords
 
         return [
             Actions\Action::make('invite_user')
-                ->label('Invite User')
+                ->label('Mời thành viên')
                 ->icon('heroicon-o-user-plus')
                 ->color('primary')
                 ->form([
                     Forms\Components\TextInput::make('email')
-                        ->label('Email address')
+                        ->label('Địa chỉ email')
                         ->email()
                         ->required()
                         ->placeholder('user@example.com')
                         ->helperText('Email lời mời sẽ được gửi đến địa chỉ này. Nếu chưa có tài khoản, user sẽ tự tạo password khi accept.'),
 
                     Forms\Components\Select::make('role')
-                        ->label('Role')
+                        ->label('Vai trò')
                         ->options(fn() => OwnerUser::assignableRolesFor(auth()->user()))
                         ->default('read_only')
                         ->required()
@@ -66,7 +66,7 @@ class ListOwnerUsers extends ListRecords
 
                         Notification::make()
                             ->title("✅ Đã gửi lời mời tới {$data['email']}")
-                            ->body('Role: ' . (OwnerUser::ROLE_LABELS[$data['role']] ?? $data['role']) . ' · hết hạn sau 7 ngày')
+                            ->body('Vai trò: ' . (OwnerUser::ROLE_LABELS[$data['role']] ?? $data['role']) . ' · hết hạn sau 7 ngày')
                             ->success()->send();
                     } catch (\Throwable $e) {
                         Notification::make()

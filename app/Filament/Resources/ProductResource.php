@@ -47,11 +47,7 @@ class ProductResource extends Resource
                 Forms\Components\Grid::make(3)->schema([
                     Forms\Components\Select::make('type')
                         ->label('Loại')
-                        ->options([
-                            'single'  => 'Đơn lẻ (Single)',
-                            'package' => 'Gói (Package)',
-                            'custom'  => 'Tùy chỉnh (Custom)',
-                        ])
+                        ->options(Product::TYPE_LABELS)
                         ->required()
                         ->reactive(),
                     Forms\Components\Select::make('category')
@@ -195,17 +191,12 @@ class ProductResource extends Resource
                     Forms\Components\TextInput::make('region')->label('Khu vực'),
                     Forms\Components\Select::make('status')
                         ->label('Trạng thái')
-                        ->options([
-                            'draft'    => 'Nháp',
-                            'active'   => 'Active',
-                            'paused'   => 'Tạm dừng',
-                            'sold_out' => 'Hết chỗ',
-                        ])
+                        ->options(Product::STATUS_LABELS)
                         ->default('draft')
                         ->required(),
                 ]),
                 Forms\Components\Grid::make(2)->schema([
-                    Forms\Components\Toggle::make('featured')->label('Featured'),
+                    Forms\Components\Toggle::make('featured')->label('Nổi bật'),
                     Forms\Components\TextInput::make('sort_order')->label('Thứ tự')->numeric()->default(0),
                 ]),
             ]),
@@ -258,6 +249,7 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('type')
                     ->label('Loại')
                     ->badge()
+                    ->formatStateUsing(fn (string $state) => Product::TYPE_LABELS[$state] ?? $state)
                     ->color(fn (string $state): string => match ($state) {
                         'single' => 'info', 'package' => 'success', 'custom' => 'warning', default => 'gray',
                     }),
@@ -287,22 +279,23 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->label('Trạng thái')
                     ->badge()
+                    ->formatStateUsing(fn (string $state) => Product::STATUS_LABELS[$state] ?? $state)
                     ->color(fn (string $state): string => match ($state) {
                         'active' => 'success', 'draft' => 'gray', 'paused' => 'warning', 'sold_out' => 'danger', default => 'gray',
                     }),
 
                 Tables\Columns\IconColumn::make('featured')
-                    ->label('Featured')
+                    ->label('Nổi bật')
                     ->boolean()
                     ->alignCenter(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
-                    ->options(['single'=>'Single','package'=>'Package','custom'=>'Custom']),
+                    ->options(Product::TYPE_LABELS),
                 Tables\Filters\SelectFilter::make('category')
                     ->options(Product::CATEGORIES),
                 Tables\Filters\SelectFilter::make('status')
-                    ->options(['active'=>'Active','draft'=>'Nháp','paused'=>'Tạm dừng','sold_out'=>'Hết chỗ']),
+                    ->options(Product::STATUS_LABELS),
                 Tables\Filters\SelectFilter::make('owner_id')
                     ->label('Owner')
                     ->options(Owner::active()->pluck('name', 'id'))

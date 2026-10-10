@@ -21,6 +21,43 @@ class Product extends Model
     public const TYPE_PACKAGE = 'package';
     public const TYPE_CUSTOM  = 'custom';
 
+    /**
+     * Chữ tiếng Việt cho loại sản phẩm.
+     *
+     * Biểu mẫu đã có bản tiếng Việt viết tay (`'single' => 'Đơn lẻ'`), nhưng
+     * cột `type` trong bảng thì khai `->badge()` mà không có `formatStateUsing`
+     * — nên nó in `single`, `package`, `custom` nguyên văn. Hai chỗ nói hai
+     * thứ khác nhau về cùng một giá trị, và chỗ sai là chỗ người đọc nhiều hơn.
+     *
+     * Đây là hai trong số các món nợ `TheEnumPhaiCoChuTest` đã ghi lại; danh
+     * sách nợ đó được gạch tương ứng trong cùng lượt.
+     */
+    public const TYPE_LABELS = [
+        self::TYPE_SINGLE  => 'Đơn lẻ',
+        self::TYPE_PACKAGE => 'Gói',
+        self::TYPE_CUSTOM  => 'Tuỳ chỉnh',
+    ];
+
+    public const STATUS_DRAFT    = 'draft';
+    public const STATUS_ACTIVE   = 'active';
+    public const STATUS_PAUSED   = 'paused';
+    public const STATUS_SOLD_OUT = 'sold_out';
+
+    /**
+     * Chữ tiếng Việt cho trạng thái sản phẩm.
+     *
+     * Hai ô chọn trong `ProductResource` trộn tiếng Việt với tiếng Anh ở ngay
+     * cạnh nhau — `['active' => 'Active', 'draft' => 'Nháp']` — nên cùng một
+     * danh sách vừa dịch vừa không. `active` là "Đang bán", không phải "Đang
+     * hoạt động": với một sản phẩm thì trạng thái đó nói nó còn bán được.
+     */
+    public const STATUS_LABELS = [
+        self::STATUS_DRAFT    => 'Nháp',
+        self::STATUS_ACTIVE   => 'Đang bán',
+        self::STATUS_PAUSED   => 'Tạm dừng',
+        self::STATUS_SOLD_OUT => 'Hết chỗ',
+    ];
+
     // Listing mode constants
     public const LISTING_PACKAGE_ONLY    = 'package_only';
     public const LISTING_INDIVIDUAL_ONLY = 'individual_only';

@@ -28,8 +28,8 @@ class ImportSites extends Page implements HasForms, HasActions
     use InteractsWithForms, InteractsWithActions;
 
     protected static ?string $slug            = 'sites/import';
-    protected static ?string $navigationGroup = 'Inventory';
-    protected static ?string $navigationLabel = 'Import Sites';
+    protected static ?string $navigationGroup = 'Kho điểm phát';
+    protected static ?string $navigationLabel = 'Nhập địa điểm từ Excel';
     protected static ?int    $navigationSort  = 2;
     protected static bool    $shouldRegisterNavigation = false; // Ẩn khỏi nav, truy cập qua button
     protected static string  $view            = 'filament.publisher.pages.import-sites';
@@ -76,7 +76,7 @@ class ImportSites extends Page implements HasForms, HasActions
         return $form
             ->schema([
                 Forms\Components\FileUpload::make('file')
-                    ->label('File Excel (.xlsx)')
+                    ->label('Tệp Excel (.xlsx)')
                     ->acceptedFileTypes([
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                         'application/octet-stream',
@@ -167,7 +167,7 @@ class ImportSites extends Page implements HasForms, HasActions
         $description .= '  \nDữ liệu sẽ được lưu vào database. Không thể hoàn tác.';
 
         return Action::make('confirmImport')
-            ->label('Confirm & Import')
+            ->label('Xác nhận và nhập')
             ->icon('heroicon-o-check-circle')
             ->color($hasErr ? 'warning' : 'success')
             ->size('sm')

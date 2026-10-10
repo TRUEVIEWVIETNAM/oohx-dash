@@ -21,9 +21,9 @@ class ProductResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-cube';
 
-    protected static ?string $navigationGroup = 'Inventory';
+    protected static ?string $navigationGroup = 'Kho điểm phát';
 
-    protected static ?string $navigationLabel = 'Products';
+    protected static ?string $navigationLabel = 'Sản phẩm';
 
     protected static ?int $navigationSort = 0;
 
@@ -50,7 +50,7 @@ class ProductResource extends Resource
                 Forms\Components\Grid::make(3)->schema([
                     Forms\Components\Select::make('type')
                         ->label('Loại')
-                        ->options(['single'=>'Đơn lẻ','package'=>'Gói','custom'=>'Tùy chỉnh'])
+                        ->options(Product::TYPE_LABELS)
                         ->required()
                         ->reactive(),
                     Forms\Components\Select::make('category')
@@ -67,13 +67,13 @@ class ProductResource extends Resource
                 ]),
                 Forms\Components\Grid::make(2)->schema([
                     Forms\Components\Select::make('network_id')
-                        ->label('Network')
+                        ->label('Mạng lưới')
                         ->options(fn () => Network::where('owner_id', $ownerId)->pluck('name', 'id'))
                         ->searchable()
                         ->nullable()
                         ->reactive(),
                     Forms\Components\Select::make('site_id')
-                        ->label('Site')
+                        ->label('Địa điểm')
                         ->options(fn (Forms\Get $get) => $get('network_id')
                             ? Site::where('network_id', $get('network_id'))->pluck('name', 'id')
                             : Site::where('owner_id', $ownerId)->pluck('name', 'id'))
@@ -127,7 +127,7 @@ class ProductResource extends Resource
             ]),
 
             Forms\Components\Section::make('Thông số kỹ thuật')->schema([
-                Forms\Components\KeyValue::make('specs')->label('Specs')->keyLabel('Thuộc tính')->valueLabel('Giá trị'),
+                Forms\Components\KeyValue::make('specs')->label('Thông số')->keyLabel('Thuộc tính')->valueLabel('Giá trị'),
             ])->collapsible(),
 
             Forms\Components\Section::make('Vị trí & Trạng thái')->schema([
@@ -135,15 +135,15 @@ class ProductResource extends Resource
                     Forms\Components\TextInput::make('city')->label('Thành phố'),
                     Forms\Components\TextInput::make('region')->label('Khu vực'),
                     Forms\Components\Select::make('status')->label('Trạng thái')
-                        ->options(['draft'=>'Nháp','active'=>'Active','paused'=>'Tạm dừng','sold_out'=>'Hết chỗ'])
+                        ->options(Product::STATUS_LABELS)
                         ->default('draft')->required(),
                 ]),
-                Forms\Components\Toggle::make('featured')->label('Featured'),
+                Forms\Components\Toggle::make('featured')->label('Nổi bật'),
             ]),
 
             Forms\Components\Section::make('Gắn Screens')->schema([
                 Forms\Components\Select::make('screenIds')
-                    ->label('Screens')
+                    ->label('Màn hình')
                     ->multiple()
                     ->options(fn () => Screen::where('owner_id', $ownerId)->where('active', true)->pluck('name', 'id'))
                     ->searchable()
@@ -165,18 +165,20 @@ class ProductResource extends Resource
                 Tables\Columns\ImageColumn::make('cover_photo')->label('Ảnh')->disk('public')->width(56)->height(42),
                 Tables\Columns\TextColumn::make('name')->label('Sản phẩm')->searchable()->sortable()->weight('bold')->limit(35),
                 Tables\Columns\TextColumn::make('type')->label('Loại')->badge()
+                    ->formatStateUsing(fn (string $state) => Product::TYPE_LABELS[$state] ?? $state)
                     ->color(fn (string $state): string => match ($state) { 'single'=>'info','package'=>'success','custom'=>'warning',default=>'gray' }),
                 Tables\Columns\TextColumn::make('category')->label('Danh mục')
                     ->formatStateUsing(fn (string $state) => Product::CATEGORIES[$state] ?? $state),
                 Tables\Columns\TextColumn::make('floor_price')->label('Giá')->money('VND')->sortable(),
-                Tables\Columns\TextColumn::make('screens_count')->label('Screens')->counts('screens')->alignCenter(),
+                Tables\Columns\TextColumn::make('screens_count')->label('Màn hình')->counts('screens')->alignCenter(),
                 Tables\Columns\TextColumn::make('status')->label('Trạng thái')->badge()
+                    ->formatStateUsing(fn (string $state) => Product::STATUS_LABELS[$state] ?? $state)
                     ->color(fn (string $state): string => match ($state) { 'active'=>'success','draft'=>'gray','paused'=>'warning','sold_out'=>'danger',default=>'gray' }),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('type')->options(['single'=>'Single','package'=>'Package','custom'=>'Custom']),
+                Tables\Filters\SelectFilter::make('type')->options(Product::TYPE_LABELS),
                 Tables\Filters\SelectFilter::make('category')->options(Product::CATEGORIES),
-                Tables\Filters\SelectFilter::make('status')->options(['active'=>'Active','draft'=>'Nháp','paused'=>'Tạm dừng']),
+                Tables\Filters\SelectFilter::make('status')->options(Product::STATUS_LABELS),
             ])
             ->defaultSort('created_at', 'desc')
             ->actions([

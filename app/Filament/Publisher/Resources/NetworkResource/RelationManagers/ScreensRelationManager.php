@@ -17,7 +17,7 @@ class ScreensRelationManager extends RelationManager
 {
     protected static string $relationship = 'screens';
 
-    protected static ?string $title = 'Screens';
+    protected static ?string $title = 'Màn hình';
 
     public function table(Table $table): Table
     {
@@ -25,32 +25,32 @@ class ScreensRelationManager extends RelationManager
             ->heading(null)
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Screen Name')
+                    ->label('Tên màn hình')
                     ->searchable()
                     ->sortable()
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('site.name')
-                    ->label('Site')
+                    ->label('Địa điểm')
                     ->sortable()
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('site.province.name')
-                    ->label('Province')
+                    ->label('Tỉnh/thành')
                     ->placeholder('—')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('site.commune.full_name')
-                    ->label('District')
+                    ->label('Quận/huyện')
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\IconColumn::make('active')
-                    ->label('Enabled')
+                    ->label('Đang bật')
                     ->boolean(),
 
                 Tables\Columns\BadgeColumn::make('status')
-                    ->label('Device')
+                    ->label('Thiết bị')
                     ->colors([
                         'success' => 'online',
                         'danger'  => 'offline',
@@ -60,7 +60,7 @@ class ScreensRelationManager extends RelationManager
             ])
             ->filters([
                 SelectFilter::make('province_id')
-                    ->label('Province')
+                    ->label('Tỉnh/thành')
                     ->options(fn() => VietnamProvince::toSelectOptions())
                     ->query(fn(Builder $query, array $data) =>
                         $data['value']
@@ -70,7 +70,7 @@ class ScreensRelationManager extends RelationManager
                     ->searchable(),
 
                 SelectFilter::make('commune_id')
-                    ->label('District')
+                    ->label('Quận/huyện')
                     ->options(fn() => VietnamCommune::orderBy('full_name')->pluck('full_name', 'id')->toArray())
                     ->query(fn(Builder $query, array $data) =>
                         $data['value']
@@ -80,35 +80,31 @@ class ScreensRelationManager extends RelationManager
                     ->searchable(),
 
                 TernaryFilter::make('active')
-                    ->label('Enabled'),
+                    ->label('Đang bật'),
 
                 SelectFilter::make('status')
-                    ->label('Device status')
-                    ->options([
-                        'online'      => 'Online',
-                        'offline'     => 'Offline',
-                        'maintenance' => 'Maintenance',
-                    ]),
+                    ->label('Trạng thái thiết bị')
+                    ->options(\App\Models\Screen::STATUS_LABELS),
             ])
             ->filtersFormColumns(3)
             ->headerActions([])
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('view')
-                        ->label('View')
+                        ->label('Xem')
                         ->icon('heroicon-o-eye')
                         ->url(fn(Screen $record) =>
                             \App\Filament\Publisher\Resources\ScreenResource::getUrl('view', ['record' => $record])
                         ),
                     Tables\Actions\Action::make('edit')
-                        ->label('Edit')
+                        ->label('Sửa')
                         ->icon('heroicon-o-pencil')
                         ->url(fn(Screen $record) =>
                             \App\Filament\Publisher\Resources\ScreenResource::getUrl('edit', ['record' => $record])
                         ),
                 ]),
             ])
-            ->emptyStateHeading('No screens in this network yet')
+            ->emptyStateHeading('Mạng lưới này chưa có màn hình nào')
             ->emptyStateIcon('heroicon-o-device-tablet');
     }
 }

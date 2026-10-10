@@ -18,7 +18,7 @@ class CompanyProfile extends Page implements HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon  = 'heroicon-o-building-office';
-    protected static ?string $navigationGroup = 'Settings';
+    protected static ?string $navigationGroup = 'Cài đặt';
     protected static ?string $navigationLabel = 'Hồ sơ công ty';
     protected static ?int    $navigationSort  = 0;
     protected static string  $view            = 'filament.publisher.pages.company-profile';
@@ -51,7 +51,7 @@ class CompanyProfile extends Page implements HasForms
                                     ->columnSpan(2),
 
                                 Forms\Components\TextInput::make('tagline')
-                                    ->label('Slogan / Tagline')
+                                    ->label('Khẩu hiệu')
                                     ->maxLength(255)
                                     ->placeholder('VD: Hệ thống DOOH hàng đầu Việt Nam')
                                     ->columnSpan(2),
@@ -165,14 +165,14 @@ class CompanyProfile extends Page implements HasForms
                                     ->columns(2)
                                     ->schema([
                                         Forms\Components\TextInput::make('headquarters_lat')
-                                            ->label('Latitude')
+                                            ->label('Vĩ độ')
                                             ->numeric()
                                             ->step(0.0000001)
                                             ->live(debounce: 800)
                                             ->placeholder('21.0285'),
 
                                         Forms\Components\TextInput::make('headquarters_lng')
-                                            ->label('Longitude')
+                                            ->label('Kinh độ')
                                             ->numeric()
                                             ->step(0.0000001)
                                             ->live(debounce: 800)

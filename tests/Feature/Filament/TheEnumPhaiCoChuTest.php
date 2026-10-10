@@ -58,11 +58,10 @@ class TheEnumPhaiCoChuTest extends TestCase
      * Sửa được thì sửa rồi gạch khỏi đây.
      */
     private const DANG_THIEU = [
-        // Sản phẩm: `type`, `status`, `listing_mode` chưa có bảng chữ nào.
-        'app/Filament/Publisher/Resources/ProductResource.php::type' => 1,
-        'app/Filament/Publisher/Resources/ProductResource.php::status' => 1,
-        'app/Filament/Resources/ProductResource.php::type' => 1,
-        'app/Filament/Resources/ProductResource.php::status' => 1,
+        // Bốn dòng của `ProductResource` (publisher + admin, `type` + `status`)
+        // đã gạch ngày 10/10/2026: `Product::TYPE_LABELS` và
+        // `Product::STATUS_LABELS` ra đời cùng lượt dịch panel publisher, và cả
+        // bốn thẻ nay đi qua `formatStateUsing`.
 
         // Trạng thái VẬN HÀNH nội bộ. Chữ tiếng Việt cho chúng là một quyết
         // định nghiệp vụ: người đọc là người vận hành, và mã thô có thể đúng là

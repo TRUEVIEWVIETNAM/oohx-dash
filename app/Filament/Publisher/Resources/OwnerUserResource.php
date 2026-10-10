@@ -20,10 +20,10 @@ class OwnerUserResource extends Resource
     protected static ?string $model = OwnerUser::class;
 
 
-    protected static ?string $navigationGroup = 'Settings';
-    protected static ?string $navigationLabel = 'Team Members';
-    protected static ?string $modelLabel      = 'Team Member';
-    protected static ?string $pluralModelLabel = 'Team Members';
+    protected static ?string $navigationGroup = 'Cài đặt';
+    protected static ?string $navigationLabel = 'Thành viên';
+    protected static ?string $modelLabel      = 'Thành viên';
+    protected static ?string $pluralModelLabel = 'Thành viên';
     protected static ?int    $navigationSort  = 90;
 
     /**
@@ -73,7 +73,7 @@ class OwnerUserResource extends Resource
                     ->visibleOn('edit'),
 
                 Forms\Components\Select::make('role')
-                    ->label('Role')
+                    ->label('Vai trò')
                     ->options(fn() => OwnerUser::assignableRolesFor(auth()->user()))
                     ->required()
                     ->default('read_only')
@@ -81,7 +81,7 @@ class OwnerUserResource extends Resource
                     ->live(),
 
                 Forms\Components\CheckboxList::make('allowed_network_ids')
-                    ->label('Restrict to Networks (optional)')
+                    ->label('Giới hạn theo mạng lưới (không bắt buộc)')
                     ->helperText('Để trống = truy cập tất cả networks. Chỉ áp dụng cho '
                         . implode(' và ', array_map(
                             fn (string $r) => OwnerUser::ROLE_LABELS[$r] ?? $r,
@@ -105,7 +105,7 @@ class OwnerUserResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Name')
+                    ->label('Tên')
                     ->searchable()
                     ->sortable(),
 
@@ -115,7 +115,7 @@ class OwnerUserResource extends Resource
                     ->copyable(),
 
                 Tables\Columns\BadgeColumn::make('role')
-                    ->label('Role')
+                    ->label('Vai trò')
                     ->formatStateUsing(fn($state) => OwnerUser::ROLE_LABELS[$state] ?? $state)
                     ->colors([
                         'danger'  => 'owner',
@@ -127,13 +127,13 @@ class OwnerUserResource extends Resource
                     ]),
 
                 Tables\Columns\TextColumn::make('allowed_network_ids')
-                    ->label('Networks')
+                    ->label('Mạng lưới')
                     ->formatStateUsing(fn($state) => $state ? count($state) . ' restricted' : 'All')
                     ->badge()
                     ->color(fn($state) => $state ? 'warning' : 'success'),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Joined')
+                    ->label('Tham gia từ')
                     ->date()
                     ->sortable()
                     ->toggleable(),
@@ -153,11 +153,11 @@ class OwnerUserResource extends Resource
                         }),
 
                     Tables\Actions\Action::make('remove')
-                        ->label('Remove')
+                        ->label('Xoá khỏi team')
                         ->icon('heroicon-o-user-minus')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->modalHeading('Remove team member?')
+                        ->modalHeading('Xoá thành viên này khỏi team?')
                         ->modalDescription('User sẽ không còn truy cập được vào owner này.')
                         ->visible(fn(OwnerUser $record) => Gate::allows('delete', $record))
                         ->action(function (OwnerUser $record) {

@@ -57,7 +57,7 @@ class DashboardOverviewWidget extends BaseWidget
                 ->icon('heroicon-o-computer-desktop')
                 ->color('primary'),
 
-            Stat::make('Online', number_format($online))
+            Stat::make('Trực tuyến', number_format($online))
                 ->description($total > 0 ? round($online / $total * 100) . '% connected' : '—')
                 ->icon('heroicon-o-signal')
                 ->color($online > 0 ? 'success' : 'gray'),

@@ -36,11 +36,11 @@ class PublisherPanelProvider extends PanelProvider
             ->brandName('OOHX Publisher')
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
-                NavigationGroup::make('Bookings')->icon('heroicon-o-clipboard-document-list'),
-                NavigationGroup::make('Inventory')->icon('heroicon-o-squares-2x2'),
-                NavigationGroup::make('Reports')->icon('heroicon-o-chart-bar'),
-                NavigationGroup::make('Tools')->icon('heroicon-o-wrench-screwdriver'),
-                NavigationGroup::make('Settings')->icon('heroicon-o-cog-6-tooth'),
+                NavigationGroup::make('Đặt chỗ')->icon('heroicon-o-clipboard-document-list'),
+                NavigationGroup::make('Kho điểm phát')->icon('heroicon-o-squares-2x2'),
+                NavigationGroup::make('Báo cáo')->icon('heroicon-o-chart-bar'),
+                NavigationGroup::make('Công cụ')->icon('heroicon-o-wrench-screwdriver'),
+                NavigationGroup::make('Cài đặt')->icon('heroicon-o-cog-6-tooth'),
             ])
             ->discoverResources(
                 in: app_path('Filament/Publisher/Resources'),

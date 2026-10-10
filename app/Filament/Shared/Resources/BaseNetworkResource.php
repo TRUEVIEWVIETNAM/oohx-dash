@@ -24,8 +24,8 @@ abstract class BaseNetworkResource extends Resource
 {
     protected static ?string $model           = Network::class;
     protected static ?string $navigationIcon  = null;
-    protected static ?string $navigationGroup = 'Inventory';
-    protected static ?string $navigationLabel = 'Networks';
+    protected static ?string $navigationGroup = 'Kho điểm phát';
+    protected static ?string $navigationLabel = 'Mạng lưới';
     protected static ?int    $navigationSort  = 3;
 
     // ── Hooks cho subclass ────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ abstract class BaseNetworkResource extends Resource
                         }),
 
                     Forms\Components\TextInput::make('code')
-                        ->label('Network Code')
+                        ->label('Mã mạng lưới')
                         ->unique(Network::class, 'code', ignoreRecord: true)
                         ->maxLength(100)
                         ->helperText('Tự động từ tên. Dùng để liên kết screens.'),
@@ -99,7 +99,7 @@ abstract class BaseNetworkResource extends Resource
                         ->columnSpan(2),
 
                     Forms\Components\TextInput::make('default_floor_cpm')
-                        ->label('Default Floor CPM')
+                        ->label('Giá sàn CPM mặc định')
                         ->formatStateUsing(fn ($state) => $state !== null ? (int) round((float) $state) : null)
                         ->mask(RawJs::make("\$money(\$input, '.', ',', 0)"))
                         ->stripCharacters(',')
@@ -108,12 +108,12 @@ abstract class BaseNetworkResource extends Resource
                         ->helperText('Giá sàn CPM mặc định cho toàn network'),
 
                     Forms\Components\Select::make('default_floor_cpm_currency')
-                        ->label('Currency')
+                        ->label('Tiền tệ')
                         ->options(['VND' => 'VND', 'USD' => 'USD'])
                         ->default('VND'),
 
                     Forms\Components\Select::make('status')
-                        ->options(['active' => 'Active', 'paused' => 'Paused'])
+                        ->options(Network::STATUS_LABELS)
                         ->default('active'),
                 ]))
             ),
@@ -131,7 +131,7 @@ abstract class BaseNetworkResource extends Resource
                     ->helperText('Logo network, nền trong suốt. Khuyến nghị 400×400px PNG, tối đa 1MB.'),
 
                 Forms\Components\FileUpload::make('banner')
-                    ->label('Banner')
+                    ->label('Ảnh bìa')
                     ->image()
                     ->directory('networks/banners')
                     ->disk('public')
@@ -168,7 +168,7 @@ abstract class BaseNetworkResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('code')
-                    ->label('Code')
+                    ->label('Mã')
                     ->searchable()
                     ->copyable()
                     ->placeholder('—')
@@ -181,37 +181,39 @@ abstract class BaseNetworkResource extends Resource
                     ->placeholder('—'),
 
                 Tables\Columns\TextColumn::make('default_floor_cpm')
-                    ->label('Floor CPM')
+                    ->label('Giá sàn CPM')
                     ->numeric(thousandsSeparator: ',')
                     ->placeholder('—'),
 
                 Tables\Columns\TextColumn::make('default_floor_cpm_currency')
-                    ->label('Currency')
+                    ->label('Tiền tệ')
                     ->badge(),
 
                 Tables\Columns\TextColumn::make('sites_count')
-                    ->label('Sites')
+                    ->label('Địa điểm')
                     ->counts('sites')
                     ->sortable()
                     ->alignCenter(),
 
                 Tables\Columns\TextColumn::make('screens_count')
-                    ->label('Screens')
+                    ->label('Màn hình')
                     ->counts('screens')
                     ->sortable()
                     ->alignCenter(),
 
                 Tables\Columns\BadgeColumn::make('status')
+                    ->label('Trạng thái')
+                    ->formatStateUsing(fn ($state) => Network::STATUS_LABELS[$state] ?? $state ?? '—')
                     ->colors(['success' => 'active', 'warning' => 'paused']),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label('Tạo lúc')
                     ->dateTime('d/m/Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label('Cập nhật lúc')
                     ->since()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -225,11 +227,11 @@ abstract class BaseNetworkResource extends Resource
                         ->toArray()),
 
                 SelectFilter::make('status')
-                    ->label('Status')
-                    ->options(['active' => 'Active', 'paused' => 'Paused']),
+                    ->label('Trạng thái')
+                    ->options(Network::STATUS_LABELS),
 
                 SelectFilter::make('default_floor_cpm_currency')
-                    ->label('Currency')
+                    ->label('Tiền tệ')
                     ->options(['VND' => 'VND', 'USD' => 'USD']),
 
                 TernaryFilter::make('has_screens')
