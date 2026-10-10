@@ -14,7 +14,7 @@ class ListOohxCampaignEstimates extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('New Campaign')
+                ->label('Chiến dịch mới')
                 ->icon('heroicon-o-plus'),
         ];
     }

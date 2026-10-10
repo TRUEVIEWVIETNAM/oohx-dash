@@ -17,10 +17,10 @@ class VenueTypeResource extends Resource
 {
     protected static ?string $model          = VenueType::class;
     protected static ?string $navigationIcon = null;
-    protected static ?string $navigationGroup = 'System Settings';
-    protected static ?string $navigationLabel = 'Venue Taxonomy';
-    protected static ?string $modelLabel      = 'Venue Type';
-    protected static ?string $pluralModelLabel = 'Venue Taxonomy';
+    protected static ?string $navigationGroup = 'Cấu hình hệ thống';
+    protected static ?string $navigationLabel = 'Phân loại địa điểm';
+    protected static ?string $modelLabel      = 'Loại địa điểm';
+    protected static ?string $pluralModelLabel = 'Phân loại địa điểm';
     protected static ?int    $navigationSort  = 10;
 
     // ── Form ─────────────────────────────────────────────────────────────────
@@ -28,22 +28,22 @@ class VenueTypeResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('OpenOOH Taxonomy')->columns(2)->schema([
+            Forms\Components\Section::make('Phân loại OpenOOH')->columns(2)->schema([
 
                 Forms\Components\TextInput::make('enumeration_id')
-                    ->label('Enumeration ID')
+                    ->label('Mã enum')
                     ->numeric()
                     ->unique(VenueType::class, 'enumeration_id', ignoreRecord: true)
-                    ->helperText('OpenOOH standard ID, e.g. 10101'),
+                    ->helperText('Mã chuẩn OpenOOH — vd: 10101'),
 
                 Forms\Components\TextInput::make('string_value')
-                    ->label('String Value')
+                    ->label('Giá trị chuỗi')
                     ->unique(VenueType::class, 'string_value', ignoreRecord: true)
-                    ->helperText('e.g. transit.airports.arrivals_hall')
+                    ->helperText('vd: transit.airports.arrivals_hall')
                     ->maxLength(255),
 
                 Forms\Components\Select::make('parent_id')
-                    ->label('Parent Category')
+                    ->label('Danh mục cha')
                     ->options(fn() => VenueType::whereDoesntHave('children', fn($q) => $q->whereNotNull('id'))
                         ->orWhereHas('children')
                         ->orderBy('depth')->orderBy('category')->orderBy('venue_type')
@@ -52,7 +52,7 @@ class VenueTypeResource extends Resource
                         ->toArray())
                     ->searchable()
                     ->nullable()
-                    ->placeholder('Root category (no parent)')
+                    ->placeholder('Danh mục gốc (không có cha)')
                     ->live()
                     ->afterStateUpdated(function ($state, Forms\Set $set) {
                         if ($state) {
@@ -67,39 +67,39 @@ class VenueTypeResource extends Resource
                     }),
 
                 Forms\Components\TextInput::make('depth')
-                    ->label('Depth')
+                    ->label('Cấp sâu')
                     ->numeric()
                     ->default(0)
                     ->disabled()
                     ->dehydrated()
-                    ->helperText('0=root, 1=category, 2=subcategory'),
+                    ->helperText('0 = gốc, 1 = danh mục, 2 = danh mục con'),
 
                 Forms\Components\TextInput::make('category')
-                    ->label('Category')
+                    ->label('Danh mục')
                     ->required()
                     ->maxLength(100),
 
                 Forms\Components\TextInput::make('subcategory')
-                    ->label('Subcategory')
+                    ->label('Danh mục con')
                     ->nullable()
                     ->maxLength(100),
 
                 Forms\Components\TextInput::make('venue_type')
-                    ->label('Venue Type (full path)')
+                    ->label('Loại địa điểm (đường dẫn đầy đủ)')
                     ->required()
                     ->unique(VenueType::class, 'venue_type', ignoreRecord: true)
                     ->maxLength(255)
                     ->columnSpan(2)
-                    ->helperText('e.g. Transit : Airports : Arrival Hall'),
+                    ->helperText('vd: Transit : Airports : Arrival Hall'),
 
                 Forms\Components\Textarea::make('description')
-                    ->label('Description')
+                    ->label('Mô tả')
                     ->rows(2)
                     ->columnSpan(2),
 
             ]),
 
-            Forms\Components\Section::make('VN DOOH Category')->columns(2)->schema([
+            Forms\Components\Section::make('Danh mục DOOH Việt Nam')->columns(2)->schema([
                 Forms\Components\Select::make('vn_category_id')
                     ->label('Danh mục VN')
                     ->relationship('vnCategory', 'name_vi')
@@ -111,14 +111,14 @@ class VenueTypeResource extends Resource
                     ->columnSpan(2),
             ]),
 
-            Forms\Components\Section::make('Settings')->columns(2)->schema([
+            Forms\Components\Section::make('Cài đặt')->columns(2)->schema([
                 Forms\Components\Toggle::make('hivestack_supported')
-                    ->label('Hivestack Supported')
+                    ->label('Hỗ trợ Hivestack')
                     ->default(true)
                     ->helperText('Hiển thị trong Hivestack import mapping'),
 
                 Forms\Components\Toggle::make('is_active')
-                    ->label('Active')
+                    ->label('Đang bật')
                     ->default(true)
                     ->helperText('Hiển thị trong form chọn venue type'),
             ]),
@@ -138,7 +138,7 @@ class VenueTypeResource extends Resource
                     ->width('80px'),
 
                 Tables\Columns\TextColumn::make('venue_type')
-                    ->label('Venue Type')
+                    ->label('Loại địa điểm')
                     ->searchable()
                     ->sortable()
                     ->formatStateUsing(fn(VenueType $record) =>
@@ -147,13 +147,13 @@ class VenueTypeResource extends Resource
                     ->description(fn(VenueType $record) => $record->string_value),
 
                 Tables\Columns\TextColumn::make('category')
-                    ->label('Category')
+                    ->label('Danh mục')
                     ->searchable()
                     ->badge()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('depth')
-                    ->label('Level')
+                    ->label('Cấp')
                     ->badge()
                     ->formatStateUsing(fn($state) => match ((int)$state) {
                         0 => 'Root',
@@ -169,20 +169,20 @@ class VenueTypeResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('vnCategory.name_vi')
-                    ->label('VN Category')
+                    ->label('Danh mục Việt Nam')
                     ->badge()
                     ->color('primary')
                     ->sortable()
                     ->placeholder('—'),
 
                 Tables\Columns\TextColumn::make('children_count')
-                    ->label('Children')
+                    ->label('Danh mục con')
                     ->counts('children')
                     ->sortable()
                     ->alignCenter(),
 
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label('Đang bật')
                     ->boolean()
                     ->trueColor('success')
                     ->falseColor('danger'),
@@ -197,17 +197,17 @@ class VenueTypeResource extends Resource
                     ->options(fn() => VenueType::distinct()->pluck('category', 'category')),
 
                 SelectFilter::make('depth')
-                    ->label('Level')
+                    ->label('Cấp')
                     ->options([0 => 'Root', 1 => 'Category', 2 => 'Subcategory']),
 
                 SelectFilter::make('vn_category_id')
-                    ->label('VN Category')
+                    ->label('Danh mục Việt Nam')
                     ->relationship('vnCategory', 'name_vi')
                     ->searchable()
                     ->preload(),
 
-                TernaryFilter::make('is_active')->label('Active'),
-                TernaryFilter::make('hivestack_supported')->label('Hivestack Supported'),
+                TernaryFilter::make('is_active')->label('Đang bật'),
+                TernaryFilter::make('hivestack_supported')->label('Hỗ trợ Hivestack'),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -231,11 +231,11 @@ class VenueTypeResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\BulkAction::make('activate')
-                        ->label('Activate selected')
+                        ->label('Bật các mục đã chọn')
                         ->icon('heroicon-o-eye')
                         ->action(fn($records) => $records->each->update(['is_active' => true])),
                     Tables\Actions\BulkAction::make('deactivate')
-                        ->label('Deactivate selected')
+                        ->label('Tắt các mục đã chọn')
                         ->icon('heroicon-o-eye-slash')
                         ->action(fn($records) => $records->each->update(['is_active' => false])),
                     Tables\Actions\DeleteBulkAction::make(),
@@ -243,7 +243,7 @@ class VenueTypeResource extends Resource
             ])
             ->headerActions([
                 Tables\Actions\Action::make('reseed')
-                    ->label('Re-sync from OpenOOH v1.1')
+                    ->label('Đồng bộ lại từ OpenOOH v1.1')
                     ->icon('heroicon-o-arrow-path')
                     ->color('gray')
                     ->requiresConfirmation()
@@ -259,7 +259,7 @@ class VenueTypeResource extends Resource
             ->emptyStateDescription('Chạy seeder để import OpenOOH Taxonomy v1.1')
             ->emptyStateActions([
                 Tables\Actions\Action::make('seed')
-                    ->label('Import OpenOOH Taxonomy')
+                    ->label('Nhập phân loại OpenOOH')
                     ->action(function () {
                         \Artisan::call('db:seed', ['--class' => 'OpenOOHVenueTypeSeeder', '--force' => true]);
                         \Filament\Notifications\Notification::make()

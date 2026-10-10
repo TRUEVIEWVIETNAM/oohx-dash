@@ -16,7 +16,7 @@ class VietnamCommuneResource extends Resource
 {
     protected static ?string $model            = VietnamCommune::class;
     protected static ?string $navigationIcon   = null;
-    protected static ?string $navigationGroup  = 'System Settings';
+    protected static ?string $navigationGroup  = 'Cấu hình hệ thống';
     protected static ?string $navigationLabel  = 'Phường / Xã / Thị trấn';
     protected static ?string $modelLabel       = 'Phường / Xã';
     protected static ?string $pluralModelLabel = 'Phường / Xã / Thị trấn';
@@ -103,7 +103,7 @@ class VietnamCommuneResource extends Resource
                     ->sortable()->searchable(),
 
                 Tables\Columns\TextColumn::make('sites_count')
-                    ->label('Sites')
+                    ->label('Địa điểm')
                     ->counts('sites')
                     ->sortable(),
             ])

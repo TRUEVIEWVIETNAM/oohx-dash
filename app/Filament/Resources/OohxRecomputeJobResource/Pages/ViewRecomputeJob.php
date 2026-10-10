@@ -29,7 +29,7 @@ class ViewRecomputeJob extends ViewRecord
         return [
             // Phase 4.1 — campaign job done → link sang campaign detail
             Actions\Action::make('viewCampaign')
-                ->label('View campaign forecast')
+                ->label('Xem dự báo chiến dịch')
                 ->icon('heroicon-o-megaphone')
                 ->color('success')
                 ->visible(fn () => $this->record->is_campaign
@@ -41,7 +41,7 @@ class ViewRecomputeJob extends ViewRecord
                 )),
 
             Actions\Action::make('retry')
-                ->label('Retry')
+                ->label('Thử lại')
                 ->icon('heroicon-o-arrow-path')
                 ->color('warning')
                 ->visible(fn () => in_array($this->record->status, ['failed', 'cancelled'], true))
@@ -53,7 +53,7 @@ class ViewRecomputeJob extends ViewRecord
                 }),
 
             Actions\Action::make('cancel')
-                ->label('Cancel')
+                ->label('Huỷ')
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->visible(fn () => $this->record->is_cancellable)

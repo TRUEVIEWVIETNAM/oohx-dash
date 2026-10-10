@@ -18,7 +18,7 @@ class OwnerResource extends Resource
 {
     protected static ?string $model = Owner::class;
 
-    protected static ?string $navigationGroup = 'Organizations';
+    protected static ?string $navigationGroup = 'Tổ chức';
 
     protected static ?int $navigationSort = 1;
     protected static ?string $label = 'Media Owner';
@@ -26,7 +26,7 @@ class OwnerResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Basic Info')->columns(2)->schema([
+            Forms\Components\Section::make('Thông tin cơ bản')->columns(2)->schema([
                 Forms\Components\TextInput::make('name')
                     ->required()->maxLength(255)->columnSpan(2)
                     ->live(onBlur: true)
@@ -111,7 +111,7 @@ class OwnerResource extends Resource
 
             Forms\Components\Section::make('Hồ sơ công khai')->columns(2)->collapsible()->schema([
                 Forms\Components\TextInput::make('tagline')
-                    ->label('Tagline')->maxLength(255)->columnSpan(2),
+                    ->label('Khẩu hiệu')->maxLength(255)->columnSpan(2),
                 Forms\Components\RichEditor::make('about')
                     ->label('Giới thiệu')->columnSpan(2),
                 Forms\Components\FileUpload::make('logo_url')
@@ -126,17 +126,17 @@ class OwnerResource extends Resource
                     ->placeholder('0912 345 6789'),
                 Forms\Components\TextInput::make('founded')->label('Năm thành lập')
                     ->numeric()->minValue(1900)->maxValue(2030),
-                Forms\Components\Toggle::make('featured')->label('Featured'),
-                Forms\Components\Toggle::make('verified')->label('Verified')
+                Forms\Components\Toggle::make('featured')->label('Nổi bật'),
+                Forms\Components\Toggle::make('verified')->label('Đã xác minh')
                     ->helperText('Hiển thị badge "Verified" trên frontpage'),
             ]),
 
             // Không đưa revenue_share_pct lên giao diện: sàn thu phí thuê bao của
             // media owner, không chia doanh thu giao dịch (hồ sơ TMĐT mục 16).
             // Cột vẫn còn trong DB nhưng không có cơ chế nào dùng tới nó.
-            Forms\Components\Section::make('Billing')->columns(2)->collapsible()->schema([
+            Forms\Components\Section::make('Thanh toán')->columns(2)->collapsible()->schema([
                 Forms\Components\KeyValue::make('billing_info')
-                    ->label('Billing Info')->columnSpan(2),
+                    ->label('Thông tin thanh toán')->columnSpan(2),
                 Forms\Components\Textarea::make('notes')->columnSpan(2),
             ]),
         ]);
@@ -157,7 +157,7 @@ class OwnerResource extends Resource
                     ->formatStateUsing(fn ($state) => Owner::STATUS_LABELS[$state] ?? $state ?? '—')
                     ->colors(['warning'=>'pending','success'=>'active','danger'=>'suspended']),
                 Tables\Columns\TextColumn::make('screens_count')
-                    ->label('Screens')->counts('screens')->sortable(),
+                    ->label('Màn hình')->counts('screens')->sortable(),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(),
             ])
             ->filters([
@@ -178,7 +178,7 @@ class OwnerResource extends Resource
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
-            Infolists\Components\Section::make('Overview')->columns(3)->schema([
+            Infolists\Components\Section::make('Tổng quan')->columns(3)->schema([
                 Infolists\Components\TextEntry::make('name'),
                 Infolists\Components\TextEntry::make('status')->label('Trạng thái')->badge()
                     ->formatStateUsing(fn ($state) => Owner::STATUS_LABELS[$state] ?? $state ?? '—'),

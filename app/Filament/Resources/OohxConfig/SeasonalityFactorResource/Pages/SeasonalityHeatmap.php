@@ -13,13 +13,13 @@ class SeasonalityHeatmap extends Page
 
     protected static string $view = 'filament.resources.oohx-config.seasonality-heatmap';
 
-    protected static ?string $title = 'Seasonality heatmap';
+    protected static ?string $title = 'Bản đồ nhiệt mùa vụ';
 
     protected function getHeaderActions(): array
     {
         return [
             Actions\Action::make('back_to_list')
-                ->label('Back to list')
+                ->label('Về danh sách')
                 ->icon('heroicon-o-arrow-left')
                 ->color('gray')
                 ->url(fn () => SeasonalityFactorResource::getUrl('index')),

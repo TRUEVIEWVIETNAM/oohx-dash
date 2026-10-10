@@ -30,8 +30,8 @@ class AuditLogResource extends Resource
 
     protected static ?string $navigationIcon  = 'heroicon-o-clipboard-document-list';
     protected static ?string $navigationGroup = 'OOHX · Data Engine';
-    protected static ?string $navigationLabel = 'Config audit log';
-    protected static ?string $modelLabel      = 'Audit entry';
+    protected static ?string $navigationLabel = 'Nhật ký thay đổi cấu hình';
+    protected static ?string $modelLabel      = 'Mục nhật ký';
     protected static ?int    $navigationSort  = 79;
 
     public static function canCreate(): bool { return false; }
@@ -50,7 +50,7 @@ class AuditLogResource extends Resource
                 Tables\Columns\TextColumn::make('id')->label('#')->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('When')
+                    ->label('Lúc')
                     ->dateTime()
                     ->since()
                     ->sortable()
@@ -80,7 +80,7 @@ class AuditLogResource extends Resource
                     ->limit(40),
 
                 Tables\Columns\TextColumn::make('old_value_display')
-                    ->label('Before')
+                    ->label('Trước')
                     ->getStateUsing(fn ($record) => $record->old_value
                         ? json_encode($record->old_value, JSON_UNESCAPED_UNICODE)
                         : '—')
@@ -88,7 +88,7 @@ class AuditLogResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('new_value_display')
-                    ->label('After')
+                    ->label('Sau')
                     ->getStateUsing(fn ($record) => $record->new_value
                         ? json_encode($record->new_value, JSON_UNESCAPED_UNICODE)
                         : '—')
@@ -118,8 +118,8 @@ class AuditLogResource extends Resource
 
                 Tables\Filters\Filter::make('created_at')
                     ->form([
-                        \Filament\Forms\Components\DatePicker::make('from')->label('From'),
-                        \Filament\Forms\Components\DatePicker::make('until')->label('Until'),
+                        \Filament\Forms\Components\DatePicker::make('from')->label('Từ'),
+                        \Filament\Forms\Components\DatePicker::make('until')->label('Đến'),
                     ])
                     ->query(function ($query, array $data) {
                         return $query
@@ -136,7 +136,7 @@ class AuditLogResource extends Resource
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
-            Infolists\Components\Section::make('Audit entry')
+            Infolists\Components\Section::make('Mục nhật ký')
                 ->columns(3)
                 ->schema([
                     Infolists\Components\TextEntry::make('id')->label('ID'),
@@ -149,17 +149,17 @@ class AuditLogResource extends Resource
                         ->placeholder('—'),
                 ]),
 
-            Infolists\Components\Section::make('Before / After')
+            Infolists\Components\Section::make('Trước / Sau')
                 ->columns(2)
                 ->schema([
                     Infolists\Components\TextEntry::make('old_value_json')
-                        ->label('Before')
+                        ->label('Trước')
                         ->getStateUsing(fn ($record) => $record->old_value
                             ? json_encode($record->old_value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
                             : '—')
                         ->extraAttributes(['class' => 'font-mono text-xs whitespace-pre-wrap break-all']),
                     Infolists\Components\TextEntry::make('new_value_json')
-                        ->label('After')
+                        ->label('Sau')
                         ->getStateUsing(fn ($record) => $record->new_value
                             ? json_encode($record->new_value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
                             : '—')

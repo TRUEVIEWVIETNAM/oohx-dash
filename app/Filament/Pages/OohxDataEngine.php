@@ -23,7 +23,7 @@ use Symfony\Component\Process\Process;
 class OohxDataEngine extends Page
 {
     protected static ?string $navigationIcon  = 'heroicon-o-cpu-chip';
-    protected static ?string $navigationGroup = 'System Settings';
+    protected static ?string $navigationGroup = 'Cấu hình hệ thống';
     protected static ?string $navigationLabel = 'Data Engine';
     protected static ?int    $navigationSort  = 60;
     protected static ?string $title           = 'OOHX Data Engine';
@@ -41,7 +41,7 @@ class OohxDataEngine extends Page
                 $this->recomputeQueueAction(),
                 $this->recomputeCityAction(),
             ])
-                ->label('Recompute')
+                ->label('Tính lại')
                 ->icon('heroicon-o-arrow-path')
                 ->color('warning')
                 ->button(),
@@ -54,7 +54,7 @@ class OohxDataEngine extends Page
     public function syncNowAction(): Action
     {
         return Action::make('syncNow')
-            ->label('Sync now')
+            ->label('Đồng bộ ngay')
             ->icon('heroicon-o-cloud-arrow-up')
             ->color('primary')
             ->requiresConfirmation()
@@ -69,7 +69,7 @@ class OohxDataEngine extends Page
     public function exportOnlyAction(): Action
     {
         return Action::make('exportOnly')
-            ->label('Export only')
+            ->label('Chỉ xuất')
             ->icon('heroicon-o-arrow-down-tray')
             ->color('gray')
             ->requiresConfirmation()
@@ -82,14 +82,14 @@ class OohxDataEngine extends Page
     public function testConnectionAction(): Action
     {
         return Action::make('testConnection')
-            ->label('Test connections')
+            ->label('Kiểm tra các kết nối')
             ->icon('heroicon-o-signal')
             ->color('info')
             ->action(function () {
                 $result = $this->testAllConnections();
 
                 Notification::make()
-                    ->title('Connection test')
+                    ->title('Kiểm tra kết nối')
                     ->body(implode("\n", $result['messages']))
                     ->{$result['ok'] ? 'success' : 'danger'}()
                     ->persistent()
@@ -104,19 +104,19 @@ class OohxDataEngine extends Page
     public function recomputeQueueAction(): Action
     {
         return Action::make('recomputeQueue')
-            ->label('Recompute pending jobs')
+            ->label('Tính lại các việc đang chờ')
             ->icon('heroicon-o-queue-list')
             ->requiresConfirmation()
-            ->modalHeading('Drain pending jobs?')
+            ->modalHeading('Xả các việc đang chờ trong hàng đợi?')
             ->modalDescription('Process tất cả jobs đang trong queue (max 500). Không ảnh hưởng screens không có job.')
-            ->modalSubmitActionLabel('Drain ngay')
+            ->modalSubmitActionLabel('Xả hàng đợi ngay')
             ->action(function () {
                 $result = $this->runRemoteCommand(config('oohx.data_engine.recompute_queue_cmd'));
                 $parsed = $this->parseJsonOutput($result['output'] ?? '');
 
                 if (! $result['ok']) {
                     Notification::make()
-                        ->title('Recompute queue failed')
+                        ->title('Không đưa được việc tính lại vào hàng đợi')
                         ->body($result['error'] ?? 'Unknown error')
                         ->danger()
                         ->persistent()
@@ -129,7 +129,7 @@ class OohxDataEngine extends Page
                     : mb_strimwidth($result['output'], 0, 300, '…');
 
                 Notification::make()
-                    ->title('Queue drained')
+                    ->title('Đã xả hàng đợi')
                     ->body($body)
                     ->success()
                     ->persistent()
@@ -144,14 +144,14 @@ class OohxDataEngine extends Page
     public function recomputeCityAction(): Action
     {
         return Action::make('recomputeCity')
-            ->label('Recompute by city')
+            ->label('Tính lại theo tỉnh/thành')
             ->icon('heroicon-o-map')
             ->requiresConfirmation()
-            ->modalHeading('Recompute 1 city')
+            ->modalHeading('Tính lại một tỉnh/thành')
             ->modalDescription('Force recompute tất cả screens trong city đã chọn. Có thể mất 30-60s tuỳ số screens.')
             ->form([
                 \Filament\Forms\Components\Select::make('city')
-                    ->label('City')
+                    ->label('Tỉnh/thành')
                     ->options(fn () => $this->cityOptions())
                     ->required()
                     ->searchable(),
@@ -191,12 +191,12 @@ class OohxDataEngine extends Page
     public function lookupAction(): Action
     {
         return Action::make('lookup')
-            ->label('Lookup estimate')
+            ->label('Tra ước lượng')
             ->icon('heroicon-o-magnifying-glass')
             ->color('gray')
             ->form([
                 \Filament\Forms\Components\TextInput::make('external_id')
-                    ->label('External ID (Laravel screen UUID)')
+                    ->label('Mã ngoài (UUID màn hình phía Laravel)')
                     ->required()
                     ->placeholder('vd: 1f5cbf19-c9c3-4637-ad1a-b5cc37381bd9'),
             ])
@@ -226,7 +226,7 @@ class OohxDataEngine extends Page
                 );
 
                 Notification::make()
-                    ->title('Estimate found')
+                    ->title('Tìm thấy ước lượng')
                     ->body($body)
                     ->success()
                     ->persistent()

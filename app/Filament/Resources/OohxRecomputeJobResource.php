@@ -34,8 +34,8 @@ class OohxRecomputeJobResource extends Resource
 
     protected static ?string $navigationIcon  = 'heroicon-o-queue-list';
     protected static ?string $navigationGroup = 'OOHX · Data Engine';
-    protected static ?string $navigationLabel = 'Recompute Jobs';
-    protected static ?string $modelLabel      = 'Recompute Job';
+    protected static ?string $navigationLabel = 'Việc tính lại';
+    protected static ?string $modelLabel      = 'Việc tính lại';
     protected static ?int    $navigationSort  = 65;
 
     public static function canCreate(): bool { return false; } // create qua header actions only
@@ -61,7 +61,7 @@ class OohxRecomputeJobResource extends Resource
                 Tables\Columns\TextColumn::make('id')->label('#')->sortable(),
 
                 Tables\Columns\TextColumn::make('job_type')
-                    ->label('Type')
+                    ->label('Loại')
                     ->badge()
                     ->color(fn (string $state) => match ($state) {
                         'screen'                 => 'info',
@@ -75,7 +75,7 @@ class OohxRecomputeJobResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('target_label')
-                    ->label('Target')
+                    ->label('Mục tiêu')
                     ->searchable(query: function (\Illuminate\Database\Eloquent\Builder $q, string $search) {
                         return $q->where('city', 'ilike', "%{$search}%")
                             ->orWhereHas('screen', fn ($q) => $q->where('external_id', 'ilike', "%{$search}%"));
@@ -96,7 +96,7 @@ class OohxRecomputeJobResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('progress_percent')
-                    ->label('Progress')
+                    ->label('Tiến độ')
                     ->formatStateUsing(function ($record) {
                         $p = $record->progress_data;
                         if (! $p) return $record->status === 'processing' ? '...' : '—';
@@ -112,20 +112,20 @@ class OohxRecomputeJobResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('retry_count')
-                    ->label('Retries')
+                    ->label('Số lần thử lại')
                     ->numeric()
                     ->toggleable()
                     ->color(fn ($state) => $state > 0 ? 'warning' : 'gray'),
 
                 Tables\Columns\TextColumn::make('requested_at')
-                    ->label('Requested')
+                    ->label('Yêu cầu lúc')
                     ->dateTime()
                     ->since()
                     ->sortable()
                     ->tooltip(fn ($state) => $state?->format('Y-m-d H:i:s')),
 
                 Tables\Columns\TextColumn::make('duration_seconds')
-                    ->label('Duration')
+                    ->label('Thời lượng')
                     ->formatStateUsing(fn (?int $state) => $state !== null ? "{$state}s" : '—')
                     ->toggleable(),
             ])
@@ -149,7 +149,7 @@ class OohxRecomputeJobResource extends Resource
                         'venue_footfall_refresh' => 'Venue footfall (Phase 4.2.2)',
                     ]),
                 SelectFilter::make('city')
-                    ->label('City (city-type jobs)')
+                    ->label('Tỉnh/thành (việc theo tỉnh/thành)')
                     ->options(fn () => RecomputeJob::query()
                         ->whereNotNull('city')
                         ->distinct()
@@ -166,7 +166,7 @@ class OohxRecomputeJobResource extends Resource
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\Action::make('retry')
-                    ->label('Retry')
+                    ->label('Thử lại')
                     ->icon('heroicon-o-arrow-path')
                     ->color('warning')
                     ->visible(fn (RecomputeJob $r) => in_array($r->status, ['failed', 'cancelled'], true))
@@ -175,7 +175,7 @@ class OohxRecomputeJobResource extends Resource
                     ->action(fn (RecomputeJob $r) => self::handleRetry($r->id)),
 
                 Tables\Actions\Action::make('cancel')
-                    ->label('Cancel')
+                    ->label('Huỷ')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (RecomputeJob $r) => $r->is_cancellable)
@@ -188,7 +188,7 @@ class OohxRecomputeJobResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\BulkAction::make('retry_bulk')
-                        ->label('Retry selected failed')
+                        ->label('Thử lại các mục lỗi đã chọn')
                         ->icon('heroicon-o-arrow-path')
                         ->color('warning')
                         ->requiresConfirmation()
@@ -217,35 +217,35 @@ class OohxRecomputeJobResource extends Resource
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
-            Infolists\Components\Section::make('Job metadata')
+            Infolists\Components\Section::make('Siêu dữ liệu của việc')
                 ->columns(4)
                 ->schema([
-                    Infolists\Components\TextEntry::make('id')->label('Job ID'),
+                    Infolists\Components\TextEntry::make('id')->label('Mã việc'),
                     Infolists\Components\TextEntry::make('job_type')->badge(),
                     Infolists\Components\TextEntry::make('status')->badge(),
                     Infolists\Components\TextEntry::make('priority')->numeric(),
-                    Infolists\Components\TextEntry::make('target_label')->label('Target')->columnSpan(2),
-                    Infolists\Components\TextEntry::make('action')->label('Bulk action')
+                    Infolists\Components\TextEntry::make('target_label')->label('Mục tiêu')->columnSpan(2),
+                    Infolists\Components\TextEntry::make('action')->label('Hành động cả lô')
                         ->placeholder('—')
                         ->badge()
                         ->visible(fn ($record) => $record->job_type === 'bulk'),
-                    Infolists\Components\TextEntry::make('retry_count')->label('Retries'),
+                    Infolists\Components\TextEntry::make('retry_count')->label('Số lần thử lại'),
                 ]),
 
-            Infolists\Components\Section::make('Timing')
+            Infolists\Components\Section::make('Thời gian')
                 ->columns(4)
                 ->schema([
                     Infolists\Components\TextEntry::make('requested_at')->dateTime()->since(),
                     Infolists\Components\TextEntry::make('started_at')->dateTime()->placeholder('—'),
                     Infolists\Components\TextEntry::make('finished_at')->dateTime()->placeholder('—'),
                     Infolists\Components\TextEntry::make('duration_seconds')
-                        ->label('Duration')
+                        ->label('Thời lượng')
                         ->formatStateUsing(fn ($state) => $state !== null ? "{$state}s" : '—'),
                     Infolists\Components\TextEntry::make('cancelled_at')->dateTime()->placeholder('—'),
                 ]),
 
             // Progress panel — chỉ hiển thị cho bulk jobs có progress data
-            Infolists\Components\Section::make('Progress')
+            Infolists\Components\Section::make('Tiến độ')
                 ->visible(fn ($record) => $record->progress_data !== null)
                 ->schema([
                     Infolists\Components\ViewEntry::make('progress_widget')
@@ -253,9 +253,9 @@ class OohxRecomputeJobResource extends Resource
                 ]),
 
             // Phase 3.A — Preview result panel (dry-run so sánh version)
-            Infolists\Components\Section::make('Preview result')
+            Infolists\Components\Section::make('Kết quả xem trước')
                 ->icon('heroicon-o-magnifying-glass-plus')
-                ->description('Dry-run comparison — NOT applied to output.screen_traffic_estimates.')
+                ->description('So sánh chạy thử — KHÔNG ghi vào output.screen_traffic_estimates.')
                 ->visible(fn ($record) => $record->is_preview)
                 ->schema([
                     Infolists\Components\ViewEntry::make('preview_widget')
@@ -263,23 +263,23 @@ class OohxRecomputeJobResource extends Resource
                 ]),
 
             // Phase 4.1 — Campaign estimate result
-            Infolists\Components\Section::make('Campaign forecast')
+            Infolists\Components\Section::make('Dự báo chiến dịch')
                 ->icon('heroicon-o-megaphone')
-                ->description('Aggregate impressions + reach. Click "View campaign forecast" header action cho full breakdown.')
+                ->description('Tổng lượt hiển thị + tiếp cận. Bấm "Xem dự báo chiến dịch" ở đầu trang để xem bóc tách đầy đủ.')
                 ->visible(fn ($record) => $record->is_campaign && $record->campaign_result !== null)
                 ->columns(4)
                 ->schema([
                     Infolists\Components\TextEntry::make('campaign_result.total_impressions_for_duration')
-                        ->label('Total impressions')
+                        ->label('Tổng lượt hiển thị')
                         ->numeric(decimalPlaces: 0)
                         ->weight('bold')
                         ->getStateUsing(fn ($record) => $record->campaign_result['total_impressions_for_duration'] ?? null),
                     Infolists\Components\TextEntry::make('campaign_result.estimated_unique_reach')
-                        ->label('Unique reach')
+                        ->label('Số người riêng biệt')
                         ->numeric(decimalPlaces: 0)
                         ->getStateUsing(fn ($record) => $record->campaign_result['estimated_unique_reach'] ?? null),
                     Infolists\Components\TextEntry::make('campaign_result.estimated_frequency')
-                        ->label('Frequency')
+                        ->label('Tần suất')
                         ->formatStateUsing(fn (?float $state) => $state !== null ? number_format($state, 1) . '×' : '—')
                         ->getStateUsing(fn ($record) => $record->campaign_result['estimated_frequency'] ?? null),
                     Infolists\Components\TextEntry::make('campaign_result.estimated_cpm')
@@ -289,18 +289,18 @@ class OohxRecomputeJobResource extends Resource
                         ->getStateUsing(fn ($record) => $record->campaign_result['estimated_cpm'] ?? null),
 
                     Infolists\Components\TextEntry::make('campaign_result.screens_with_estimate')
-                        ->label('Screens with data')
+                        ->label('Màn hình có dữ liệu')
                         ->getStateUsing(fn ($record) => $record->campaign_result['screens_with_estimate'] ?? 0),
                     Infolists\Components\TextEntry::make('campaign_result.screens_missing_estimate')
-                        ->label('Missing')
+                        ->label('Thiếu')
                         ->badge()
                         ->color(fn ($state) => ($state ?? 0) > 0 ? 'warning' : 'gray')
                         ->getStateUsing(fn ($record) => $record->campaign_result['screens_missing_estimate'] ?? 0),
                     Infolists\Components\TextEntry::make('campaign_result.unique_geohash_cells')
-                        ->label('Distinct areas')
+                        ->label('Số vùng riêng biệt')
                         ->getStateUsing(fn ($record) => $record->campaign_result['unique_geohash_cells'] ?? null),
                     Infolists\Components\TextEntry::make('campaign_result.avg_confidence')
-                        ->label('Avg confidence')
+                        ->label('Độ tin cậy trung bình')
                         ->badge()
                         ->formatStateUsing(fn (?float $state) => $state !== null ? number_format($state, 2) : '—')
                         ->color(fn (?float $state) => match (true) {
@@ -313,14 +313,14 @@ class OohxRecomputeJobResource extends Resource
                 ]),
 
             // Phase 4.2.2 — Venue footfall refresh result
-            Infolists\Components\Section::make('Venue footfall result')
+            Infolists\Components\Section::make('Kết quả lượt khách tại địa điểm')
                 ->icon('heroicon-o-map-pin')
                 ->description('Multi-provider fetch kết quả. source_winner = provider có confidence cao nhất sau priority chain.')
                 ->visible(fn ($record) => $record->is_venue_footfall && $record->venue_footfall_result !== null)
                 ->columns(4)
                 ->schema([
                     Infolists\Components\TextEntry::make('venue_footfall_result.source_winner')
-                        ->label('Winner source')
+                        ->label('Nguồn được chọn')
                         ->badge()
                         ->color(fn (?string $state) => match ($state) {
                             'foursquare' => 'success',
@@ -330,16 +330,16 @@ class OohxRecomputeJobResource extends Resource
                         })
                         ->getStateUsing(fn ($record) => $record->venue_footfall_result['source_winner'] ?? null),
                     Infolists\Components\TextEntry::make('venue_footfall_result.venues_count')
-                        ->label('Venues found')
+                        ->label('Số địa điểm tìm được')
                         ->numeric()
                         ->getStateUsing(fn ($record) => $record->venue_footfall_result['venues_count'] ?? 0),
                     Infolists\Components\TextEntry::make('venue_footfall_result.footfall_proxy')
-                        ->label('Footfall proxy')
+                        ->label('Đại lượng thay cho lượt khách')
                         ->numeric(decimalPlaces: 2)
                         ->weight('bold')
                         ->getStateUsing(fn ($record) => $record->venue_footfall_result['footfall_proxy'] ?? null),
                     Infolists\Components\TextEntry::make('venue_footfall_result.confidence')
-                        ->label('Confidence')
+                        ->label('Độ tin cậy')
                         ->badge()
                         ->formatStateUsing(fn (?float $state) => $state !== null ? number_format($state, 2) : '—')
                         ->color(fn (?float $state) => match (true) {
@@ -351,20 +351,20 @@ class OohxRecomputeJobResource extends Resource
                         ->getStateUsing(fn ($record) => $record->venue_footfall_result['confidence'] ?? null),
 
                     Infolists\Components\TextEntry::make('venue_footfall_result.cost_usd')
-                        ->label('Cost USD')
+                        ->label('Chi phí USD')
                         ->money('USD', divideBy: 100)
                         ->formatStateUsing(fn (?float $state) => $state !== null ? '$' . number_format($state, 4) : '—')
                         ->color(fn ($state) => ($state ?? 0) > 0.1 ? 'warning' : 'gray')
                         ->getStateUsing(fn ($record) => $record->venue_footfall_result['cost_usd'] ?? 0),
 
                     Infolists\Components\TextEntry::make('venue_footfall_result.providers_tried')
-                        ->label('Providers tried')
+                        ->label('Nguồn đã thử')
                         ->getStateUsing(fn ($record) => is_array($record->venue_footfall_result['providers_tried'] ?? null)
                             ? implode(' → ', $record->venue_footfall_result['providers_tried'])
                             : '—'),
                 ]),
 
-            Infolists\Components\Section::make('Error')
+            Infolists\Components\Section::make('Lỗi')
                 ->visible(fn ($record) => ! empty($record->error_message))
                 ->schema([
                     Infolists\Components\TextEntry::make('error_message')
@@ -373,7 +373,7 @@ class OohxRecomputeJobResource extends Resource
                         ->markdown(false),
                 ]),
 
-            Infolists\Components\Section::make('Payload (debug)')
+            Infolists\Components\Section::make('Gói tin (gỡ lỗi)')
                 ->collapsible()
                 ->collapsed()
                 ->schema([
@@ -428,18 +428,18 @@ class OohxRecomputeJobResource extends Resource
     private static function enqueueScreenAction(): Tables\Actions\Action
     {
         return Tables\Actions\Action::make('enqueue_screen')
-            ->label('Enqueue screen')
+            ->label('Đưa một màn hình vào hàng đợi')
             ->icon('heroicon-o-tv')
             ->color('info')
             ->form([
                 Forms\Components\TextInput::make('screen_id')
-                    ->label('Screen ID (numeric, core.screens.id)')
+                    ->label('Mã màn hình (dạng số, core.screens.id)')
                     ->required()
                     ->numeric()
                     ->minValue(1)
                     ->helperText('Internal Data Engine ID (BIGINT). Xem Traffic Estimates list để lookup.'),
                 Forms\Components\TextInput::make('priority')
-                    ->label('Priority (lower = higher)')
+                    ->label('Ưu tiên (số nhỏ = ưu tiên cao)')
                     ->required()
                     ->numeric()
                     ->minValue(1)
@@ -458,7 +458,7 @@ class OohxRecomputeJobResource extends Resource
                         ->success()
                         ->send();
                 } catch (\Throwable $e) {
-                    Notification::make()->title('Enqueue failed')->body($e->getMessage())->danger()->send();
+                    Notification::make()->title('Không đưa vào hàng đợi được')->body($e->getMessage())->danger()->send();
                 }
             });
     }
@@ -466,12 +466,12 @@ class OohxRecomputeJobResource extends Resource
     private static function enqueueCityAction(): Tables\Actions\Action
     {
         return Tables\Actions\Action::make('enqueue_city')
-            ->label('Enqueue city')
+            ->label('Đưa một tỉnh/thành vào hàng đợi')
             ->icon('heroicon-o-map')
             ->color('warning')
             ->form([
                 Forms\Components\Select::make('city')
-                    ->label('City')
+                    ->label('Tỉnh/thành')
                     ->options(fn () => self::cityOptions())
                     ->required()
                     ->searchable(),
@@ -489,7 +489,7 @@ class OohxRecomputeJobResource extends Resource
                         ->success()
                         ->send();
                 } catch (\Throwable $e) {
-                    Notification::make()->title('Enqueue failed')->body($e->getMessage())->danger()->send();
+                    Notification::make()->title('Không đưa vào hàng đợi được')->body($e->getMessage())->danger()->send();
                 }
             });
     }
@@ -497,12 +497,12 @@ class OohxRecomputeJobResource extends Resource
     private static function enqueueBulkAction(): Tables\Actions\Action
     {
         return Tables\Actions\Action::make('enqueue_bulk')
-            ->label('Enqueue bulk')
+            ->label('Đưa cả lô vào hàng đợi')
             ->icon('heroicon-o-queue-list')
             ->color('primary')
             ->form([
                 Forms\Components\Radio::make('source')
-                    ->label('Source')
+                    ->label('Nguồn')
                     ->options([
                         'recompute_all'     => 'Recompute ALL active screens',
                         'recompute_stale'   => 'Recompute STALE screens (not on active formula version)',
@@ -514,14 +514,14 @@ class OohxRecomputeJobResource extends Resource
                     ->live(),
 
                 Forms\Components\Select::make('city')
-                    ->label('City')
+                    ->label('Tỉnh/thành')
                     ->options(fn () => self::cityOptions())
                     ->searchable()
                     ->visible(fn (Forms\Get $get) => $get('source') === 'recompute_by_city')
                     ->required(fn (Forms\Get $get) => $get('source') === 'recompute_by_city'),
 
                 Forms\Components\Textarea::make('screen_ids_text')
-                    ->label('Screen IDs (numeric, one per line)')
+                    ->label('Mã màn hình (dạng số, mỗi dòng một mã)')
                     ->rows(6)
                     ->placeholder("123\n456\n789")
                     ->helperText('Tối đa 5000 IDs. Dùng recompute_all nếu muốn nhiều hơn.')
@@ -532,7 +532,7 @@ class OohxRecomputeJobResource extends Resource
                     ->required()
                     ->numeric()
                     ->default(150)
-                    ->helperText('Lower = higher priority. 50 = urgent, 200 = background.'),
+                    ->helperText('Số nhỏ = ưu tiên cao. 50 = gấp, 200 = chạy nền.'),
             ])
             ->action(function (array $data) {
                 try {
@@ -557,7 +557,7 @@ class OohxRecomputeJobResource extends Resource
                         ->persistent()
                         ->send();
                 } catch (\Throwable $e) {
-                    Notification::make()->title('Enqueue failed')->body($e->getMessage())->danger()->persistent()->send();
+                    Notification::make()->title('Không đưa vào hàng đợi được')->body($e->getMessage())->danger()->persistent()->send();
                 }
             });
     }
@@ -570,7 +570,7 @@ class OohxRecomputeJobResource extends Resource
             app(JobOrchestrator::class)->retry($jobId);
             Notification::make()->title("Job #{$jobId} reset to pending")->success()->send();
         } catch (\Throwable $e) {
-            Notification::make()->title('Retry failed')->body($e->getMessage())->danger()->send();
+            Notification::make()->title('Thử lại không được')->body($e->getMessage())->danger()->send();
         }
     }
 
@@ -580,7 +580,7 @@ class OohxRecomputeJobResource extends Resource
             app(JobOrchestrator::class)->cancel($jobId);
             Notification::make()->title("Job #{$jobId} cancelled")->success()->send();
         } catch (\Throwable $e) {
-            Notification::make()->title('Cancel failed')->body($e->getMessage())->danger()->send();
+            Notification::make()->title('Huỷ không được')->body($e->getMessage())->danger()->send();
         }
     }
 

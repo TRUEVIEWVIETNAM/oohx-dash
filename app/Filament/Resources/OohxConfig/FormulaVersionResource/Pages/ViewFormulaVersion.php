@@ -21,7 +21,7 @@ class ViewFormulaVersion extends ViewRecord
         return [
             // Phase 3.A — Preview impact (dry-run)
             Actions\Action::make('preview')
-                ->label('Preview impact')
+                ->label('Xem trước tác động')
                 ->icon('heroicon-o-magnifying-glass-plus')
                 ->color('info')
                 ->visible(fn () => ! $this->record->is_active)
@@ -29,24 +29,24 @@ class ViewFormulaVersion extends ViewRecord
                 ->modalDescription('Dry-run so sánh estimates. KHÔNG touch output.* table.')
                 ->form([
                     Forms\Components\Select::make('city')
-                        ->label('City filter (optional)')
+                        ->label('Lọc theo tỉnh/thành (không bắt buộc)')
                         ->options(fn () => \App\Models\Oohx\Screen::query()
                             ->whereNotNull('city')
                             ->distinct()
                             ->orderBy('city')
                             ->pluck('city', 'city')
                             ->toArray())
-                        ->placeholder('All cities')
+                        ->placeholder('Tất cả tỉnh/thành')
                         ->searchable(),
                     Forms\Components\TextInput::make('sample_size')
-                        ->label('Sample size')
+                        ->label('Cỡ mẫu')
                         ->required()
                         ->numeric()
                         ->minValue(1)
                         ->maxValue(JobOrchestrator::PREVIEW_MAX_SAMPLE_SIZE)
                         ->default(100),
                     Forms\Components\TextInput::make('seed')
-                        ->label('Seed (optional)')
+                        ->label('Giá trị nạp (không bắt buộc)')
                         ->numeric()
                         ->helperText('Reproducible — cùng seed → cùng sample.'),
                 ])
@@ -66,14 +66,14 @@ class ViewFormulaVersion extends ViewRecord
                         redirect()->to(OohxRecomputeJobResource::getUrl('view', ['record' => $job->id]));
                     } catch (\Throwable $e) {
                         Notification::make()
-                            ->title('Enqueue preview failed')
+                            ->title('Không đưa được việc xem trước vào hàng đợi')
                             ->body($e->getMessage())
                             ->danger()->persistent()->send();
                     }
                 }),
 
             Actions\Action::make('activate')
-                ->label('Activate this version')
+                ->label('Kích hoạt phiên bản này')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
                 ->visible(fn () => ! $this->record->is_active)
@@ -88,7 +88,7 @@ class ViewFormulaVersion extends ViewRecord
                 })
                 ->form([
                     Forms\Components\Checkbox::make('recompute_stale')
-                        ->label('Also enqueue recompute-stale job')
+                        ->label('Đưa luôn việc tính lại phần đã cũ vào hàng đợi')
                         ->helperText('Tự trigger bulk recompute cho screens chưa có estimate trên version mới.')
                         ->default(false),
                 ])
@@ -123,7 +123,7 @@ class ViewFormulaVersion extends ViewRecord
                         $this->refreshFormData(['is_active', 'activated_at']);
                     } catch (\Throwable $e) {
                         Notification::make()
-                            ->title('Activate failed')
+                            ->title('Kích hoạt không được')
                             ->body($e->getMessage())
                             ->danger()->send();
                     }

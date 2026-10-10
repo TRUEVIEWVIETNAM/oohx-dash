@@ -68,12 +68,12 @@ class CreateOohxCampaignEstimate extends Page
         return $form
             ->statePath('data')
             ->schema([
-                Forms\Components\Section::make('Pick screens')
+                Forms\Components\Section::make('Chọn màn hình')
                     ->icon('heroicon-o-tv')
                     ->description('Chọn danh sách biển để forecast. Service tự resolve Laravel ULID → Data Engine screen IDs.')
                     ->schema([
                         Forms\Components\Select::make('screen_ids')
-                            ->label('Screens')
+                            ->label('Màn hình')
                             ->multiple()
                             ->required()
                             ->searchable()
@@ -93,16 +93,16 @@ class CreateOohxCampaignEstimate extends Page
                             ->helperText(fn () => 'Tối đa ' . JobOrchestrator::CAMPAIGN_MAX_SCREENS . ' screens / campaign.'),
 
                         Forms\Components\Placeholder::make('screen_count_label')
-                            ->label('Total selected')
+                            ->label('Tổng đã chọn')
                             ->content(fn (Forms\Get $get) => count($get('screen_ids') ?? []) . ' screens'),
                     ]),
 
-                Forms\Components\Section::make('Duration & budget')
+                Forms\Components\Section::make('Thời lượng và ngân sách')
                     ->icon('heroicon-o-calendar-days')
                     ->columns(3)
                     ->schema([
                         Forms\Components\TextInput::make('duration_days')
-                            ->label('Duration (days)')
+                            ->label('Số ngày')
                             ->required()
                             ->numeric()
                             ->minValue(JobOrchestrator::CAMPAIGN_MIN_DURATION_DAYS)
@@ -111,36 +111,36 @@ class CreateOohxCampaignEstimate extends Page
                             ->suffix('days'),
 
                         Forms\Components\TextInput::make('total_budget')
-                            ->label('Budget (VND, optional)')
+                            ->label('Ngân sách (VND, không bắt buộc)')
                             ->numeric()
                             ->minValue(0)
                             ->prefix('VND')
                             ->helperText('Để trống → CPM = null'),
 
                         Forms\Components\TextInput::make('campaign_name')
-                            ->label('Campaign name')
+                            ->label('Tên chiến dịch')
                             ->maxLength(120)
                             ->placeholder('VD: Tết 2026 Hanoi'),
                     ]),
 
-                Forms\Components\Section::make('Notes')
+                Forms\Components\Section::make('Ghi chú')
                     ->icon('heroicon-o-pencil-square')
                     ->collapsible()
                     ->collapsed()
                     ->schema([
                         Forms\Components\Textarea::make('notes')
-                            ->label('Notes (optional)')
+                            ->label('Ghi chú (không bắt buộc)')
                             ->rows(2)
                             ->maxLength(500),
                     ]),
 
-                Forms\Components\Section::make('About the estimate')
+                Forms\Components\Section::make('Về ước lượng này')
                     ->icon('heroicon-o-information-circle')
                     ->collapsible()
                     ->collapsed()
                     ->schema([
                         Forms\Components\Placeholder::make('disclaimer')
-                            ->label('Model disclaimer')
+                            ->label('Lưu ý về mô hình')
                             ->content(new \Illuminate\Support\HtmlString(
                                 'Reach dựa trên mô hình spatial dedup simple (ST_GeoHash 150m cells × 500 viewers/day × log saturation). '
                                 . 'Numbers là <strong>directional estimate</strong>, không phải measured reality. '
@@ -154,7 +154,7 @@ class CreateOohxCampaignEstimate extends Page
     {
         return [
             Actions\Action::make('back')
-                ->label('Cancel')
+                ->label('Huỷ')
                 ->icon('heroicon-o-x-mark')
                 ->color('gray')
                 ->url(fn () => OohxCampaignEstimateResource::getUrl('index')),
@@ -186,7 +186,7 @@ class CreateOohxCampaignEstimate extends Page
             $this->redirect(OohxRecomputeJobResource::getUrl('view', ['record' => $job->id]));
         } catch (\Throwable $e) {
             Notification::make()
-                ->title('Enqueue failed')
+                ->title('Không đưa vào hàng đợi được')
                 ->body($e->getMessage())
                 ->danger()
                 ->persistent()

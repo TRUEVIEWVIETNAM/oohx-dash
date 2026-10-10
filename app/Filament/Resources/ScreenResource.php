@@ -39,7 +39,7 @@ class ScreenResource extends BaseScreenResource
     {
         return [
             SelectFilter::make('owner')
-                ->label('Media Owner')
+                ->label('Media owner')
                 ->relationship('owner', 'name')
                 ->searchable(),
         ];

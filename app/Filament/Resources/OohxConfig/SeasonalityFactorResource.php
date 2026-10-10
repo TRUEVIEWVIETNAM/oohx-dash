@@ -28,8 +28,8 @@ class SeasonalityFactorResource extends Resource
 
     protected static ?string $navigationIcon  = 'heroicon-o-sparkles';
     protected static ?string $navigationGroup = 'OOHX · Data Engine';
-    protected static ?string $navigationLabel = 'Seasonality factors';
-    protected static ?string $modelLabel      = 'Seasonality factor';
+    protected static ?string $navigationLabel = 'Hệ số mùa vụ';
+    protected static ?string $modelLabel      = 'Hệ số mùa vụ';
     protected static ?int    $navigationSort  = 75;
 
     public static function canDelete($r): bool { return false; }
@@ -40,14 +40,14 @@ class SeasonalityFactorResource extends Resource
     {
         return $form->schema([
             Forms\Components\TextInput::make('city')
-                ->label('City')
+                ->label('Tỉnh/thành')
                 ->required()
                 ->disabled(fn ($record) => (bool) $record)
                 ->dehydrated(true)
                 ->maxLength(100),
 
             Forms\Components\Select::make('month')
-                ->label('Month')
+                ->label('Tháng')
                 ->options([
                     1 => '01 · Jan', 2 => '02 · Feb', 3 => '03 · Mar', 4 => '04 · Apr',
                     5 => '05 · May', 6 => '06 · Jun', 7 => '07 · Jul', 8 => '08 · Aug',
@@ -58,7 +58,7 @@ class SeasonalityFactorResource extends Resource
                 ->dehydrated(true),
 
             Forms\Components\TextInput::make('factor')
-                ->label('Factor')
+                ->label('Hệ số')
                 ->helperText('Khoảng (0, 2]. 1.0=neutral, >1 amplify (summer peak), <1 dampen (Tet low).')
                 ->required()
                 ->numeric()
@@ -67,7 +67,7 @@ class SeasonalityFactorResource extends Resource
                 ->step(0.01),
 
             Forms\Components\Textarea::make('note')
-                ->label('Note')
+                ->label('Ghi chú')
                 ->rows(2)
                 ->maxLength(500),
         ]);
@@ -83,7 +83,7 @@ class SeasonalityFactorResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('month_label')
-                    ->label('Month')
+                    ->label('Tháng')
                     ->sortable(query: fn ($query, $direction) => $query->orderBy('month', $direction)),
 
                 Tables\Columns\TextColumn::make('factor')
@@ -144,7 +144,7 @@ class SeasonalityFactorResource extends Resource
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
-                    ->label('Add factor')
+                    ->label('Thêm hệ số')
                     ->using(function (array $data) {
                         app(ConfigManagerService::class)->updateSeasonalityFactor(
                             $data['city'],
@@ -156,13 +156,13 @@ class SeasonalityFactorResource extends Resource
                     }),
 
                 Tables\Actions\Action::make('view_heatmap')
-                    ->label('Heatmap view')
+                    ->label('Xem bản đồ nhiệt')
                     ->icon('heroicon-o-squares-2x2')
                     ->color('info')
                     ->url(fn () => Pages\SeasonalityHeatmap::getUrl()),
 
                 Tables\Actions\Action::make('seed_help')
-                    ->label('Seed defaults')
+                    ->label('Nạp giá trị mặc định')
                     ->icon('heroicon-o-command-line')
                     ->color('gray')
                     ->modalHeading('Seed defaults từ Python CLI')
@@ -172,7 +172,7 @@ class SeasonalityFactorResource extends Resource
                     )
                     ->modalContent(view('filament.resources.oohx-config.seasonality-seed-hint'))
                     ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Close'),
+                    ->modalCancelActionLabel('Đóng'),
             ])
             ->bulkActions([]);
     }

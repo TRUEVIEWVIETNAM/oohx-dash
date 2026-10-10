@@ -22,9 +22,9 @@ class OohxCollectors extends Page
 {
     protected static ?string $navigationIcon  = 'heroicon-o-cloud-arrow-down';
     protected static ?string $navigationGroup = 'OOHX · Data Engine';
-    protected static ?string $navigationLabel = 'Collectors';
+    protected static ?string $navigationLabel = 'Bộ thu dữ liệu';
     protected static ?int    $navigationSort  = 55;
-    protected static ?string $title           = 'Collectors — External data ingestion';
+    protected static ?string $title           = 'Bộ thu dữ liệu — nạp từ nguồn ngoài';
     protected static ?string $slug            = 'oohx-collectors';
 
     protected static string $view = 'filament.pages.oohx-collectors';
@@ -44,7 +44,7 @@ class OohxCollectors extends Page
     private function viewHistoryAction(): Action
     {
         return Action::make('view_history')
-            ->label('View run history')
+            ->label('Xem lịch sử chạy')
             ->icon('heroicon-o-clock')
             ->color('gray')
             ->url(fn () => route('filament.admin.resources.oohx-collector-runs.index'));
@@ -59,7 +59,7 @@ class OohxCollectors extends Page
     public function triggerAction(): Action
     {
         return Action::make('trigger')
-            ->label('Trigger collector')
+            ->label('Chạy bộ thu')
             ->icon('heroicon-o-play')
             ->color('primary')
             ->modalHeading(fn (array $arguments) => "Trigger {$arguments['collector']}?")
@@ -93,7 +93,7 @@ class OohxCollectors extends Page
         if ($supportsCity) {
             $cityOptions = app(CollectorManager::class)->cityOptionsForCollector($collectorName);
             $fields[] = Forms\Components\Select::make('city')
-                ->label('City')
+                ->label('Tỉnh/thành')
                 ->options($cityOptions)
                 ->searchable()
                 ->required()
@@ -101,8 +101,8 @@ class OohxCollectors extends Page
         }
 
         $fields[] = Forms\Components\TextInput::make('priority')
-            ->label('Priority')
-            ->helperText('Smaller = higher. 50=urgent, 100=normal, 200=background.')
+            ->label('Ưu tiên')
+            ->helperText('Số nhỏ = ưu tiên cao. 50 = gấp, 100 = thường, 200 = chạy nền.')
             ->required()
             ->numeric()
             ->minValue(1)
@@ -111,7 +111,7 @@ class OohxCollectors extends Page
 
         if ($supportsBbox) {
             $fields[] = Forms\Components\Checkbox::make('use_custom_bbox')
-                ->label('Advanced: Custom bounding box')
+                ->label('Nâng cao: khung toạ độ tự đặt')
                 ->helperText('Override default city bbox bằng tọa độ tùy chỉnh (WGS84 degrees).')
                 ->default(false)
                 ->live();
@@ -120,25 +120,25 @@ class OohxCollectors extends Page
                 ->visible(fn (Forms\Get $get) => (bool) $get('use_custom_bbox'))
                 ->schema([
                     Forms\Components\TextInput::make('bbox.min_lon')
-                        ->label('Min longitude')
+                        ->label('Kinh độ nhỏ nhất')
                         ->required(fn (Forms\Get $get) => (bool) $get('use_custom_bbox'))
                         ->numeric()
                         ->step(0.0001)
                         ->placeholder('105.70'),
                     Forms\Components\TextInput::make('bbox.min_lat')
-                        ->label('Min latitude')
+                        ->label('Vĩ độ nhỏ nhất')
                         ->required(fn (Forms\Get $get) => (bool) $get('use_custom_bbox'))
                         ->numeric()
                         ->step(0.0001)
                         ->placeholder('20.90'),
                     Forms\Components\TextInput::make('bbox.max_lon')
-                        ->label('Max longitude')
+                        ->label('Kinh độ lớn nhất')
                         ->required(fn (Forms\Get $get) => (bool) $get('use_custom_bbox'))
                         ->numeric()
                         ->step(0.0001)
                         ->placeholder('106.00'),
                     Forms\Components\TextInput::make('bbox.max_lat')
-                        ->label('Max latitude')
+                        ->label('Vĩ độ lớn nhất')
                         ->required(fn (Forms\Get $get) => (bool) $get('use_custom_bbox'))
                         ->numeric()
                         ->step(0.0001)
@@ -149,7 +149,7 @@ class OohxCollectors extends Page
         // Weather-specific: forecast_hours
         if ($collectorName === 'open_meteo_weather') {
             $fields[] = Forms\Components\TextInput::make('forecast_hours')
-                ->label('Forecast hours (optional)')
+                ->label('Số giờ dự báo (không bắt buộc)')
                 ->helperText('Leave empty để chỉ lấy current weather.')
                 ->numeric()
                 ->minValue(1)
@@ -212,7 +212,7 @@ class OohxCollectors extends Page
                 ->send();
         } catch (\Throwable $e) {
             Notification::make()
-                ->title('Trigger failed')
+                ->title('Không chạy được')
                 ->body($e->getMessage())
                 ->danger()
                 ->persistent()

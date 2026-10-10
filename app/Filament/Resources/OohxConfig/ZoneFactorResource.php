@@ -18,8 +18,8 @@ class ZoneFactorResource extends Resource
 
     protected static ?string $navigationIcon  = 'heroicon-o-map-pin';
     protected static ?string $navigationGroup = 'OOHX · Data Engine';
-    protected static ?string $navigationLabel = 'Zone factors';
-    protected static ?string $modelLabel      = 'Zone factor';
+    protected static ?string $navigationLabel = 'Hệ số khu vực';
+    protected static ?string $modelLabel      = 'Hệ số khu vực';
     protected static ?int    $navigationSort  = 73;
 
     public static function canDelete($r): bool { return false; }
@@ -29,7 +29,7 @@ class ZoneFactorResource extends Resource
     {
         return $form->schema([
             Forms\Components\TextInput::make('zone_type')
-                ->label('Zone type')
+                ->label('Loại khu vực')
                 ->helperText('Vd: entrance, escalator, food_court, checkout, facade, roadside')
                 ->required()
                 ->disabled(fn ($record) => (bool) $record)
@@ -37,7 +37,7 @@ class ZoneFactorResource extends Resource
                 ->maxLength(50),
 
             Forms\Components\TextInput::make('factor')
-                ->label('Factor')
+                ->label('Hệ số')
                 ->helperText('Khoảng (0, 2]. Multiplier áp dụng cho indoor screens theo zone.')
                 ->required()
                 ->numeric()
@@ -53,7 +53,7 @@ class ZoneFactorResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('zone_type')->label('Zone')->badge()->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('zone_type')->label('Khu vực')->badge()->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('factor')
                     ->numeric(decimalPlaces: 2)
                     ->sortable()
@@ -78,7 +78,7 @@ class ZoneFactorResource extends Resource
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
-                    ->label('Add zone')
+                    ->label('Thêm khu vực')
                     ->using(function (array $data) {
                         app(ConfigManagerService::class)->updateCoefficient(
                             'zone',

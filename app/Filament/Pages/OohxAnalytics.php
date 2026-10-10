@@ -21,9 +21,9 @@ class OohxAnalytics extends Page
 {
     protected static ?string $navigationIcon  = 'heroicon-o-chart-pie';
     protected static ?string $navigationGroup = 'OOHX · Data Engine';
-    protected static ?string $navigationLabel = 'Analytics';
+    protected static ?string $navigationLabel = 'Phân tích';
     protected static ?int    $navigationSort  = 57;
-    protected static ?string $title           = 'Data Engine — Analytics Dashboard';
+    protected static ?string $title           = 'Data Engine — bảng phân tích';
     protected static ?string $slug            = 'oohx-analytics';
 
     protected static string $view = 'filament.pages.oohx-analytics';

@@ -29,8 +29,8 @@ class OohxCollectorRunResource extends Resource
 
     protected static ?string $navigationIcon  = 'heroicon-o-clock';
     protected static ?string $navigationGroup = 'OOHX · Data Engine';
-    protected static ?string $navigationLabel = 'Collector run history';
-    protected static ?string $modelLabel      = 'Collector run';
+    protected static ?string $navigationLabel = 'Lịch sử chạy bộ thu';
+    protected static ?string $modelLabel      = 'Lần chạy bộ thu';
     protected static ?int    $navigationSort  = 67;
 
     public static function canCreate(): bool { return false; }
@@ -50,7 +50,7 @@ class OohxCollectorRunResource extends Resource
                 Tables\Columns\TextColumn::make('id')->label('#')->sortable(),
 
                 Tables\Columns\TextColumn::make('collector_name')
-                    ->label('Collector')
+                    ->label('Bộ thu')
                     ->badge()
                     ->color(fn (string $state) => config("oohx_collectors.{$state}.color", 'gray'))
                     ->formatStateUsing(fn (string $state) =>
@@ -76,13 +76,13 @@ class OohxCollectorRunResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('rows_ingested')
-                    ->label('Rows')
+                    ->label('Số dòng')
                     ->numeric(decimalPlaces: 0, thousandsSeparator: ',')
                     ->sortable()
                     ->color(fn ($state) => $state > 0 ? 'success' : 'gray'),
 
                 Tables\Columns\TextColumn::make('bytes_fetched_human')
-                    ->label('Size')
+                    ->label('Kích thước')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('priority')
@@ -90,31 +90,31 @@ class OohxCollectorRunResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('retry_count')
-                    ->label('Retries')
+                    ->label('Số lần thử lại')
                     ->numeric()
                     ->color(fn ($state) => $state > 0 ? 'warning' : 'gray')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('requested_at')
-                    ->label('Requested')
+                    ->label('Yêu cầu lúc')
                     ->dateTime()
                     ->since()
                     ->sortable()
                     ->tooltip(fn ($state) => $state?->format('Y-m-d H:i:s')),
 
                 Tables\Columns\TextColumn::make('duration_seconds')
-                    ->label('Duration')
+                    ->label('Thời lượng')
                     ->formatStateUsing(fn ($state) => $state !== null ? "{$state}s" : '—')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('requested_by')
-                    ->label('By')
+                    ->label('Bởi')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('requested_at', 'desc')
             ->filters([
                 SelectFilter::make('collector_name')
-                    ->label('Collector')
+                    ->label('Bộ thu')
                     ->options(fn () => collect(app(CollectorManager::class)->listCollectors())
                         ->mapWithKeys(fn ($meta, $name) => [$name => $meta['display_name'] ?? $name])
                         ->toArray()),
@@ -151,12 +151,12 @@ class OohxCollectorRunResource extends Resource
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\Action::make('cancel')
-                    ->label('Cancel')
+                    ->label('Huỷ')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (CollectorRun $r) => $r->is_cancellable)
                     ->requiresConfirmation()
-                    ->modalDescription('Cancel pending run. Running runs cannot be cancelled (execute to completion).')
+                    ->modalDescription('Huỷ lần chạy đang chờ. Lần chạy đang diễn ra thì không huỷ được — nó chạy tới khi xong.')
                     ->action(fn (CollectorRun $r) => self::handleCancel($r->id)),
             ])
             ->bulkActions([]);
@@ -165,10 +165,10 @@ class OohxCollectorRunResource extends Resource
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
-            Infolists\Components\Section::make('Metadata')
+            Infolists\Components\Section::make('Siêu dữ liệu')
                 ->columns(4)
                 ->schema([
-                    Infolists\Components\TextEntry::make('id')->label('Run ID'),
+                    Infolists\Components\TextEntry::make('id')->label('Mã lần chạy'),
                     Infolists\Components\TextEntry::make('collector_name')
                         ->badge()
                         ->formatStateUsing(fn (string $state) =>
@@ -177,32 +177,32 @@ class OohxCollectorRunResource extends Resource
                     Infolists\Components\TextEntry::make('status')->badge(),
                     Infolists\Components\TextEntry::make('city')->placeholder('—'),
                     Infolists\Components\TextEntry::make('priority'),
-                    Infolists\Components\TextEntry::make('retry_count')->label('Retries'),
-                    Infolists\Components\TextEntry::make('requested_by')->label('By')->columnSpan(2),
+                    Infolists\Components\TextEntry::make('retry_count')->label('Số lần thử lại'),
+                    Infolists\Components\TextEntry::make('requested_by')->label('Bởi')->columnSpan(2),
                 ]),
 
-            Infolists\Components\Section::make('Result')
+            Infolists\Components\Section::make('Kết quả')
                 ->columns(3)
                 ->schema([
                     Infolists\Components\TextEntry::make('rows_ingested')
                         ->numeric()
                         ->weight('bold'),
                     Infolists\Components\TextEntry::make('bytes_fetched_human')
-                        ->label('Bytes fetched'),
+                        ->label('Dung lượng đã tải'),
                     Infolists\Components\TextEntry::make('duration_seconds')
-                        ->label('Duration')
+                        ->label('Thời lượng')
                         ->formatStateUsing(fn ($state) => $state !== null ? "{$state}s" : '—'),
                 ]),
 
             // Stats breakdown - generic (handle cả POI schema lẫn weather schema)
-            Infolists\Components\Section::make('Stats breakdown')
+            Infolists\Components\Section::make('Số liệu chi tiết')
                 ->visible(fn ($record) => ! empty($record->stats))
                 ->schema([
                     Infolists\Components\ViewEntry::make('stats_widget')
                         ->view('filament.resources.oohx-collector-run.stats-widget'),
                 ]),
 
-            Infolists\Components\Section::make('Timing')
+            Infolists\Components\Section::make('Thời gian')
                 ->columns(3)
                 ->schema([
                     Infolists\Components\TextEntry::make('requested_at')->dateTime()->since(),
@@ -210,7 +210,7 @@ class OohxCollectorRunResource extends Resource
                     Infolists\Components\TextEntry::make('finished_at')->dateTime()->placeholder('—'),
                 ]),
 
-            Infolists\Components\Section::make('Params')
+            Infolists\Components\Section::make('Tham số')
                 ->collapsible()
                 ->schema([
                     Infolists\Components\TextEntry::make('params_json')
@@ -221,7 +221,7 @@ class OohxCollectorRunResource extends Resource
                         ->extraAttributes(['class' => 'font-mono text-xs whitespace-pre-wrap break-all']),
                 ]),
 
-            Infolists\Components\Section::make('Error')
+            Infolists\Components\Section::make('Lỗi')
                 ->visible(fn ($record) => ! empty($record->error_message))
                 ->schema([
                     Infolists\Components\TextEntry::make('error_message')
@@ -268,7 +268,7 @@ class OohxCollectorRunResource extends Resource
             app(CollectorManager::class)->cancel($runId);
             Notification::make()->title("Run #{$runId} cancelled")->success()->send();
         } catch (\Throwable $e) {
-            Notification::make()->title('Cancel failed')->body($e->getMessage())->danger()->send();
+            Notification::make()->title('Huỷ không được')->body($e->getMessage())->danger()->send();
         }
     }
 }

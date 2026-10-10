@@ -30,8 +30,8 @@ class FormulaVersionResource extends Resource
 
     protected static ?string $navigationIcon  = 'heroicon-o-archive-box';
     protected static ?string $navigationGroup = 'OOHX · Data Engine';
-    protected static ?string $navigationLabel = 'Formula versions';
-    protected static ?string $modelLabel      = 'Formula version';
+    protected static ?string $navigationLabel = 'Phiên bản công thức';
+    protected static ?string $modelLabel      = 'Phiên bản công thức';
     protected static ?int    $navigationSort  = 70;
 
     public static function canCreate(): bool { return false; } // create qua publishVersion action only
@@ -50,14 +50,14 @@ class FormulaVersionResource extends Resource
                 Tables\Columns\TextColumn::make('id')->label('#')->sortable(),
 
                 Tables\Columns\TextColumn::make('tag')
-                    ->label('Tag')
+                    ->label('Thẻ')
                     ->searchable()
                     ->sortable()
                     ->badge()
                     ->color(fn ($record) => $record->is_active ? 'success' : 'gray'),
 
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label('Đang bật')
                     ->boolean()
                     ->trueColor('success')
                     ->falseColor('gray'),
@@ -68,17 +68,17 @@ class FormulaVersionResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_by')
-                    ->label('Published by')
+                    ->label('Người công bố')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Published')
+                    ->label('Đã công bố')
                     ->dateTime()
                     ->since()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('activated_at')
-                    ->label('Activated')
+                    ->label('Đã kích hoạt')
                     ->dateTime()
                     ->since()
                     ->placeholder('—')
@@ -87,28 +87,28 @@ class FormulaVersionResource extends Resource
             ->defaultSort('created_at', 'desc')
             ->headerActions([
                 Tables\Actions\Action::make('publish_version')
-                    ->label('Publish current state')
+                    ->label('Công bố trạng thái hiện tại')
                     ->icon('heroicon-o-archive-box-arrow-down')
                     ->color('primary')
                     ->modalHeading('Publish formula version mới')
                     ->modalDescription('Snapshot toàn bộ config.* hiện tại. Có thể activate sau publish.')
                     ->form([
                         Forms\Components\TextInput::make('tag')
-                            ->label('Version tag')
+                            ->label('Nhãn phiên bản')
                             ->required()
                             ->placeholder('vd: v-2026-05-15')
                             ->helperText('Unique identifier — không trùng version cũ.')
                             ->maxLength(50),
 
                         Forms\Components\Textarea::make('description')
-                            ->label('Description')
+                            ->label('Mô tả')
                             ->required()
                             ->placeholder('Lý do publish version này')
                             ->rows(3)
                             ->maxLength(500),
 
                         Forms\Components\Toggle::make('activate_immediately')
-                            ->label('Activate ngay sau publish')
+                            ->label('Kích hoạt ngay sau khi công bố')
                             ->helperText('Bật = Python sẽ dùng formula mới trong ≤ 5 phút.')
                             ->default(false),
                     ])
@@ -131,7 +131,7 @@ class FormulaVersionResource extends Resource
                             }
                         } catch (\Throwable $e) {
                             Notification::make()
-                                ->title('Publish failed')
+                                ->title('Công bố không được')
                                 ->body($e->getMessage())
                                 ->danger()->persistent()->send();
                         }
@@ -142,7 +142,7 @@ class FormulaVersionResource extends Resource
 
                 // Phase 3.A — Preview impact (dry-run so sánh với active version)
                 Tables\Actions\Action::make('preview')
-                    ->label('Preview impact')
+                    ->label('Xem trước tác động')
                     ->icon('heroicon-o-magnifying-glass-plus')
                     ->color('info')
                     ->visible(fn (FormulaVersion $record) => ! $record->is_active)
@@ -150,27 +150,27 @@ class FormulaVersionResource extends Resource
                     ->modalDescription('Dry-run so sánh estimates — sample N screens. KHÔNG touch output.* table. Chỉ in-memory comparison.')
                     ->form([
                         Forms\Components\Select::make('city')
-                            ->label('City filter (optional)')
+                            ->label('Lọc theo tỉnh/thành (không bắt buộc)')
                             ->options(fn () => \App\Models\Oohx\Screen::query()
                                 ->whereNotNull('city')
                                 ->distinct()
                                 ->orderBy('city')
                                 ->pluck('city', 'city')
                                 ->toArray())
-                            ->placeholder('All cities')
+                            ->placeholder('Tất cả tỉnh/thành')
                             ->searchable(),
 
                         Forms\Components\TextInput::make('sample_size')
-                            ->label('Sample size')
+                            ->label('Cỡ mẫu')
                             ->required()
                             ->numeric()
                             ->minValue(1)
                             ->maxValue(\App\Services\Oohx\JobOrchestrator::PREVIEW_MAX_SAMPLE_SIZE)
                             ->default(100)
-                            ->helperText('Max 2000. Default 100 recommended cho main market.'),
+                            ->helperText('Tối đa 2000. Khuyến nghị để 100 cho thị trường chính.'),
 
                         Forms\Components\TextInput::make('seed')
-                            ->label('Seed (optional)')
+                            ->label('Giá trị nạp (không bắt buộc)')
                             ->numeric()
                             ->placeholder('vd: 42')
                             ->helperText('Reproducible — cùng seed → cùng sample screens.'),
@@ -196,7 +196,7 @@ class FormulaVersionResource extends Resource
                             );
                         } catch (\Throwable $e) {
                             Notification::make()
-                                ->title('Enqueue preview failed')
+                                ->title('Không đưa được việc xem trước vào hàng đợi')
                                 ->body($e->getMessage())
                                 ->danger()
                                 ->persistent()
@@ -205,7 +205,7 @@ class FormulaVersionResource extends Resource
                     }),
 
                 Tables\Actions\Action::make('activate')
-                    ->label('Activate')
+                    ->label('Kích hoạt')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(fn (FormulaVersion $record) => ! $record->is_active)
@@ -222,7 +222,7 @@ class FormulaVersionResource extends Resource
                     })
                     ->form([
                         Forms\Components\Checkbox::make('recompute_stale')
-                            ->label('Also enqueue recompute-stale job')
+                            ->label('Đưa luôn việc tính lại phần đã cũ vào hàng đợi')
                             ->helperText('Tự trigger bulk recompute cho screens chưa có estimate trên version mới. Khuyến nghị cho production changes.')
                             ->default(false),
                     ])
@@ -259,7 +259,7 @@ class FormulaVersionResource extends Resource
                             }
                         } catch (\Throwable $e) {
                             Notification::make()
-                                ->title('Activate failed')
+                                ->title('Kích hoạt không được')
                                 ->body($e->getMessage())
                                 ->danger()->persistent()->send();
                         }
@@ -271,14 +271,14 @@ class FormulaVersionResource extends Resource
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
-            Infolists\Components\Section::make('Version metadata')
+            Infolists\Components\Section::make('Siêu dữ liệu phiên bản')
                 ->columns(3)
                 ->schema([
                     Infolists\Components\TextEntry::make('tag')->badge(),
                     Infolists\Components\IconEntry::make('is_active')->boolean(),
                     Infolists\Components\TextEntry::make('id')->label('ID'),
                     Infolists\Components\TextEntry::make('description')->columnSpan(2),
-                    Infolists\Components\TextEntry::make('created_by')->label('Published by'),
+                    Infolists\Components\TextEntry::make('created_by')->label('Người công bố'),
                     Infolists\Components\TextEntry::make('created_at')->dateTime(),
                     Infolists\Components\TextEntry::make('activated_at')->dateTime()->placeholder('—'),
                 ]),

@@ -22,9 +22,9 @@ class OohxHealth extends Page
 {
     protected static ?string $navigationIcon  = 'heroicon-o-heart';
     protected static ?string $navigationGroup = 'OOHX · Data Engine';
-    protected static ?string $navigationLabel = 'Health Monitor';
+    protected static ?string $navigationLabel = 'Theo dõi sức khoẻ';
     protected static ?int    $navigationSort  = 56;
-    protected static ?string $title           = 'Data Engine — Health Monitor';
+    protected static ?string $title           = 'Data Engine — theo dõi sức khoẻ';
     protected static ?string $slug            = 'oohx-health';
 
     protected static string $view = 'filament.pages.oohx-health';
@@ -77,7 +77,7 @@ class OohxHealth extends Page
     {
         return [
             Action::make('refresh')
-                ->label('Fetch latest digest')
+                ->label('Lấy bản tóm lược mới nhất')
                 ->icon('heroicon-o-arrow-path')
                 ->color('primary')
                 ->action(function () {
@@ -87,21 +87,21 @@ class OohxHealth extends Page
                         $this->loadDigest();
 
                         Notification::make()
-                            ->title('Digest refreshed')
+                            ->title('Đã làm mới bản tóm lược')
                             ->body($this->digestResult
                                 ? "Age: {$this->digestResult['age_minutes']} min"
                                 : 'No digest file available yet.')
                             ->success()->send();
                     } catch (\Throwable $e) {
                         Notification::make()
-                            ->title('Refresh failed')
+                            ->title('Làm mới không được')
                             ->body($e->getMessage())
                             ->danger()->send();
                     }
                 }),
 
             Action::make('viewRaw')
-                ->label('View raw JSON')
+                ->label('Xem JSON thô')
                 ->icon('heroicon-o-code-bracket')
                 ->color('gray')
                 ->modalWidth('4xl')
@@ -110,7 +110,7 @@ class OohxHealth extends Page
                     'path'   => $this->digestResult['path'] ?? null,
                 ]))
                 ->modalSubmitAction(false)
-                ->modalCancelActionLabel('Close')
+                ->modalCancelActionLabel('Đóng')
                 ->visible(fn () => $this->digestResult !== null),
         ];
     }

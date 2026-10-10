@@ -49,7 +49,7 @@ class RegistryStatsWidget extends BaseWidget
                 ->color($onlineScreens > 0 ? 'success' : 'gray'),
 
             Stat::make('Programmatic Screens', number_format($programmatic))
-                ->description('RTB enabled')
+                ->description('Bật RTB')
                 ->descriptionIcon('heroicon-m-bolt')
                 ->color('primary'),
 
@@ -59,7 +59,7 @@ class RegistryStatsWidget extends BaseWidget
                 ->color('success'),
 
             Stat::make('Avg CPM (30d)', '$'.number_format($avgCpm, 2))
-                ->description('USD per 1,000 impressions')
+                ->description('USD cho 1.000 lượt hiển thị')
                 ->descriptionIcon('heroicon-m-currency-dollar')
                 ->color('warning'),
         ];

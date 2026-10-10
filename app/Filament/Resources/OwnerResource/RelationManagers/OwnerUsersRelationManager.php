@@ -16,7 +16,7 @@ class OwnerUsersRelationManager extends RelationManager
 {
     protected static string $relationship = 'users';  // Owner->users() hasMany OwnerUser
 
-    protected static ?string $title = 'Publisher Users';
+    protected static ?string $title = 'Người dùng phía media owner';
     protected static ?string $icon  = 'heroicon-o-users';
 
     // ── Form ─────────────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ class OwnerUsersRelationManager extends RelationManager
                     ->columnSpan(2),
 
                 Forms\Components\Select::make('role')
-                    ->label('Role')
+                    ->label('Vai trò')
                     ->options(fn() => OwnerUser::assignableRolesFor(auth()->user()))
                     ->default('read_only')
                     ->required()
@@ -70,10 +70,10 @@ class OwnerUsersRelationManager extends RelationManager
             ->recordTitleAttribute('user.email')
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Name')
+                    ->label('Tên')
                     ->searchable()
                     ->sortable()
-                    ->placeholder('(no name)'),
+                    ->placeholder('(chưa có tên)'),
 
                 Tables\Columns\TextColumn::make('user.email')
                     ->label('Email')
@@ -92,19 +92,19 @@ class OwnerUsersRelationManager extends RelationManager
                     ]),
 
                 Tables\Columns\TextColumn::make('allowed_network_ids')
-                    ->label('Networks')
+                    ->label('Mạng lưới')
                     ->formatStateUsing(fn($state) => $state ? count($state) . ' restricted' : 'All')
                     ->badge()
                     ->color(fn($state) => $state ? 'warning' : 'success'),
 
                 Tables\Columns\TextColumn::make('user.last_login_at')
-                    ->label('Last Login')
+                    ->label('Lần đăng nhập cuối')
                     ->dateTime()
-                    ->placeholder('Never')
+                    ->placeholder('Không bao giờ')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Added')
+                    ->label('Thêm lúc')
                     ->date()
                     ->sortable()
                     ->toggleable(),
@@ -112,18 +112,18 @@ class OwnerUsersRelationManager extends RelationManager
             ->defaultSort('created_at', 'desc')
             ->headerActions([
                 Tables\Actions\Action::make('invite')
-                    ->label('Invite User')
+                    ->label('Mời thành viên')
                     ->icon('heroicon-o-user-plus')
                     ->color('primary')
                     ->form([
                         Forms\Components\TextInput::make('email')
-                            ->label('Email address')
+                            ->label('Địa chỉ email')
                             ->email()
                             ->required()
                             ->placeholder('user@example.com'),
 
                         Forms\Components\Select::make('role')
-                            ->label('Role')
+                            ->label('Vai trò')
                             ->options(fn() => OwnerUser::assignableRolesFor(auth()->user()))
                             ->default('read_only')
                             ->required()
@@ -168,12 +168,12 @@ class OwnerUsersRelationManager extends RelationManager
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('edit_role')
-                        ->label('Edit Role')
+                        ->label('Sửa vai trò')
                         ->icon('heroicon-o-pencil-square')
                         ->color('gray')
                         ->form(fn(OwnerUser $record) => [
                             Forms\Components\Select::make('role')
-                                ->label('Role')
+                                ->label('Vai trò')
                                 ->options(fn() => OwnerUser::assignableRolesFor(auth()->user()))
                                 ->default($record->role)
                                 ->required()
@@ -204,7 +204,7 @@ class OwnerUsersRelationManager extends RelationManager
                         }),
 
                     Tables\Actions\Action::make('reset_password')
-                        ->label('Reset Password')
+                        ->label('Đặt lại mật khẩu')
                         ->icon('heroicon-o-key')
                         ->color('warning')
                         ->requiresConfirmation()
@@ -221,7 +221,7 @@ class OwnerUsersRelationManager extends RelationManager
                         }),
 
                     Tables\Actions\Action::make('remove')
-                        ->label('Remove')
+                        ->label('Xoá khỏi team')
                         ->icon('heroicon-o-user-minus')
                         ->color('danger')
                         ->requiresConfirmation()

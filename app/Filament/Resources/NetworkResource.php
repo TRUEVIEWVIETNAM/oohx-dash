@@ -31,7 +31,7 @@ class NetworkResource extends BaseNetworkResource
     protected static function ownerFormField(): Forms\Components\Component
     {
         return Forms\Components\Select::make('owner_id')
-            ->label('Media Owner')
+            ->label('Media owner')
             ->relationship('owner', 'name')
             ->searchable()
             ->preload()
@@ -44,7 +44,7 @@ class NetworkResource extends BaseNetworkResource
     {
         return [
             Tables\Columns\TextColumn::make('owner.name')
-                ->label('Owner')
+                ->label('Chủ sở hữu')
                 ->sortable()
                 ->searchable()
                 ->toggleable(),
@@ -57,7 +57,7 @@ class NetworkResource extends BaseNetworkResource
     {
         return [
             SelectFilter::make('owner')
-                ->label('Media Owner')
+                ->label('Media owner')
                 ->relationship('owner', 'name')
                 ->searchable(),
         ];

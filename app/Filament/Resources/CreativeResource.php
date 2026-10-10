@@ -17,9 +17,9 @@ class CreativeResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-photo';
 
-    protected static ?string $navigationGroup = 'Marketplace';
+    protected static ?string $navigationGroup = 'Sàn';
 
-    protected static ?string $navigationLabel = 'Creatives';
+    protected static ?string $navigationLabel = 'Nội dung quảng cáo';
 
     protected static ?int $navigationSort = 2;
 
@@ -45,7 +45,7 @@ class CreativeResource extends Resource
                 // công khai: đổi chỗ lưu mà quên cột này thì bảng duyệt hiện
                 // toàn ảnh vỡ, nên hai thứ phải đi cùng nhau.
                 Tables\Columns\ImageColumn::make('file_url')
-                    ->label('Preview')
+                    ->label('Xem trước')
                     ->width(60)
                     ->height(45)
                     ->defaultImageUrl('https://placehold.co/60x45/F5F5F7/6E6E73?text=—'),
@@ -56,7 +56,7 @@ class CreativeResource extends Resource
                     ->limit(35),
 
                 Tables\Columns\TextColumn::make('campaign.code')
-                    ->label('Campaign')
+                    ->label('Chiến dịch')
                     ->sortable()
                     ->url(fn (Creative $r) => CampaignResource::getUrl('view', ['record' => $r->campaign_id])),
 
@@ -104,7 +104,7 @@ class CreativeResource extends Resource
                     ->formatStateUsing(fn (string $state): string => Creative::STATUS_LABELS[$state] ?? $state),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Upload')
+                    ->label('Tải lên')
                     ->dateTime('d/m H:i')
                     ->sortable(),
             ])

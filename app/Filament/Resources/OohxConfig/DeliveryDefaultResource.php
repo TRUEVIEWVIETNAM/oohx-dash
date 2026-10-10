@@ -18,8 +18,8 @@ class DeliveryDefaultResource extends Resource
 
     protected static ?string $navigationIcon  = 'heroicon-o-adjustments-horizontal';
     protected static ?string $navigationGroup = 'OOHX · Data Engine';
-    protected static ?string $navigationLabel = 'Delivery defaults';
-    protected static ?string $modelLabel      = 'Delivery default';
+    protected static ?string $navigationLabel = 'Mặc định phân phối';
+    protected static ?string $modelLabel      = 'Mặc định phân phối';
     protected static ?int    $navigationSort  = 74;
 
     public static function canDelete($r): bool { return false; }
@@ -29,16 +29,16 @@ class DeliveryDefaultResource extends Resource
     {
         return $form->schema([
             Forms\Components\Select::make('key')
-                ->label('Key')
+                ->label('Khoá')
                 ->options(array_combine(DeliveryDefault::KEYS, DeliveryDefault::KEYS))
-                ->helperText('Whitelist key Data Engine recognise. Phase 4.1+4.2.1 added 6 new keys.')
+                ->helperText('Khoá nằm trong danh sách cho phép của Data Engine. Giai đoạn 4.1 và 4.2.1 thêm 6 khoá mới.')
                 ->required()
                 ->disabled(fn ($record) => (bool) $record)
                 ->dehydrated(true)
                 ->live(),
 
             Forms\Components\TextInput::make('value')
-                ->label('Value')
+                ->label('Giá trị')
                 ->helperText(function (Forms\Get $get) {
                     $key = $get('key');
                     if (! $key) return 'Chọn key trước để xem range hợp lệ.';
@@ -52,7 +52,7 @@ class DeliveryDefaultResource extends Resource
                 ->step(0.001),
 
             Forms\Components\Textarea::make('description')
-                ->label('Description')
+                ->label('Mô tả')
                 ->helperText('Giải thích ý nghĩa value (tránh confuse khi audit).')
                 ->rows(2)
                 ->maxLength(500),
@@ -85,7 +85,7 @@ class DeliveryDefaultResource extends Resource
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
-                    ->label('Add default')
+                    ->label('Thêm giá trị mặc định')
                     ->using(function (array $data) {
                         app(ConfigManagerService::class)->updateCoefficient(
                             'delivery_default',

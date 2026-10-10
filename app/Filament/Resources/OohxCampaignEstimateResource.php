@@ -31,8 +31,8 @@ class OohxCampaignEstimateResource extends Resource
 
     protected static ?string $navigationIcon  = 'heroicon-o-megaphone';
     protected static ?string $navigationGroup = 'OOHX · Data Engine';
-    protected static ?string $navigationLabel = 'Campaign Planner';
-    protected static ?string $modelLabel      = 'Campaign';
+    protected static ?string $navigationLabel = 'Lập kế hoạch chiến dịch';
+    protected static ?string $modelLabel      = 'Chiến dịch';
     protected static ?int    $navigationSort  = 60;
 
     public static function canEdit($r): bool { return false; }
@@ -52,14 +52,14 @@ class OohxCampaignEstimateResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('campaign_name')
-                    ->label('Campaign')
+                    ->label('Chiến dịch')
                     ->searchable()
                     ->wrap()
                     ->limit(40)
                     ->default('—'),
 
                 Tables\Columns\TextColumn::make('screen_count')
-                    ->label('Screens')
+                    ->label('Màn hình')
                     ->alignCenter()
                     ->getStateUsing(fn (CampaignEstimate $r) => $r->screen_count
                         . ($r->screens_missing_estimate
@@ -67,23 +67,23 @@ class OohxCampaignEstimateResource extends Resource
                             : '')),
 
                 Tables\Columns\TextColumn::make('duration_days')
-                    ->label('Duration')
+                    ->label('Thời lượng')
                     ->formatStateUsing(fn (?int $state) => $state ? "{$state} days" : '—')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('total_impressions_for_duration')
-                    ->label('Total imps')
+                    ->label('Tổng lượt HT')
                     ->numeric(decimalPlaces: 0, thousandsSeparator: ',')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('estimated_unique_reach')
-                    ->label('Reach')
+                    ->label('Tiếp cận')
                     ->numeric(decimalPlaces: 0, thousandsSeparator: ',')
-                    ->tooltip('Spatial dedup via ST_GeoHash(7). Approximate.')
+                    ->tooltip('Lọc trùng theo vị trí bằng ST_GeoHash(7). Chỉ là xấp xỉ.')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('estimated_frequency')
-                    ->label('Freq')
+                    ->label('Tần suất')
                     ->badge()
                     ->formatStateUsing(fn (?float $state) => $state !== null
                         ? number_format($state, 1) . '×'
@@ -93,7 +93,7 @@ class OohxCampaignEstimateResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('total_budget')
-                    ->label('Budget')
+                    ->label('Ngân sách')
                     ->money('VND')
                     ->default('—')
                     ->toggleable(),
@@ -105,7 +105,7 @@ class OohxCampaignEstimateResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('avg_confidence')
-                    ->label('Confidence')
+                    ->label('Độ tin cậy')
                     ->badge()
                     ->formatStateUsing(fn (?float $state) => $state !== null
                         ? number_format($state, 2)
@@ -114,11 +114,11 @@ class OohxCampaignEstimateResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('formula_version_id')
-                    ->label('Formula')
+                    ->label('Công thức')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('computed_at')
-                    ->label('Computed')
+                    ->label('Tính lúc')
                     ->dateTime()
                     ->since()
                     ->sortable(),
@@ -126,7 +126,7 @@ class OohxCampaignEstimateResource extends Resource
             ->defaultSort('computed_at', 'desc')
             ->filters([
                 SelectFilter::make('duration_bucket')
-                    ->label('Duration')
+                    ->label('Thời lượng')
                     ->options([
                         'short'  => '≤ 7 days',
                         'medium' => '8 – 30 days',
@@ -140,7 +140,7 @@ class OohxCampaignEstimateResource extends Resource
                     }),
 
                 SelectFilter::make('confidence_tier')
-                    ->label('Confidence')
+                    ->label('Độ tin cậy')
                     ->options([
                         'high' => 'High (≥ 0.7)',
                         'mid'  => 'Medium (0.5 – 0.7)',
@@ -165,31 +165,31 @@ class OohxCampaignEstimateResource extends Resource
     {
         return $infolist->schema([
             // ── Campaign meta ─────────────────────────────────────────
-            Infolists\Components\Section::make('Campaign')
+            Infolists\Components\Section::make('Chiến dịch')
                 ->icon('heroicon-o-megaphone')
                 ->columns(3)
                 ->schema([
                     Infolists\Components\TextEntry::make('id')
-                        ->label('Campaign ID')
+                        ->label('Mã chiến dịch')
                         ->copyable(),
                     Infolists\Components\TextEntry::make('campaign_name')
-                        ->label('Name')
+                        ->label('Tên')
                         ->default('—')
                         ->columnSpan(2),
                     Infolists\Components\TextEntry::make('duration_days')
-                        ->label('Duration')
+                        ->label('Thời lượng')
                         ->suffix(' days'),
                     Infolists\Components\TextEntry::make('screen_count')
-                        ->label('Total screens')
+                        ->label('Tổng số màn hình')
                         ->getStateUsing(fn ($record) => $record->screen_count),
                     Infolists\Components\TextEntry::make('computed_at')
-                        ->label('Computed')
+                        ->label('Tính lúc')
                         ->dateTime()
                         ->since(),
                 ]),
 
             // ── Warnings banner (handoff §6.2) ─────────────────────────
-            Infolists\Components\Section::make('Warnings')
+            Infolists\Components\Section::make('Cảnh báo')
                 ->icon('heroicon-o-exclamation-triangle')
                 ->iconColor('warning')
                 ->columns(1)
@@ -199,21 +199,21 @@ class OohxCampaignEstimateResource extends Resource
                     || ($record->avg_confidence !== null && $record->avg_confidence < 0.5))
                 ->schema([
                     Infolists\Components\TextEntry::make('missing_screens_warning')
-                        ->label('Missing data')
+                        ->label('Thiếu dữ liệu')
                         ->badge()
                         ->color('warning')
                         ->default('—')
                         ->visible(fn ($record) => ($record->screens_missing_estimate ?? 0) > 0),
 
                     Infolists\Components\TextEntry::make('frequency_warning')
-                        ->label('Frequency')
+                        ->label('Tần suất')
                         ->badge()
                         ->color(fn ($record) => $record->frequency_color)
                         ->default('—')
                         ->visible(fn ($record) => ($record->estimated_frequency ?? 0) > 100),
 
                     Infolists\Components\TextEntry::make('avg_confidence_warning')
-                        ->label('Low confidence')
+                        ->label('Độ tin cậy thấp')
                         ->badge()
                         ->color('danger')
                         ->getStateUsing(fn ($record) => $record->avg_confidence !== null && $record->avg_confidence < 0.5
@@ -223,43 +223,43 @@ class OohxCampaignEstimateResource extends Resource
                 ]),
 
             // ── Core metrics ──────────────────────────────────────────
-            Infolists\Components\Section::make('Forecast metrics')
+            Infolists\Components\Section::make('Số liệu dự báo')
                 ->icon('heroicon-o-chart-bar')
                 ->columns(4)
                 ->schema([
                     Infolists\Components\TextEntry::make('total_daily_impressions')
-                        ->label('Daily impressions')
+                        ->label('Lượt hiển thị mỗi ngày')
                         ->numeric(decimalPlaces: 0),
                     Infolists\Components\TextEntry::make('total_impressions_for_duration')
-                        ->label('Total impressions')
+                        ->label('Tổng lượt hiển thị')
                         ->numeric(decimalPlaces: 0)
                         ->weight('bold')
-                        ->helperText('Daily × duration'),
+                        ->helperText('Mỗi ngày × số ngày'),
                     Infolists\Components\TextEntry::make('estimated_unique_reach')
-                        ->label('Unique reach')
+                        ->label('Số người riêng biệt')
                         ->numeric(decimalPlaces: 0)
-                        ->helperText('Spatial dedup'),
+                        ->helperText('Lọc trùng theo vị trí'),
                     Infolists\Components\TextEntry::make('estimated_frequency')
-                        ->label('Frequency')
+                        ->label('Tần suất')
                         ->badge()
                         ->formatStateUsing(fn (?float $state) => $state !== null
                             ? number_format($state, 1) . '×'
                             : '—')
                         ->color(fn ($record) => $record->frequency_color)
-                        ->helperText('Impr / reach'),
+                        ->helperText('Lượt HT / tiếp cận'),
 
                     Infolists\Components\TextEntry::make('unique_geohash_cells')
-                        ->label('Distinct areas')
+                        ->label('Số vùng riêng biệt')
                         ->numeric()
-                        ->helperText('ST_GeoHash(7) ≈ 150m cells'),
+                        ->helperText('Ô ST_GeoHash(7) rộng khoảng 150m'),
                     Infolists\Components\TextEntry::make('screens_with_estimate')
-                        ->label('Screens with data'),
+                        ->label('Màn hình có dữ liệu'),
                     Infolists\Components\TextEntry::make('screens_missing_estimate')
-                        ->label('Screens missing data')
+                        ->label('Màn hình thiếu dữ liệu')
                         ->badge()
                         ->color(fn ($state) => ($state ?? 0) > 0 ? 'warning' : 'gray'),
                     Infolists\Components\TextEntry::make('avg_confidence')
-                        ->label('Avg confidence')
+                        ->label('Độ tin cậy trung bình')
                         ->badge()
                         ->formatStateUsing(fn (?float $state) => $state !== null
                             ? number_format($state, 2)
@@ -268,22 +268,22 @@ class OohxCampaignEstimateResource extends Resource
                 ]),
 
             // ── Budget / CPM ──────────────────────────────────────────
-            Infolists\Components\Section::make('Budget & CPM')
+            Infolists\Components\Section::make('Ngân sách và CPM')
                 ->icon('heroicon-o-banknotes')
                 ->columns(2)
                 ->visible(fn ($record) => $record->total_budget > 0)
                 ->schema([
                     Infolists\Components\TextEntry::make('total_budget')
-                        ->label('Total budget')
+                        ->label('Tổng ngân sách')
                         ->money('VND'),
                     Infolists\Components\TextEntry::make('estimated_cpm')
-                        ->label('Effective CPM')
+                        ->label('CPM thực tế')
                         ->money('VND')
-                        ->helperText('Budget / (Impressions / 1000)'),
+                        ->helperText('Ngân sách / (Lượt hiển thị / 1000)'),
                 ]),
 
             // ── Disclaimer (handoff §7.4) ──────────────────────────────
-            Infolists\Components\Section::make('About the model')
+            Infolists\Components\Section::make('Về mô hình')
                 ->icon('heroicon-o-information-circle')
                 ->collapsible()
                 ->collapsed()
@@ -297,12 +297,12 @@ class OohxCampaignEstimateResource extends Resource
                         )
                         ->columnSpanFull(),
                     Infolists\Components\TextEntry::make('formula_version_id')
-                        ->label('Formula version ID')
+                        ->label('Mã phiên bản công thức')
                         ->default('—'),
                 ]),
 
             // ── Raw payload (collapsed) ────────────────────────────────
-            Infolists\Components\Section::make('Screen IDs (Data Engine bigint)')
+            Infolists\Components\Section::make('Mã màn hình (bigint của Data Engine)')
                 ->icon('heroicon-o-list-bullet')
                 ->collapsible()
                 ->collapsed()

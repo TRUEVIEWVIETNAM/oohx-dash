@@ -34,7 +34,7 @@ class ListVietnamProvinces extends ListRecords
                 ->requiresConfirmation()
                 ->modalHeading('Seed 34 tỉnh/thành phố (2025)')
                 ->modalDescription('Sẽ xóa dữ liệu tỉnh/thành cũ và seed lại 8 vùng + 34 tỉnh/thành theo địa giới hành chính mới từ 01/07/2025. Tiếp tục?')
-                ->modalSubmitActionLabel('Seed ngay')
+                ->modalSubmitActionLabel('Nạp ngay')
                 ->modalCancelActionLabel('Hủy')
                 ->visible($provinceCount === 0)
                 ->action(function () {

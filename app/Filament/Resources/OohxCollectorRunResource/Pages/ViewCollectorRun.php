@@ -19,12 +19,12 @@ class ViewCollectorRun extends ViewRecord
     {
         return [
             Actions\Action::make('cancel')
-                ->label('Cancel')
+                ->label('Huỷ')
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->visible(fn () => $this->record->is_cancellable)
                 ->requiresConfirmation()
-                ->modalDescription('Cancel pending run.')
+                ->modalDescription('Huỷ lần chạy đang chờ.')
                 ->action(function () {
                     OohxCollectorRunResource::handleCancel($this->record->id);
                     $this->refreshFormData(['status', 'finished_at']);

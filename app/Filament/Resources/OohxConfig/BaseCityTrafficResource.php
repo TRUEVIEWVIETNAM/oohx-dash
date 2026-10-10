@@ -24,8 +24,8 @@ class BaseCityTrafficResource extends Resource
 
     protected static ?string $navigationIcon  = 'heroicon-o-building-office-2';
     protected static ?string $navigationGroup = 'OOHX · Data Engine';
-    protected static ?string $navigationLabel = 'City baseline traffic';
-    protected static ?string $modelLabel      = 'City baseline';
+    protected static ?string $navigationLabel = 'Lưu lượng nền theo tỉnh/thành';
+    protected static ?string $modelLabel      = 'Mức nền theo tỉnh/thành';
     protected static ?int    $navigationSort  = 71;
 
     public static function canDelete($r): bool { return false; }
@@ -36,14 +36,14 @@ class BaseCityTrafficResource extends Resource
     {
         return $form->schema([
             Forms\Components\TextInput::make('city')
-                ->label('City')
+                ->label('Tỉnh/thành')
                 ->required()
                 ->disabled(fn ($record) => (bool) $record) // PK không edit được sau create
                 ->dehydrated(true)
                 ->maxLength(100),
 
             Forms\Components\TextInput::make('baseline_passby')
-                ->label('Baseline daily passby')
+                ->label('Lượt qua điểm mỗi ngày (mức nền)')
                 ->helperText('Khoảng [0, 1,000,000]. Dùng làm điểm xuất phát cho công thức outdoor.')
                 ->required()
                 ->numeric()
@@ -63,28 +63,28 @@ class BaseCityTrafficResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('city')
-                    ->label('City')
+                    ->label('Tỉnh/thành')
                     ->searchable()
                     ->sortable()
                     ->badge(),
 
                 Tables\Columns\TextColumn::make('baseline_passby')
-                    ->label('Baseline')
+                    ->label('Mức nền')
                     ->numeric(decimalPlaces: 0, thousandsSeparator: ',')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('note')
-                    ->label('Note')
+                    ->label('Ghi chú')
                     ->wrap()
                     ->limit(60)
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('updated_by')
-                    ->label('Updated by')
+                    ->label('Người sửa')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label('Cập nhật lúc')
                     ->dateTime()
                     ->since()
                     ->sortable(),
@@ -109,7 +109,7 @@ class BaseCityTrafficResource extends Resource
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
-                    ->label('Add city')
+                    ->label('Thêm tỉnh/thành')
                     ->using(function (array $data) {
                         app(ConfigManagerService::class)->updateCoefficient(
                             'base_city_traffic',

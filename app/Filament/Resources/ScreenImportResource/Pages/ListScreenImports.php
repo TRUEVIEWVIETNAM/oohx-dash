@@ -22,7 +22,7 @@ class ListScreenImports extends ListRecords
     {
         return [
             Actions\Action::make('downloadTemplate')
-                ->label('Download template')
+                ->label('Tải tệp mẫu')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('gray')
                 ->action(function () {
@@ -31,7 +31,7 @@ class ListScreenImports extends ListRecords
                         return response()->download($path, 'screen-import-template.xlsx')->deleteFileAfterSend();
                     } catch (\Throwable $e) {
                         Notification::make()
-                            ->title('Template generation failed')
+                            ->title('Không sinh được tệp mẫu')
                             ->body($e->getMessage())
                             ->danger()->send();
                         return null;
@@ -39,15 +39,15 @@ class ListScreenImports extends ListRecords
                 }),
 
             Actions\Action::make('upload')
-                ->label('Upload Excel / CSV')
+                ->label('Tải tệp Excel / CSV')
                 ->icon('heroicon-o-arrow-up-tray')
                 ->color('primary')
-                ->modalHeading('Upload screen import file')
+                ->modalHeading('Tải tệp nhập màn hình')
                 ->modalDescription('Hệ thống sẽ phân tích file và AI sẽ đề xuất mapping cột → field.')
-                ->modalSubmitActionLabel('Upload & Analyze')
+                ->modalSubmitActionLabel('Tải lên và phân tích')
                 ->form([
                     Forms\Components\Select::make('owner_id')
-                        ->label('Media Owner')
+                        ->label('Media owner')
                         ->required()
                         ->options(fn () => Owner::orderBy('name')->pluck('name', 'id')->all())
                         ->default(fn () => auth()->user()?->current_owner_id)
@@ -55,7 +55,7 @@ class ListScreenImports extends ListRecords
                         ->helperText('Screens sẽ thuộc owner này. Admin cần chọn rõ; publisher auto-fill.'),
 
                     Forms\Components\FileUpload::make('file')
-                        ->label('Excel / CSV file')
+                        ->label('Tệp Excel / CSV')
                         ->required()
                         ->acceptedFileTypes([
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
@@ -122,7 +122,7 @@ class ListScreenImports extends ListRecords
                         ]);
                         // Keep the uploaded file for debugging
                         Notification::make()
-                            ->title('Upload failed')
+                            ->title('Tải lên không được')
                             ->body($e->getMessage())
                             ->danger()->persistent()->send();
                     }

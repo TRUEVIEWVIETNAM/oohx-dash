@@ -23,7 +23,7 @@ class OwnerReviewResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-star';
 
-    protected static ?string $navigationGroup = 'Marketplace';
+    protected static ?string $navigationGroup = 'Sàn';
 
     protected static ?string $navigationLabel = 'Đánh giá media owner';
 

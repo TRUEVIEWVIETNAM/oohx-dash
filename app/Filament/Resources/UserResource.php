@@ -21,8 +21,8 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationGroup = 'Organizations';
-    protected static ?string $navigationLabel = 'Users';
+    protected static ?string $navigationGroup = 'Tổ chức';
+    protected static ?string $navigationLabel = 'Người dùng';
     protected static ?int    $navigationSort  = 5;
 
     // ── Form ─────────────────────────────────────────────────────────────────
@@ -31,7 +31,7 @@ class UserResource extends Resource
     {
         return $form->schema([
 
-            Forms\Components\Section::make('Account Info')
+            Forms\Components\Section::make('Thông tin tài khoản')
                 ->columns(2)
                 ->schema([
                     Forms\Components\TextInput::make('name')
@@ -61,14 +61,14 @@ class UserResource extends Resource
                         ->same('password')
                         ->required(fn(string $operation) => $operation === 'create')
                         ->dehydrated(false)
-                        ->label('Confirm Password'),
+                        ->label('Xác nhận mật khẩu'),
                 ]),
 
-            Forms\Components\Section::make('System Role')
+            Forms\Components\Section::make('Vai trò hệ thống')
                 ->description('Role Spatie — xác định panel nào user được truy cập.')
                 ->schema([
                     Forms\Components\Select::make('roles')
-                        ->label('System Role')
+                        ->label('Vai trò hệ thống')
                         ->options(fn() => Role::pluck('name', 'name'))
                         ->multiple(false)
                         ->required()
@@ -83,14 +83,14 @@ class UserResource extends Resource
                         ->dehydrated(false),
                 ]),
 
-            Forms\Components\Section::make('Owner Memberships')
+            Forms\Components\Section::make('Thành viên của media owner')
                 ->description('Gán user vào một hoặc nhiều Media Owners.')
                 ->schema([
                     Forms\Components\Repeater::make('owner_memberships')
                         ->label('')
                         ->schema([
                             Forms\Components\Select::make('owner_id')
-                                ->label('Media Owner')
+                                ->label('Media owner')
                                 ->options(Owner::active()->pluck('name', 'id'))
                                 ->searchable()
                                 ->required()
@@ -98,7 +98,7 @@ class UserResource extends Resource
                                 ->columnSpan(1),
 
                             Forms\Components\Select::make('role')
-                                ->label('Role')
+                                ->label('Vai trò')
                                 ->options(OwnerUser::ROLE_LABELS)
                                 ->default('read_only')
                                 ->required()
@@ -137,7 +137,7 @@ class UserResource extends Resource
                     ->copyable(),
 
                 Tables\Columns\TextColumn::make('system_role')
-                    ->label('System Role')
+                    ->label('Vai trò hệ thống')
                     ->badge()
                     ->getStateUsing(fn(User $record) => $record->roles->first()?->name ?? '—')
                     ->color(fn(string $state) => match ($state) {
@@ -147,7 +147,7 @@ class UserResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('owners_list')
-                    ->label('Owners')
+                    ->label('Media owner')
                     ->getStateUsing(function (User $record) {
                         $items = $record->ownerUsers->map(function (OwnerUser $ou) {
                             $ownerName = $ou->owner?->name ?? '?';
@@ -160,7 +160,7 @@ class UserResource extends Resource
                     ->limit(80),
 
                 Tables\Columns\TextColumn::make('owners_count')
-                    ->label('Owners')
+                    ->label('Media owner')
                     ->counts('ownerUsers')
                     ->sortable()
                     ->badge()
@@ -174,21 +174,21 @@ class UserResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('role')
-                    ->label('System Role')
+                    ->label('Vai trò hệ thống')
                     ->options(fn() => Role::pluck('name', 'name'))
                     ->query(fn($query, $data) => $data['value']
                         ? $query->role($data['value'])
                         : $query),
 
                 Tables\Filters\SelectFilter::make('owner')
-                    ->label('Owner')
+                    ->label('Chủ sở hữu')
                     ->options(Owner::active()->pluck('name', 'id'))
                     ->query(fn($query, $data) => $data['value']
                         ? $query->whereHas('ownerUsers', fn($q) => $q->where('owner_id', $data['value']))
                         : $query),
 
                 Tables\Filters\SelectFilter::make('owner_role')
-                    ->label('Owner Role')
+                    ->label('Vai trò trong media owner')
                     ->options(OwnerUser::ROLE_LABELS)
                     ->query(fn($query, $data) => $data['value']
                         ? $query->whereHas('ownerUsers', fn($q) => $q->where('role', $data['value']))
@@ -199,7 +199,7 @@ class UserResource extends Resource
                     Tables\Actions\ViewAction::make(),
                     Tables\Actions\EditAction::make(),
                     Tables\Actions\Action::make('impersonate')
-                        ->label('Login As')
+                        ->label('Đăng nhập thay')
                         ->icon('heroicon-o-arrow-right-on-rectangle')
                         ->color('warning')
                         ->requiresConfirmation()
@@ -212,7 +212,7 @@ class UserResource extends Resource
                         }),
 
                     Tables\Actions\Action::make('reset_password')
-                        ->label('Reset Password')
+                        ->label('Đặt lại mật khẩu')
                         ->icon('heroicon-o-key')
                         ->color('gray')
                         ->requiresConfirmation()
@@ -238,14 +238,14 @@ class UserResource extends Resource
     {
         return $infolist->schema([
 
-            Infolists\Components\Section::make('Account Info')
+            Infolists\Components\Section::make('Thông tin tài khoản')
                 ->columns(3)
                 ->schema([
                     Infolists\Components\TextEntry::make('name'),
                     Infolists\Components\TextEntry::make('email')
                         ->copyable(),
                     Infolists\Components\TextEntry::make('system_role')
-                        ->label('System Role')
+                        ->label('Vai trò hệ thống')
                         ->badge()
                         ->getStateUsing(fn(User $record) => $record->roles->first()?->name ?? '—')
                         ->color(fn(string $state) => match ($state) {
@@ -254,24 +254,24 @@ class UserResource extends Resource
                             default       => 'gray',
                         }),
                     Infolists\Components\TextEntry::make('created_at')
-                        ->label('Created')
+                        ->label('Tạo lúc')
                         ->dateTime(),
                     Infolists\Components\TextEntry::make('email_verified_at')
-                        ->label('Email Verified')
+                        ->label('Email đã xác thực')
                         ->dateTime()
-                        ->placeholder('Not verified'),
+                        ->placeholder('Chưa xác minh'),
                 ]),
 
-            Infolists\Components\Section::make('Owner Memberships')
+            Infolists\Components\Section::make('Thành viên của media owner')
                 ->description('Danh sách tất cả Media Owners mà user thuộc về.')
                 ->schema([
                     Infolists\Components\RepeatableEntry::make('ownerUsers')
                         ->label('')
                         ->schema([
                             Infolists\Components\TextEntry::make('owner.name')
-                                ->label('Owner'),
+                                ->label('Chủ sở hữu'),
                             Infolists\Components\TextEntry::make('role')
-                                ->label('Role')
+                                ->label('Vai trò')
                                 ->badge()
                                 ->formatStateUsing(fn($state) => OwnerUser::ROLE_LABELS[$state] ?? $state)
                                 ->color(fn($state) => match ($state) {
@@ -284,7 +284,7 @@ class UserResource extends Resource
                                     default          => 'gray',
                                 }),
                             Infolists\Components\TextEntry::make('permissions_list')
-                                ->label('Permissions')
+                                ->label('Quyền')
                                 ->getStateUsing(function (OwnerUser $record) {
                                     return collect(OwnerUser::PERMISSIONS)
                                         ->filter(fn($roles) => in_array($record->role, $roles))
@@ -293,7 +293,7 @@ class UserResource extends Resource
                                 })
                                 ->columnSpan(2),
                             Infolists\Components\TextEntry::make('allowed_network_ids')
-                                ->label('Network Restriction')
+                                ->label('Giới hạn theo mạng lưới')
                                 ->getStateUsing(fn(OwnerUser $record) => $record->allowed_network_ids
                                     ? count($record->allowed_network_ids) . ' networks restricted'
                                     : 'All networks')
@@ -304,7 +304,7 @@ class UserResource extends Resource
                         ->contained(false),
                 ]),
 
-            Infolists\Components\Section::make('Permission Matrix')
+            Infolists\Components\Section::make('Ma trận quyền')
                 ->description('Tổng hợp quyền trên tất cả owners.')
                 ->schema([
                     Infolists\Components\ViewEntry::make('permission_matrix')

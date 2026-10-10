@@ -53,14 +53,14 @@ class ViewScreenImport extends ViewRecord
         // ── Refine mapping with AI comment (Phase 2) ──────────────────────────
         if (in_array($status, ['uploaded', 'mapping', 'previewed'], true)) {
             $actions[] = Actions\Action::make('refineWithAi')
-                ->label('Ask AI to refine')
+                ->label('Nhờ AI tinh chỉnh')
                 ->icon('heroicon-o-sparkles')
                 ->color('info')
                 ->modalHeading('Refine mapping với AI')
                 ->modalDescription('Mô tả tự nhiên điều chỉnh bạn muốn (vd: "cột 3 là giá VND không phải USD", "cột 5 là tên network")')
                 ->form([
                     Forms\Components\Textarea::make('comment')
-                        ->label('Your comment / hint')
+                        ->label('Nhận xét / gợi ý của bạn')
                         ->required()
                         ->rows(3)
                         ->placeholder('Ví dụ: cột "Giá" là VND không phải USD. Cột "Địa điểm" là city chứ không phải tên site.'),
@@ -74,7 +74,7 @@ class ViewScreenImport extends ViewRecord
                             ->success()->send();
                     } catch (\Throwable $e) {
                         Notification::make()
-                            ->title('Refine failed')
+                            ->title('Tinh chỉnh không được')
                             ->body($e->getMessage())
                             ->danger()->send();
                     }
@@ -84,10 +84,10 @@ class ViewScreenImport extends ViewRecord
         // ── Edit mapping (visible during mapping + previewed stages) ───────────
         if (in_array($status, ['uploaded', 'mapping', 'previewed'], true)) {
             $actions[] = Actions\Action::make('editMapping')
-                ->label('Edit mapping')
+                ->label('Sửa bảng ghép cột')
                 ->icon('heroicon-o-pencil-square')
                 ->color('warning')
-                ->modalHeading('Column mapping')
+                ->modalHeading('Ghép cột')
                 ->modalDescription('Chỉnh mapping từ cột file sang field DB. Bỏ trống = skip cột.')
                 ->modalWidth('5xl')
                 ->fillForm(fn () => ['mapping' => $this->buildMappingFormState($record)])
@@ -97,27 +97,27 @@ class ViewScreenImport extends ViewRecord
                         ->schema([
                             Forms\Components\Grid::make(12)->schema([
                                 Forms\Components\TextInput::make('header')
-                                    ->label('File column')
+                                    ->label('Cột trong tệp')
                                     ->readOnly()
                                     ->columnSpan(4),
 
                                 Forms\Components\Select::make('field')
-                                    ->label('DB field')
+                                    ->label('Trường trong CSDL')
                                     ->options(FieldCatalog::groupedOptions())
                                     ->searchable()
-                                    ->placeholder('— skip this column —')
+                                    ->placeholder('— bỏ qua cột này —')
                                     ->helperText(fn (array $state) => ! empty($state['compound'])
                                         ? 'AI đề xuất compound split: ' . implode(' + ', $state['compound']) . '. Chọn field ở đây sẽ ghi đè.'
                                         : null)
                                     ->columnSpan(5),
 
                                 Forms\Components\TextInput::make('confidence_display')
-                                    ->label('AI conf.')
+                                    ->label('Độ tin cậy AI')
                                     ->readOnly()
                                     ->columnSpan(1),
 
                                 Forms\Components\Textarea::make('reason')
-                                    ->label('Reason / note')
+                                    ->label('Lý do / ghi chú')
                                     ->rows(1)
                                     ->columnSpan(2),
 
@@ -154,7 +154,7 @@ class ViewScreenImport extends ViewRecord
         // ── Run preview ────────────────────────────────────────────────────────
         if (in_array($status, ['uploaded', 'mapping'], true)) {
             $actions[] = Actions\Action::make('runPreview')
-                ->label('Validate & Preview')
+                ->label('Kiểm và xem trước')
                 ->icon('heroicon-o-magnifying-glass')
                 ->color('primary')
                 ->requiresConfirmation()
@@ -168,7 +168,7 @@ class ViewScreenImport extends ViewRecord
                             ->success()->send();
                     } catch (\Throwable $e) {
                         Notification::make()
-                            ->title('Preview failed')
+                            ->title('Xem trước không được')
                             ->body($e->getMessage())
                             ->danger()->send();
                     }
@@ -185,25 +185,25 @@ class ViewScreenImport extends ViewRecord
                 ->color('success')
                 ->disabled(fn () => $validCount === 0)
                 ->requiresConfirmation()
-                ->modalHeading('Confirm import')
+                ->modalHeading('Xác nhận nhập')
                 ->modalDescription("Sẽ ghi {$validCount} screens vào DB. Mode: {$record->upsert_mode}. Rows lỗi sẽ skip.")
                 ->action(function () use ($record) {
                     try {
                         app(ScreenImportService::class)->queueExecution($record);
                         Notification::make()
-                            ->title('Import queued')
+                            ->title('Đã đưa việc nhập vào hàng đợi')
                             ->body('Job đã vào queue. Page sẽ tự refresh progress mỗi 3 giây.')
                             ->success()->send();
                     } catch (\Throwable $e) {
                         Notification::make()
-                            ->title('Enqueue failed')
+                            ->title('Không đưa vào hàng đợi được')
                             ->body($e->getMessage())
                             ->danger()->persistent()->send();
                     }
                 });
 
             $actions[] = Actions\Action::make('backToMapping')
-                ->label('Back to mapping')
+                ->label('Về bảng ghép cột')
                 ->icon('heroicon-o-arrow-uturn-left')
                 ->color('gray')
                 ->action(fn () => $record->update(['status' => 'mapping']));
@@ -212,11 +212,11 @@ class ViewScreenImport extends ViewRecord
         // ── Cancel (importing) — cooperative cancel via DB status ─────────────
         if ($status === 'importing') {
             $actions[] = Actions\Action::make('cancelImport')
-                ->label('Cancel import')
+                ->label('Huỷ lần nhập')
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->requiresConfirmation()
-                ->modalHeading('Cancel this import?')
+                ->modalHeading('Huỷ lần nhập này?')
                 ->modalDescription('Worker sẽ dừng trong vòng ≤50 rows tiếp theo. Các rows đã import không rollback.')
                 ->action(function () use ($record) {
                     $record->update(['status' => 'cancelled']);
@@ -230,7 +230,7 @@ class ViewScreenImport extends ViewRecord
         // ── Download error report (done/failed with errors) ───────────────────
         if (in_array($status, ['done', 'failed'], true) && ! empty($record->validation_errors)) {
             $actions[] = Actions\Action::make('downloadErrors')
-                ->label('Download error report')
+                ->label('Tải báo cáo lỗi')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('danger')
                 ->action(function () use ($record) {
@@ -248,7 +248,7 @@ class ViewScreenImport extends ViewRecord
                         return response()->download($fullPath, basename($fullPath));
                     } catch (\Throwable $e) {
                         Notification::make()
-                            ->title('Export failed')
+                            ->title('Xuất không được')
                             ->body($e->getMessage())
                             ->danger()->send();
                         return null;
@@ -259,16 +259,16 @@ class ViewScreenImport extends ViewRecord
         // ── Retry (failed) ─────────────────────────────────────────────────────
         if ($status === 'failed') {
             $actions[] = Actions\Action::make('retryAnalyze')
-                ->label('Re-analyze file')
+                ->label('Phân tích lại tệp')
                 ->icon('heroicon-o-arrow-path')
                 ->color('warning')
                 ->action(function () use ($record) {
                     try {
                         app(ScreenImportService::class)->analyze($record);
                         app(ScreenImportService::class)->proposeMapping($record);
-                        Notification::make()->title('Re-analyzed')->success()->send();
+                        Notification::make()->title('Đã phân tích lại')->success()->send();
                     } catch (\Throwable $e) {
-                        Notification::make()->title('Retry failed')->body($e->getMessage())->danger()->send();
+                        Notification::make()->title('Thử lại không được')->body($e->getMessage())->danger()->send();
                     }
                 });
         }
@@ -292,7 +292,7 @@ class ViewScreenImport extends ViewRecord
         $record = $this->record;
 
         return $infolist->schema([
-            Infolists\Components\Section::make('Overview')
+            Infolists\Components\Section::make('Tổng quan')
                 ->columns(4)
                 ->schema([
                     Infolists\Components\TextEntry::make('status')
@@ -307,31 +307,31 @@ class ViewScreenImport extends ViewRecord
                             'failed', 'cancelled' => 'danger',
                             default               => 'gray',
                         }),
-                    Infolists\Components\TextEntry::make('original_filename')->label('File'),
-                    Infolists\Components\TextEntry::make('total_rows')->label('Total rows')->numeric(),
-                    Infolists\Components\TextEntry::make('upsert_mode')->label('Mode'),
+                    Infolists\Components\TextEntry::make('original_filename')->label('Tệp'),
+                    Infolists\Components\TextEntry::make('total_rows')->label('Tổng số dòng')->numeric(),
+                    Infolists\Components\TextEntry::make('upsert_mode')->label('Chế độ'),
 
                     Infolists\Components\TextEntry::make('success_count')
-                        ->label('Imported')
+                        ->label('Đã nhập')
                         ->numeric()
                         ->color('success')
                         ->visible(fn () => in_array($record->status, ['importing', 'done'], true)),
                     Infolists\Components\TextEntry::make('failed_count')
-                        ->label('Failed')
+                        ->label('Lỗi')
                         ->numeric()
                         ->color('danger')
                         ->visible(fn () => in_array($record->status, ['importing', 'done'], true)),
-                    Infolists\Components\TextEntry::make('uploader.name')->label('Uploaded by'),
-                    Infolists\Components\TextEntry::make('created_at')->label('Created')->since(),
+                    Infolists\Components\TextEntry::make('uploader.name')->label('Người tải lên'),
+                    Infolists\Components\TextEntry::make('created_at')->label('Tạo lúc')->since(),
 
                     Infolists\Components\TextEntry::make('error_summary')
-                        ->label('Summary')
+                        ->label('Tóm tắt')
                         ->columnSpanFull()
                         ->visible(fn () => ! empty($record->error_summary)),
                 ]),
 
             // ── Progress (Phase 2 — importing state) ──────────────────────────
-            Infolists\Components\Section::make('Import progress')
+            Infolists\Components\Section::make('Tiến độ nhập')
                 ->schema([
                     Infolists\Components\ViewEntry::make('import_progress')
                         ->view('filament.resources.screen-import.progress')
@@ -348,14 +348,14 @@ class ViewScreenImport extends ViewRecord
                 ->visible(fn () => $record->status === 'importing'),
 
             // ── AI comment history (Phase 2) ──────────────────────────────────
-            Infolists\Components\Section::make('AI refinement history')
+            Infolists\Components\Section::make('Lịch sử AI tinh chỉnh')
                 ->description('Danh sách comment đã gửi để refine mapping.')
                 ->schema([
                     Infolists\Components\RepeatableEntry::make('ai_comment_history')
                         ->label('')
                         ->schema([
-                            Infolists\Components\TextEntry::make('at')->label('When')->since(),
-                            Infolists\Components\TextEntry::make('comment')->label('Comment')->columnSpanFull(),
+                            Infolists\Components\TextEntry::make('at')->label('Lúc')->since(),
+                            Infolists\Components\TextEntry::make('comment')->label('Nhận xét')->columnSpanFull(),
                         ])
                         ->columnSpanFull()
                         ->columns(2),
@@ -365,7 +365,7 @@ class ViewScreenImport extends ViewRecord
                 ->collapsed(),
 
             // ── Mapping review ────────────────────────────────────────────────
-            Infolists\Components\Section::make('Column mapping')
+            Infolists\Components\Section::make('Ghép cột')
                 ->description('AI-proposed mapping. Click "Edit mapping" trên header để chỉnh.')
                 ->schema([
                     Infolists\Components\ViewEntry::make('mapping_table')
@@ -381,7 +381,7 @@ class ViewScreenImport extends ViewRecord
                 ->visible(fn () => in_array($record->status, ['uploaded', 'mapping', 'previewed'], true) && ! empty($record->headers)),
 
             // ── Preview result ────────────────────────────────────────────────
-            Infolists\Components\Section::make('Preview (dry-run)')
+            Infolists\Components\Section::make('Xem trước (chạy thử)')
                 ->description('20 rows đầu + tổng số lỗi. KHÔNG ghi DB.')
                 ->schema([
                     Infolists\Components\ViewEntry::make('preview_result')
@@ -396,7 +396,7 @@ class ViewScreenImport extends ViewRecord
                 ->visible(fn () => $record->status === 'previewed' && ! empty($record->preview_data)),
 
             // ── Import result ─────────────────────────────────────────────────
-            Infolists\Components\Section::make('Import result')
+            Infolists\Components\Section::make('Kết quả nhập')
                 ->schema([
                     Infolists\Components\ViewEntry::make('import_result')
                         ->view('filament.resources.screen-import.import-result')

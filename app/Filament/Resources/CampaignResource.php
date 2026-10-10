@@ -18,9 +18,9 @@ class CampaignResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-megaphone';
 
-    protected static ?string $navigationGroup = 'Marketplace';
+    protected static ?string $navigationGroup = 'Sàn';
 
-    protected static ?string $navigationLabel = 'Campaigns';
+    protected static ?string $navigationLabel = 'Chiến dịch';
 
     protected static ?int $navigationSort = 1;
 
@@ -46,7 +46,7 @@ class CampaignResource extends Resource
                     ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Campaign')
+                    ->label('Chiến dịch')
                     ->searchable()
                     ->limit(35),
 
@@ -55,7 +55,7 @@ class CampaignResource extends Resource
                     ->limit(25),
 
                 Tables\Columns\TextColumn::make('total_screens')
-                    ->label('Screens')
+                    ->label('Màn hình')
                     ->alignCenter(),
 
                 Tables\Columns\TextColumn::make('status')
@@ -77,7 +77,7 @@ class CampaignResource extends Resource
                     ->formatStateUsing(fn (string $state): string => Campaign::STATUS_LABELS[$state] ?? $state),
 
                 Tables\Columns\TextColumn::make('pending_payments_count')
-                    ->label('Payment')
+                    ->label('Thanh toán')
                     ->getStateUsing(fn (Campaign $r) => $r->payments()->where('status', 'pending')->count())
                     ->badge()
                     ->color(fn ($state) => $state > 0 ? 'warning' : 'gray')

@@ -29,7 +29,7 @@ class SiteResource extends BaseSiteResource
     protected static function ownerFormField(): Forms\Components\Component
     {
         return Forms\Components\Select::make('owner_id')
-            ->label('Media Owner')
+            ->label('Media owner')
             ->relationship('owner', 'name')
             ->searchable()
             ->preload()
@@ -49,7 +49,7 @@ class SiteResource extends BaseSiteResource
     {
         return [
             SelectFilter::make('owner')
-                ->label('Media Owner')
+                ->label('Media owner')
                 ->relationship('owner', 'name')
                 ->searchable(),
         ];

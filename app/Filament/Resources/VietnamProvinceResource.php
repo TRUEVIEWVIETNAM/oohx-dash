@@ -17,7 +17,7 @@ class VietnamProvinceResource extends Resource
 {
     protected static ?string $model            = VietnamProvince::class;
     protected static ?string $navigationIcon   = null;
-    protected static ?string $navigationGroup  = 'System Settings';
+    protected static ?string $navigationGroup  = 'Cấu hình hệ thống';
     protected static ?string $navigationLabel  = 'Tỉnh / Thành phố';
     protected static ?string $modelLabel       = 'Tỉnh / Thành phố';
     protected static ?string $pluralModelLabel = 'Tỉnh / Thành phố';
@@ -111,7 +111,7 @@ class VietnamProvinceResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('sites_count')
-                    ->label('Sites')
+                    ->label('Địa điểm')
                     ->counts('sites')
                     ->sortable(),
             ])
@@ -128,7 +128,7 @@ class VietnamProvinceResource extends Resource
             ])
             ->headerActions([
                 Tables\Actions\Action::make('import_excel')
-                    ->label('Import Excel')
+                    ->label('Nhập từ Excel')
                     ->icon('heroicon-o-arrow-up-tray')
                     ->color('gray')
                     ->url(fn() => route('filament.admin.resources.vietnam-provinces.import'))
