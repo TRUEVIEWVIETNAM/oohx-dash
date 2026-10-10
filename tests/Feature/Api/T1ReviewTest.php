@@ -60,9 +60,9 @@ class T1ReviewTest extends TestCase
         $this->putJson('/api/v1/screens/'.$screen->id, ['name' => 'suspended edit'])->assertForbidden();
     }
 
-    public function test_review_scheduler_cannot_set_floor_price(): void
+    public function test_review_operator_cannot_set_floor_price(): void
     {
-        [$owner, $site, $screen] = $this->fixture('scheduler');
+        [$owner, $site, $screen] = $this->fixture('operator');
         $this->putJson('/api/v1/screens/'.$screen->id, ['inventory' => ['floor_cpm' => 123]])->assertForbidden();
     }
 

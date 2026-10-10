@@ -118,7 +118,7 @@ class ScreenController extends Controller
     /**
      * Payload có đụng tới giá thì phải có quyền `manage_pricing`.
      *
-     * `manage_inventory` cho phép cả scheduler, nhưng scheduler không được sửa giá
+     * `manage_inventory` cho phép cả operator, nhưng operator không được sửa giá
      * (Codex review T1, F1). Kiểm theo nội dung request chứ không theo endpoint.
      */
     private function authorizePricingPayload(Request $request, Screen $screen): void
@@ -276,7 +276,7 @@ class ScreenController extends Controller
      *
      * Tách hẳn "tạo mới" khỏi "vá": trước đây hàm này luôn nhét giá trị mặc định
      * (`programmatic_enabled = false`, `floor_cpm_currency = 'VND'`) vào mọi lần
-     * updateOrCreate. Hệ quả: scheduler chỉ gửi `weekly_impressions` cũng tắt luôn
+     * updateOrCreate. Hệ quả: operator chỉ gửi `weekly_impressions` cũng tắt luôn
      * programmatic và reset tiền tệ — vượt qua quyền `manage_pricing` mà không hề
      * chạm tới trường giá nào (Codex follow-up T1, mục 2).
      *

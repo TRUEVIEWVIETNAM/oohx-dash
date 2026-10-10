@@ -82,7 +82,7 @@
                     $colorClass = match($roleKey) {
                         'owner'          => 'text-danger-600 dark:text-danger-400 bg-danger-50 dark:bg-danger-500/10 ring-danger-200 dark:ring-danger-500/30',
                         'manager'        => 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-500/10 ring-primary-200 dark:ring-primary-500/30',
-                        'scheduler'      => 'text-warning-600 dark:text-warning-400 bg-warning-50 dark:bg-warning-500/10 ring-warning-200 dark:ring-warning-500/30',
+                        'operator'       => 'text-warning-600 dark:text-warning-400 bg-warning-50 dark:bg-warning-500/10 ring-warning-200 dark:ring-warning-500/30',
                         'read_only'      => 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-500/10 ring-gray-200 dark:ring-gray-500/30',
                         'reporting_only' => 'text-info-600 dark:text-info-400 bg-info-50 dark:bg-info-500/10 ring-info-200 dark:ring-info-500/30',
                         'sales_manager'  => 'text-success-600 dark:text-success-400 bg-success-50 dark:bg-success-500/10 ring-success-200 dark:ring-success-500/30',

@@ -113,7 +113,7 @@ ApiClient -> PersonalAccessToken (Sanctum)
 
 #### OwnerUser (`app/Models/OwnerUser.php`)
 - **Table:** owner_users (pivot)
-- **Roles:** owner, manager, scheduler, read_only, reporting_only, sales_manager
+- **Roles:** owner, manager, operator, read_only, reporting_only, sales_manager
 - **Permissions:** Maps actions to allowed roles (6 permission types)
 - **Methods:** can(), canAccessNetwork(), isOwner()
 

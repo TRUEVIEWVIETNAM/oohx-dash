@@ -147,20 +147,20 @@ class TenantPermissionGapTest extends TestCase
 
     // ── 2. Quyền duyệt đặt chỗ ───────────────────────────────────────────────
 
-    public function test_vai_tro_scheduler_khong_duyet_duoc_dat_cho(): void
+    public function test_vai_tro_operator_khong_duyet_duoc_dat_cho(): void
     {
         $owner  = Owner::factory()->create(['status' => 'active']);
         $screen = $this->screen($owner);
 
         $campaign = $this->campaignWithLines([$screen]);
 
-        // scheduler quản lý kho nhưng không phải người quyết định thương mại.
-        $user = $this->publisher($owner, 'scheduler');
+        // operator quản lý kho nhưng không phải người quyết định thương mại.
+        $user = $this->publisher($owner, 'operator');
         $this->actingAs($user);
 
         try {
             app(CampaignService::class)->approveAllForOwner($campaign, $owner->id, $user);
-            $this->fail('scheduler không có quyền manage_bookings.');
+            $this->fail('operator không có quyền manage_bookings.');
         } catch (HttpException $e) {
             $this->assertSame(403, $e->getStatusCode());
         }
@@ -187,8 +187,8 @@ class TenantPermissionGapTest extends TestCase
         $owner  = Owner::factory()->create(['status' => 'active']);
         $screen = $this->screen($owner);
 
-        // scheduler có manage_inventory nhưng không có manage_pricing.
-        $user = $this->publisher($owner, 'scheduler');
+        // operator có manage_inventory nhưng không có manage_pricing.
+        $user = $this->publisher($owner, 'operator');
         $this->actingAs($user);
 
         try {
@@ -254,12 +254,12 @@ class TenantPermissionGapTest extends TestCase
         $this->assertSame(1_234_000, (int) round((float) $screen->fresh('inventory')->inventory->io_rate));
     }
 
-    public function test_scheduler_van_sua_duoc_thu_khong_phai_gia(): void
+    public function test_operator_van_sua_duoc_thu_khong_phai_gia(): void
     {
         $owner  = Owner::factory()->create(['status' => 'active']);
         $screen = $this->screen($owner);
 
-        $user = $this->publisher($owner, 'scheduler');
+        $user = $this->publisher($owner, 'operator');
         $this->actingAs($user);
 
         $screen->inventory->update(['weekly_impressions' => 700_000]);

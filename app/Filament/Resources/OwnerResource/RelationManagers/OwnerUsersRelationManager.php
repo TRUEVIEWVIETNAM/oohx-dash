@@ -55,8 +55,8 @@ class OwnerUsersRelationManager extends RelationManager
                         ->pluck('name', 'id'))
                     ->columns(2)
                     ->columnSpan(2)
-                    ->visible(fn(Forms\Get $get) => in_array($get('role'), ['scheduler', 'read_only']))
-                    ->dehydrateStateUsing(fn($state, Forms\Get $get) => in_array($get('role'), ['scheduler', 'read_only']) ? $state : null),
+                    ->visible(fn(Forms\Get $get) => in_array($get('role'), ['operator', 'read_only']))
+                    ->dehydrateStateUsing(fn($state, Forms\Get $get) => in_array($get('role'), ['operator', 'read_only']) ? $state : null),
 
             ]),
         ]);
@@ -85,7 +85,7 @@ class OwnerUsersRelationManager extends RelationManager
                     ->colors([
                         'danger'  => 'owner',
                         'primary' => 'manager',
-                        'warning' => 'scheduler',
+                        'warning' => 'operator',
                         'gray'    => 'read_only',
                         'info'    => 'reporting_only',
                         'success' => 'sales_manager',
@@ -138,7 +138,7 @@ class OwnerUsersRelationManager extends RelationManager
                             ->options(fn() => \App\Models\Network::where('owner_id', $this->getOwnerRecord()->id)
                                 ->pluck('name', 'id'))
                             ->columns(2)
-                            ->visible(fn(Forms\Get $get) => in_array($get('role'), ['scheduler', 'read_only'])),
+                            ->visible(fn(Forms\Get $get) => in_array($get('role'), ['operator', 'read_only'])),
                     ])
                     ->action(function (array $data): void {
                         try {
@@ -147,7 +147,7 @@ class OwnerUsersRelationManager extends RelationManager
                                 tenantType:        UserInvitation::TENANT_OWNER,
                                 tenantId:          $this->getOwnerRecord()->id,
                                 role:              $data['role'],
-                                allowedNetworkIds: in_array($data['role'], ['scheduler', 'read_only'])
+                                allowedNetworkIds: in_array($data['role'], ['operator', 'read_only'])
                                     ? ($data['allowed_network_ids'] ?? null)
                                     : null,
                                 invitedBy:         auth()->user(),
@@ -189,12 +189,12 @@ class OwnerUsersRelationManager extends RelationManager
                                     ->pluck('name', 'id'))
                                 ->default($record->allowed_network_ids)
                                 ->columns(2)
-                                ->visible(fn(Forms\Get $get) => in_array($get('role'), ['scheduler', 'read_only'])),
+                                ->visible(fn(Forms\Get $get) => in_array($get('role'), ['operator', 'read_only'])),
                         ])
                         ->action(function (OwnerUser $record, array $data): void {
                             $record->update([
                                 'role'                => $data['role'],
-                                'allowed_network_ids' => in_array($data['role'], ['scheduler', 'read_only'])
+                                'allowed_network_ids' => in_array($data['role'], ['operator', 'read_only'])
                                     ? ($data['allowed_network_ids'] ?? null)
                                     : null,
                             ]);

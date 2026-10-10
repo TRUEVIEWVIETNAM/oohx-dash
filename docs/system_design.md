@@ -65,13 +65,13 @@ Tầng 2 — Tenant (OwnerUser custom)
   owner_users.role  →  quyền trong phạm vi 1 Owner
 ```
 
-### Tenant Roles (OwnerUser::ROLES)
+### Tenant Roles (OwnerUser::ROLE_LABELS)
 
 | Role | Mô tả |
 |---|---|
 | `owner` | Toàn quyền trong tenant |
 | `manager` | Quản lý inventory + pricing + edit owner |
-| `scheduler` | Quản lý inventory, import |
+| `operator` | Quản lý inventory, import |
 | `read_only` | Chỉ xem inventory |
 | `reporting_only` | Chỉ xem báo cáo |
 | `sales_manager` | Xem sales + báo cáo |
@@ -82,13 +82,15 @@ Tầng 2 — Tenant (OwnerUser custom)
 |---|---|
 | `manage_users` | owner |
 | `edit_owner` | owner, manager |
-| `manage_inventory` | owner, manager, scheduler |
+| `manage_inventory` | owner, manager, operator |
 | `manage_pricing` | owner, manager |
-| `view_inventory` | owner, manager, scheduler, read_only, sales_manager |
-| `import_inventory` | owner, manager, scheduler |
+| `view_inventory` | owner, manager, operator, read_only, sales_manager |
+| `import_inventory` | owner, manager, operator |
 | `view_reports` | owner, manager, reporting_only, sales_manager |
 | `export_reports` | owner, manager, reporting_only |
 | `view_sales` | owner, manager, sales_manager |
+| `manage_bookings` | owner, manager, sales_manager |
+| `settle_refunds` | owner, manager |
 
 ### Cách check permission
 

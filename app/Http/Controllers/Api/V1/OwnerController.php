@@ -118,7 +118,7 @@ class OwnerController extends Controller
 
         // Doanh thu là báo cáo, không phải hồ sơ owner: dùng view_reports theo đúng
         // bảng quyền đang có (owner/manager/reporting_only/sales_manager).
-        // Trước đây mọi thành viên, kể cả read_only và scheduler, đều xem được
+        // Trước đây mọi thành viên, kể cả read_only và operator, đều xem được
         // (Codex review T1, F4). Kiểm trên owner trong URL, không phải tenant đang chọn.
         abort_unless(
             $request->user()->hasRole('super_admin')

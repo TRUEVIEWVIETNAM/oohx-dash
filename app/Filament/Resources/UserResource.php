@@ -277,7 +277,7 @@ class UserResource extends Resource
                                 ->color(fn($state) => match ($state) {
                                     'owner'          => 'danger',
                                     'manager'        => 'primary',
-                                    'scheduler'      => 'warning',
+                                    'operator'       => 'warning',
                                     'read_only'      => 'gray',
                                     'reporting_only' => 'info',
                                     'sales_manager'  => 'success',
