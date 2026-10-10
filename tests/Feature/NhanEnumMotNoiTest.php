@@ -134,13 +134,41 @@ class NhanEnumMotNoiTest extends TestCase
         }
     }
 
+    /**
+     * Cột có bảng chữ mà KHÔNG phải enum — khai ra, kèm lý do.
+     *
+     * Phép kiểm ngay dưới từng đòi mọi cột có bảng chữ phải là enum, và thông
+     * điệp của nó dặn: "nếu đó là có chủ ý thì nới phép kiểm này cùng lượt —
+     * đừng để một bảng chữ không ai đối chiếu". Đây là lần nới đó.
+     *
+     * Hai cột dưới đây KHÔNG mất người canh: chúng chuyển sang
+     * `test_bang_chu_cot_varchar_khop_hang_cua_model`, đối chiếu bảng chữ với
+     * các hằng `<CỘT>_*` khai trên chính model. Đổi nguồn sự thật từ CSDL sang
+     * model, không bỏ canh.
+     */
+    private const COT_KHONG_PHAI_ENUM = [
+        // `varchar(255)`. Máy trạng thái của trình nhập Excel, bảy bước, do mã
+        // của dự án ghi — không có migration nào ràng buộc nó.
+        'screen_imports.status' => 'App\Models\ScreenImport',
+
+        // `varchar(32)`. Tên ba dịch vụ POI bên ngoài; thêm một nguồn là sửa mã,
+        // không phải sửa enum.
+        'poi_snapshots.source'  => 'App\Models\PoiSnapshot',
+    ];
+
     public function test_moi_cot_co_bang_chu_deu_la_enum_doc_duoc(): void
     {
         $khongDoc = [];
 
         foreach ($this->moiBangChu() as $m) {
+            $khoa = "{$m['bang']}.{$m['cot']}";
+
+            if (array_key_exists($khoa, self::COT_KHONG_PHAI_ENUM)) {
+                continue;
+            }
+
             if ($this->enumCuaCot($m['bang'], $m['cot']) === null) {
-                $khongDoc[] = "{$m['bang']}.{$m['cot']}  ({$m['lop']})";
+                $khongDoc[] = "{$khoa}  ({$m['lop']})";
             }
         }
 
@@ -149,9 +177,82 @@ class NhanEnumMotNoiTest extends TestCase
             $khongDoc,
             "Những cột sau có bảng chữ nhưng không phải enum trong CSDL, nên không\n"
             . "kiểm được tính đầy đủ. Nếu đó là có chủ ý (ví dụ cột chuyển sang\n"
-            . "varchar) thì nới phép kiểm này cùng lượt — đừng để một bảng chữ\n"
-            . "không ai đối chiếu:\n  " . implode("\n  ", $khongDoc),
+            . "varchar) thì khai vào `COT_KHONG_PHAI_ENUM` kèm lý do — đừng để một\n"
+            . "bảng chữ không ai đối chiếu:\n  " . implode("\n  ", $khongDoc),
         );
+    }
+
+    /**
+     * Ngoại lệ không được thành dòng chết.
+     *
+     * Một cột đã khai ở `COT_KHONG_PHAI_ENUM` mà sau này chuyển sang enum thì
+     * phải gạch khỏi danh sách, không thì nó đứng đó che một cột mà phép kiểm
+     * CSDL lẽ ra canh được.
+     */
+    public function test_khong_co_ngoai_le_chet(): void
+    {
+        $chet = [];
+
+        foreach (self::COT_KHONG_PHAI_ENUM as $khoa => $lop) {
+            [$bang, $cot] = explode('.', $khoa);
+
+            if ($this->enumCuaCot($bang, $cot) !== null) {
+                $chet[] = "{$khoa} — giờ ĐÃ là enum, gạch khỏi `COT_KHONG_PHAI_ENUM`";
+            }
+        }
+
+        $this->assertSame([], $chet, implode("\n  ", $chet));
+    }
+
+    /**
+     * Bảng chữ của cột `varchar` phải khớp các hằng `<CỘT>_*` trên model.
+     *
+     * Đây là chỗ canh thay cho CSDL. Không có nó thì hai bảng chữ kia hoàn toàn
+     * tự do: thêm một bước vào máy trạng thái mà quên chữ thì không ai đỏ, và
+     * `screen_imports.status` thì chỉ `varchar(255)` — CSDL nhận mọi chuỗi.
+     *
+     * Hai chiều, như mọi chốt khác: hằng nào cũng phải có chữ, chữ nào cũng
+     * phải ứng với một hằng.
+     */
+    public function test_bang_chu_cot_varchar_khop_hang_cua_model(): void
+    {
+        $xau = [];
+
+        foreach (self::COT_KHONG_PHAI_ENUM as $khoa => $lop) {
+            [, $cot] = explode('.', $khoa);
+
+            $nhan = constant($lop . '::' . strtoupper($cot) . '_LABELS');
+
+            // Hằng `<CỘT>_X` có giá trị là chuỗi — bỏ chính bảng `_LABELS`.
+            $hang = [];
+            foreach ((new ReflectionClass($lop))->getConstants() as $ten => $gia) {
+                if (preg_match('/^' . strtoupper($cot) . '_(?!LABELS$)[A-Z0-9_]+$/', $ten) && is_string($gia)) {
+                    $hang[] = $gia;
+                }
+            }
+
+            sort($hang);
+
+            $this->assertNotEmpty(
+                $hang,
+                "{$lop}: không có hằng " . strtoupper($cot) . "_* nào — bảng chữ của "
+                . "`{$cot}` không còn gì đối chiếu, và cột thì không phải enum.",
+            );
+
+            foreach ($hang as $ma) {
+                if (! array_key_exists($ma, $nhan)) {
+                    $xau[] = "{$lop}::{$cot} — hằng '{$ma}' không có chữ";
+                }
+            }
+
+            foreach (array_keys($nhan) as $ma) {
+                if (! in_array((string) $ma, $hang, true)) {
+                    $xau[] = "{$lop}::{$cot} — chữ cho '{$ma}' nhưng không hằng nào mang giá trị đó";
+                }
+            }
+        }
+
+        $this->assertSame([], $xau, "Bảng chữ và hằng của model đã trôi khỏi nhau:\n  " . implode("\n  ", $xau));
     }
 
     /**
@@ -222,6 +323,12 @@ class NhanEnumMotNoiTest extends TestCase
     {
         $choPhep = [
             'App\Models\Creative::type.video' => 'Video',
+
+            // Tên công ty, viết đúng cách họ viết. `ucfirst('foursquare')` tình
+            // cờ ra đúng chữ đó — hướng sai của phép kiểm, không phải một mã
+            // chưa dịch. Hai nguồn kia không bị bắt vì `ucfirst` cho ra chuỗi
+            // khác: `OpenStreetMap` (`Osm`), `Google Places` (`Google_places`).
+            'App\Models\PoiSnapshot::source.foursquare' => 'Foursquare',
         ];
 
         $xau = [];

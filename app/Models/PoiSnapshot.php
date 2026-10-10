@@ -17,6 +17,28 @@ use Illuminate\Database\Eloquent\Model;
  */
 class PoiSnapshot extends Model
 {
+    public const SOURCE_OSM           = 'osm';
+    public const SOURCE_GOOGLE_PLACES = 'google_places';
+    public const SOURCE_FOURSQUARE    = 'foursquare';
+
+    /**
+     * Chữ hiển thị cho nguồn dữ liệu POI — và chúng KHÔNG phải tiếng Việt.
+     *
+     * Đây là tên riêng của ba dịch vụ. "OpenStreetMap" dịch sang tiếng Việt thì
+     * sai, không phải chưa dịch. Thứ cần sửa ở đây là chuyện khác: cột in `osm`
+     * và `google_places` nguyên văn — mã CSDL có dấu gạch dưới, không phải tên
+     * mà chủ sở hữu viết.
+     *
+     * Cột là `varchar(32)`, không phải enum, nên `NhanEnumMotNoiTest` đối chiếu
+     * bảng này với ba hằng `SOURCE_*` ngay trên; `poi_snapshots` được khai là
+     * ngoại lệ ở đó kèm lý do.
+     */
+    public const SOURCE_LABELS = [
+        self::SOURCE_OSM           => 'OpenStreetMap',
+        self::SOURCE_GOOGLE_PLACES => 'Google Places',
+        self::SOURCE_FOURSQUARE    => 'Foursquare',
+    ];
+
     protected $fillable = [
         'lat_key', 'lon_key', 'radius', 'source',
         'pois', 'poi_count', 'features', 'scoring',

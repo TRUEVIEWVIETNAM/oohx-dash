@@ -25,6 +25,47 @@ class ScreenImport extends Model
 {
     use HasUuids, HasOwnerScope;
 
+    public const STATUS_UPLOADED  = 'uploaded';
+    public const STATUS_MAPPING   = 'mapping';
+    public const STATUS_PREVIEWED = 'previewed';
+    public const STATUS_IMPORTING = 'importing';
+    public const STATUS_DONE      = 'done';
+    public const STATUS_FAILED    = 'failed';
+    public const STATUS_CANCELLED = 'cancelled';
+
+    /**
+     * Chữ tiếng Việt cho từng bước của lần nhập màn hình.
+     *
+     * ══ Ai đọc chữ này ══
+     *
+     * Không phải người vận hành sàn, mà **media owner đang tự nhập kho của
+     * mình** từ một tệp Excel. Trước bảng này, cột trạng thái in `uploaded`,
+     * `mapping`, `previewed` — tiếng Anh, và là mã của một máy trạng thái nội
+     * bộ. Đó là lý do hai món nợ của `ScreenImportResource` không nên nằm trong
+     * nhóm "trạng thái vận hành giữ mã thô cho dễ đối chiếu log".
+     *
+     * ══ Cột này là `varchar(255)`, KHÔNG phải enum ══
+     *
+     * Nên `NhanEnumMotNoiTest` không đối chiếu được bảng chữ với CSDL. Thay vào
+     * đó nó đối chiếu với **bảy hằng `STATUS_*` ngay trên**, và `screen_imports`
+     * được khai là một ngoại lệ ở đó kèm lý do. Bảy hằng này là nguồn sự thật
+     * duy nhất của máy trạng thái, và chúng khớp đúng docblock của lớp.
+     *
+     * Tám chỗ trong `app/` vẫn ghi trạng thái bằng chuỗi thẳng
+     * (`'status' => 'uploaded'`). Nối chúng vào bảy hằng này là một việc riêng:
+     * nó đi qua service, job và hai trang Filament, và không thuộc phạm vi một
+     * lần dịch chữ.
+     */
+    public const STATUS_LABELS = [
+        self::STATUS_UPLOADED  => 'Đã tải tệp lên',
+        self::STATUS_MAPPING   => 'Đang ghép cột',
+        self::STATUS_PREVIEWED => 'Đã xem trước',
+        self::STATUS_IMPORTING => 'Đang nhập',
+        self::STATUS_DONE      => 'Xong',
+        self::STATUS_FAILED    => 'Lỗi',
+        self::STATUS_CANCELLED => 'Đã huỷ',
+    ];
+
     protected $fillable = [
         'owner_id', 'uploaded_by',
         'original_filename', 'file_path',
