@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class RefundResource extends BaseRefundResource
 {
-    protected static ?string $navigationGroup = 'Bookings';
+    protected static ?string $navigationGroup = 'Đặt chỗ';
 
     protected static ?int $navigationSort = 2;
 

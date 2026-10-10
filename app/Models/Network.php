@@ -14,6 +14,22 @@ class Network extends Model
 {
     use HasFactory, HasOwnerScope, SoftDeletes;
 
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_PAUSED = 'paused';
+
+    /**
+     * Chữ tiếng Việt cho trạng thái mạng lưới.
+     *
+     * Cả ô chọn trong biểu mẫu lẫn bộ lọc của bảng đều viết tay
+     * `['active' => 'Active', 'paused' => 'Paused']` — hai chỗ, hai bản chép,
+     * và cả hai bằng tiếng Anh. Gom về một bảng theo quy ước `<CỘT>_LABELS`
+     * nên `NhanEnumMotNoiTest` tự đối chiếu với `enum('active','paused')`.
+     */
+    public const STATUS_LABELS = [
+        self::STATUS_ACTIVE => 'Đang hoạt động',
+        self::STATUS_PAUSED => 'Tạm dừng',
+    ];
+
     protected $fillable = [
         'owner_id', 'code', 'name', 'description',
         'logo', 'banner',

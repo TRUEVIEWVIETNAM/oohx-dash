@@ -28,8 +28,8 @@ abstract class BaseScreenResource extends Resource
 {
     protected static ?string $model           = Screen::class;
     protected static ?string $navigationIcon  = null;
-    protected static ?string $navigationGroup = 'Inventory';
-    protected static ?string $navigationLabel = 'Screens';
+    protected static ?string $navigationGroup = 'Kho điểm phát';
+    protected static ?string $navigationLabel = 'Màn hình';
     protected static ?int    $navigationSort  = 1;
 
     // ── Hooks cho subclass ────────────────────────────────────────────────────
@@ -152,18 +152,18 @@ abstract class BaseScreenResource extends Resource
                                 ->columnSpan(2),
 
                             Forms\Components\TextInput::make('external_id')
-                                ->label('Screen ID')
+                                ->label('Mã màn hình')
                                 ->maxLength(75)
                                 ->helperText('Tự động từ tên. Có thể sửa tay.'),
 
                             Forms\Components\TextInput::make('slug')
-                                ->label('Slug (SEO URL)')
+                                ->label('Đường dẫn SEO (slug)')
                                 ->maxLength(150)
                                 ->unique(ignoreRecord: true)
                                 ->helperText('Tự động từ tên. URL: /explore/{slug}'),
 
                             Forms\Components\Select::make('network_filter')
-                                ->label('Network')
+                                ->label('Mạng lưới')
                                 ->placeholder('Chọn network')
                                 ->options(fn (callable $get) => static::showOwnerField() && $get('owner_id')
                                     ? Network::where('owner_id', $get('owner_id'))->orderBy('name')->pluck('name', 'id')->toArray()
@@ -179,7 +179,7 @@ abstract class BaseScreenResource extends Resource
                                 ->dehydrated(false),
 
                             Forms\Components\Select::make('site_id')
-                                ->label('Site')
+                                ->label('Địa điểm')
                                 ->required()
                                 ->placeholder(fn (callable $get) => $get('network_filter') ? 'Chọn site' : 'Chọn network trước')
                                 ->options(function (callable $get) {
@@ -207,12 +207,8 @@ abstract class BaseScreenResource extends Resource
 
                             Forms\Components\Grid::make(3)->schema([
                                 Forms\Components\Select::make('status')
-                                    ->label('Device status')
-                                    ->options([
-                                        'online'      => 'Online',
-                                        'offline'     => 'Offline',
-                                        'maintenance' => 'Maintenance',
-                                    ])
+                                    ->label('Trạng thái thiết bị')
+                                    ->options(Screen::STATUS_LABELS)
                                     ->default('offline'),
 
                                 Forms\Components\Toggle::make('active')
@@ -360,7 +356,7 @@ abstract class BaseScreenResource extends Resource
                         ]),
 
                     // ── TAB 4: Insights (Phase 1 — Inventory Intelligence) ───
-                    Forms\Components\Tabs\Tab::make('Insights')
+                    Forms\Components\Tabs\Tab::make('Phân tích')
                         ->icon('heroicon-o-chart-bar')
                         ->columns(3)
                         ->schema([
@@ -425,7 +421,7 @@ abstract class BaseScreenResource extends Resource
                                 ]),
 
                             // ── Audience profile ─────────────────────────────
-                            Forms\Components\Section::make('Audience profile')
+                            Forms\Components\Section::make('Chân dung khán giả')
                                 ->description('Phân bố giới tính & độ tuổi (% — tổng từng nhóm nên ≈ 100).')
                                 ->columns(3)
                                 ->columnSpan(3)
@@ -456,7 +452,7 @@ abstract class BaseScreenResource extends Resource
                                     Forms\Components\TextInput::make('audience_profile.source_note')
                                         ->label('Nguồn audience')
                                         ->columnSpanFull()
-                                        ->placeholder('VD: Survey Q1 2025 · Estimate theo industry benchmark'),
+                                        ->placeholder('VD: Khảo sát Q1 2025 · ước lượng theo chuẩn ngành'),
                                 ]),
 
                             // ── Time performance ─────────────────────────────
@@ -525,7 +521,7 @@ abstract class BaseScreenResource extends Resource
                         ->columns(3)
                         ->schema([
                             Forms\Components\TextInput::make('_site_lat')
-                                ->label('Latitude')
+                                ->label('Vĩ độ')
                                 ->numeric()
                                 ->step(0.0000001)
                                 ->live(debounce: 800)
@@ -534,7 +530,7 @@ abstract class BaseScreenResource extends Resource
                                 ->dehydrated(false),
 
                             Forms\Components\TextInput::make('_site_lon')
-                                ->label('Longitude')
+                                ->label('Kinh độ')
                                 ->numeric()
                                 ->step(0.0000001)
                                 ->live(debounce: 800)
@@ -565,14 +561,14 @@ abstract class BaseScreenResource extends Resource
                 ->columns(3)
                 ->schema([
                     Forms\Components\TextInput::make('unit_id')
-                        ->label('Unit ID')
+                        ->label('Mã đơn vị (unit ID)')
                         ->maxLength(100)
                         ->nullable(),
 
                     Forms\Components\Hidden::make('uuid'),
 
                     Forms\Components\Select::make('player_type')
-                        ->label('Player type')
+                        ->label('Loại đầu phát')
                         ->options([
                             'adtrue_android' => 'OOHX Android',
                             'adtrue_webview' => 'OOHX WebView',
@@ -594,7 +590,7 @@ abstract class BaseScreenResource extends Resource
                         ->nullable(),
 
                     Forms\Components\TextInput::make('inventory.share_of_voice_max_pct')
-                        ->label('Max SOV (%)')
+                        ->label('SOV tối đa (%)')
                         ->numeric()
                         ->default(100)
                         ->minValue(1)
@@ -602,7 +598,7 @@ abstract class BaseScreenResource extends Resource
                         ->suffix('%'),
 
                     Forms\Components\TextInput::make('inventory.screen_count_override')
-                        ->label('Screen count')
+                        ->label('Số màn hình')
                         ->numeric()
                         ->nullable()
                         ->minValue(1)
@@ -610,7 +606,7 @@ abstract class BaseScreenResource extends Resource
                         ->placeholder('1'),
 
                     Forms\Components\TextInput::make('inventory.max_spot_length')
-                        ->label('Max duration')
+                        ->label('Thời lượng tối đa')
                         ->numeric()
                         ->default(180)
                         ->minValue(3)
@@ -618,7 +614,7 @@ abstract class BaseScreenResource extends Resource
                         ->suffix('s'),
 
                     Forms\Components\TextInput::make('inventory.min_spot_length')
-                        ->label('Min duration')
+                        ->label('Thời lượng tối thiểu')
                         ->numeric()
                         ->default(3)
                         ->minValue(1)
@@ -626,29 +622,29 @@ abstract class BaseScreenResource extends Resource
                         ->suffix('s'),
 
                     Forms\Components\TextInput::make('inventory.loop_length')
-                        ->label('Loop length')
+                        ->label('Độ dài vòng phát')
                         ->numeric()
                         ->minValue(1)
                         ->maxValue(3600)
                         ->suffix('s'),
 
                     Forms\Components\TextInput::make('inventory.frequency_cap')
-                        ->label('Freq cap')
+                        ->label('Giới hạn tần suất')
                         ->numeric()
                         ->default(0)
                         ->minValue(0)
                         ->suffix('s')
-                        ->helperText('0 = unlimited'),
+                        ->helperText('0 = không giới hạn'),
 
                     Forms\Components\TextInput::make('inventory.category_frequency_cap')
-                        ->label('Cat freq cap')
+                        ->label('Giới hạn tần suất theo ngành')
                         ->numeric()
                         ->default(0)
                         ->minValue(0)
                         ->suffix('s'),
 
                     Forms\Components\Toggle::make('inventory.strict_frequency_capping')
-                        ->label('Strict freq cap')
+                        ->label('Siết giới hạn tần suất')
                         ->default(false),
 
                     Forms\Components\Textarea::make('internal_notes')
@@ -683,42 +679,38 @@ abstract class BaseScreenResource extends Resource
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('external_id')
-                    ->label('Screen ID')
+                    ->label('Mã màn hình')
                     ->searchable()
                     ->copyable(),
 
                 Tables\Columns\IconColumn::make('active')
-                    ->label('Active')
+                    ->label('Đang bật')
                     ->boolean(),
 
                 Tables\Columns\BadgeColumn::make('status')
-                    ->label('Status')
+                    ->label('Trạng thái')
                     ->colors([
                         'success' => 'online',
                         'danger'  => 'offline',
                         'warning' => 'maintenance',
                     ])
-                    ->formatStateUsing(fn ($state) => ucfirst($state ?? 'unknown')),
+                    ->formatStateUsing(fn ($state) => Screen::STATUS_LABELS[$state] ?? $state ?? '—'),
             ])
             ->filters([
                 TernaryFilter::make('active')
-                    ->label('Active'),
+                    ->label('Đang bật'),
 
                 SelectFilter::make('status')
-                    ->label('Device status')
-                    ->options([
-                        'online'      => 'Online',
-                        'offline'     => 'Offline',
-                        'maintenance' => 'Maintenance',
-                    ]),
+                    ->label('Trạng thái thiết bị')
+                    ->options(Screen::STATUS_LABELS),
 
                 SelectFilter::make('site_id')
-                    ->label('Site')
+                    ->label('Địa điểm')
                     ->options(fn () => static::siteFilterOptions())
                     ->searchable(),
 
                 SelectFilter::make('network')
-                    ->label('Network')
+                    ->label('Mạng lưới')
                     ->options(fn () => static::networkFilterOptions())
                     ->query(fn (Builder $query, array $data) => $query->when(
                         $data['value'] ?? null,
@@ -762,13 +754,13 @@ abstract class BaseScreenResource extends Resource
 
                     // ── AI Context Enrichment (Phase 1) ──────────
                     Tables\Actions\Action::make('enrich_ai_context')
-                        ->label('Enrich AI Context')
+                        ->label('Bổ sung ngữ cảnh bằng AI')
                         ->icon('heroicon-o-sparkles')
                         ->color('primary')
                         ->modalHeading(fn (Screen $r) => "AI Context: {$r->name}")
                         ->modalDescription('Phân tích POI xung quanh từ OpenStreetMap + Claude Haiku inference. Cost ~$0.005 mỗi lần chạy.')
                         ->modalWidth('5xl')
-                        ->modalSubmitActionLabel('Apply vào Screen')
+                        ->modalSubmitActionLabel('Áp vào màn hình')
                         ->modalCancelActionLabel('Huỷ')
                         ->visible(fn (Screen $r) => (bool) ($r->site?->lat && $r->site?->lon))
                         ->mountUsing(function (\Filament\Forms\Form $form, Screen $record) {
@@ -851,7 +843,7 @@ abstract class BaseScreenResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\BulkAction::make('bulk_enrich_ai')
-                        ->label('Enrich AI Context (batch)')
+                        ->label('Bổ sung ngữ cảnh bằng AI (hàng loạt)')
                         ->icon('heroicon-o-sparkles')
                         ->color('primary')
                         ->requiresConfirmation()
@@ -886,7 +878,7 @@ abstract class BaseScreenResource extends Resource
 
                     // Phase 4.1 — pre-populate Campaign Planner với selected screens
                     Tables\Actions\BulkAction::make('plan_campaign')
-                        ->label('Plan campaign with selected')
+                        ->label('Lên chiến dịch với mục đã chọn')
                         ->icon('heroicon-o-megaphone')
                         ->color('info')
                         ->deselectRecordsAfterCompletion()
@@ -934,20 +926,20 @@ abstract class BaseScreenResource extends Resource
                         ->columns(3)
                         ->schema([
                             Infolists\Components\TextEntry::make('external_id')
-                                ->label('Screen ID')
+                                ->label('Mã màn hình')
                                 ->copyable()
                                 ->fontFamily('mono'),
 
                             Infolists\Components\TextEntry::make('active_status')
                                 ->label('Trạng thái')
                                 ->badge()
-                                ->getStateUsing(fn (Screen $r) => $r->active ? 'Active' : 'Inactive')
-                                ->color(fn ($state) => $state === 'Active' ? 'success' : 'danger'),
+                                ->getStateUsing(fn (Screen $r) => $r->active ? 'Đang bật' : 'Đã tắt')
+                                ->color(fn ($state) => $state === 'Đang bật' ? 'success' : 'danger'),
 
                             Infolists\Components\TextEntry::make('status')
-                                ->label('Device')
+                                ->label('Thiết bị')
                                 ->badge()
-                                ->formatStateUsing(fn ($state) => ucfirst($state ?? 'unknown'))
+                                ->formatStateUsing(fn ($state) => Screen::STATUS_LABELS[$state] ?? $state ?? '—')
                                 ->color(fn ($state) => match ($state) {
                                     'online'      => 'success',
                                     'maintenance' => 'warning',
@@ -955,15 +947,15 @@ abstract class BaseScreenResource extends Resource
                                 }),
 
                             Infolists\Components\TextEntry::make('owner.name')
-                                ->label('Owner')
+                                ->label('Chủ sở hữu')
                                 ->placeholder('—'),
 
                             Infolists\Components\TextEntry::make('site.name')
-                                ->label('Site')
+                                ->label('Địa điểm')
                                 ->placeholder('—'),
 
                             Infolists\Components\TextEntry::make('site.network.name')
-                                ->label('Network')
+                                ->label('Mạng lưới')
                                 ->placeholder('—'),
 
                             Infolists\Components\TextEntry::make('inventory.vnCategory.name_vi')
@@ -985,7 +977,7 @@ abstract class BaseScreenResource extends Resource
                         ->columns(4)
                         ->schema([
                             Infolists\Components\TextEntry::make('resolution')
-                                ->label('Resolution')
+                                ->label('Độ phân giải')
                                 ->getStateUsing(fn (Screen $r) => $r->spec
                                     ? "{$r->spec->width_px}×{$r->spec->height_px} px"
                                     : '—'),
@@ -997,18 +989,18 @@ abstract class BaseScreenResource extends Resource
                                     : '—'),
 
                             Infolists\Components\TextEntry::make('content_types')
-                                ->label('Content')
+                                ->label('Nội dung nhận')
                                 ->getStateUsing(fn (Screen $r) => implode(', ', array_filter([
-                                    $r->spec?->allow_image ? 'Image' : null,
+                                    $r->spec?->allow_image ? 'Ảnh' : null,
                                     $r->spec?->allow_video ? 'Video' : null,
                                 ])) ?: '—'),
 
                             Infolists\Components\TextEntry::make('inventory.spot_length')
-                                ->label('Spot')
+                                ->label('Thời lượng spot')
                                 ->formatStateUsing(fn ($state) => ($state ?? 15) . 's'),
 
                             Infolists\Components\TextEntry::make('floor_cpm_display')
-                                ->label('Floor CPM')
+                                ->label('Giá sàn CPM')
                                 ->getStateUsing(fn (Screen $r) => $r->inventory?->floor_cpm
                                     ? number_format((float) $r->inventory->floor_cpm, 0, '.', ',') . ' ' . ($r->inventory->floor_cpm_currency ?? 'VND')
                                     : '—'),
@@ -1020,11 +1012,11 @@ abstract class BaseScreenResource extends Resource
                             Infolists\Components\TextEntry::make('programmatic_display')
                                 ->label('Programmatic')
                                 ->badge()
-                                ->getStateUsing(fn (Screen $r) => $r->inventory?->programmatic_enabled ? 'Enabled' : 'Disabled')
-                                ->color(fn ($state) => $state === 'Enabled' ? 'success' : 'gray'),
+                                ->getStateUsing(fn (Screen $r) => $r->inventory?->programmatic_enabled ? 'Đang bật' : 'Đã tắt')
+                                ->color(fn ($state) => $state === 'Đang bật' ? 'success' : 'gray'),
 
                             Infolists\Components\TextEntry::make('inventory.timezone')
-                                ->label('Timezone')
+                                ->label('Múi giờ')
                                 ->placeholder('—'),
                         ]),
 
@@ -1056,7 +1048,7 @@ abstract class BaseScreenResource extends Resource
                         ]),
 
                     // ── Tab 5: Insights (Phase 1) ───────────────────────────
-                    Infolists\Components\Tabs\Tab::make('Insights')
+                    Infolists\Components\Tabs\Tab::make('Phân tích')
                         ->icon('heroicon-o-chart-bar')
                         ->schema([
                             Infolists\Components\ViewEntry::make('insights_view')
@@ -1071,17 +1063,17 @@ abstract class BaseScreenResource extends Resource
                         ->columns(3)
                         ->schema([
                             Infolists\Components\TextEntry::make('uuid')
-                                ->label('Ad request UUID')
+                                ->label('UUID yêu cầu quảng cáo')
                                 ->copyable()
                                 ->fontFamily('mono')
                                 ->placeholder('—'),
 
                             Infolists\Components\TextEntry::make('unit_id')
-                                ->label('Unit ID')
+                                ->label('Mã đơn vị (unit ID)')
                                 ->placeholder('—'),
 
                             Infolists\Components\TextEntry::make('player_type')
-                                ->label('Player type')
+                                ->label('Loại đầu phát')
                                 ->formatStateUsing(fn ($state) => match ($state) {
                                     'adtrue_android' => 'OOHX Android',
                                     'adtrue_webview' => 'OOHX WebView',
@@ -1091,11 +1083,11 @@ abstract class BaseScreenResource extends Resource
                                 }),
 
                             Infolists\Components\TextEntry::make('share_of_voice')
-                                ->label('Max SOV')
+                                ->label('SOV tối đa')
                                 ->getStateUsing(fn (Screen $r) => ($r->inventory?->share_of_voice_max_pct ?? 100) . '%'),
 
                             Infolists\Components\TextEntry::make('frequency_cap_display')
-                                ->label('Frequency cap')
+                                ->label('Giới hạn tần suất')
                                 ->getStateUsing(fn (Screen $r) => $r->inventory?->frequency_cap
                                     ? $r->inventory->frequency_cap . 's'
                                     : 'Unlimited'),
@@ -1134,7 +1126,7 @@ abstract class BaseScreenResource extends Resource
 
             // ── Section: Data Engine estimate (read-only, từ VPS riêng) ─────
             // 1 query per render (vs N cho nhiều TextEntry) — lookup trong ViewEntry Blade.
-            Infolists\Components\Section::make('Data Engine — traffic estimate')
+            Infolists\Components\Section::make('Data Engine — ước lượng lưu lượng')
                 ->icon('heroicon-o-cpu-chip')
                 ->description('Rule-based estimate từ OOHX Data Engine (POI + road network). Update mỗi 30 phút.')
                 ->collapsible()

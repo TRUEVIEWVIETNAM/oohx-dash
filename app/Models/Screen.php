@@ -60,6 +60,33 @@ class Screen extends Model
      */
     protected $hidden = ['device_token'];
 
+    public const STATUS_ONLINE      = 'online';
+    public const STATUS_OFFLINE     = 'offline';
+    public const STATUS_MAINTENANCE = 'maintenance';
+
+    /**
+     * Chữ tiếng Việt cho trạng thái thiết bị phát.
+     *
+     * Trước bảng này, cả hai panel in trạng thái bằng
+     * `ucfirst($state ?? 'unknown')` — tức một viên thuốc có màu chứa
+     * `Online` / `Offline` / `Maintenance`, và `Unknown` khi cột rỗng. Đó là
+     * lần thứ sáu của cùng một họ lỗi (xem `TheEnumPhaiCoChuTest`): mã CSDL
+     * hiện nguyên văn ra chỗ người đọc.
+     *
+     * `offline` không dịch là "Ngoại tuyến" mà là **"Mất kết nối"**: với media
+     * owner, một màn hình `offline` không phải một lựa chọn mà là một sự cố
+     * cần xử lý. Chữ phải nói đúng việc đó.
+     *
+     * Tên hằng theo quy ước `<CỘT>_LABELS` nên `NhanEnumMotNoiTest` tự tìm
+     * thấy: từ nay thêm một giá trị vào `enum('online','offline','maintenance')`
+     * mà quên chữ là **đỏ**.
+     */
+    public const STATUS_LABELS = [
+        self::STATUS_ONLINE      => 'Trực tuyến',
+        self::STATUS_OFFLINE     => 'Mất kết nối',
+        self::STATUS_MAINTENANCE => 'Bảo trì',
+    ];
+
     protected $fillable = [
         // Marketplace
         'site_id', 'owner_id', 'external_id', 'uuid',

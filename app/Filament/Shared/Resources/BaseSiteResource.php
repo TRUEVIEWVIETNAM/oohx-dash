@@ -32,8 +32,8 @@ abstract class BaseSiteResource extends Resource
 {
     protected static ?string $model           = Site::class;
     protected static ?string $navigationIcon  = null;
-    protected static ?string $navigationGroup = 'Inventory';
-    protected static ?string $navigationLabel = 'Sites';
+    protected static ?string $navigationGroup = 'Kho điểm phát';
+    protected static ?string $navigationLabel = 'Địa điểm';
     protected static ?int    $navigationSort  = 2;
 
     // ── Hooks cho subclass override ───────────────────────────────────────────
@@ -71,12 +71,12 @@ abstract class BaseSiteResource extends Resource
 
         return $form->schema([
 
-            Forms\Components\Section::make('Site Identity')->columns(2)->schema(
+            Forms\Components\Section::make('Nhận diện địa điểm')->columns(2)->schema(
                 array_values(array_filter([
                     $ownerField,
 
                     Forms\Components\Select::make('network_id')
-                        ->label('Network')
+                        ->label('Mạng lưới')
                         ->relationship('network', 'name')
                         ->searchable()
                         ->preload()
@@ -98,12 +98,12 @@ abstract class BaseSiteResource extends Resource
                         }),
 
                     Forms\Components\TextInput::make('external_id')
-                        ->label('Site ID')
+                        ->label('Mã địa điểm')
                         ->maxLength(75)
                         ->helperText('Tự động từ tên. Có thể sửa tay.'),
 
                     Forms\Components\TextInput::make('slug')
-                        ->label('Slug (SEO URL)')
+                        ->label('Đường dẫn SEO (slug)')
                         ->maxLength(150)
                         ->unique(ignoreRecord: true)
                         ->helperText('Tự động từ tên'),
@@ -126,7 +126,7 @@ abstract class BaseSiteResource extends Resource
                     ->helperText('Logo site. Khuyến nghị 400×400px, tối đa 1MB.'),
 
                 Forms\Components\FileUpload::make('banner')
-                    ->label('Banner')
+                    ->label('Ảnh bìa')
                     ->image()
                     ->directory('sites/banners')
                     ->disk('public')
@@ -138,7 +138,7 @@ abstract class BaseSiteResource extends Resource
                     ->helperText('Ảnh bìa. Khuyến nghị 1200×514px, tối đa 2MB.'),
             ]),
 
-            Forms\Components\Section::make('Location')->columns(2)->schema([
+            Forms\Components\Section::make('Vị trí')->columns(2)->schema([
 
                 // ── Địa giới hành chính Việt Nam ──────────────────────────
                 Forms\Components\Select::make('province_id')
@@ -202,16 +202,16 @@ abstract class BaseSiteResource extends Resource
                     ->default('VN'),
 
                 Forms\Components\Select::make('status')
-                    ->options(['active' => 'Active', 'paused' => 'Paused', 'closed' => 'Closed'])
+                    ->options(Site::STATUS_LABELS)
                     ->default('active'),
 
                 Forms\Components\TextInput::make('lat')
-                    ->label('Latitude')
+                    ->label('Vĩ độ')
                     ->numeric()
                     ->live(debounce: 800),
 
                 Forms\Components\TextInput::make('lon')
-                    ->label('Longitude')
+                    ->label('Kinh độ')
                     ->numeric()
                     ->live(debounce: 800),
 
@@ -237,7 +237,7 @@ abstract class BaseSiteResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('external_id')
-                    ->label('Site ID')
+                    ->label('Mã địa điểm')
                     ->searchable()
                     ->copyable()
                     ->toggleable(),
@@ -247,11 +247,13 @@ abstract class BaseSiteResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('screens_count')
-                    ->label('Screens')
+                    ->label('Màn hình')
                     ->counts('screens')
                     ->sortable(),
 
                 Tables\Columns\BadgeColumn::make('status')
+                    ->label('Trạng thái')
+                    ->formatStateUsing(fn ($state) => Site::STATUS_LABELS[$state] ?? $state ?? '—')
                     ->colors([
                         'success' => 'active',
                         'warning' => 'paused',
@@ -267,24 +269,24 @@ abstract class BaseSiteResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label('Tạo lúc')
                     ->dateTime('d/m/Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label('Cập nhật lúc')
                     ->since()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status')
-                    ->label('Status')
-                    ->options(['active' => 'Active', 'paused' => 'Paused', 'closed' => 'Closed']),
+                    ->label('Trạng thái')
+                    ->options(Site::STATUS_LABELS),
 
                 SelectFilter::make('network_id')
-                    ->label('Network')
+                    ->label('Mạng lưới')
                     ->relationship('network', 'name')
                     ->searchable()
                     ->preload(),
@@ -464,7 +466,7 @@ abstract class BaseSiteResource extends Resource
                         ->label('Tên site'),
 
                     Infolists\Components\TextEntry::make('external_id')
-                        ->label('Site ID')
+                        ->label('Mã địa điểm')
                         ->copyable()
                         ->fontFamily('mono'),
 
@@ -480,15 +482,15 @@ abstract class BaseSiteResource extends Resource
                         }),
 
                     Infolists\Components\TextEntry::make('owner.name')
-                        ->label('Owner')
+                        ->label('Chủ sở hữu')
                         ->placeholder('—'),
 
                     Infolists\Components\TextEntry::make('network.name')
-                        ->label('Network')
+                        ->label('Mạng lưới')
                         ->placeholder('—'),
 
                     Infolists\Components\TextEntry::make('screens_count')
-                        ->label('Screens')
+                        ->label('Màn hình')
                         ->getStateUsing(fn (Site $r) => $r->screens()->count()),
 
                     Infolists\Components\TextEntry::make('city')
@@ -520,12 +522,12 @@ abstract class BaseSiteResource extends Resource
                 ->columns(3)
                 ->schema([
                     Infolists\Components\TextEntry::make('lat')
-                        ->label('Latitude')
+                        ->label('Vĩ độ')
                         ->fontFamily('mono')
                         ->placeholder('—'),
 
                     Infolists\Components\TextEntry::make('lon')
-                        ->label('Longitude')
+                        ->label('Kinh độ')
                         ->fontFamily('mono')
                         ->placeholder('—'),
 

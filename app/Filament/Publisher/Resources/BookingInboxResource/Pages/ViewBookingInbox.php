@@ -28,10 +28,10 @@ class ViewBookingInbox extends ViewRecord
                     Infolists\Components\Grid::make(3)->schema([
                         Infolists\Components\TextEntry::make('code')->label('Mã'),
                         Infolists\Components\TextEntry::make('name')->label('Tên Campaign'),
-                        Infolists\Components\TextEntry::make('organization.name')->label('Agency/Client'),
+                        Infolists\Components\TextEntry::make('organization.name')->label('Đại lý / Khách hàng'),
                     ]),
                     Infolists\Components\Grid::make(4)->schema([
-                        Infolists\Components\TextEntry::make('brand_name')->label('Brand')->default('—'),
+                        Infolists\Components\TextEntry::make('brand_name')->label('Thương hiệu')->default('—'),
                         Infolists\Components\TextEntry::make('category')->label('Ngành hàng')->default('—'),
                         Infolists\Components\TextEntry::make('start_date')->label('Bắt đầu')->date('d/m/Y'),
                         Infolists\Components\TextEntry::make('end_date')->label('Kết thúc')->date('d/m/Y'),
@@ -107,7 +107,7 @@ class ViewBookingInbox extends ViewRecord
                         }),
                 ]),
 
-            Infolists\Components\Section::make('Creatives')
+            Infolists\Components\Section::make('Nội dung quảng cáo')
                 ->schema([
                     Infolists\Components\RepeatableEntry::make('creatives')
                         ->label('')

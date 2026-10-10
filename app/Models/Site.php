@@ -15,6 +15,23 @@ class Site extends Model
 {
     use HasFactory, HasUlids, HasOwnerScope, HasSlug, SoftDeletes;
 
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_PAUSED = 'paused';
+    public const STATUS_CLOSED = 'closed';
+
+    /**
+     * Chữ tiếng Việt cho trạng thái địa điểm.
+     *
+     * `closed` là "Đã đóng" — địa điểm ngừng hẳn, khác `paused` là tạm. Phân
+     * biệt đó có hệ quả: một địa điểm `closed` thì màn hình của nó không bao
+     * giờ quay lại, còn `paused` thì có.
+     */
+    public const STATUS_LABELS = [
+        self::STATUS_ACTIVE => 'Đang hoạt động',
+        self::STATUS_PAUSED => 'Tạm dừng',
+        self::STATUS_CLOSED => 'Đã đóng',
+    ];
+
     protected $fillable = [
         'owner_id', 'network_id', 'external_id',
         'name', 'slug', 'description', 'logo', 'banner', 'lat', 'lon',

@@ -14,7 +14,7 @@ class ListSite extends ListRecords
     {
         return [
             Actions\Action::make('importSites')
-                ->label('Import Sites')
+                ->label('Nhập địa điểm từ Excel')
                 ->icon('heroicon-o-arrow-up-tray')
                 ->color('gray')
                 ->url(fn () => \App\Filament\Publisher\Pages\ImportSites::getUrl())

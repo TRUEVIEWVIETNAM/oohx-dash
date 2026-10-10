@@ -41,20 +41,20 @@ class NetworkDetailStats extends BaseWidget
                 ->icon('heroicon-o-computer-desktop')
                 ->color('primary'),
 
-            Stat::make('Online', number_format($online))
+            Stat::make('Trực tuyến', number_format($online))
                 ->description($online . ' of ' . $total . ' screens connected')
                 ->descriptionIcon('heroicon-s-signal')
                 ->icon('heroicon-o-signal')
                 ->color($onlineColor),
 
-            Stat::make('Offline', number_format($offline))
-                ->description('Device disconnected')
+            Stat::make('Mất kết nối', number_format($offline))
+                ->description('Mất kết nối')
                 ->descriptionIcon('heroicon-s-signal-slash')
                 ->icon('heroicon-o-signal-slash')
                 ->color($offlineColor),
 
             Stat::make('Sites', number_format($sites))
-                ->description('Physical locations')
+                ->description('Địa điểm thực tế')
                 ->descriptionIcon('heroicon-s-map-pin')
                 ->icon('heroicon-o-map-pin')
                 ->color('info'),

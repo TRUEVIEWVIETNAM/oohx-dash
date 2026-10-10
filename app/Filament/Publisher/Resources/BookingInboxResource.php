@@ -32,13 +32,13 @@ class BookingInboxResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-inbox-arrow-down';
 
-    protected static ?string $navigationGroup = 'Bookings';
+    protected static ?string $navigationGroup = 'Đặt chỗ';
 
-    protected static ?string $navigationLabel = 'Booking Inbox';
+    protected static ?string $navigationLabel = 'Hộp thư đặt chỗ';
 
-    protected static ?string $modelLabel = 'Booking';
+    protected static ?string $modelLabel = 'Đặt chỗ';
 
-    protected static ?string $pluralModelLabel = 'Bookings';
+    protected static ?string $pluralModelLabel = 'Đặt chỗ';
 
     protected static ?int $navigationSort = 1;
 
@@ -71,12 +71,12 @@ class BookingInboxResource extends Resource
                     ->size('sm'),
 
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Campaign')
+                    ->label('Chiến dịch')
                     ->searchable()
                     ->limit(40),
 
                 Tables\Columns\TextColumn::make('organization.name')
-                    ->label('Agency/Client')
+                    ->label('Đại lý / Khách hàng')
                     ->limit(30),
 
                 Tables\Columns\TextColumn::make('owner_lines_count')

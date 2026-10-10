@@ -155,7 +155,7 @@ class OwnerUsersRelationManager extends RelationManager
 
                             Notification::make()
                                 ->title("✅ Đã gửi lời mời tới {$data['email']}")
-                                ->body('Role: ' . (OwnerUser::ROLE_LABELS[$data['role']] ?? $data['role']) . ' · hết hạn sau 7 ngày')
+                                ->body('Vai trò: ' . (OwnerUser::ROLE_LABELS[$data['role']] ?? $data['role']) . ' · hết hạn sau 7 ngày')
                                 ->success()->send();
                         } catch (\Throwable $e) {
                             Notification::make()
