@@ -164,18 +164,17 @@ npm run build
 
 echo ""
 echo "[6/9] Clear old caches"
+#
+# Lệnh này đã xoá luôn bảng component của Filament — Filament 3.3 đăng ký nhánh
+# clear vào sổ optimize của Laravel. Lý do đầy đủ ở bước [6] của `deploy.sh`.
+#
+# Chuyện đó QUAN TRỌNG đúng ở đây: rollback lùi mã về commit trước, nhưng
+# `bootstrap/cache` bị .gitignore chặn nên bảng của bản MỚI sẽ sống nguyên nếu
+# không ai xoá. Bảng đó ghi thẳng tên class và `HasComponents` nạp bằng `require`
+# rồi tin hẳn, nên giữ bảng mới trên mã cũ là 500 trên mọi trang panel — đúng
+# thứ người ta vừa rollback để tránh. May là `optimize:clear` đã lo, và giờ thì
+# biết là nó lo.
 $PHP_BIN artisan optimize:clear
-
-# Cache component của Filament — ở đây nó CẦN hơn cả trong `deploy.sh`.
-#
-# Rollback lùi mã về commit trước, nhưng `bootstrap/cache` bị .gitignore chặn
-# nên bảng component của bản MỚI sống nguyên. Bảng đó ghi thẳng tên class, và
-# `HasComponents` nạp nó bằng `require` rồi tin hẳn — nên lùi mã mà giữ bảng cũ
-# là 500 trên mọi trang panel, đúng thứ người ta vừa rollback để tránh.
-#
-# Không `|| true`: nếu không xoá được thì rollback xong vẫn vỡ, và biết ngay thì
-# hơn.
-$PHP_BIN artisan filament:optimize-clear
 
 echo ""
 echo "[7/9] Rebuild caches"
@@ -184,11 +183,16 @@ $PHP_BIN artisan route:cache
 $PHP_BIN artisan view:cache
 $PHP_BIN artisan event:cache || true
 
+# Dựng lại bảng component của Filament. Sổ optimize của Laravel chỉ nổ ở
+# `artisan optimize`, mà bốn dòng trên cache từng thứ một — nên nhánh ghi không
+# ai gọi. Lý do đầy đủ ở bước [8] của `deploy.sh`.
+#
 # CÓ `|| true` ở đây, khác `deploy.sh` — và khác có chủ ý.
 #
 # Trong `deploy.sh` lệnh này hỏng thì deploy phải đỏ: ta đang thêm tính năng,
 # dừng lại được. Trong rollback thì mục tiêu duy nhất là đưa mã CŨ lên sống;
-# thiếu một bảng cache tăng tốc là chấp nhận được, còn bỏ dở rollback thì không.
+# thiếu một bảng cache tăng tốc là chấp nhận được (panel vẫn chạy đúng, chỉ
+# chậm), còn bỏ dở rollback thì không.
 $PHP_BIN artisan filament:optimize || true
 
 echo ""
