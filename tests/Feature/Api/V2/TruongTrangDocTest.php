@@ -166,9 +166,44 @@ class TruongTrangDocTest extends TestCase
             . 'không tồn tại, hoặc đặc tả thiếu nó.',
         );
 
-        $schema = $spec['paths'][$khoa]['get']['responses'][200]['content']['application/json']['schema'] ?? null;
+        // ── MỌI phương thức đường đó khai, không chỉ `get` ──
+        //
+        // Bản đầu đọc đúng `['get']['responses'][200]`, tức nó ngầm cho rằng
+        // mọi đường một trang gọi đều là GET. Trang cài đặt `PUT` vào ba đường,
+        // và chúng không có khoá `get` — chốt đỏ với "không khai schema phản hồi
+        // 200", một thông điệp đúng mà sai nguyên nhân.
+        //
+        // Lỗ thật nằm ở chỗ khác: với một đường GHI, trường trang chạm tới là
+        // trường nó **gửi**, khai ở `requestBody` — không phải ở phản hồi 200.
+        // Nên bản đầu không canh gì cho mọi đường GHI của mọi trang. Giờ gom cả
+        // hai phía.
+        $schemas = [];
 
-        $this->assertNotNull($schema, "Đường {$khoa} không khai schema phản hồi 200.");
+        foreach (['get', 'put', 'post', 'patch', 'delete'] as $pt) {
+            $pheo = $spec['paths'][$khoa][$pt] ?? null;
+
+            if (! is_array($pheo)) {
+                continue;
+            }
+
+            $s = $pheo['responses'][200]['content']['application/json']['schema'] ?? null;
+
+            if ($s !== null) {
+                $schemas[] = $s;
+            }
+
+            $rb = $pheo['requestBody']['content']['application/json']['schema'] ?? null;
+
+            if ($rb !== null) {
+                $schemas[] = $rb;
+            }
+        }
+
+        $this->assertNotEmpty(
+            $schemas,
+            "Đường {$khoa} không khai schema nào ở phản hồi 200 lẫn requestBody, "
+            . 'nên không có gì để đối chiếu.',
+        );
 
         $ra = [];
         $daDi = [];
@@ -222,7 +257,9 @@ class TruongTrangDocTest extends TestCase
             }
         };
 
-        $di($schema);
+        foreach ($schemas as $s) {
+            $di($s);
+        }
 
         return array_values(array_unique($ra));
     }
@@ -312,7 +349,32 @@ class TruongTrangDocTest extends TestCase
         return $ra;
     }
 
-    /** @return array<int, string> tên snake_case khối script của trang đọc */
+    /**
+     * Tên snake_case khối script của trang đọc.
+     *
+     * ══ Nó thấy gì, và KHÔNG thấy gì — đã đo bằng đột biến ══
+     *
+     * Thấy: `.ten_truong` (truy cập thuộc tính) và `['ten_truong']` (chỉ số
+     * chuỗi). Đột biến `O.tochuc.name.value = tc.credit_limit` bị bắt đúng.
+     *
+     * **Không** thấy: tên trường chỉ xuất hiện như một **phần tử chuỗi trong
+     * mảng** — `['name', 'tax_id', 'credit_limit']`. Đột biến thêm
+     * `'credit_limit'` vào đúng chỗ đó **không** bị bắt.
+     *
+     * Hệ quả cần biết trước khi tin chốt này: danh sách trường một trang **gửi
+     * lên** trong `PUT` thường viết dưới dạng mảng chuỗi, nên nó nằm ngoài tầm.
+     * Nới bộ trích để lấy mọi chuỗi trong script thì nó sẽ báo oan ở mọi tên
+     * class, mọi khoá cấu hình và mọi thông điệp — và một phép kiểm báo oan sẽ
+     * bị tắt.
+     *
+     * Rủi ro thực tế của khoảng trống đó là thấp, và đó là lý do nó được để lại
+     * thay vì bịt bằng một bộ trích ồn: `$request->validate()` chỉ lấy đúng các
+     * khoá nó khai, nên một trường thừa gửi lên bị **bỏ qua**, không ghi vào
+     * CSDL. Chiều ngược — trang ĐỌC một trường endpoint không trả — mới là chiều
+     * làm rò dữ liệu, và chiều đó có người canh.
+     *
+     * @return array<int, string>
+     */
     private function truongTrangDoc(string $trang): array
     {
         $nguon = file_get_contents(base_path($trang));

@@ -204,7 +204,52 @@ class MocDomTrangBladeTest extends TestCase
                 ->get($this->urlFrontpage('/my/campaigns/' . $this->campaignDangChay()->id . '/report'))
                 ->assertOk()
                 ->getContent(),
+
+            'resources/views/buyer/dashboard/settings.blade.php' => $this->actingAs($this->buyer)
+                ->get($this->urlFrontpage('/my/settings'))
+                ->assertOk()
+                ->getContent(),
         ];
+    }
+
+    /**
+     * Trang cài đặt phải mang `hidden` và `disabled` NGAY TRONG MARKUP.
+     *
+     * ══ Trục mà bộ khung jsdom không canh được ══
+     *
+     * `dungTrang()` dựng mỗi móc thành một thẻ trống theo `moc-dom.json`, không
+     * mang thuộc tính nào từ Blade. Nên trạng thái ban đầu của trang — khung
+     * chờ hiện, thân ẩn, mọi ô `disabled` — là thứ phía JS **không thể** kiểm.
+     * Script có tự đặt lại trạng thái đó (và phía JS kiểm việc ấy), nhưng đặt
+     * lại chỉ xảy ra khi script đã chạy.
+     *
+     * Khoảng giữa lúc HTML về và lúc script chạy là khoảng người dùng nhìn
+     * thấy. Thiếu `hidden` trong markup thì trong khoảng đó họ thấy ba biểu mẫu
+     * **trống** trông như đã tải xong — đúng lý do thứ nhất tôi từng nêu khi từ
+     * chối chuyển trang này sang đọc API. Nên nó được canh ở đây, nơi đọc được
+     * HTML thật.
+     */
+    public function test_trang_cai_dat_mang_trang_thai_ban_dau_trong_markup(): void
+    {
+        $html = $this->actingAs($this->buyer)
+            ->get($this->urlFrontpage('/my/settings'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '/<div data-td-than hidden>/',
+            $html,
+            'Thân trang phải `hidden` trong markup — thiếu nó là người dùng thấy biểu mẫu trống trước khi script chạy.',
+        );
+
+        foreach (['data-td-hoso-name', 'data-td-hoso-email', 'data-td-tc-tax', 'data-td-mk-moi'] as $moc) {
+            $this->assertMatchesRegularExpression(
+                '/<input[^>]*\b' . preg_quote($moc, '/') . '\b[^>]*\bdisabled\b/',
+                $html,
+                "Ô `{$moc}` phải `disabled` trong markup — thiếu nó là người dùng gõ được vào một ô "
+                . 'mà giá trị chưa về, và lượt điền sẽ ghi đè thứ họ vừa gõ.',
+            );
+        }
     }
 
     /**

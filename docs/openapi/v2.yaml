@@ -904,6 +904,159 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /api/v2/me/settings:
+    get:
+      tags: [cart]
+      security: [{ sessionCookie: [] }]
+      summary: Cài đặt khu người mua — hồ sơ cá nhân và thông tin tổ chức
+      description: |
+        Trang `/my/settings` đọc endpoint này. Trang **không** render sẵn dữ
+        liệu nào của tổ chức: mã số thuế và email thanh toán chỉ tới trình
+        duyệt qua phản hồi này, tức qua đúng một chỗ đã đi qua
+        `OrganizationPolicy`.
+
+        **`tax_id` ở đây là đúng.** Trường bị cấm phát ra ngoài là `tax_code`
+        của **media owner**, và nó chỉ ra qua `payment-recipients`.
+        `organizations.tax_id` là mã số thuế của chính tổ chức người đang đăng
+        nhập, trên trang họ sửa nó. Hai tên gần nhau nên câu này ở đây.
+
+        **`can_update_organization` không thay policy.** `PUT me/organization`
+        vẫn gọi `Gate` và vẫn trả 403. Cờ này để trang thôi render một biểu mẫu
+        sửa được cho vai trò chỉ-xem — bản Blade cũ luôn render nó, và người
+        dùng chỉ biết mình không được phép sau khi điền xong và bấm Lưu.
+
+        Nằm sau middleware `buyer`, khác `/api/v2/me`: endpoint này cần một tổ
+        chức để có gì mà trả.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/BuyerSettings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/me/profile:
+    put:
+      tags: [cart]
+      security: [{ sessionCookie: [] }]
+      summary: Sửa hồ sơ cá nhân của người đang đăng nhập
+      description: |
+        Mọi vai trò CÒN trong tổ chức đều sửa được: tên và email của chính mình
+        không phải dữ liệu của tổ chức. Siết quyền tổ chức không được kéo theo
+        hồ sơ cá nhân — có ca test riêng cho việc đó.
+
+        Hạn mức riêng `10/phút`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name:  { type: string, maxLength: 255 }
+                email: { type: string, format: email, maxLength: 255 }
+      responses:
+        '200':
+          description: Đã lưu
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/SavedMessage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/me/password:
+    put:
+      tags: [cart]
+      security: [{ sessionCookie: [] }]
+      summary: Đổi mật khẩu của người đang đăng nhập
+      description: |
+        Hạn mức riêng `10/phút`, và đây là đường cần nó nhất: endpoint nhận
+        `current_password`, tức nó là một chỗ **dò mật khẩu hiện tại**. Hạn mức
+        300/phút của nhóm `api` cho phép 300 lần đoán mỗi phút trên một phiên
+        đã đăng nhập.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, password, password_confirmation]
+              properties:
+                current_password:      { type: string }
+                password:              { type: string, minLength: 8 }
+                password_confirmation: { type: string }
+      responses:
+        '200':
+          description: Đã lưu
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/SavedMessage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v2/me/organization:
+    put:
+      tags: [cart]
+      security: [{ sessionCookie: [] }]
+      summary: Sửa thông tin tổ chức đang chọn — chỉ vai trò quản trị
+      description: |
+        Thân yêu cầu gồm `tax_id` và `billing_*`, nên thiếu policy ở đây là để
+        một vai trò `viewer` ghi lại mã số thuế của tổ chức. Đó là lỗ đã bịt ở
+        PR #55, và ca test của nó canh đúng đường này.
+
+        `planner` **cũng không** sửa được: mô tả vai trò là "tạo campaign,
+        submit booking, xem reports — không quản lý team", và thông tin pháp lý
+        với thanh toán thuộc việc quản trị.
+
+        Hạn mức riêng `10/phút`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:          { type: string, maxLength: 255 }
+                billing_email: { type: string, format: email, maxLength: 255, nullable: true }
+                billing_phone: { type: string, maxLength: 30, nullable: true }
+                tax_id:        { type: string, maxLength: 50, nullable: true }
+                website:       { type: string, format: uri, maxLength: 255, nullable: true }
+      responses:
+        '200':
+          description: Đã lưu
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/SavedMessage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /api/v2/cart:
     get:
       tags: [cart]
@@ -1804,6 +1957,55 @@ components:
           properties:
             name: { type: string }
         cart_count: { type: integer, description: 'Số món trong giỏ, để vẽ badge. Lấy từ cùng hàm header Blade gọi.' }
+
+    SavedMessage:
+      type: object
+      required: [message]
+      description: |
+        Thân phản hồi của ba đường GHI cài đặt. Chỉ một câu để trang hiện
+        lên — KHÔNG trả lại bản ghi vừa ghi.
+
+        Lý do: trang đã có giá trị người dùng vừa gõ trong ô nhập, nên trả về
+        một bản sao là mời nó ghi đè chính thứ đang hiện. Và mỗi trường trả
+        thêm ở một đường GHI là một trường phải nghĩ lại về phạm vi.
+      properties:
+        message: { type: string }
+
+    BuyerSettings:
+      type: object
+      required: [user, organization, permissions]
+      description: |
+        Cài đặt khu người mua. Danh sách trắng hẹp có chủ ý: đúng những trường
+        ba biểu mẫu của trang `/my/settings` cần.
+
+        `organizations` còn có `credit_limit`, `payment_terms_days`,
+        `billing_address` và `status` — không trường nào thuộc biểu mẫu này nên
+        không trường nào ở đây. Mỗi trường thêm vào là một trường phải nghĩ lại
+        khi có người hỏi "ai được thấy cái này".
+      properties:
+        user:
+          type: object
+          description: 'Không có `id`: trang sửa đúng một người — người đang đăng nhập. Một `id` ở đây là mời bên tiêu thụ gửi nó lên trong PUT, và khi đó endpoint phải nghĩ về việc ai sửa được của ai.'
+          required: [name, email]
+          properties:
+            name:  { type: string }
+            email: { type: string, format: email }
+        organization:
+          type: object
+          required: [name, billing_email, billing_phone, tax_id, website]
+          properties:
+            name:          { type: string }
+            billing_email: { type: string, format: email, nullable: true }
+            billing_phone: { type: string, nullable: true }
+            tax_id:        { type: string, nullable: true, description: 'Mã số thuế của CHÍNH tổ chức người đang đăng nhập. Không phải `owners.tax_code` — trường đó bị cấm phát ra ngoài và chỉ ra qua `payment-recipients`.' }
+            website:       { type: string, format: uri, nullable: true }
+        permissions:
+          type: object
+          required: [can_update_organization]
+          properties:
+            can_update_organization:
+              type: boolean
+              description: 'Vai trò có `manage_team` hay không. KHÔNG thay policy — `PUT me/organization` vẫn gọi Gate và vẫn 403. Cờ này để trang thôi render biểu mẫu sửa được cho vai trò chỉ-xem.'
 
     Cart:
       type: object

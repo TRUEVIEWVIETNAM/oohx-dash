@@ -83,17 +83,116 @@ class CaiDatToChucTest extends TestCase
         ], $ghiDe);
     }
 
+    /** Trang — chỉ còn khung, không mang dữ liệu nào của tổ chức. */
     private const URL = '/my/settings';
-    private const URL_GHI = '/my/settings/organization';
+
+    /** Đọc và ghi đều qua `/api/v2` từ 10/10/2026 — ba đường `PUT /my/settings/*` đã gỡ. */
+    private const URL_DOC = '/api/v2/me/settings';
+    private const URL_GHI = '/api/v2/me/organization';
+    private const URL_HOSO = '/api/v2/me/profile';
 
     // ── Đọc ─────────────────────────────────────────────────────────────────
 
-    public function test_thanh_vien_xem_duoc_trang_cai_dat(): void
+    /**
+     * Mã số thuế tới trình duyệt qua API, KHÔNG qua HTML của trang.
+     *
+     * Trước 10/10/2026 trang render sẵn `tax_id` và ca này đọc nó bằng
+     * `assertSee`. Giờ trang chỉ là khung, nên ca này tách làm hai nửa — và
+     * nửa thứ hai mới là nửa chặt hơn bản cũ:
+     *
+     *  - API trả `tax_id` cho một thành viên (dữ liệu của họ, trả cho họ);
+     *  - trang **không** chứa nó trong HTML.
+     *
+     * Nửa thứ hai là phép kiểm bản cũ không thể có: khi dữ liệu nằm trong HTML
+     * do server render, mọi lớp chặn phải nằm ở chỗ render trang. Khi nó chỉ
+     * tới qua một phản hồi API, nó đi qua `OrganizationPolicy` ở một chỗ duy
+     * nhất, và ca này canh đúng việc "không có đường thứ hai".
+     */
+    public function test_api_tra_ma_so_thue_cho_thanh_vien(): void
+    {
+        $this->actingAs($this->thanhVien(OrganizationUser::ROLE_VIEWER))
+            ->getJson(self::URL_DOC)
+            ->assertOk()
+            ->assertJsonPath('data.organization.tax_id', '0100000001')
+            ->assertJsonPath('data.organization.billing_email', 'ketoan@goc.vn');
+    }
+
+    public function test_trang_khong_render_san_du_lieu_to_chuc(): void
     {
         $this->actingAs($this->thanhVien(OrganizationUser::ROLE_VIEWER))
             ->get(self::URL)
             ->assertOk()
-            ->assertSee('0100000001');
+            ->assertDontSee('0100000001')
+            ->assertDontSee('ketoan@goc.vn');
+    }
+
+    /**
+     * Vai trò chỉ-xem nhận `can_update_organization = false`.
+     *
+     * Bản Blade cũ **luôn** render biểu mẫu sửa được, kể cả cho vai trò mà
+     * chính mô tả trong mã nói là "chỉ xem, không chỉnh sửa". Người đó điền
+     * xong, bấm Lưu, và nhận 403 — policy chặn đúng, nhưng giao diện đã mời họ
+     * làm một việc không được phép.
+     *
+     * Cờ này KHÔNG thay policy; ca `test_viewer_khong_sua_duoc` ngay dưới vẫn
+     * đòi 403 ở đường ghi. Nó chỉ để trang thôi mời người ta làm việc vô ích.
+     */
+    public function test_quyen_sua_to_chuc_tra_dung_theo_vai_tro(): void
+    {
+        $this->actingAs($this->thanhVien(OrganizationUser::ROLE_ADMIN))
+            ->getJson(self::URL_DOC)
+            ->assertOk()
+            ->assertJsonPath('data.permissions.can_update_organization', true);
+
+        foreach ([OrganizationUser::ROLE_PLANNER, OrganizationUser::ROLE_VIEWER] as $role) {
+            $this->actingAs($this->thanhVien($role))
+                ->getJson(self::URL_DOC)
+                ->assertOk()
+                ->assertJsonPath('data.permissions.can_update_organization', false);
+        }
+    }
+
+    /**
+     * DTO không phát thêm trường nào ngoài năm trường biểu mẫu cần.
+     *
+     * `organizations` có `credit_limit`, `payment_terms_days`, `billing_address`
+     * và `status`. Không trường nào thuộc biểu mẫu này, nên không trường nào
+     * được ra — mỗi trường thêm vào là một trường phải nghĩ lại khi có người
+     * hỏi "ai được thấy cái này".
+     */
+    public function test_dto_chi_co_nam_truong_to_chuc(): void
+    {
+        $kq = $this->actingAs($this->thanhVien(OrganizationUser::ROLE_ADMIN))
+            ->getJson(self::URL_DOC)
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame(
+            ['billing_email', 'billing_phone', 'name', 'tax_id', 'website'],
+            collect(array_keys($kq['organization']))->sort()->values()->all(),
+        );
+
+        $this->assertSame(['email', 'name'], collect(array_keys($kq['user']))->sort()->values()->all());
+        $this->assertSame(['organization', 'permissions', 'user'], collect(array_keys($kq))->sort()->values()->all());
+    }
+
+    /** Người bị gỡ khỏi tổ chức không đọc được dữ liệu của nó qua API. */
+    public function test_bi_go_khoi_to_chuc_thi_api_khong_tra_du_lieu(): void
+    {
+        $user = $this->thanhVien(OrganizationUser::ROLE_ADMIN);
+
+        $toChucKhac = Organization::factory()->create(['status' => Organization::STATUS_ACTIVE]);
+        OrganizationUser::create([
+            'organization_id' => $toChucKhac->id,
+            'user_id'         => $user->id,
+            'role'            => OrganizationUser::ROLE_ADMIN,
+        ]);
+
+        OrganizationUser::where('organization_id', $this->org->id)
+            ->where('user_id', $user->id)
+            ->delete();
+
+        $this->actingAs($user)->getJson(self::URL_DOC)->assertForbidden();
     }
 
     /**
@@ -137,8 +236,8 @@ class CaiDatToChucTest extends TestCase
     public function test_admin_sua_duoc_thong_tin_to_chuc(): void
     {
         $this->actingAs($this->thanhVien(OrganizationUser::ROLE_ADMIN))
-            ->put(self::URL_GHI, $this->duLieu())
-            ->assertRedirect();
+            ->putJson(self::URL_GHI, $this->duLieu())
+            ->assertOk();
 
         $this->assertSame('9999999999', $this->org->fresh()->tax_id);
     }
@@ -153,7 +252,7 @@ class CaiDatToChucTest extends TestCase
     public function test_planner_khong_sua_duoc(): void
     {
         $this->actingAs($this->thanhVien(OrganizationUser::ROLE_PLANNER))
-            ->put(self::URL_GHI, $this->duLieu())
+            ->putJson(self::URL_GHI, $this->duLieu())
             ->assertForbidden();
 
         $this->assertSame('0100000001', $this->org->fresh()->tax_id);
@@ -168,7 +267,7 @@ class CaiDatToChucTest extends TestCase
     public function test_viewer_khong_sua_duoc(): void
     {
         $this->actingAs($this->thanhVien(OrganizationUser::ROLE_VIEWER))
-            ->put(self::URL_GHI, $this->duLieu())
+            ->putJson(self::URL_GHI, $this->duLieu())
             ->assertForbidden();
 
         $this->assertSame('0100000001', $this->org->fresh()->tax_id);
@@ -190,7 +289,7 @@ class CaiDatToChucTest extends TestCase
             ->where('user_id', $user->id)
             ->delete();
 
-        $this->actingAs($user)->put(self::URL_GHI, $this->duLieu())->assertForbidden();
+        $this->actingAs($user)->putJson(self::URL_GHI, $this->duLieu())->assertForbidden();
 
         $this->assertSame('0100000001', $this->org->fresh()->tax_id);
     }
@@ -201,7 +300,7 @@ class CaiDatToChucTest extends TestCase
 
         $this->org->update(['status' => Organization::STATUS_SUSPENDED]);
 
-        $this->actingAs($user)->put(self::URL_GHI, $this->duLieu())->assertForbidden();
+        $this->actingAs($user)->putJson(self::URL_GHI, $this->duLieu())->assertForbidden();
 
         $this->assertSame('0100000001', $this->org->fresh()->tax_id);
     }
@@ -223,11 +322,11 @@ class CaiDatToChucTest extends TestCase
             $user = $this->thanhVien($role);
 
             $this->actingAs($user)
-                ->put('/my/settings/profile', [
+                ->putJson(self::URL_HOSO, [
                     'name'  => 'Tên ' . $role,
                     'email' => $role . '@example.com',
                 ])
-                ->assertRedirect();
+                ->assertOk();
 
             $this->assertSame('Tên ' . $role, $user->fresh()->name);
         }

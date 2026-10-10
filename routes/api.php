@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V2\PaymentController as V2PaymentController;
 use App\Http\Controllers\Api\V2\CampaignReportController as V2CampaignReportController;
 use App\Http\Controllers\Api\V2\PaymentRecipientController as V2PaymentRecipientController;
 use App\Http\Controllers\Api\V2\PublicContentController as V2PublicContentController;
+use App\Http\Controllers\Api\V2\SettingsController as V2SettingsController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OohxEstimateController;
 use App\Http\Controllers\Api\V1\OwnerController;
@@ -244,6 +245,29 @@ Route::prefix('v2')
         // — một script gọi liên tục với mã khác nhau mỗi lần.
         Route::post('campaigns/{campaign}/payments', [V2PaymentController::class, 'store'])
             ->middleware('throttle:10,1');
+
+        // ── Cài đặt khu người mua ─────────────────────────────────────────
+        //
+        // Nằm sau `buyer` chứ không sau `auth` như `/me`: endpoint này cần một
+        // tổ chức để có gì mà trả, và người chưa có tổ chức không vào được
+        // trang `/my/settings` ngay từ đầu.
+        //
+        // `me/settings` và `me/profile` KHÔNG đụng `me` ở nhóm trên: khác số
+        // đoạn. Nhưng chúng cùng số đoạn với nhau, nên nếu sau này có ai thêm
+        // `me/{gi}` thì nó phải khai SAU bốn đường này — bài học của
+        // `campaigns/summary`.
+        Route::get('me/settings', [V2SettingsController::class, 'show']);
+
+        // Ba đường GHI có hạn mức riêng, chặt hơn nhóm. `throttle:10,1` là
+        // limiter inline nên khóa đếm riêng, không cộng đôi số đếm của nhóm.
+        //
+        // Vì sao chặt: `me/password` nhận `current_password`, tức nó là một
+        // chỗ **dò mật khẩu hiện tại**. Hạn mức 300/phút của nhóm `api` cho
+        // phép 300 lần đoán mỗi phút trên một phiên đã đăng nhập — quá rộng
+        // cho một đường như vậy. Hai đường kia đặt cùng mức cho đồng bộ.
+        Route::put('me/profile',      [V2SettingsController::class, 'updateProfile'])->middleware('throttle:10,1');
+        Route::put('me/password',     [V2SettingsController::class, 'updatePassword'])->middleware('throttle:10,1');
+        Route::put('me/organization', [V2SettingsController::class, 'updateOrganization'])->middleware('throttle:10,1');
     });
 
 // ── /api/v2/auth — đăng nhập, đăng ký, đăng xuất cho app Next.js ───────────
