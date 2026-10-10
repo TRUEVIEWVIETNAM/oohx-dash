@@ -17,7 +17,7 @@ Nguyên tắc xuyên suốt: **đóng đường tiền trước, đổi giao di�
 | ~~2~~ | ~~Sửa đường ghi bằng chứng phát sóng~~ **XONG 29/09** | L | — |
 | ~~3~~ | ~~Hợp nhất quan hệ Màn hình ↔ Mạng lưới~~ **XONG 29/09** | M | — (đã chạy `networks:reconcile` trên dữ liệu thật khi deploy 02/10: 2970→2970, 0 xung đột) |
 | ~~4~~ | ~~Dọn số liệu bịa trên trang công khai~~ **XONG 03/10** | S | — |
-| ~~5~~ | ~~API v2 + OpenAPI~~ **XONG 03/10** | M | — (mốc 1, 2, 3 xong. "Blade tự đọc qua API" cố tình chưa làm — xem mốc 3) |
+| ~~5~~ | ~~API v2 + OpenAPI~~ **XONG 03/10** | M | — (mốc 1, 2, 3 xong. **Sửa 10/10:** bảy trang khu người mua đã đọc API, nhưng còn **bốn** trang luồng đặt chỗ render ở máy chủ — xem "SỬA 10/10/2026" trong giai đoạn 5) |
 | ~~6~~ | ~~Next.js cho trang công khai~~ **XONG 07/10** | L | — |
 | ~~7~~ | ~~Dọn Blade công khai~~ **XONG 08/10** | S | — (chọn nhánh B: bỏ đường lùi) |
 | **8** | *(hoãn)* Next.js cho khu người mua | L | Có thêm người |
@@ -496,6 +496,30 @@ HTML máy chủ render; máy chủ không còn render thẻ nào. Thứ chúng c
 `ReportService::getOverview()`) và `/my/settings` (phần lớn là đường ghi, nên nó
 là một bài khác). Hai cái đó mới là câu kết đúng của mục này.
 
+### SỬA 10/10/2026 — câu kết trên đếm thiếu BỐN trang
+
+Hai trang đó đã xong (`report` ở PR #57, `settings` ở PR #71), nhưng **câu kết
+đó sai**: khu người mua còn **bốn** trang nữa vẫn render dữ liệu ở máy chủ, và
+không mục nào của tài liệu này từng nhắc tới chúng.
+
+Chúng là bốn bước của **luồng đặt chỗ** — tức đường tiền:
+
+| Trang | Đọc gì ở máy chủ | Cần gì |
+|---|---|---|
+| `booking/create.blade.php` | `$items` (giỏ: tên màn hình, kỳ chạy, thông số) | `GET /api/v2/cart` **đã có**. Phần còn lại là biểu mẫu tạo chiến dịch, `POST /api/v2/campaigns` cũng đã có |
+| `booking/creative.blade.php` | `$campaign`, `$creatives`, `$lines` | `GET campaigns/{campaign}` đã có; cần xem nó có đủ `creatives` và `lines` hay phải nới DTO. Trang này còn **tải tệp lên** |
+| `booking/review.blade.php` | `$campaign`, `$creatives`, `$lines`, **`$conflicts`** | `$conflicts` chưa có endpoint nào. Đây là trang người mua xác nhận trước khi gửi — trang đắt nhất nếu một con số sai |
+| `booking/payment-success.blade.php` | `$payment`, `$campaign` | `GET campaigns/{campaign}/payments` đã có; cần một cách trỏ tới **đúng một** lần trả |
+
+Vì sao chúng bị bỏ sót: mốc 3 đặt mục tiêu theo **action đọc** của khu người
+mua, và bốn trang này là bước giữa của một luồng ghi. Chúng không nằm trong
+danh sách nào, nên mỗi lần tổng kết lại đếm theo danh sách cũ.
+
+**Hệ quả cho câu "giai đoạn 5 XONG":** đúng với mục tiêu đã khai (tầng
+DTO/lỗi có lưu lượng thật, và nó đã bắt được bốn lỗi). Không đúng nếu đọc thành
+"khu người mua không còn chỗ nào render dữ liệu ở máy chủ" — còn bốn chỗ, và ba
+trong bốn nằm trên đường tiền.
+
 ---
 
 ## Đóng nợ — hủy/hoàn tiền có lối vào thật (30/09/2026)
@@ -637,6 +661,47 @@ Khóa vẫn nằm trong lịch sử git tại `ed6665a`. Viết lại lịch s�
 
 ---
 
+## Tám cái chốt tự tìm phạm vi (ghi 10/10/2026)
+
+Mỗi cái tự khám phá phạm vi của nó, nên thêm một trang / một bảng chữ / một
+endpoint là nó tự vào tầm. Ghi ở đây vì chúng là thứ quyết định việc **lần sau
+sửa gì thì đỏ** — và vì năm trong số chúng từng có lỗ, mỗi lỗ chỉ lộ ra khi mở
+rộng phạm vi.
+
+| Chốt | Canh trục nào |
+|---|---|
+| `class-css.test.mjs` | mọi tên class trong Blade đều có người định nghĩa trong `frontpage.css` |
+| `NhanEnumMotNoiTest` | enum CSDL ↔ `<CỘT>_LABELS`, hai chiều; cột `varchar` thì đối chiếu với hằng model |
+| `TheEnumPhaiCoChuTest` | thẻ `->badge()` trên cột enum phải có chữ; danh sách nợ giờ **trống** |
+| `MocDomTrangBladeTest` + `bo-khung.mjs` | móc DOM khai một chỗ, hai phía cùng đọc |
+| `TruongTrangDocTest` | trường trang đọc ↔ schema của **đúng** endpoint, cả GET và GHI |
+| `ChuPanelPhaiCoDauTest` | chữ hiển thị trong PHP của cả ba panel phải có dấu tiếng Việt |
+| `ChuBladePanelPhaiCoDauTest` | chữ trong tệp Blade của panel |
+| CI `Kiểu TypeScript còn khớp OpenAPI` | `api-v2.d.ts` sinh lại phải khớp bản đã commit |
+
+**Năm lỗ đã tìm thấy trong chính các chốt này**, ghi lại vì chúng là hình dạng
+dễ lặp:
+
+1. `ChuPanelPhaiCoDauTest` liệt kê tệp bằng `RecursiveIteratorIterator` thiếu
+   `SKIP_DOTS` → đệ quy vào `..`, trả **9 mục** cho một thư mục có 115 tệp. Nó
+   xanh vì `app/Filament/Publisher` tình cờ trả đủ — **đứng nhờ hình dạng thư
+   mục, không nhờ mã đúng**. Cách đúng: `File::allFiles()`.
+2. `TruongTrangDocTest` chỉ đọc `['get']`, nên **không canh gì** cho mọi đường
+   GHI của mọi trang — trường một trang gửi lên khai ở `requestBody`.
+3. `TheEnumPhaiCoChuTest` khớp theo **tên cột**, nên nó đếm sai bản chất 5
+   trong 7 món nợ: hai cột `varchar`, và hai bảng **không tồn tại** trong CSDL
+   chính (chúng thuộc một CSDL khác do worker Python sở hữu).
+4. Bộ dò chữ Blade bản đầu bóc tag bằng regex → một tag có `=>` trong thuộc
+   tính Alpine không bị bóc hết, và mã JS lọt ra thành "chữ" (757 báo oan).
+5. Một ca test tôi viết (`chay_lai_up_khong_doi_gi`) là **phép kiểm rỗng**: nó
+   không bắt được đột biến nào. Phải đổi sang đọc nhật ký truy vấn mới có tác
+   dụng.
+
+Bài học chung, đã ghi vào từng docblock: **ngưỡng chống-rỗng chỉ canh được phạm
+vi nó biết**, và một chốt xanh chưa chứng minh nó đang canh thứ nó nói.
+
+---
+
 ## Bảy câu hỏi nghiệp vụ đang chặn việc
 
 | # | Câu hỏi | Chặn |
@@ -667,8 +732,21 @@ Phương án khác, tránh hẳn chuyện tỷ giá: yêu cầu media owner niê
 
 1. ~~**Mốc 3 của giai đoạn 5.**~~ **XONG 03/10**, và lý lẽ của nó **đã thành** — cập nhật 09/10/2026. Lúc viết mục này, nhóm cần quyền chưa có bên tiêu thụ nào và lựa chọn còn mở. Nay đã chọn, và đã làm năm lần: giỏ hàng, thanh toán, chi tiết chiến dịch, danh sách chiến dịch, trang đầu — tất cả gọi `/api/v2` **từ trình duyệt**, không từ PHP. Nên tầng DTO/phân trang/lỗi có lưu lượng thật chạy qua, và nó đã bắt được ba lỗi mà test không bắt: VAT nhân hai lần ở trang giỏ, hai trong ba trạng thái nội dung hiện tiếng Anh, và khe phạm vi của trang đầu.
 
-   Còn hai trang đọc chưa chuyển (`report`, `settings`) — xem cuối mục "Trang đầu khu người mua" ở giai đoạn 5.
-2. **Ban hành ba trang chính sách.** `quy-che-hoat-dong`, `chinh-sach-bao-mat`, `giai-quyet-tranh-chap` đang `effective_from = null`, tức bản nháp, trên một sàn đang nộp hồ sơ TMĐT. `bang-phi` thì đã ban hành. Phần code đã sẵn và `/api/v2/policies` phơi đúng trạng thái qua cờ `is_effective` — việc còn lại nằm ngoài code.
-3. **Cho Codex review khối từ R41 tới nay** (~132 commit kể từ vòng review 30/09): API v2, giỏ hàng, hoàn tiền, đường tiền. Đúng loại code nên có người thứ hai đọc.
+   ~~Còn hai trang đọc chưa chuyển (`report`, `settings`)~~ — **cả hai XONG**: `report` ở PR #57 (07/10), `settings` ở PR #71 (10/10). `settings` là trang đầu tiên của khu người mua **ghi** qua API, không chỉ đọc.
+
+   **Nhưng còn bốn trang nữa mà mục này chưa từng kể** — xem "SỬA 10/10/2026" ở giai đoạn 5. Ba trong bốn nằm trên đường tiền.
+2. ~~**Ban hành ba trang chính sách.**~~ **XONG 09/10/2026** (PR #56): `quy-che-hoat-dong`, `chinh-sach-bao-mat`, `giai-quyet-tranh-chap` đều `effective_from = 09/10/2026`, phiên bản `1.0`. `bang-phi` giữ `22/09/2026`.
+3. **Cho Codex review khối từ R41 tới nay** (**151** commit kể từ vòng review 30/09, đếm lại 10/10): API v2, giỏ hàng, hoàn tiền, đường tiền, và nay thêm bảy trang khu người mua đọc API cùng tám cái chốt tự tìm phạm vi. Đúng loại code nên có người thứ hai đọc.
+
+### Mục mới 10/10/2026 — bốn trang luồng đặt chỗ
+
+Thứ tự tôi đề xuất, và lý do:
+
+1. **`booking/create`** — rẻ nhất, hai endpoint đều đã có, và nó cùng hình dạng với trang `settings` vừa làm (biểu mẫu + khung chờ + ô `disabled` tới khi dữ liệu về).
+2. **`booking/payment-success`** — 42 dòng, chỉ đọc. Cần một cách trỏ tới đúng một lần trả.
+3. **`booking/creative`** — cần xem DTO `campaigns/{campaign}` có đủ `creatives` và `lines`; trang này còn tải tệp lên, nên nó là bài khó hơn hai cái trên.
+4. **`booking/review`** — để cuối, không vì nó khó nhất mà vì `$conflicts` **chưa có endpoint nào**, và nó là trang người mua xác nhận nghĩa vụ tiền. Một con số sai ở đây đắt hơn ở ba trang kia cộng lại.
+
+Làm cả bốn hay chỉ một là **quyết định phạm vi**, không phải việc tự chọn: trang thứ tư kéo theo một endpoint mới cho `$conflicts`, và trang thứ ba kéo theo đường tải tệp.
 
 **Lưu ý thứ tự:** mốc SEO, sinh TypeScript và cấu hình proxy OpenLiteSpeed (01–03/10) đều thuộc **giai đoạn 6**, làm trước khi xong giai đoạn 5. Chúng không vô ích — mốc SEO là điều kiện "xong" của giai đoạn 6, và cấu hình proxy đã ghi lại hạ tầng thật khác với giả định Caddy trong lộ trình — nhưng chúng không đưa giai đoạn 5 tiến thêm bước nào.
