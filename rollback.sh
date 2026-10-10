@@ -166,12 +166,30 @@ echo ""
 echo "[6/9] Clear old caches"
 $PHP_BIN artisan optimize:clear
 
+# Cache component của Filament — ở đây nó CẦN hơn cả trong `deploy.sh`.
+#
+# Rollback lùi mã về commit trước, nhưng `bootstrap/cache` bị .gitignore chặn
+# nên bảng component của bản MỚI sống nguyên. Bảng đó ghi thẳng tên class, và
+# `HasComponents` nạp nó bằng `require` rồi tin hẳn — nên lùi mã mà giữ bảng cũ
+# là 500 trên mọi trang panel, đúng thứ người ta vừa rollback để tránh.
+#
+# Không `|| true`: nếu không xoá được thì rollback xong vẫn vỡ, và biết ngay thì
+# hơn.
+$PHP_BIN artisan filament:optimize-clear
+
 echo ""
 echo "[7/9] Rebuild caches"
 $PHP_BIN artisan config:cache
 $PHP_BIN artisan route:cache
 $PHP_BIN artisan view:cache
 $PHP_BIN artisan event:cache || true
+
+# CÓ `|| true` ở đây, khác `deploy.sh` — và khác có chủ ý.
+#
+# Trong `deploy.sh` lệnh này hỏng thì deploy phải đỏ: ta đang thêm tính năng,
+# dừng lại được. Trong rollback thì mục tiêu duy nhất là đưa mã CŨ lên sống;
+# thiếu một bảng cache tăng tốc là chấp nhận được, còn bỏ dở rollback thì không.
+$PHP_BIN artisan filament:optimize || true
 
 echo ""
 echo "[8/9] Fix permissions and restart workers"
