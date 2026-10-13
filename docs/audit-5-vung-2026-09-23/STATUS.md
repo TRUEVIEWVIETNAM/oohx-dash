@@ -4,9 +4,9 @@ Một trang duy nhất trả lời: **đã làm gì, đang dở gì, chưa làm 
 
 Baseline: `112e2aa`. **Giai đoạn 0 đã push** lên `feat/tmdt-review-1107` (11 commit, CI xanh). **Giai đoạn 1 đã code xong**, phần cuối còn ở working tree — xem mục 1b.
 
-> **Mốc hiện tại (13/10/2026).** `main` ở `2ceb100`, CI xanh: **922 test PHPUnit
-> / 3.434 phép kiểm** (run `38360864450`), cộng **177 ca jsdom** chạy trên đúng
-> khối script của trang Blade. Deploy production `38360864608` **success**.
+> **Mốc hiện tại (13/10/2026).** `main` ở `8ba965e`, CI xanh: **933 test PHPUnit
+> / 3.491 phép kiểm** (run `38380434548`), cộng **177 ca jsdom** chạy trên đúng
+> khối script của trang Blade. Deploy production `38380434691` **success**.
 > **Không còn PR nào mở.**
 >
 > Giai đoạn 1 → 7 **đã xong và đã lên production**; giai đoạn 8 (Next.js cho khu
@@ -142,7 +142,8 @@ Năm câu còn lại và thứ chúng chặn — gộp cả các câu phát sinh
 | **Sau giai đoạn 3** (CI, run 36548265693) | **426** | **426** | **0 — không loại nhóm nào** |
 | Sau khi hủy/hoàn tiền có lối vào thật (CI, run 36709847798) | 550 | 550 | 0 |
 | Sau bốn trang luồng đặt chỗ — `a6c01c5`, 10/10/2026 (CI, run 38057005171) | 903 | 903 | 0 — 3.368 phép kiểm, 103s |
-| **Hiện tại — `2ceb100`, 13/10/2026** (CI, run 38360864450) | **922** | **922** | **0** — 3.434 phép kiểm |
+| Sau nhóm B — `2ceb100`, 13/10/2026 (CI, run 38360864450) | 922 | 922 | 0 — 3.434 phép kiểm |
+| **Hiện tại — `8ba965e`, 13/10/2026** (CI, run 38380434548) | **933** | **933** | **0** — 3.491 phép kiểm |
 
 Cộng thêm **177 ca jsdom** (`npm run test:js`) không nằm trong các con số trên: chúng trích **đúng khối `<script>` sẽ lên production** của 11 trang Blade khu người mua rồi chạy trong jsdom, nên một lỗi chỉ có ở phía trình duyệt vẫn đỏ được. Tám cái chốt "tự tìm phạm vi" — và **sáu lỗ** đã tìm thấy trong chính chúng — liệt kê ở `LO-TRINH-SAU-GIAI-DOAN-0.md`.
 

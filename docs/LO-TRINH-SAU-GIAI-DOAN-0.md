@@ -811,7 +811,7 @@ Phương án khác, tránh hẳn chuyện tỷ giá: yêu cầu media owner niê
 
    ~~**Nhưng còn bốn trang nữa mà mục này chưa từng kể**~~ — **cả bốn XONG 10/10/2026** (PR #73): `create`, `creative`, `review`, `payment-success`. Xem "ĐÃ LÀM 10/10/2026" ở giai đoạn 5. Khu người mua nay **không còn trang nào** render dữ liệu nghiệp vụ ở máy chủ, và lượt chuyển đó bắt thêm ba lỗi thật — trong đó một thẻ trạng thái viết cứng trên trang xác nhận thanh toán.
 2. ~~**Ban hành ba trang chính sách.**~~ **XONG 09/10/2026** (PR #56): `quy-che-hoat-dong`, `chinh-sach-bao-mat`, `giai-quyet-tranh-chap` đều `effective_from = 09/10/2026`, phiên bản `1.0`. `bang-phi` giữ `22/09/2026`.
-3. **Cho Codex review khối từ R41 tới nay** (~~151~~ **163** commit kể từ vòng review 30/09, đếm lại cuối ngày 13/10): API v2, giỏ hàng, hoàn tiền, đường tiền, và nay thêm **mười một** trang khu người mua đọc API, tám cái chốt tự tìm phạm vi, cùng cả nhóm B. Đúng loại code nên có người thứ hai đọc. **Đây là mục duy nhất trong ba mục này còn mở.**
+3. **Cho Codex review khối từ R41 tới nay** (~~151~~ ~~163~~ **173** commit, `git rev-list --count 4887b0a..main`, đếm lại cuối ngày 13/10 — xem mục C bên dưới về việc hai con số trước đo sai): API v2, giỏ hàng, hoàn tiền, đường tiền, và nay thêm **mười một** trang khu người mua đọc API, tám cái chốt tự tìm phạm vi, cả nhóm B, cùng ba lượt gom định nghĩa (phân quyền thành viên hai bên, và "dòng nào mang nghĩa vụ tiền"). Đúng loại code nên có người thứ hai đọc. **Đây là mục duy nhất trong ba mục này còn mở.**
 
 ### ~~Mục mới 10/10/2026 — bốn trang luồng đặt chỗ~~ **XONG 10/10/2026**
 
@@ -840,14 +840,25 @@ Giai đoạn 5 đã đóng thật và không còn PR nào mở. Dưới đây l�
 mà tôi biết**, chia theo thứ chặn nó — mục đích là để lần sau không phải đếm lại
 bằng ký ức.
 
-> **Cập nhật cuối ngày 13/10/2026.** Nhóm B đã xong cả năm món trong cùng ngày:
-> #75 (bốn món nợ kỹ thuật) và #76 (quyền `planner`, sau khi chủ dự án quyết
-> trả lại). `main` ở `2ceb100`, CI **922 ca / 3.434 khẳng định**, cả ba lượt
-> deploy thành công. Nhóm A, C, D còn nguyên, và lượt sửa nhóm B mở ra **ba
-> món mới** — ghi ngay dưới bảng B.
+> **Cập nhật cuối ngày 13/10/2026.** `main` ở `8ba965e`, CI **933 ca / 3.491
+> khẳng định**, mọi lượt deploy thành công, không còn PR nào mở.
 >
-> Ba PR của ngày: #74 (tài liệu) · #75 (nợ kỹ thuật) · #76 (phân quyền). CI đi
-> từ 903 lên 922 ca.
+> **Bảy PR trong một ngày**, tất cả đã lên production: #74 (tài liệu) · #75
+> (bốn món nợ kỹ thuật) · #76 (quyền `planner`) · #77 (tài liệu) · #78 + #79
+> (gom phân quyền thành viên, hai bên) · #80 (gom "nghĩa vụ tiền"). CI đi từ
+> 903 lên 933 ca.
+>
+> Nhóm B xong cả năm món. Ba món nó mở ra: hai đã làm luôn trong ngày (#78/#79
+> và #80), còn **`MAIL_MAILER`** — món duy nhất cần quyền vào VPS. Nhóm A, C, D
+> còn nguyên.
+>
+> **Ba câu hỏi từng lặp nhiều chỗ nay mỗi câu có đúng một chỗ trả lời:**
+>
+> | Câu hỏi | Chỗ duy nhất |
+> |---|---|
+> | dòng nào tính vào báo cáo phát sóng | `BookingLine::REPORT_STATUSES` |
+> | dòng nào mang nghĩa vụ trả tiền | `BookingLine::OBLIGATION_STATUSES` |
+> | ai là thành viên của tenant, tenant còn hoạt động không | `OrganizationUser::thanhVien()` · `TenantPermission` |
 
 **A. Chặn bởi quyết định nghiệp vụ, không chặn bởi code.** Sáu câu ở mục "Bảy câu
 hỏi nghiệp vụ" vẫn chưa có câu trả lời: hạn giữ chỗ (1.1), chính sách hủy/hoàn
@@ -869,29 +880,78 @@ không phải "đã xong" mà là **mỗi món hóa ra là gì khi mở ra**.
 | Thông báo khi hủy dòng | không có email/in-app; owner phải tự mở trang mới thấy nghĩa vụ hoàn tiền | `RefundObligationNotification`, gửi qua `DB::afterCommit()` khi nghĩa vụ sinh ra **hoặc tăng**. Khoản `pending` **vẫn chưa có hạn xử lý** — phần đó còn mở |
 | Người đã đồng ý bản chính sách nháp | không có thông báo khi bản đó được ban hành | Lệnh `policies:consents-before-effective` đếm họ — **chỉ đọc**. Chưa gửi gì: thông báo hay đòi lại chấp thuận là quyết định pháp lý. **Chưa chạy trên production** |
 
-**Ba thứ mở ra từ chính lượt sửa này, chưa làm:**
+**Ba thứ mở ra từ chính lượt sửa này — hai đã làm trong ngày, một còn mở:**
 
-1. **`manage_team` nay không được kiểm ở đâu cả.** `OrganizationUserPolicy` gác
-   việc mời/gỡ người bằng cách so `role === 'admin'` **trực tiếp**, không qua
-   `PERMISSIONS`. Hai bộ luật cho một câu hỏi — đúng thứ CLAUDE.md mục 4 cảnh
-   báo. Không gom cùng #76 vì đó là đường phân quyền của chính việc mời và gỡ
-   người.
-2. **Sáu chỗ viết cứng `['approved','active','completed']`** cho câu hỏi "dòng
-   nào mang nghĩa vụ tiền": `PaymentService` ×4, `PaymentRecipientController`,
-   `CancellationService::openCostFor()`. Cùng hình dạng với món báo cáo vừa
-   sửa, nhưng là **câu hỏi khác** và nó nằm trên đường tiền.
-3. **`.env` của bản làm việc có `MAIL_MAILER=log`**, `MAIL_FROM_ADDRESS` là
-   `hello@example.com`, không có thông tin SMTP. Nếu máy chủ cũng vậy thì thư
+1. ~~**`manage_team` nay không được kiểm ở đâu cả.**~~ **XONG 13/10** (#78, và
+   #79 cho bên owner). `OrganizationUserPolicy` gác việc mời/gỡ người bằng cách
+   so `role === 'admin'` **trực tiếp**, không qua `PERMISSIONS`.
+
+   Mở ra thì món này không chỉ là đổi một phép so: có **hai** cách hỏi "ai là
+   thành viên tổ chức này", khác nhau cả kiểu trả về lẫn việc có kiểm trạng
+   thái tổ chức hay không — `OrganizationPolicy::membership()` đòi tổ chức còn
+   `active`, `OrganizationUserPolicy::actorRole()` không. Nên #78 gom cả phép
+   tìm thành viên về `OrganizationUser::thanhVien()`.
+
+   Bên media owner là cùng lỗi, và ở đó **chỗ tập trung đã có sẵn**:
+   `TenantPermission` đã làm đủ ba việc (super_admin đi trước, owner phải còn
+   `active`, đọc `PERMISSIONS`), policy chỉ chưa dùng nó. Nên #79 là bỏ bản
+   chép, không thêm tầng.
+
+   Hệ quả thật của lỗi cũ, không phải lo xa: thêm một vai trò có `manage_team`
+   / `manage_users` sẽ **không** cho nó mời ai, trong khi trang
+   `PermissionMatrix` vẫn in ra rằng nó quản lý được thành viên.
+
+2. ~~**Sáu chỗ viết cứng `['approved','active','completed']`**~~ **XONG 13/10**
+   (#80) → `BookingLine::OBLIGATION_STATUSES`.
+
+   Thứ đáng ghi: mã **đã biết** đây là một định nghĩa và đã viết ra điều đó.
+   `openCostFor()` ghi "Một định nghĩa duy nhất… hai định nghĩa lệch nhau ở đây
+   là hai con số tiền khác nhau"; `ownersInCampaign()` ghi "Lọc `status` giống
+   hệt bên đó". Hai lời hứa chỉ được giữ bằng việc ai đó nhớ ra.
+
+   Danh sách giữ **nguyên từng phần tử** — không thêm `paused` dù
+   `REPORT_STATUSES` có nó. Chỗ lệch là có chủ ý: ở báo cáo, thêm `paused` là
+   phòng ngừa và đoán sai thì một con số trên trang sai; ở đường tiền, thêm nó
+   là đổi số tiền người mua phải chuyển.
+
+3. **`.env` của bản làm việc có `MAIL_MAILER=log`** — **CÒN MỞ, và là món duy
+   nhất trong ba món này tôi không chạm được.** Kèm `MAIL_FROM_ADDRESS` là
+   `hello@example.com` và không có thông tin SMTP. Nếu máy chủ cũng vậy thì thư
    nghĩa vụ hoàn tiền — **và cả hai thông báo đã có từ trước**
    (`BookingSubmittedNotification`, `BookingResolvedNotification`) — chỉ ghi vào
    log, không tới ai. Tôi không có quyền vào VPS nên không kiểm được `.env`
-   thật. Đây là món đáng kiểm trước nhất trong ba món này: nó quyết định việc
-   món thứ tư ở bảng trên có tác dụng hay không.
+   thật. Đây là món đáng kiểm trước nhất: nó quyết định việc món thứ tư ở bảng
+   trên có tác dụng hay không.
+
+**Và hai món mới, mở ra từ hai PR phân quyền:**
+
+1. **`OwnerUser::canAccessNetwork()` so vai trò bằng tên**
+   (`in_array($this->role, ['owner','manager'])`). Cùng hình dạng với món đã
+   sửa, nhưng nó trả lời câu **khác** — "ai thấy được mọi network" — và
+   `PERMISSIONS` không có quyền nào cho câu đó. Thêm một quyền mới là quyết
+   định phân quyền, không phải một lần sửa.
+2. **Câu `paused` nay nằm ở hai chỗ khác nhau** giữa `REPORT_STATUSES` và
+   `OBLIGATION_STATUSES`. Docblock của cả hai hằng nói rõ chỗ lệch và lý do,
+   nhưng người làm tính năng tạm dừng dòng đặt chỗ phải quyết **cả hai cùng
+   lúc** — và hôm nay chưa chỗ nào trong mã đặt `paused` cho một dòng, nên chưa
+   ai bị chặn bởi việc chưa quyết.
 
 **C. Cần người thứ hai đọc.** Mục 3 của "Đề xuất làm gì ngay" vẫn mở: cho Codex
-review khối từ R41 tới nay — **163** commit kể từ vòng 30/09 (`git rev-list
---count --since=2026-09-30 HEAD`, đếm lại 13/10 sau khi merge #76), nay gồm cả
-bốn trang luồng đặt chỗ và cả nhóm B. Đúng loại code nên có người thứ hai đọc.
+review khối từ R41 tới nay — **173** commit:
+
+```
+git rev-list --count 4887b0a..main
+```
+
+`4887b0a` là commit đóng vòng review 30/09 ("21/21 finding đã đóng"), nên nó là
+mốc đúng cho câu "từ vòng đó tới nay".
+
+**Sửa cách đếm, và vì sao nó từng sai.** Hai con số trước (160, rồi 163) đo bằng
+`--count --since=2026-09-30 HEAD` **trong khi đang đứng trên nhánh làm việc**,
+nên chúng cộng cả commit chưa merge của chính nhánh đó — đo lại trên `main` thì
+cùng lệnh cho 160, không phải 163. Mốc **ngày** còn một chỗ dở nữa: nó bỏ các
+commit ngày 29/09 nằm sau vòng review. Mốc **commit** không có cả hai vấn đề và
+cho cùng kết quả bất kể ai chạy ở đâu.
 
 **D. Hoãn có chủ ý.** Giai đoạn 8 (Next.js cho khu người mua) vẫn hoãn, chặn bởi
 "có thêm người". Nhưng nay nó **rẻ hơn hẳn** so với lúc viết: 11 trang khu người
