@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\OwnerUser;
 use App\Models\User;
-use Illuminate\Contracts\Auth\Authenticatable;
 
 /**
  * Hàng rào theo mạng lưới: thành viên này được chạm vào những mạng lưới nào.
@@ -74,13 +73,26 @@ class GioiHanNetwork
     }
 
     /**
+     * `$nguoi` **không** khai kiểu `?Authenticatable`, và đó là một bài học
+     * phải trả bằng ba ca test đỏ.
+     *
+     * `App\Models\ApiClient` chỉ `extends Model` với `HasApiTokens` — nó
+     * **không** implement `Illuminate\Contracts\Auth\Authenticatable`. Nhưng
+     * dưới guard token của Sanctum, `auth()->user()` vẫn trả về chính nó. Một
+     * kiểu hẹp ở đây nên nó biến mọi lần ghi `Site` nhân danh token đối tác
+     * thành `TypeError` — tức một 500 trên hợp đồng `/api/v1`, đúng thứ
+     * CLAUDE.md §1 cấm chạm vào. `HasOwnerScope` đã phải kiểm
+     * `instanceof ApiClient` bằng tay vì cùng lý do đó.
+     *
+     * Phép kiểm thật là `instanceof User` ngay bên dưới, nên hàm vẫn đóng chặt
+     * — chỉ là nó từ chối bằng một câu trả lời, không bằng một ngoại lệ.
+     *
      * @return list<int>|null `null` = không bị giới hạn
      */
-    public function cho(?Authenticatable $nguoi, ?string $ownerId): ?array
+    public function cho(mixed $nguoi, ?string $ownerId): ?array
     {
-        // Lọt qua đây: khách chưa đăng nhập, và token đối tác `/api/v1`
-        // (`ApiClient` là một model riêng, không phải `User`) — token đó đọc
-        // toàn bộ kho theo hợp đồng, và CLAUDE.md §1 nói không đổi hành vi v1.
+        // Lọt qua đây: khách chưa đăng nhập, và token đối tác `/api/v1` — token
+        // đó đọc toàn bộ kho theo hợp đồng.
         if (! $nguoi instanceof User) {
             return null;
         }

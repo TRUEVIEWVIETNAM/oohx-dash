@@ -607,6 +607,34 @@ class GioiHanMangLuoiTest extends TestCase
         return $tep;
     }
 
+    public function test_token_doi_tac_khong_lam_no_hang_rao(): void
+    {
+        // Lỗi này suite Api bắt được, ba ca đỏ cùng một `TypeError`.
+        //
+        // `App\Models\ApiClient` chỉ `extends Model` — nó **không** implement
+        // `Illuminate\Contracts\Auth\Authenticatable`. Nhưng dưới guard token
+        // của Sanctum, `auth()->user()` vẫn trả về chính nó. Bản đầu khai
+        // `cho(?Authenticatable $nguoi, ...)`, nên mọi lần ghi `Site` nhân
+        // danh token đối tác nổ `TypeError` — tức một **500 trên hợp đồng
+        // `/api/v1`**, đúng thứ CLAUDE.md §1 cấm chạm vào.
+        //
+        // `HasOwnerScope` đã phải kiểm `instanceof ApiClient` bằng tay vì
+        // cùng lý do; tôi đọc dòng đó mà không hiểu nó đang nói gì.
+        $token = \App\Models\ApiClient::create([
+            'client_id'     => 'test_hang_rao_network',
+            'client_secret' => bcrypt('secret'),
+            'name'          => 'Test hàng rào',
+            'scopes'        => ['inventory'],
+            'active'        => true,
+        ]);
+
+        $this->assertNull(
+            app(GioiHanNetwork::class)->cho($token, $this->owner->id),
+            'Token đối tác đọc toàn bộ kho theo hợp đồng — và phải nhận một câu '
+            . 'trả lời, không phải một ngoại lệ',
+        );
+    }
+
     public function test_bo_nho_khong_tra_loi_bang_gioi_han_cua_nguoi_truoc(): void
     {
         $service = app(GioiHanNetwork::class);
