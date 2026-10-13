@@ -7,12 +7,15 @@ use App\Models\Campaign;
 use App\Models\CampaignActivity;
 use App\Models\Refund;
 use App\Models\User;
+use App\Notifications\RefundObligationNotification;
 use App\Services\InventoryHoldService;
 use App\Services\PaymentService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Throwable;
 
 /**
  * Hủy đặt chỗ và tính tiền hoàn.
@@ -25,13 +28,16 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  * số ngày còn lại tính tới ngày chạy đầu tiên của **chính dòng bị hủy** — hủy
  * trước ≥14 ngày hoàn 100%, 7–13 ngày hoàn 50%, dưới 7 ngày không hoàn.
  *
- * Hai điều cố ý:
+ * Ba điều cố ý:
  *
  * - Tính theo ngày chạy của **từng dòng**, không theo ngày bắt đầu chiến dịch.
  *   Một chiến dịch chạy từ tháng 1 tới tháng 6 mà hủy dòng của tháng 6 vào
  *   tháng 2 thì đó là hủy sớm, không phải hủy muộn.
  * - Hủy **nhả suất về kho ngay**. Không nhả thì màn hình vẫn bị chiếm bởi một
  *   đơn không còn tồn tại, và đó là mất doanh thu thật.
+ * - Media owner **được báo** khi nghĩa vụ hoàn tiền sinh ra hoặc tăng lên, gửi
+ *   sau khi commit. Trước 13/10/2026 không có thông báo nào: owner phải tự mở
+ *   `/publisher` mới biết mình đang nợ người mua. Xem `thongBaoNghiaVu()`.
  */
 class CancellationService
 {
@@ -79,7 +85,7 @@ class CancellationService
             });
         }
 
-        return DB::transaction(function () use ($line, $actor, $reason) {
+        $refund = DB::transaction(function () use ($line, $actor, $reason) {
             // Khóa HÀNG CHIẾN DỊCH trước, cùng một hàng mốc mà
             // `PaymentService::createPayment()` và `reconcileAfterPayment()`
             // khóa.
@@ -199,6 +205,77 @@ class CancellationService
             $this->syncCampaignStatus($line->campaign->fresh());
 
             return $refund;
+        });
+
+        $this->thongBaoNghiaVu($refund);
+
+        return $refund;
+    }
+
+    /**
+     * Báo cho media owner rằng họ có một nghĩa vụ hoàn tiền.
+     *
+     * ══ Gửi SAU KHI commit, và vì sao phải là `DB::afterCommit()` ══
+     *
+     * Thông báo của dự án không khai `ShouldQueue`, nên `notify()` gửi thư ngay
+     * trong tiến trình. Gửi trong khi transaction còn mở nghĩa là một lần
+     * rollback sau đó vẫn để lại một lá thư đã bay đi — owner được báo về một
+     * nghĩa vụ không tồn tại, và không thu thư về được.
+     *
+     * Đặt lệnh gửi *sau* `DB::transaction()` của `cancelLine()` là **chưa đủ**:
+     * `cancelCampaign()` bọc nhiều lần `cancelLine()` trong một transaction
+     * ngoài, nên transaction trong chỉ là một savepoint và "sau" vẫn là bên
+     * trong. `DB::afterCommit()` xử đúng cả hai: không có transaction nào thì
+     * nó chạy ngay, có thì nó đợi commit ngoài cùng.
+     *
+     * Dưới `RefreshDatabase` nó vẫn chạy: bộ quản lý transaction của Laravel
+     * khi test **bỏ qua** transaction bọc của test
+     * (`Foundation\Testing\DatabaseTransactionsManager`), nên callback nổ ở
+     * mức 1 thay vì mức 0.
+     *
+     * ══ Người nhận: mọi người dùng của owner ══
+     *
+     * Đúng cách `CampaignService::submit()` chọn người nhận cho
+     * `BookingSubmittedNotification`. Không lọc theo quyền: một owner nhỏ
+     * thường chỉ có một tài khoản, và lọc theo `manage_payments` thì một owner
+     * cấu hình thiếu quyền sẽ **không ai** nhận được thư về tiền. Thừa một
+     * người đọc tệ hơn thiếu tất cả ở đây.
+     *
+     * ══ Lỗi gửi thư không được làm đổ lệnh hủy ══
+     *
+     * Khi callback chạy thì dòng đã hủy, suất đã nhả, nghĩa vụ đã ghi — tất cả
+     * đã commit. Để một SMTP chết đẩy ngoại lệ lên nữa là trả 500 cho một thao
+     * tác **đã thành công**, và người mua sẽ bấm hủy lần hai rồi gặp "đã bị hủy
+     * trước đó". Nên ghi nhật ký rồi đi tiếp.
+     *
+     * @param  int|null  $tangThem  xem `RefundObligationNotification`
+     */
+    private function thongBaoNghiaVu(Refund $refund, ?int $tangThem = null): void
+    {
+        // Khoản `waived` không có đồng nào phải chuyển.
+        if ($refund->status !== Refund::STATUS_PENDING) {
+            return;
+        }
+
+        DB::afterCommit(function () use ($refund, $tangThem) {
+            try {
+                $refund->loadMissing(['campaign', 'bookingLine.screen']);
+
+                $nguoiNhan = User::whereHas(
+                    'ownerUsers',
+                    fn ($q) => $q->where('owner_id', $refund->owner_id),
+                )->get();
+
+                foreach ($nguoiNhan as $user) {
+                    $user->notify(new RefundObligationNotification($refund, $tangThem));
+                }
+            } catch (Throwable $e) {
+                Log::warning('Không gửi được thư nghĩa vụ hoàn tiền', [
+                    'refund_id' => $refund->id,
+                    'owner_id'  => $refund->owner_id,
+                    'loi'       => $e->getMessage(),
+                ]);
+            }
         });
     }
 
@@ -369,6 +446,8 @@ class CancellationService
                     ->first();
 
                 if ($open) {
+                    $amountCu = (int) round((float) $open->amount);
+
                     $newPaid   = (int) round((float) $open->paid_amount) + $take;
                     $newAmount = (int) round($newPaid * (int) $open->refund_pct / 100);
 
@@ -377,6 +456,15 @@ class CancellationService
                         'amount'      => $newAmount,
                         'status'      => $newAmount > 0 ? Refund::STATUS_PENDING : Refund::STATUS_WAIVED,
                     ]);
+
+                    // Đây là chỗ R36 sửa: nghĩa vụ từ 0 (`waived`) thành một số
+                    // dương, hoặc từ một số dương thành số lớn hơn. Owner không
+                    // mở trang thì không biết nó đã đổi — nên gửi thư, với
+                    // phần **tăng thêm** chứ không tổng, vì owner có thể đã
+                    // chuyển phần cũ rồi.
+                    if ($newAmount > $amountCu) {
+                        $this->thongBaoNghiaVu($open, $newAmount - $amountCu);
+                    }
                 } else {
                     // Mọi bản ghi của dòng này đã `settled`: tiền đã chuyển
                     // xong ở ngoài hệ thống, ghi đè là sửa một giao dịch đã
@@ -389,7 +477,7 @@ class CancellationService
                     // chính sách áp theo ngày hủy, không theo ngày tiền vào.
                     $newAmount = (int) round($take * (int) $template->refund_pct / 100);
 
-                    Refund::create([
+                    $moi = Refund::create([
                         'campaign_id'       => $template->campaign_id,
                         'booking_line_id'   => $template->booking_line_id,
                         'owner_id'          => $template->owner_id,
@@ -402,6 +490,10 @@ class CancellationService
                         'reason'            => 'Đối soát bổ sung: thanh toán được xác nhận sau khi dòng đã bị hủy và khoản hoàn trước đó đã chuyển xong.',
                         'status'            => $newAmount > 0 ? Refund::STATUS_PENDING : Refund::STATUS_WAIVED,
                     ]);
+
+                    // Nghĩa vụ thứ hai cho cùng một dòng: bản ghi cũ đã
+                    // `settled` nên đây là tiền phải chuyển **thêm**.
+                    $this->thongBaoNghiaVu($moi, $newAmount);
                 }
 
                 $available -= $take;

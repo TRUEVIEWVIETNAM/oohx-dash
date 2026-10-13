@@ -49,6 +49,53 @@ class BookingLine extends Model
         self::STATUS_CANCELLED => 'Đã hủy',
     ];
 
+    /**
+     * Dòng nào tính vào **báo cáo phát sóng** — một định nghĩa.
+     *
+     * ══ Vì sao hằng này ra đời ══
+     *
+     * `CampaignReportService` lọc `booking_lines` ở ba chỗ và trả lời cùng một
+     * câu hỏi bằng **hai** danh sách: `getOverview()` và `getDailyImpressions()`
+     * dùng `['active','completed']`, còn `getScreenBreakdown()` thêm
+     * `'approved'`. Hệ quả người mua thấy được: bảng chi tiết liệt kê N màn
+     * hình, còn ô "Tổng màn hình" ngay phía trên nói N−k. Hai con số cạnh nhau
+     * trên cùng một trang, đếm cùng một thứ, không bằng nhau.
+     *
+     * ══ Vì sao chọn tập này ══
+     *
+     * Bất biến đáng giữ là **ô tổng phải bằng tổng của bảng**, vì đó là thứ
+     * người đọc kiểm được bằng mắt. Nên cả ba chỗ phải đọc cùng một danh sách,
+     * và danh sách đó là tập của bảng chi tiết — rộng hơn — chứ không phải tập
+     * hẹp của ô tổng: một màn hình đã được owner duyệt là một cam kết có thật,
+     * và ẩn nó khỏi báo cáo thì người mua không thấy thứ mình đã đặt.
+     *
+     * Hệ quả cố ý: `delivery_rate` **giảm** khi chiến dịch có dòng `approved`
+     * chưa chạy, vì mẫu số nay gồm cả phần chưa phát. Đó là con số đúng —
+     * những lần phát đó chưa xảy ra. Thiết kế cũ đã chọn kiểu đo "đã phát so
+     * với TOÀN KỲ" chứ không "so với phần tới hôm nay" (một dòng `active` giữa
+     * kỳ cũng góp trọn `estimated_impressions` của nó), nên thêm `approved`
+     * không đổi bản chất phép đo.
+     *
+     * Bốn mã bị loại, mỗi mã một lý do khác nhau:
+     *
+     *  - `pending` — owner **chưa** duyệt, và có thể từ chối. Vẽ nó vào báo cáo
+     *    phát sóng là hứa một màn hình chưa ai nhận.
+     *  - `rejected`, `cancelled` — không có nghĩa vụ nào, không có phát sóng.
+     *
+     * `paused` có trong tập dù **chưa chỗ nào trong mã nguồn đặt nó** cho một
+     * dòng: `Campaign::REPORTABLE_STATUSES` đã cho một chiến dịch `paused` xem
+     * báo cáo, nên ngày dòng cũng tạm dừng được thì số đã phát của nó không
+     * được biến mất khỏi báo cáo. Loại nó là để dành một lỗi cho tương lai.
+     *
+     * @var list<string>
+     */
+    public const REPORT_STATUSES = [
+        self::STATUS_APPROVED,
+        self::STATUS_ACTIVE,
+        self::STATUS_PAUSED,
+        self::STATUS_COMPLETED,
+    ];
+
     protected $fillable = [
         'campaign_id', 'product_id', 'bundle_id', 'screen_id', 'owner_id',
         'duration_discount_pct',
