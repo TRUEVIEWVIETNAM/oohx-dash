@@ -1,8 +1,18 @@
-# Trạng thái công việc — cập nhật 29/09/2026
+# Trạng thái công việc — cập nhật 13/10/2026
 
 Một trang duy nhất trả lời: **đã làm gì, đang dở gì, chưa làm gì.** Chi tiết kỹ thuật ở `IMPLEMENTATION-P0-CLAUDE.md`; các vòng review ở `REVIEW-*.md`.
 
 Baseline: `112e2aa`. **Giai đoạn 0 đã push** lên `feat/tmdt-review-1107` (11 commit, CI xanh). **Giai đoạn 1 đã code xong**, phần cuối còn ở working tree — xem mục 1b.
+
+> **Mốc hiện tại (13/10/2026).** `main` ở `a6c01c5`, CI xanh: **903 test PHPUnit
+> / 3.368 phép kiểm** (run `38057005171`), cộng **177 ca jsdom** chạy trên đúng
+> khối script của trang Blade. Deploy production `38057005734` **success**.
+> **Không còn PR nào mở.**
+>
+> Giai đoạn 1 → 7 **đã xong và đã lên production**; giai đoạn 8 (Next.js cho khu
+> người mua) hoãn có chủ ý. Mục 2 và 3 bên dưới viết từ 29/09 nên **đã lạc hậu
+> một phần** — chỗ nào lạc hậu đã đánh dấu tại chỗ. Trạng thái theo giai đoạn,
+> cập nhật liên tục, ở `docs/LO-TRINH-SAU-GIAI-DOAN-0.md`.
 
 ---
 
@@ -76,8 +86,8 @@ Chốt `sites.network_id` là nguồn sự thật duy nhất. Phần đối chi�
 
 | Việc | Vì sao chờ |
 |---|---|
-| **Gỡ số liệu bịa trên trang công khai** (F-15): "30M+", bộ đếm impression chạy bằng `Math.random()`, "AI Match 94%", "fill rate 40%", nút CTA không hành vi, badge "Còn trống" in vô điều kiện | Đụng giao diện khách hàng nhìn thấy; cần chốt thay bằng số thật hay gỡ hẳn |
-| **Chạy đối chiếu mạng lưới trên production** (F-12) | Code đã xong ở giai đoạn 3 và CI xanh. Việc còn lại là chạy `php artisan networks:reconcile --dry-run` trên bản sao dữ liệu thật, xem sẽ đụng bao nhiêu địa điểm và còn bao nhiêu chỗ mâu thuẫn, rồi mới deploy |
+| ~~**Gỡ số liệu bịa trên trang công khai** (F-15)~~ **XONG 03/10/2026** | Giai đoạn 4, hai đợt (29/09 và 03/10). Chi tiết ở `LO-TRINH-SAU-GIAI-DOAN-0.md` |
+| ~~**Chạy đối chiếu mạng lưới trên production** (F-12)~~ **XONG 02/10/2026** | Đã chạy khi deploy: **2970 → 2970 địa điểm, 0 xung đột** |
 | ~~**Xoay khóa deploy** đang nằm trong git~~ **XONG 01/10/2026** | Nhãn "F-07" ở đây **sai**: F07 trong `FINDINGS.md` là chuyện tổng tiền che khuất công nợ theo owner. Việc khóa deploy là **mục 0.2** của `IMPLEMENTATION-P0-CLAUDE.md`. Trình tự đã chạy ghi ở `docs/LO-TRINH-SAU-GIAI-DOAN-0.md`. |
 
 ---
@@ -92,8 +102,13 @@ Chốt `sites.network_id` là nguồn sự thật duy nhất. Phần đối chi�
 - **Đường phát sóng cho thiết bị**: vẫn chưa tồn tại — không endpoint nào trả lịch phát. Giai đoạn 2 mới làm xong đường thiết bị **báo về**, chưa làm đường máy chủ **gửi xuống**. Cổng nội dung của 1.3 vì thế vẫn đặt ở bước kích hoạt.
 - **Khiếu nại**: luồng hủy và hoàn tiền đã có (1.5), phần khiếu nại chưa.
 
-### Chuyển sang Next.js
-Chưa bắt đầu — xem `PLAN-API-FIRST-NEXTJS.md` và `LO-TRINH-SAU-GIAI-DOAN-0.md`. Phạm vi đã thu hẹp còn trang công khai vì chỉ có một người làm.
+### ~~Chuyển sang Next.js~~ — **trang công khai XONG 07/10/2026**
+
+13 đường dẫn công khai chạy trên Next, đo từ ngoài qua Cloudflare (giai đoạn 6); Blade công khai đã dọn 08/10 theo nhánh B — bỏ đường lùi (giai đoạn 7).
+
+**Khu người mua vẫn trên Blade** và vẫn hoãn (giai đoạn 8, chặn bởi "có thêm người") — nhưng nay rẻ hơn hẳn: **cả 11 trang** của khu người mua đọc toàn bộ dữ liệu qua `/api/v2` **từ trình duyệt**, không còn trang nào render dữ liệu nghiệp vụ ở máy chủ (đóng nốt 10/10/2026 với bốn trang luồng đặt chỗ). Việc còn lại là đổi tầng vẽ, không phải gỡ truy vấn ra khỏi view.
+
+Và đó không chỉ là đổi hình dạng: tầng DTO có lưu lượng thật chạy qua đã **bắt bảy lỗi** mà test không bắt — trong đó VAT nhân hai lần ở trang giỏ, một thẻ trạng thái viết cứng trên trang xác nhận thanh toán, và VAT nhân lần nữa ngay trong view của trang xác nhận đặt chỗ.
 
 ---
 
@@ -101,10 +116,13 @@ Chưa bắt đầu — xem `PLAN-API-FIRST-NEXTJS.md` và `LO-TRINH-SAU-GIAI-DOA
 
 | # | Câu hỏi | Chặn việc gì |
 |---|---|---|
-| 1 | Khoảng ngày tối đa cho một dòng đặt chỗ — giữ 365, nới 730, hay bỏ? | Đang tạm 365 |
-| 2 | Có đối tác nào đang **ghi** dữ liệu qua API không? | Deploy giai đoạn 0 sẽ chặn họ; cũng chặn việc đặt tên lại F09 |
+| ~~1~~ | ~~Khoảng ngày tối đa cho một dòng đặt chỗ — giữ 365, nới 730, hay bỏ?~~ | **Đã chốt 01/10/2026: giữ 365 ngày.** |
+| 2 | Có đối tác nào đang **ghi** dữ liệu qua API không? | Giai đoạn 0 đã lên production 01–02/10 nên câu này **không còn chặn deploy**; nó còn chặn việc đặt tên lại F09 (`price_per_slot_vnd` đang trả `floor_cpm`) |
 | 3 | Media owner có được **tự** xác nhận đã nhận tiền không? | Tôi đang giả định: owner chỉ ghi nhận, quản trị xác nhận mới đóng công nợ |
-| 4 | Số liệu bịa trên trang công khai: thay bằng số thật hay gỡ hẳn? | Giai đoạn 4 |
+| ~~4~~ | ~~Số liệu bịa trên trang công khai: thay bằng số thật hay gỡ hẳn?~~ | **Đã xử xong 03/10/2026** (giai đoạn 4) |
+| 5 | **Tỷ giá cho giá niêm yết ngoài VND** (mới 01/10): lấy từ đâu, chụp lại lúc nào, ai chịu rủi ro khi tỷ giá đổi | Đang **chặn đặt trực tuyến** với giá ngoài VND. Hiện không chặn việc gì có thật: production không có bản ghi USD nào |
+
+Năm câu còn lại và thứ chúng chặn — gộp cả các câu phát sinh sau 29/09 — ở mục "Bảy câu hỏi nghiệp vụ đang chặn việc" của `LO-TRINH-SAU-GIAI-DOAN-0.md`. Đó là danh sách đầy đủ hơn bảng này.
 
 **Đã chốt 29/09, không còn treo:** giữ chỗ 30 phút · hoàn tiền bậc thang · chiến dịch chạy theo từng dòng · gói nhiều owner chia theo giá từng dòng · **chưa có thiết bị player nào gửi dữ liệu thật**, nên giai đoạn 2 được làm lại schema `impression_logs` cho sạch thay vì migration bảo toàn dữ liệu.
 
@@ -122,6 +140,10 @@ Chưa bắt đầu — xem `PLAN-API-FIRST-NEXTJS.md` và `LO-TRINH-SAU-GIAI-DOA
 | **Sau giai đoạn 1** (CI, run 36535168463) | 390 | 383 | 0 ngoài 7 ca F-12 bị loại |
 | **Sau giai đoạn 2** (CI, run 36544802797) | 413 | 406 | 0 ngoài 7 ca F-12 bị loại |
 | **Sau giai đoạn 3** (CI, run 36548265693) | **426** | **426** | **0 — không loại nhóm nào** |
+| Sau khi hủy/hoàn tiền có lối vào thật (CI, run 36709847798) | 550 | 550 | 0 |
+| **Hiện tại — `a6c01c5`, 10/10/2026** (CI, run 38057005171) | **903** | **903** | **0** — 3.368 phép kiểm, 103s |
+
+Cộng thêm **177 ca jsdom** (`npm run test:js`) không nằm trong các con số trên: chúng trích **đúng khối `<script>` sẽ lên production** của 11 trang Blade khu người mua rồi chạy trong jsdom, nên một lỗi chỉ có ở phía trình duyệt vẫn đỏ được. Tám cái chốt "tự tìm phạm vi" — và **sáu lỗ** đã tìm thấy trong chính chúng — liệt kê ở `LO-TRINH-SAU-GIAI-DOAN-0.md`.
 
 Trong 10 ca hỏng baseline, **3 ca đã sửa ngày 27/09**: 2 ca `InvitationFlowTest` — trong đó có một lỗi sản phẩm thật, `InvitationController::show` dùng sai tham số thứ ba của `view()` nên link mời hết hạn trả 500 thay vì 410 — và 1 ca `PanelAccessTest` (test dùng `status = inactive`, enum chỉ có `pending/active/suspended`).
 

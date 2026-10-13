@@ -1,6 +1,6 @@
 # Lộ trình sau giai đoạn 0
 
-Cập nhật 09/10/2026 · Viết bởi Claude Code · Trạng thái hiện tại ở `audit-5-vung-2026-09-23/STATUS.md`
+Cập nhật 13/10/2026 · Viết bởi Claude Code · Trạng thái hiện tại ở `audit-5-vung-2026-09-23/STATUS.md`
 
 Giai đoạn 0 đã xong và xanh: phân quyền API, giá do máy chủ quyết, cổng bán hàng, giới hạn tần suất, CI chặn deploy. Tài liệu này trả lời câu hỏi **tiếp theo làm gì, theo thứ tự nào, và vì sao thứ tự đó**.
 
@@ -17,7 +17,7 @@ Nguyên tắc xuyên suốt: **đóng đường tiền trước, đổi giao di�
 | ~~2~~ | ~~Sửa đường ghi bằng chứng phát sóng~~ **XONG 29/09** | L | — |
 | ~~3~~ | ~~Hợp nhất quan hệ Màn hình ↔ Mạng lưới~~ **XONG 29/09** | M | — (đã chạy `networks:reconcile` trên dữ liệu thật khi deploy 02/10: 2970→2970, 0 xung đột) |
 | ~~4~~ | ~~Dọn số liệu bịa trên trang công khai~~ **XONG 03/10** | S | — |
-| ~~5~~ | ~~API v2 + OpenAPI~~ **XONG 03/10** | M | — (mốc 1, 2, 3 xong. **Sửa 10/10:** bảy trang khu người mua đã đọc API, nhưng còn **bốn** trang luồng đặt chỗ render ở máy chủ — xem "SỬA 10/10/2026" trong giai đoạn 5) |
+| ~~5~~ | ~~API v2 + OpenAPI~~ **XONG 03/10, đóng nốt 10/10** | M | — (mốc 1, 2, 3 xong. Bốn trang luồng đặt chỗ bị đếm thiếu ngày 10/10 **đã chuyển xong cùng ngày** ở PR #73: khu người mua không còn trang nào render dữ liệu nghiệp vụ ở máy chủ — xem hai mục "SỬA 10/10/2026" và "ĐÃ LÀM 10/10/2026" trong giai đoạn 5) |
 | ~~6~~ | ~~Next.js cho trang công khai~~ **XONG 07/10** | L | — |
 | ~~7~~ | ~~Dọn Blade công khai~~ **XONG 08/10** | S | — (chọn nhánh B: bỏ đường lùi) |
 | **8** | *(hoãn)* Next.js cho khu người mua | L | Có thêm người |
@@ -520,6 +520,71 @@ DTO/lỗi có lưu lượng thật, và nó đã bắt được bốn lỗi). Kh
 "khu người mua không còn chỗ nào render dữ liệu ở máy chủ" — còn bốn chỗ, và ba
 trong bốn nằm trên đường tiền.
 
+### ĐÃ LÀM 10/10/2026 — cả bốn trang, và **không thêm endpoint nào**
+
+PR #73 (`a6c01c5`), 22 tệp, +2.737/−532. CI xanh: 903 test PHPUnit / 3.368 phép
+kiểm / 103s; deploy production `38057005734` **success**.
+
+Thứ đáng ghi nhất: mục trên nói `$conflicts` **chưa có endpoint nào** — câu đó
+sai. `GET /api/v2/campaigns/{campaign}` đã trả `conflicts` và `summary.can_submit`
+từ `reviewPayload()`. Cả bốn trang chạy trên sáu đường **đã có sẵn**:
+
+| Trang | Đọc | Ghi |
+|---|---|---|
+| `booking/create` | `GET /api/v2/cart` | `POST /api/v2/campaigns` |
+| `booking/creative` | `GET campaigns/{campaign}` | `POST campaigns/{campaign}/creatives` |
+| `booking/review` | `GET campaigns/{campaign}` (kèm `conflicts`, `can_submit`) | `POST campaigns/{campaign}/submit` |
+| `booking/payment-success` | `GET campaigns/{campaign}/payments`, lấy `payments[0]` | — |
+
+Chỉ nới hai trường ở DTO: `BookingLineResource.creative_spec = {width_px,
+height_px}` (bảng kích thước tham khảo cần **pixel**, mà `ScreenSummary.size`
+chỉ có mét — đặt ở `BookingLine` để không đụng DTO mà giỏ hàng và danh mục công
+khai cũng dùng), và `summary.vat` + `summary.total`. Ba cột ảnh-chụp-giá
+(`floor_cpm_at_booking`, `io_rate_at_booking`, `negotiated_cpm`) **không** nới:
+dòng `CPM` dưới mỗi màn hình bị bỏ có chủ ý, vì đặt một đơn giá chưa nhân bên
+cạnh một tổng đã nhân là mời người đọc so hai số không so được với nhau.
+
+**Ba lỗi thật, không phải ba lượt đổi hình dạng:**
+
+1. `payment-success` viết **cứng** thẻ `Chờ xác nhận`, bất kể `$payment->status`
+   — một lần trả đã xác nhận vẫn hiện "Chờ xác nhận" trên đúng trang người mua
+   mở ra để kiểm. Nay chữ lấy từ `status_label`.
+2. `review` tự nhân `config('pricing.vat_rate')` **ngay trong view** — đúng hình
+   dạng lỗi "VAT nhân hai lần" trang giỏ từng mắc. Nay `vat` là **hiệu** của hai
+   số đã làm tròn, tính một chỗ ở `PaymentService::withVat()`.
+3. `creative` và `review` in `strtoupper($c->type)`, nên người mua đọc được
+   `VAST_TAG`; và `rejected` dùng chung màu xám với `pending_review` — hai nghĩa
+   trái nhau một màu.
+
+**Ba đường GHI của Blade đã gỡ:** `POST /booking/create`, `.../creative`,
+`.../submit` cùng ba phương thức controller (`BookingController` 165 → 106
+dòng). Thứ kiểm **trước khi** gỡ không phải luật validate mà là **bản ghi đồng
+ý**: `/api/v2/.../submit` gọi đúng `PolicyConsentService::record()` với cùng
+`CONTEXT_BOOKING` và cùng `subjectId`, nên bằng chứng khi tranh chấp không mất.
+
+**Hai lỗ trong chính các chốt, tìm ra khi mở rộng phạm vi:**
+
+- `TruongTrangDocTest` chỉ đọc `['get']['responses'][200]`, nên nó **không canh
+  gì** cho mọi đường GHI của mọi trang — trường một trang gửi lên khai ở
+  `requestBody`. (Đây là lỗ số 2 trong danh sách năm lỗ bên dưới.)
+- **Trạng thái ban đầu của trang chỉ nằm trong markup.** Bộ khung jsdom dựng mỗi
+  móc thành một thẻ **trống**, không mang thuộc tính nào từ Blade — nên `hidden`
+  viết trong Blade là thứ không ca test JS nào chạm được, và một trang mở ra với
+  khối lỗi rỗng đang hiện vẫn xanh. Sửa ở **sản phẩm**, không ở test: cả bốn
+  script tự đặt trạng thái đầu. Giờ hai phía cùng canh — `MocDomTrangBladeTest`
+  đòi `hidden` có trong markup (cái người dùng thấy **trước** khi script chạy),
+  bốn tệp test JS đòi script tự đặt lại (cái người dùng thấy sau).
+
+44 ca jsdom mới chạy trên **đúng khối script sẽ lên production**; tổng bộ JS nay
+**177 ca**. Hai fixture cố ý **không khớp** để một bản tính lại ở client phải
+đỏ: giỏ có `subtotal` 7.900.000 trong khi hai món cộng lại 8.000.000, và trang
+xác nhận có VAT 9% — một thuế suất không tồn tại trong `config/pricing.php`.
+
+**Câu kết đúng, lần này đếm bằng `find`:** 11 tệp Blade trong
+`resources/views/buyer/` và `tests/js/moc-dom.json` khai **đủ 11**. Những gì
+controller còn truyền vào view chỉ là tên tổ chức và `$campaign` để sinh liên
+kết — không còn dữ liệu nghiệp vụ nào render ở máy chủ trong khu người mua.
+
 ---
 
 ## Đóng nợ — hủy/hoàn tiền có lối vào thật (30/09/2026)
@@ -665,16 +730,17 @@ Khóa vẫn nằm trong lịch sử git tại `ed6665a`. Viết lại lịch s�
 
 Mỗi cái tự khám phá phạm vi của nó, nên thêm một trang / một bảng chữ / một
 endpoint là nó tự vào tầm. Ghi ở đây vì chúng là thứ quyết định việc **lần sau
-sửa gì thì đỏ** — và vì năm trong số chúng từng có lỗ, mỗi lỗ chỉ lộ ra khi mở
-rộng phạm vi.
+sửa gì thì đỏ** — và vì **sáu lỗ** đã tìm thấy trong chính chúng (năm ghi ngày
+10/10, cái thứ sáu cùng ngày khi chuyển bốn trang đặt chỗ), mỗi lỗ chỉ lộ ra khi
+mở rộng phạm vi.
 
 | Chốt | Canh trục nào |
 |---|---|
 | `class-css.test.mjs` | mọi tên class trong Blade đều có người định nghĩa trong `frontpage.css` |
 | `NhanEnumMotNoiTest` | enum CSDL ↔ `<CỘT>_LABELS`, hai chiều; cột `varchar` thì đối chiếu với hằng model |
 | `TheEnumPhaiCoChuTest` | thẻ `->badge()` trên cột enum phải có chữ; danh sách nợ giờ **trống** |
-| `MocDomTrangBladeTest` + `bo-khung.mjs` | móc DOM khai một chỗ, hai phía cùng đọc |
-| `TruongTrangDocTest` | trường trang đọc ↔ schema của **đúng** endpoint, cả GET và GHI |
+| `MocDomTrangBladeTest` + `bo-khung.mjs` | móc DOM khai một chỗ, hai phía cùng đọc; từ 10/10 canh thêm **trạng thái ban đầu** trong markup (11 trang) |
+| `TruongTrangDocTest` | trường trang đọc ↔ schema của **đúng** endpoint, cả GET và GHI (nhánh GHI vá 10/10) |
 | `ChuPanelPhaiCoDauTest` | chữ hiển thị trong PHP của cả ba panel phải có dấu tiếng Việt |
 | `ChuBladePanelPhaiCoDauTest` | chữ trong tệp Blade của panel |
 | CI `Kiểu TypeScript còn khớp OpenAPI` | `api-v2.d.ts` sinh lại phải khớp bản đã commit |
@@ -696,6 +762,13 @@ dễ lặp:
 5. Một ca test tôi viết (`chay_lai_up_khong_doi_gi`) là **phép kiểm rỗng**: nó
    không bắt được đột biến nào. Phải đổi sang đọc nhật ký truy vấn mới có tác
    dụng.
+
+**Lỗ thứ sáu, tìm 10/10/2026 khi chuyển bốn trang đặt chỗ:** trạng thái ban đầu
+của trang (`hidden` của khung chờ, ô lỗi, biểu mẫu) chỉ nằm trong markup Blade,
+mà bộ khung jsdom dựng mỗi móc thành một thẻ **trống** — nên không ca JS nào
+chạm được, và một trang mở ra với khối lỗi rỗng đang hiện vẫn xanh. Đã vá ở cả
+hai phía (chi tiết trong "ĐÃ LÀM 10/10/2026" của giai đoạn 5). Lỗ số 2 cũng đã
+vá cùng PR đó.
 
 Bài học chung, đã ghi vào từng docblock: **ngưỡng chống-rỗng chỉ canh được phạm
 vi nó biết**, và một chốt xanh chưa chứng minh nó đang canh thứ nó nói.
@@ -730,23 +803,67 @@ Phương án khác, tránh hẳn chuyện tỷ giá: yêu cầu media owner niê
 
 ~~Ba mục cũ (trả lời câu hỏi 2, Codex review giai đoạn 0, bắt đầu 1.1) đã hết hạn: giai đoạn 0 và 1 đã lên production từ 01–02/10.~~ Cập nhật 03/10/2026:
 
-1. ~~**Mốc 3 của giai đoạn 5.**~~ **XONG 03/10**, và lý lẽ của nó **đã thành** — cập nhật 09/10/2026. Lúc viết mục này, nhóm cần quyền chưa có bên tiêu thụ nào và lựa chọn còn mở. Nay đã chọn, và đã làm năm lần: giỏ hàng, thanh toán, chi tiết chiến dịch, danh sách chiến dịch, trang đầu — tất cả gọi `/api/v2` **từ trình duyệt**, không từ PHP. Nên tầng DTO/phân trang/lỗi có lưu lượng thật chạy qua, và nó đã bắt được ba lỗi mà test không bắt: VAT nhân hai lần ở trang giỏ, hai trong ba trạng thái nội dung hiện tiếng Anh, và khe phạm vi của trang đầu.
+1. ~~**Mốc 3 của giai đoạn 5.**~~ **XONG 03/10**, và lý lẽ của nó **đã thành** — cập nhật 09/10/2026. Lúc viết mục này, nhóm cần quyền chưa có bên tiêu thụ nào và lựa chọn còn mở. Nay đã chọn, và ~~đã làm năm lần~~ **đã làm mười một lần — hết khu người mua** (cập nhật 13/10/2026): giỏ hàng, thanh toán, chi tiết chiến dịch, danh sách chiến dịch, trang đầu, báo cáo, cài đặt, và bốn bước luồng đặt chỗ — tất cả gọi `/api/v2` **từ trình duyệt**, không từ PHP. Nên tầng DTO/phân trang/lỗi có lưu lượng thật chạy qua, và nó đã bắt **bảy** lỗi mà test không bắt: VAT nhân hai lần ở trang giỏ, hai trong ba trạng thái nội dung hiện tiếng Anh, khe phạm vi của trang đầu, rồi ba lỗi của bốn trang đặt chỗ (thẻ trạng thái viết cứng, VAT nhân trong view, `VAST_TAG` lọt ra người mua) và `rejected` cùng màu với `pending_review`.
 
    ~~Còn hai trang đọc chưa chuyển (`report`, `settings`)~~ — **cả hai XONG**: `report` ở PR #57 (07/10), `settings` ở PR #71 (10/10). `settings` là trang đầu tiên của khu người mua **ghi** qua API, không chỉ đọc.
 
-   **Nhưng còn bốn trang nữa mà mục này chưa từng kể** — xem "SỬA 10/10/2026" ở giai đoạn 5. Ba trong bốn nằm trên đường tiền.
+   ~~**Nhưng còn bốn trang nữa mà mục này chưa từng kể**~~ — **cả bốn XONG 10/10/2026** (PR #73): `create`, `creative`, `review`, `payment-success`. Xem "ĐÃ LÀM 10/10/2026" ở giai đoạn 5. Khu người mua nay **không còn trang nào** render dữ liệu nghiệp vụ ở máy chủ, và lượt chuyển đó bắt thêm ba lỗi thật — trong đó một thẻ trạng thái viết cứng trên trang xác nhận thanh toán.
 2. ~~**Ban hành ba trang chính sách.**~~ **XONG 09/10/2026** (PR #56): `quy-che-hoat-dong`, `chinh-sach-bao-mat`, `giai-quyet-tranh-chap` đều `effective_from = 09/10/2026`, phiên bản `1.0`. `bang-phi` giữ `22/09/2026`.
-3. **Cho Codex review khối từ R41 tới nay** (**151** commit kể từ vòng review 30/09, đếm lại 10/10): API v2, giỏ hàng, hoàn tiền, đường tiền, và nay thêm bảy trang khu người mua đọc API cùng tám cái chốt tự tìm phạm vi. Đúng loại code nên có người thứ hai đọc.
+3. **Cho Codex review khối từ R41 tới nay** (~~151~~ **160** commit kể từ vòng review 30/09, đếm lại 13/10): API v2, giỏ hàng, hoàn tiền, đường tiền, và nay thêm **mười một** trang khu người mua đọc API cùng tám cái chốt tự tìm phạm vi. Đúng loại code nên có người thứ hai đọc. **Đây là mục duy nhất trong ba mục này còn mở.**
 
-### Mục mới 10/10/2026 — bốn trang luồng đặt chỗ
+### ~~Mục mới 10/10/2026 — bốn trang luồng đặt chỗ~~ **XONG 10/10/2026**
 
-Thứ tự tôi đề xuất, và lý do:
+Làm **cả bốn** trong một PR (#73), không chỉ một. Quyết định phạm vi đó rẻ hơn
+dự đoán ở mục này vì hai giả định dưới đây đều sai: `$conflicts` **đã có** đường
+(`GET campaigns/{campaign}`), nên trang thứ tư không kéo theo endpoint mới; và
+đường tải tệp cũng **đã có** (`POST campaigns/{campaign}/creatives`), nên trang
+thứ ba không kéo theo gì. Tổng cộng không thêm endpoint nào, chỉ nới hai trường
+DTO.
+
+Giữ lại thứ tự đề xuất bên dưới vì **lý do** của nó vẫn đúng, và vì nó cũng là
+thứ tự tôi đã làm thật:
 
 1. **`booking/create`** — rẻ nhất, hai endpoint đều đã có, và nó cùng hình dạng với trang `settings` vừa làm (biểu mẫu + khung chờ + ô `disabled` tới khi dữ liệu về).
 2. **`booking/payment-success`** — 42 dòng, chỉ đọc. Cần một cách trỏ tới đúng một lần trả.
 3. **`booking/creative`** — cần xem DTO `campaigns/{campaign}` có đủ `creatives` và `lines`; trang này còn tải tệp lên, nên nó là bài khó hơn hai cái trên.
 4. **`booking/review`** — để cuối, không vì nó khó nhất mà vì `$conflicts` **chưa có endpoint nào**, và nó là trang người mua xác nhận nghĩa vụ tiền. Một con số sai ở đây đắt hơn ở ba trang kia cộng lại.
 
-Làm cả bốn hay chỉ một là **quyết định phạm vi**, không phải việc tự chọn: trang thứ tư kéo theo một endpoint mới cho `$conflicts`, và trang thứ ba kéo theo đường tải tệp.
+~~Làm cả bốn hay chỉ một là **quyết định phạm vi**, không phải việc tự chọn: trang thứ tư kéo theo một endpoint mới cho `$conflicts`, và trang thứ ba kéo theo đường tải tệp.~~ Hai câu sau dấu hai chấm đều sai — xem đoạn mở đầu mục này.
 
 **Lưu ý thứ tự:** mốc SEO, sinh TypeScript và cấu hình proxy OpenLiteSpeed (01–03/10) đều thuộc **giai đoạn 6**, làm trước khi xong giai đoạn 5. Chúng không vô ích — mốc SEO là điều kiện "xong" của giai đoạn 6, và cấu hình proxy đã ghi lại hạ tầng thật khác với giả định Caddy trong lộ trình — nhưng chúng không đưa giai đoạn 5 tiến thêm bước nào.
+
+### Mục mới 13/10/2026 — việc còn mở sau khi giai đoạn 5 đóng
+
+Giai đoạn 5 đã đóng thật và không còn PR nào mở. Dưới đây là **mọi thứ còn mở
+mà tôi biết**, chia theo thứ chặn nó — mục đích là để lần sau không phải đếm lại
+bằng ký ức.
+
+**A. Chặn bởi quyết định nghiệp vụ, không chặn bởi code.** Sáu câu ở mục "Bảy câu
+hỏi nghiệp vụ" vẫn chưa có câu trả lời: hạn giữ chỗ (1.1), chính sách hủy/hoàn
+tiền (1.5), một owner đủ tiền hay tất cả (1.4), owner tự xác nhận đã nhận tiền
+(1.4), chia tiền gói nhiều owner (1.2), và tỷ giá cho giá ngoài VND. Viết code
+cho những mục này trước khi có câu trả lời là tự đặt ra chính sách.
+
+**B. Làm được ngay, không chặn bởi gì — nợ kỹ thuật đã xác minh.**
+
+| Món | Hiện trạng đã kiểm | Vì sao đáng sửa |
+|---|---|---|
+| `CampaignReportService` | ba chỗ lọc `booking_lines`, **hai** danh sách khác nhau: `['active','completed']` (dòng 16, 67) và `['active','completed','approved']` (dòng 108) | Cùng một câu hỏi "dòng nào tính vào báo cáo" trả lời hai kiểu trong một tệp. `NhanEnumMotNoiTest` không bắt được vì đây không phải nhãn |
+| `REPORTABLE_STATUSES` | hằng nằm trên `Api/V2/CampaignReportController`, mà `Buyer/BuyerReportController:27` đọc sang | Một controller Blade phụ thuộc hằng của một controller API. Đúng chỗ của nó là model hoặc service |
+| Quyền sửa tổ chức của `planner` | `OrganizationPolicy` docblock đã ghi rõ: `planner` **mất** một quyền đang có (#55) | Đã ghi nhưng chưa quyết. Giữ hay trả lại là một dòng trong policy, không phải một bài |
+| Thông báo khi hủy dòng | không có email/in-app; owner phải tự mở trang mới thấy nghĩa vụ hoàn tiền | Đã ghi ở mục "Đóng nợ"; khoản `pending` cũng chưa có hạn xử lý |
+| Người đã đồng ý bản chính sách nháp | không có thông báo khi bản đó được ban hành | Hồ sơ TMĐT: ai đồng ý phiên bản nào là thứ phải trả lời được |
+
+**C. Cần người thứ hai đọc.** Mục 3 của "Đề xuất làm gì ngay" vẫn mở: cho Codex
+review khối từ R41 tới nay — **160** commit kể từ vòng 30/09 (`git rev-list
+--count --since=2026-09-30 HEAD`, đếm lại 13/10), nay gồm cả bốn trang luồng đặt
+chỗ. Đúng loại code nên có người thứ hai đọc.
+
+**D. Hoãn có chủ ý.** Giai đoạn 8 (Next.js cho khu người mua) vẫn hoãn, chặn bởi
+"có thêm người". Nhưng nay nó **rẻ hơn hẳn** so với lúc viết: 11 trang khu người
+mua đã đọc toàn bộ dữ liệu qua `/api/v2`, nên việc còn lại là đổi tầng vẽ, không
+phải gỡ truy vấn ra khỏi view.
+
+**Một thứ đã nói với chủ dự án và chưa quyết:** từ vựng tiếng Anh trên trang
+người mua ("Campaign", "Plan", "Budget", "Brand") giữ nguyên có chủ ý. Đó là
+quyết định đặt tên sản phẩm, không phải việc chuyển đổi — nên tôi không tự đổi.
