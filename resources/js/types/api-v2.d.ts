@@ -2740,7 +2740,7 @@ export interface components {
                 website: string | null;
             };
             permissions: {
-                /** @description Vai trò có `manage_team` hay không. KHÔNG thay policy — `PUT me/organization` vẫn gọi Gate và vẫn 403. Cờ này để trang thôi render biểu mẫu sửa được cho vai trò chỉ-xem. */
+                /** @description Vai trò có `manage_org_profile` hay không — tức `admin` và `planner`, không `viewer`. KHÔNG thay policy: `PUT me/organization` vẫn gọi Gate và vẫn 403. Cờ này để trang thôi render biểu mẫu sửa được cho vai trò chỉ-xem. (Trước 13/10/2026 quyền gác là `manage_team`, tức chỉ `admin`.) */
                 can_update_organization: boolean;
             };
         };

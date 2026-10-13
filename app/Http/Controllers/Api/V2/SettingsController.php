@@ -116,12 +116,17 @@ class SettingsController extends Controller
     }
 
     /**
-     * Sửa thông tin tổ chức — chỉ vai trò có `manage_team`.
+     * Sửa thông tin tổ chức — vai trò có `manage_org_profile` (`admin` và
+     * `planner`).
      *
      * `$data` gồm `tax_id` và `billing_*`, nên thiếu policy ở đây là để một vai
      * trò `viewer` ghi lại mã số thuế của tổ chức. Đó đúng là lỗ đã bịt ở PR
      * #55, và ca test của nó chuyển sang đường này cùng lượt — một chốt canh
      * một đường không ai gọi thì không canh gì.
+     *
+     * Quyền đòi ở đây từng là `manage_team`, tức chỉ `admin`. Đổi 13/10/2026:
+     * `planner` được trả lại quyền sửa, `viewer` vẫn bị chặn — lý do đầy đủ ở
+     * `OrganizationPolicy`.
      */
     public function updateOrganization(Request $request): JsonResponse
     {
