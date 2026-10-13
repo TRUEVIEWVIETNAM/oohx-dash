@@ -600,7 +600,9 @@ Hai thứ rút ra, ghi lại để không lặp:
 - **Bản đầu tôi lại viết hai bộ luật quyền** — phép kiểm nằm trong cả hai `RefundResource`, và sẽ thành ba bộ khi có endpoint v2. Gom về `RefundPolicy` (CLAUDE.md mục 4). Cũng phát hiện `TenantPermission::check()` đọc `auth()->user()`, nên một policy dùng nó sẽ trả lời về người đang đăng nhập chứ không về người được hỏi.
 - **Test "nhả suất về kho" dựng `BookingLine` bằng tay thì xanh giả**: không có `InventoryHold` nào nên không có gì để nhả. Phải đi qua giỏ hàng thật.
 
-**Chưa làm:** không có thông báo (email/in-app) khi một dòng bị hủy — media owner phải tự mở trang mới thấy nghĩa vụ hoàn tiền. Cũng chưa có hạn xử lý cho khoản `pending`, nên một khoản có thể chờ mãi mà không ai bị nhắc.
+~~**Chưa làm:** không có thông báo (email/in-app) khi một dòng bị hủy — media owner phải tự mở trang mới thấy nghĩa vụ hoàn tiền.~~ **Đã làm 13/10/2026** (PR #75): `RefundObligationNotification` gửi cho mọi người dùng của owner khi nghĩa vụ **sinh ra hoặc tăng**, qua `DB::afterCommit()` nên một transaction đổ không để lại thư đã bay đi. Kèm một điều kiện chưa kiểm được: `.env` của bản làm việc có `MAIL_MAILER=log`, và tôi không có quyền vào VPS để xem `.env` thật — xem mục B của "việc còn mở".
+
+**Vẫn chưa làm:** không có hạn xử lý cho khoản `pending`, nên một khoản có thể chờ mãi mà không ai bị nhắc.
 
 ---
 
@@ -809,7 +811,7 @@ Phương án khác, tránh hẳn chuyện tỷ giá: yêu cầu media owner niê
 
    ~~**Nhưng còn bốn trang nữa mà mục này chưa từng kể**~~ — **cả bốn XONG 10/10/2026** (PR #73): `create`, `creative`, `review`, `payment-success`. Xem "ĐÃ LÀM 10/10/2026" ở giai đoạn 5. Khu người mua nay **không còn trang nào** render dữ liệu nghiệp vụ ở máy chủ, và lượt chuyển đó bắt thêm ba lỗi thật — trong đó một thẻ trạng thái viết cứng trên trang xác nhận thanh toán.
 2. ~~**Ban hành ba trang chính sách.**~~ **XONG 09/10/2026** (PR #56): `quy-che-hoat-dong`, `chinh-sach-bao-mat`, `giai-quyet-tranh-chap` đều `effective_from = 09/10/2026`, phiên bản `1.0`. `bang-phi` giữ `22/09/2026`.
-3. **Cho Codex review khối từ R41 tới nay** (~~151~~ **160** commit kể từ vòng review 30/09, đếm lại 13/10): API v2, giỏ hàng, hoàn tiền, đường tiền, và nay thêm **mười một** trang khu người mua đọc API cùng tám cái chốt tự tìm phạm vi. Đúng loại code nên có người thứ hai đọc. **Đây là mục duy nhất trong ba mục này còn mở.**
+3. **Cho Codex review khối từ R41 tới nay** (~~151~~ **163** commit kể từ vòng review 30/09, đếm lại cuối ngày 13/10): API v2, giỏ hàng, hoàn tiền, đường tiền, và nay thêm **mười một** trang khu người mua đọc API, tám cái chốt tự tìm phạm vi, cùng cả nhóm B. Đúng loại code nên có người thứ hai đọc. **Đây là mục duy nhất trong ba mục này còn mở.**
 
 ### ~~Mục mới 10/10/2026 — bốn trang luồng đặt chỗ~~ **XONG 10/10/2026**
 
@@ -838,26 +840,58 @@ Giai đoạn 5 đã đóng thật và không còn PR nào mở. Dưới đây l�
 mà tôi biết**, chia theo thứ chặn nó — mục đích là để lần sau không phải đếm lại
 bằng ký ức.
 
+> **Cập nhật cuối ngày 13/10/2026.** Nhóm B đã xong cả năm món trong cùng ngày:
+> #75 (bốn món nợ kỹ thuật) và #76 (quyền `planner`, sau khi chủ dự án quyết
+> trả lại). `main` ở `2ceb100`, CI **922 ca / 3.434 khẳng định**, cả ba lượt
+> deploy thành công. Nhóm A, C, D còn nguyên, và lượt sửa nhóm B mở ra **ba
+> món mới** — ghi ngay dưới bảng B.
+>
+> Ba PR của ngày: #74 (tài liệu) · #75 (nợ kỹ thuật) · #76 (phân quyền). CI đi
+> từ 903 lên 922 ca.
+
 **A. Chặn bởi quyết định nghiệp vụ, không chặn bởi code.** Sáu câu ở mục "Bảy câu
 hỏi nghiệp vụ" vẫn chưa có câu trả lời: hạn giữ chỗ (1.1), chính sách hủy/hoàn
 tiền (1.5), một owner đủ tiền hay tất cả (1.4), owner tự xác nhận đã nhận tiền
 (1.4), chia tiền gói nhiều owner (1.2), và tỷ giá cho giá ngoài VND. Viết code
 cho những mục này trước khi có câu trả lời là tự đặt ra chính sách.
 
-**B. Làm được ngay, không chặn bởi gì — nợ kỹ thuật đã xác minh.**
+**B. ~~Làm được ngay, không chặn bởi gì~~ — XONG CẢ NĂM, 13/10/2026.**
 
-| Món | Hiện trạng đã kiểm | Vì sao đáng sửa |
+Bốn món ở PR #75, món quyền `planner` ở PR #76 sau khi chủ dự án quyết. Bảng
+dưới giữ nguyên hiện trạng đã kiểm, thêm cột kết quả — vì thứ đáng đọc lại
+không phải "đã xong" mà là **mỗi món hóa ra là gì khi mở ra**.
+
+| Món | Hiện trạng đã kiểm | Kết quả |
 |---|---|---|
-| `CampaignReportService` | ba chỗ lọc `booking_lines`, **hai** danh sách khác nhau: `['active','completed']` (dòng 16, 67) và `['active','completed','approved']` (dòng 108) | Cùng một câu hỏi "dòng nào tính vào báo cáo" trả lời hai kiểu trong một tệp. `NhanEnumMotNoiTest` không bắt được vì đây không phải nhãn |
-| `REPORTABLE_STATUSES` | hằng nằm trên `Api/V2/CampaignReportController`, mà `Buyer/BuyerReportController:27` đọc sang | Một controller Blade phụ thuộc hằng của một controller API. Đúng chỗ của nó là model hoặc service |
-| Quyền sửa tổ chức của `planner` | `OrganizationPolicy` docblock đã ghi rõ: `planner` **mất** một quyền đang có (#55) | Đã ghi nhưng chưa quyết. Giữ hay trả lại là một dòng trong policy, không phải một bài |
-| Thông báo khi hủy dòng | không có email/in-app; owner phải tự mở trang mới thấy nghĩa vụ hoàn tiền | Đã ghi ở mục "Đóng nợ"; khoản `pending` cũng chưa có hạn xử lý |
-| Người đã đồng ý bản chính sách nháp | không có thông báo khi bản đó được ban hành | Hồ sơ TMĐT: ai đồng ý phiên bản nào là thứ phải trả lời được |
+| `CampaignReportService` | ba chỗ lọc `booking_lines`, **hai** danh sách: `['active','completed']` (dòng 16, 67) và `['active','completed','approved']` (dòng 108) | Về `BookingLine::REPORT_STATUSES`. Hệ quả người mua thấy được: bảng chi tiết liệt kê 2 màn hình, ô "Tổng màn hình" nói **1** — ca test in đúng `1 vs 2` khi dựng lại lỗi cũ. Chốt là một **bất biến** (ô tổng = tổng của bảng), không phải một danh sách ghim cứng |
+| `REPORTABLE_STATUSES` | hằng nằm trên `Api/V2/CampaignReportController`, mà `Buyer/BuyerReportController:27` đọc sang | Về `Campaign::REPORTABLE_STATUSES`. Kèm một lỗi chữ: câu 404 của trang Blade thiếu `paused`, nên nó mâu thuẫn với chính danh sách nó gác |
+| Quyền sửa tổ chức của `planner` | `OrganizationPolicy` docblock ghi rõ: `planner` **mất** một quyền đang có (#55) | **Trả lại** (quyết 13/10). Không thêm `manage_team` cho `planner` mà tách `manage_org_profile`: `manage_team` trả lời câu "ai quản lý thành viên", và gộp hai câu vào một quyền chính là nguyên nhân nó mất quyền — không phải một quyết định |
+| Thông báo khi hủy dòng | không có email/in-app; owner phải tự mở trang mới thấy nghĩa vụ hoàn tiền | `RefundObligationNotification`, gửi qua `DB::afterCommit()` khi nghĩa vụ sinh ra **hoặc tăng**. Khoản `pending` **vẫn chưa có hạn xử lý** — phần đó còn mở |
+| Người đã đồng ý bản chính sách nháp | không có thông báo khi bản đó được ban hành | Lệnh `policies:consents-before-effective` đếm họ — **chỉ đọc**. Chưa gửi gì: thông báo hay đòi lại chấp thuận là quyết định pháp lý. **Chưa chạy trên production** |
+
+**Ba thứ mở ra từ chính lượt sửa này, chưa làm:**
+
+1. **`manage_team` nay không được kiểm ở đâu cả.** `OrganizationUserPolicy` gác
+   việc mời/gỡ người bằng cách so `role === 'admin'` **trực tiếp**, không qua
+   `PERMISSIONS`. Hai bộ luật cho một câu hỏi — đúng thứ CLAUDE.md mục 4 cảnh
+   báo. Không gom cùng #76 vì đó là đường phân quyền của chính việc mời và gỡ
+   người.
+2. **Sáu chỗ viết cứng `['approved','active','completed']`** cho câu hỏi "dòng
+   nào mang nghĩa vụ tiền": `PaymentService` ×4, `PaymentRecipientController`,
+   `CancellationService::openCostFor()`. Cùng hình dạng với món báo cáo vừa
+   sửa, nhưng là **câu hỏi khác** và nó nằm trên đường tiền.
+3. **`.env` của bản làm việc có `MAIL_MAILER=log`**, `MAIL_FROM_ADDRESS` là
+   `hello@example.com`, không có thông tin SMTP. Nếu máy chủ cũng vậy thì thư
+   nghĩa vụ hoàn tiền — **và cả hai thông báo đã có từ trước**
+   (`BookingSubmittedNotification`, `BookingResolvedNotification`) — chỉ ghi vào
+   log, không tới ai. Tôi không có quyền vào VPS nên không kiểm được `.env`
+   thật. Đây là món đáng kiểm trước nhất trong ba món này: nó quyết định việc
+   món thứ tư ở bảng trên có tác dụng hay không.
 
 **C. Cần người thứ hai đọc.** Mục 3 của "Đề xuất làm gì ngay" vẫn mở: cho Codex
-review khối từ R41 tới nay — **160** commit kể từ vòng 30/09 (`git rev-list
---count --since=2026-09-30 HEAD`, đếm lại 13/10), nay gồm cả bốn trang luồng đặt
-chỗ. Đúng loại code nên có người thứ hai đọc.
+review khối từ R41 tới nay — **163** commit kể từ vòng 30/09 (`git rev-list
+--count --since=2026-09-30 HEAD`, đếm lại 13/10 sau khi merge #76), nay gồm cả
+bốn trang luồng đặt chỗ và cả nhóm B. Đúng loại code nên có người thứ hai đọc.
 
 **D. Hoãn có chủ ý.** Giai đoạn 8 (Next.js cho khu người mua) vẫn hoãn, chặn bởi
 "có thêm người". Nhưng nay nó **rẻ hơn hẳn** so với lúc viết: 11 trang khu người
