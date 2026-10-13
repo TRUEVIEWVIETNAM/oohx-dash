@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\BookingLine;
 use App\Models\Campaign;
 use App\Models\CampaignActivity;
 use App\Models\Owner;
@@ -215,7 +216,7 @@ class PaymentService
         // Phần chưa gắn owner (dữ liệu trước khi thanh toán theo owner) không
         // có trong breakdown, nên tính riêng — cùng công thức.
         $cost = (int) round((float) $campaign->bookingLines()
-            ->whereIn('status', ['approved', 'active', 'completed'])
+            ->whereIn('status', BookingLine::OBLIGATION_STATUSES)
             ->whereNull('owner_id')
             ->sum('estimated_cost'));
 
@@ -368,7 +369,7 @@ class PaymentService
     public function getSummary(Campaign $campaign): array
     {
         $totalCost = $campaign->bookingLines()
-            ->whereIn('status', ['approved', 'active', 'completed'])
+            ->whereIn('status', BookingLine::OBLIGATION_STATUSES)
             ->sum('estimated_cost');
 
         // Tổng kết phải cộng lại từ CHÍNH các dòng của breakdownByOwner.
@@ -404,7 +405,7 @@ class PaymentService
         // Dòng chưa gắn owner (dữ liệu cũ, trước khi thanh toán theo owner) vẫn
         // phải hiện trong tổng chi phí.
         $unassignedCost = (int) round((float) $campaign->bookingLines()
-            ->whereIn('status', ['approved', 'active', 'completed'])
+            ->whereIn('status', BookingLine::OBLIGATION_STATUSES)
             ->whereNull('owner_id')
             ->sum('estimated_cost'));
 
@@ -452,7 +453,7 @@ class PaymentService
     public function breakdownByOwner(Campaign $campaign): Collection
     {
         $costs = $campaign->bookingLines()
-            ->whereIn('status', ['approved', 'active', 'completed'])
+            ->whereIn('status', BookingLine::OBLIGATION_STATUSES)
             ->selectRaw('owner_id, SUM(estimated_cost) as cost')
             ->groupBy('owner_id')
             ->pluck('cost', 'owner_id');

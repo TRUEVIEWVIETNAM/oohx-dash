@@ -11,6 +11,7 @@ use App\Models\Owner;
 use App\Models\Screen;
 use App\Models\Site;
 use App\Models\User;
+use App\Services\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -294,6 +295,101 @@ class PaymentRecipientApiTest extends TestCase
         // owner vẽ ra mà không có chỗ chuyển tiền, hoặc một khoản nợ không
         // hiện ra ở đâu.
         $this->assertSame($idNo, $idNhan, 'hai danh sách phải dẫn từ cùng một nguồn');
+    }
+
+    /**
+     * Thêm một dòng nữa cho một owner cụ thể, với trạng thái cho sẵn.
+     *
+     * Hàm `campaign()` nhận **một** `lineStatus` cho mọi owner, nên nó không
+     * dựng được chiến dịch trộn trạng thái — thứ ca dưới đây cần.
+     */
+    private function themDong(Campaign $campaign, string $ownerId, string $trangThai, int $cost): void
+    {
+        $site   = Site::factory()->create(['owner_id' => $ownerId]);
+        $screen = Screen::factory()->create(['owner_id' => $ownerId, 'site_id' => $site->id]);
+
+        BookingLine::create([
+            'campaign_id'          => $campaign->id,
+            'screen_id'            => $screen->id,
+            'owner_id'             => $ownerId,
+            'start_date'           => now(),
+            'end_date'             => now()->addMonth(),
+            'status'               => $trangThai,
+            'estimated_cost'       => $cost,
+            'floor_cpm_at_booking' => 50_000,
+        ]);
+    }
+
+    /**
+     * Chiến dịch trộn **cả sáu** trạng thái dòng: ba danh sách phải trỏ cùng
+     * một tập owner.
+     *
+     * ══ Vì sao ca này tồn tại ══
+     *
+     * Ba chỗ cùng hỏi "dòng nào mang nghĩa vụ trả tiền" và từng trả lời bằng
+     * ba bản chép của cùng ba mã trạng thái: `PaymentService::breakdownByOwner()`
+     * (số tiền phải chuyển), `CancellationService::openCostFor()` (mẫu số chia
+     * tỉ lệ hoàn tiền), và `ownersInCampaign()` ở đây (owner nào được lộ
+     * `bank_*`). Ca `danh_sach_nguoi_nhan_khop_voi_danh_sach_cong_no` ngay
+     * trên đã so hai danh sách, nhưng nó dựng **mọi** dòng ở cùng trạng thái
+     * `approved` — nên một bản chép rộng ra ở một bên vẫn qua được nó.
+     *
+     * Ca này trộn trạng thái, nên nó đỏ theo hai cách: hai danh sách lệch nhau,
+     * **hoặc** cả hai cùng rộng/hẹp sai so với tập mong đợi viết thẳng ra đây.
+     *
+     * Chỗ đắt nhất nếu sai: `payment-recipients` là đường **duy nhất** mang
+     * `bank_*` và `tax_code` ra ngoài. Một owner chỉ có dòng `pending` lọt vào
+     * đây là một lần lộ thông tin ngân hàng của người chưa nhận đơn.
+     */
+    public function test_tron_moi_trang_thai_thi_ba_danh_sach_tro_cung_mot_tap_owner(): void
+    {
+        $mangNo    = $this->owner('Có nghĩa vụ — approved');
+        $dangChay  = $this->owner('Có nghĩa vụ — active');
+        $xong      = $this->owner('Có nghĩa vụ — completed');
+        $choDuyet  = $this->owner('Chưa duyệt — pending');
+        $daHuy     = $this->owner('Đã hủy');
+        $tuChoi    = $this->owner('Bị từ chối');
+
+        $campaign = $this->campaign([$mangNo->id => 10_000_000]);
+
+        $this->themDong($campaign, $dangChay->id, BookingLine::STATUS_ACTIVE, 20_000_000);
+        $this->themDong($campaign, $xong->id, BookingLine::STATUS_COMPLETED, 30_000_000);
+        $this->themDong($campaign, $choDuyet->id, BookingLine::STATUS_PENDING, 40_000_000);
+        $this->themDong($campaign, $daHuy->id, BookingLine::STATUS_CANCELLED, 50_000_000);
+        $this->themDong($campaign, $tuChoi->id, BookingLine::STATUS_REJECTED, 60_000_000);
+
+        $mongDoi = collect([$mangNo->id, $dangChay->id, $xong->id])->sort()->values()->all();
+
+        // 1. Nơi nhận tiền — đường duy nhất mang `bank_*` ra ngoài.
+        $nhan = $this->actingAs($this->buyer)
+            ->getJson($this->url($campaign))->assertOk()
+            ->json('data.recipients');
+
+        $this->assertSame(
+            $mongDoi,
+            collect($nhan)->pluck('id')->sort()->values()->all(),
+            'owner chưa duyệt / đã hủy / bị từ chối không được lộ nơi nhận tiền',
+        );
+
+        // 2. Công nợ theo owner.
+        $no = $this->actingAs($this->buyer)
+            ->getJson($this->urlTien($campaign))->assertOk()
+            ->json('data.by_owner');
+
+        $this->assertSame(
+            $mongDoi,
+            collect($no)->pluck('owner.id')->sort()->values()->all(),
+            'công nợ phải dẫn từ cùng tập dòng với nơi nhận tiền',
+        );
+
+        // 3. Phép tính tiền: tổng chi phí chỉ gồm ba dòng mang nghĩa vụ.
+        $tong = app(PaymentService::class)->getSummary($campaign->fresh());
+
+        $this->assertSame(
+            60_000_000,
+            (int) round((float) $tong['total_cost']),
+            '10tr + 20tr + 30tr; bốn mươi/năm mươi/sáu mươi triệu kia không phải nghĩa vụ',
+        );
     }
 
     // ── Khai một nửa thì coi như chưa khai ──────────────────────────────────
