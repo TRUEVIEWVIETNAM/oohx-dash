@@ -20,6 +20,21 @@ class OwnerUser extends Model
     // ── Role definitions ──────────────────────────────────────────────────────
 
     /**
+     * Vai trò **chủ sở hữu** — vai trò duy nhất mang nghĩa trong luồng điều
+     * khiển, nên là vai trò duy nhất có hằng.
+     *
+     * Năm vai trò còn lại là **dữ liệu**: mã chỉ tra chúng trong `PERMISSIONS`
+     * và `ROLE_LABELS`, không có nhánh `if` nào nói riêng về chúng. `owner` thì
+     * khác — `OwnerUserPolicy` phải nêu tên nó cho luật "không ai hạ bệ đồng
+     * cấp", và đó là một phép so chứ không phải một lần tra bảng.
+     *
+     * Không thêm hằng cho năm vai trò kia: một hằng chỉ để viết lại cùng chuỗi
+     * ở đúng một chỗ không thêm gì, và sáu hằng rải rác mời người sau so vai
+     * trò bằng tên thay vì hỏi `PERMISSIONS`.
+     */
+    public const ROLE_OWNER = 'owner';
+
+    /**
      * Chữ tiếng Việt cho 6 vai trò trong một media owner, quyền giảm dần.
      *
      * ══ Hai lỗi bảng này sửa ══
