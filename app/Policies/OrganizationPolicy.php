@@ -53,30 +53,23 @@ use App\Models\User;
  * `SettingsController::updateOrganization()` về danh sách trường. Chia nhỏ
  * thành "sửa tên/website" và "sửa thông tin pháp lý" là một quyết định khác,
  * chưa ai yêu cầu.
+ *
+ * ══ Phép tìm thành viên nay ở model ══
+ *
+ * Lớp này từng có `membership()` riêng, và `OrganizationUserPolicy` có
+ * `actorRole()` riêng — hai cách hỏi cùng một câu, khác nhau ở cả kiểu trả về
+ * lẫn việc có kiểm trạng thái tổ chức hay không. Cả hai nay gọi
+ * `OrganizationUser::thanhVien()`; lý do đầy đủ ở docblock của hàm đó.
  */
 class OrganizationPolicy
 {
     public function view(User $user, Organization $org): bool
     {
-        return $this->membership($user, $org) !== null;
+        return OrganizationUser::thanhVien($user, $org->id) !== null;
     }
 
     public function update(User $user, Organization $org): bool
     {
-        return $this->membership($user, $org)?->can('manage_org_profile') ?? false;
-    }
-
-    /**
-     * Thành viên của chính tổ chức đó, và tổ chức còn hoạt động.
-     *
-     * Kiểm theo tổ chức **được hỏi**, không theo `current_organization_id`:
-     * cột đó là đầu vào do client đổi được, không phải một sự thật.
-     */
-    private function membership(User $user, Organization $org): ?OrganizationUser
-    {
-        return OrganizationUser::where('organization_id', $org->id)
-            ->where('user_id', $user->id)
-            ->whereHas('organization', fn ($q) => $q->where('status', Organization::STATUS_ACTIVE))
-            ->first();
+        return OrganizationUser::thanhVien($user, $org->id)?->can('manage_org_profile') ?? false;
     }
 }

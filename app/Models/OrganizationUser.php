@@ -99,6 +99,47 @@ class OrganizationUser extends Model
         return in_array($permission, self::PERMISSIONS[$this->role] ?? []);
     }
 
+    /**
+     * Tư cách thành viên của một người trong một tổ chức — **một định nghĩa**.
+     *
+     * ══ Vì sao hàm này ở đây, không ở từng policy ══
+     *
+     * Hai policy cùng hỏi câu này và hỏi theo hai cách khác nhau:
+     *
+     *  - `OrganizationPolicy` có một `membership()` riêng, đòi tổ chức còn
+     *    `active`.
+     *  - `OrganizationUserPolicy` có `actorRole()` riêng, trả về **chuỗi vai
+     *    trò** và **không** kiểm trạng thái tổ chức, rồi so `=== 'admin'`.
+     *
+     * Ba hệ quả của việc tách đôi: quyền được so bằng tên vai trò ở một bên và
+     * bằng `PERMISSIONS` ở bên kia — nên thêm một vai trò mới có quyền quản lý
+     * thành viên sẽ **không** có tác dụng ở nửa kia; tổ chức tạm ngưng vẫn mời
+     * và gỡ thành viên được (panel `buyer` đang chặn nhờ `hasActiveTenant()`,
+     * nên đây là lớp phòng thủ chứ không phải lỗ đang mở); và một người đọc
+     * phải đọc hai tệp mới trả lời được "ai là thành viên".
+     *
+     * Trả về bản ghi pivot, không trả chuỗi vai trò: người gọi hỏi tiếp
+     * `->can('<quyền>')`, tức đi qua `PERMISSIONS` — chỗ duy nhất định nghĩa
+     * vai trò nào làm được gì.
+     *
+     * Kiểm theo tổ chức **được hỏi**, không theo `current_organization_id`:
+     * cột đó là đầu vào do client đổi được, không phải một sự thật. Người gọi
+     * nào buộc phải dùng nó (`viewAny`, `create` — hai phép không có đối tượng
+     * đích) thì vẫn an toàn, vì hàm này đòi có bản ghi pivot thật trong đúng
+     * tổ chức ấy.
+     */
+    public static function thanhVien(User $user, ?string $organizationId): ?self
+    {
+        if (! $organizationId) {
+            return null;
+        }
+
+        return self::where('organization_id', $organizationId)
+            ->where('user_id', $user->id)
+            ->whereHas('organization', fn ($q) => $q->where('status', Organization::STATUS_ACTIVE))
+            ->first();
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;
