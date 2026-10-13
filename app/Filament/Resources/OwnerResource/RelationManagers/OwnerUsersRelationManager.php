@@ -55,8 +55,8 @@ class OwnerUsersRelationManager extends RelationManager
                         ->pluck('name', 'id'))
                     ->columns(2)
                     ->columnSpan(2)
-                    ->visible(fn(Forms\Get $get) => in_array($get('role'), ['operator', 'read_only']))
-                    ->dehydrateStateUsing(fn($state, Forms\Get $get) => in_array($get('role'), ['operator', 'read_only']) ? $state : null),
+                    ->visible(fn(Forms\Get $get) => in_array($get('role'), OwnerUser::ROLES_GIOI_HAN_NETWORK))
+                    ->dehydrateStateUsing(fn($state, Forms\Get $get) => in_array($get('role'), OwnerUser::ROLES_GIOI_HAN_NETWORK) ? $state : null),
 
             ]),
         ]);
@@ -93,9 +93,16 @@ class OwnerUsersRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('allowed_network_ids')
                     ->label('Mạng lưới')
-                    ->formatStateUsing(fn($state) => $state ? count($state) . ' restricted' : 'All')
+                    // Xem chú thích cùng cột ở `Publisher\OwnerUserResource`:
+                    // đọc `networkDuocPhep()` để badge không khai "2
+                    // restricted" cho một hàng không hề bị giới hạn.
+                    ->getStateUsing(function (OwnerUser $record): string {
+                        $duocPhep = $record->networkDuocPhep();
+
+                        return $duocPhep === null ? 'Tất cả' : count($duocPhep) . ' mạng lưới';
+                    })
                     ->badge()
-                    ->color(fn($state) => $state ? 'warning' : 'success'),
+                    ->color(fn (OwnerUser $record) => $record->networkDuocPhep() === null ? 'success' : 'warning'),
 
                 Tables\Columns\TextColumn::make('user.last_login_at')
                     ->label('Lần đăng nhập cuối')
@@ -138,7 +145,7 @@ class OwnerUsersRelationManager extends RelationManager
                             ->options(fn() => \App\Models\Network::where('owner_id', $this->getOwnerRecord()->id)
                                 ->pluck('name', 'id'))
                             ->columns(2)
-                            ->visible(fn(Forms\Get $get) => in_array($get('role'), ['operator', 'read_only'])),
+                            ->visible(fn(Forms\Get $get) => in_array($get('role'), OwnerUser::ROLES_GIOI_HAN_NETWORK)),
                     ])
                     ->action(function (array $data): void {
                         try {
@@ -147,7 +154,7 @@ class OwnerUsersRelationManager extends RelationManager
                                 tenantType:        UserInvitation::TENANT_OWNER,
                                 tenantId:          $this->getOwnerRecord()->id,
                                 role:              $data['role'],
-                                allowedNetworkIds: in_array($data['role'], ['operator', 'read_only'])
+                                allowedNetworkIds: in_array($data['role'], OwnerUser::ROLES_GIOI_HAN_NETWORK)
                                     ? ($data['allowed_network_ids'] ?? null)
                                     : null,
                                 invitedBy:         auth()->user(),
@@ -189,12 +196,12 @@ class OwnerUsersRelationManager extends RelationManager
                                     ->pluck('name', 'id'))
                                 ->default($record->allowed_network_ids)
                                 ->columns(2)
-                                ->visible(fn(Forms\Get $get) => in_array($get('role'), ['operator', 'read_only'])),
+                                ->visible(fn(Forms\Get $get) => in_array($get('role'), OwnerUser::ROLES_GIOI_HAN_NETWORK)),
                         ])
                         ->action(function (OwnerUser $record, array $data): void {
                             $record->update([
                                 'role'                => $data['role'],
-                                'allowed_network_ids' => in_array($data['role'], ['operator', 'read_only'])
+                                'allowed_network_ids' => in_array($data['role'], OwnerUser::ROLES_GIOI_HAN_NETWORK)
                                     ? ($data['allowed_network_ids'] ?? null)
                                     : null,
                             ]);

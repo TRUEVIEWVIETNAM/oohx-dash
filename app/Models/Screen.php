@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Traits\HasOwnerScope;
 use App\Traits\HasSlug;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -181,6 +182,30 @@ class Screen extends Model
             'id',          // networks.id
             'site_id',     // screens.site_id
             'network_id',  // sites.network_id
+        );
+    }
+
+    /**
+     * Hàng rào theo mạng lưới — đi qua địa điểm, cùng một đường với
+     * `network()` ở trên. Không đọc `screens.network_code`: đó chính là con
+     * đường thứ hai mà F-12 đã dẹp.
+     *
+     * Truy vấn con bỏ hết global scope rồi lọc tay: nếu để `whereHas('site')`
+     * thì scope của `Site` lại chạy bên trong, và một hàng rào tự lồng vào
+     * chính nó là thứ rất khó đọc khi phải đi tìm lỗi. Điều kiện `owner_id`
+     * được viết lại ở đây để truy vấn con không rộng hơn truy vấn ngoài.
+     *
+     * @param list<int> $networkIds
+     */
+    protected static function locTheoNetwork(Builder $query, array $networkIds, User $thanhVien): void
+    {
+        $query->whereIn(
+            $query->getModel()->getTable() . '.site_id',
+            Site::query()
+                ->withoutGlobalScopes()
+                ->where('owner_id', $thanhVien->current_owner_id)
+                ->whereIn('network_id', $networkIds)
+                ->select('id'),
         );
     }
 

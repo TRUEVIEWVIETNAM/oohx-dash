@@ -4,12 +4,17 @@ namespace App\Policies;
 
 use App\Models\Site;
 use App\Models\User;
+use App\Services\GioiHanNetwork;
 use App\Services\TenantPermission;
 
 /**
  * Quyền trên địa điểm. Cùng nguyên tắc với ScreenPolicy:
  * đọc dùng `view_inventory`, ghi dùng `manage_inventory`, và mọi quyền đi qua
  * TenantPermission nên membership bị gỡ hoặc owner tạm ngưng là mất quyền ngay.
+ *
+ * Từ 13/10/2026 thêm **hàng rào theo mạng lưới** — xem `GioiHanNetwork`. Một
+ * thành viên bị giới hạn vào vài mạng lưới không xem và không sửa được địa
+ * điểm ngoài tập đó, ngay cả khi hàng được tìm bằng `withoutGlobalScope`.
  */
 class SitePolicy
 {
@@ -67,6 +72,15 @@ class SitePolicy
             return false;
         }
 
-        return TenantPermission::for($user, $site->owner_id)->can($permission);
+        if (! TenantPermission::for($user, $site->owner_id)->can($permission)) {
+            return false;
+        }
+
+        // Hàng rào mạng lưới. `network_id` null rơi ra ngoài, cùng một luật
+        // với global scope ở `Site::locTheoNetwork()`: không biết thì đóng.
+        $duocPhep = app(GioiHanNetwork::class)->cho($user, (string) $site->owner_id);
+
+        return $duocPhep === null
+            || ($site->network_id !== null && in_array((int) $site->network_id, $duocPhep, true));
     }
 }

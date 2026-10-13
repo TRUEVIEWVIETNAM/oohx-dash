@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Traits\HasOwnerScope;
 use App\Traits\HasSlug;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -131,6 +132,37 @@ class Product extends Model
     public function site(): BelongsTo
     {
         return $this->belongsTo(Site::class);
+    }
+
+    /**
+     * Hàng rào theo mạng lưới — hai đường, vì `products` có **cả hai** cột và
+     * cả hai đều nullable.
+     *
+     *  - `network_id` đã ghi → dùng nó.
+     *  - chưa ghi nhưng có `site_id` → suy ra mạng lưới từ địa điểm. Không có
+     *    nhánh này thì một gói gắn vào đúng một địa điểm trong hàng rào vẫn
+     *    biến mất khỏi danh sách.
+     *  - cả hai đều null → rơi ra ngoài. Đó là một gói ở mức media owner, trải
+     *    trên kho không xác định; người bị giới hạn không thấy nó.
+     *
+     * @param list<int> $networkIds
+     */
+    protected static function locTheoNetwork(Builder $query, array $networkIds, User $thanhVien): void
+    {
+        $bang = $query->getModel()->getTable();
+
+        $diaDiemTrongHangRao = Site::query()
+            ->withoutGlobalScopes()
+            ->where('owner_id', $thanhVien->current_owner_id)
+            ->whereIn('network_id', $networkIds)
+            ->select('id');
+
+        $query->where(function (Builder $q) use ($bang, $networkIds, $diaDiemTrongHangRao) {
+            $q->whereIn($bang . '.network_id', $networkIds)
+                ->orWhere(fn (Builder $qq) => $qq
+                    ->whereNull($bang . '.network_id')
+                    ->whereIn($bang . '.site_id', $diaDiemTrongHangRao));
+        });
     }
 
     public function screens(): BelongsToMany
