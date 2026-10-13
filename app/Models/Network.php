@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasOwnerScope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -83,5 +84,15 @@ class Network extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    /**
+     * Hàng rào theo mạng lưới — ở đây là chính hàng này.
+     *
+     * @param list<int> $networkIds
+     */
+    protected static function locTheoNetwork(Builder $query, array $networkIds, User $thanhVien): void
+    {
+        $query->whereIn($query->getModel()->getTable() . '.id', $networkIds);
     }
 }

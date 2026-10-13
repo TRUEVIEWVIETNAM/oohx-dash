@@ -3,7 +3,9 @@
 namespace App\Policies;
 
 use App\Models\Screen;
+use App\Models\Site;
 use App\Models\User;
+use App\Services\GioiHanNetwork;
 use App\Services\TenantPermission;
 
 /**
@@ -15,6 +17,8 @@ use App\Services\TenantPermission;
  *    vốn cho cả `operator`.
  *  - Mọi quyền đi qua TenantPermission nên membership bị gỡ hoặc owner bị tạm ngưng
  *    đều mất quyền ngay.
+ *
+ * Từ 13/10/2026 thêm **hàng rào theo mạng lưới** — xem `GioiHanNetwork`.
  *
  * Vai trò `operator` ở đây tên cũ là `scheduler` — các văn bản review trong
  * `docs/audit-5-vung-2026-09-23/` vẫn gọi nó bằng tên cũ, và đó là bản ghi lịch
@@ -89,6 +93,27 @@ class ScreenPolicy
             return false;
         }
 
-        return TenantPermission::for($user, $screen->owner_id)->can($permission);
+        if (! TenantPermission::for($user, $screen->owner_id)->can($permission)) {
+            return false;
+        }
+
+        // Hàng rào mạng lưới — đi qua địa điểm, một đường duy nhất, cùng với
+        // `Screen::network()` và `Screen::locTheoNetwork()`.
+        $duocPhep = app(GioiHanNetwork::class)->cho($user, (string) $screen->owner_id);
+
+        if ($duocPhep === null) {
+            return true;
+        }
+
+        // Đọc `sites.network_id` trực tiếp, **không** qua quan hệ `site`: quan
+        // hệ đó mang global scope của `Site`, tức mang chính hàng rào này. Một
+        // phép kiểm tự dựa vào kết quả của chính nó thì đúng trong cả hai
+        // trường hợp hôm nay, nhưng là thứ không ai muốn phải đọc lại khi đi
+        // tìm lỗi. Một lượt tra theo khoá chính thì rẻ hơn sự mơ hồ đó.
+        $networkId = Site::withoutGlobalScopes()
+            ->whereKey($screen->site_id)
+            ->value('network_id');
+
+        return $networkId !== null && in_array((int) $networkId, $duocPhep, true);
     }
 }

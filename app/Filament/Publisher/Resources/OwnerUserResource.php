@@ -27,14 +27,18 @@ class OwnerUserResource extends Resource
     protected static ?int    $navigationSort  = 90;
 
     /**
-     * Vai trò có thể bị giới hạn theo network — một định nghĩa.
+     * Vai trò có thể bị giới hạn theo network — nội dung ở `OwnerUser`.
      *
-     * Ba chỗ trong tệp này đọc cùng danh sách (hiện ô, lọc lúc lưu, câu
-     * helperText), và câu helperText trước đây viết **tay** tên hai vai trò đó
-     * bằng tiếng Anh. Đổi chữ ở `ROLE_LABELS` mà câu kia không đổi theo là một
-     * chỗ trôi im lặng, nên câu đó giờ dựng từ chính bảng chữ.
+     * Hằng này từng tự khai danh sách, và nó đúng là "một định nghĩa" với ba
+     * chỗ đọc nó **trong tệp này** (hiện ô, lọc lúc lưu, câu helperText). Nhưng
+     * cùng danh sách còn được viết lại bằng chữ ở chín chỗ nữa ngoài tệp.
+     *
+     * Từ 13/10/2026 hàng rào được **thực thi**, nên người đọc quan trọng nhất
+     * không còn là một biểu mẫu mà là `GioiHanNetwork` ở tầng truy vấn — và một
+     * luật phân quyền có người thực thi thì phải ở model, theo CLAUDE.md §4.
+     * Cái tên ở đây chỉ còn là lối đọc ngắn cho ba chỗ bên dưới.
      */
-    private const GIOI_HAN_THEO_NETWORK = ['operator', 'read_only'];
+    private const GIOI_HAN_THEO_NETWORK = OwnerUser::ROLES_GIOI_HAN_NETWORK;
 
     // ── Chỉ hiển thị nếu user có quyền manage_users ──────────────────────────
 
@@ -128,9 +132,21 @@ class OwnerUserResource extends Resource
 
                 Tables\Columns\TextColumn::make('allowed_network_ids')
                     ->label('Mạng lưới')
-                    ->formatStateUsing(fn($state) => $state ? count($state) . ' restricted' : 'All')
+                    // Đọc `networkDuocPhep()`, **không** đọc thẳng cột.
+                    //
+                    // Hàng rào chỉ áp cho `ROLES_GIOI_HAN_NETWORK`, nên một
+                    // hàng `manager` còn sót `allowed_network_ids` từ thời
+                    // người đó là `operator` thì không bị giới hạn gì. Badge
+                    // đọc cột sẽ ghi "2 restricted" cho hàng đó — một lời
+                    // khai sai về một thứ **đang** được thực thi, và đây là
+                    // dòng chữ duy nhất người gán vai trò có để kiểm.
+                    ->getStateUsing(function (OwnerUser $record): string {
+                        $duocPhep = $record->networkDuocPhep();
+
+                        return $duocPhep === null ? 'Tất cả' : count($duocPhep) . ' mạng lưới';
+                    })
                     ->badge()
-                    ->color(fn($state) => $state ? 'warning' : 'success'),
+                    ->color(fn (OwnerUser $record) => $record->networkDuocPhep() === null ? 'success' : 'warning'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Tham gia từ')

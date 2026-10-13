@@ -27,6 +27,7 @@ use App\Policies\OwnerUserPolicy;
 use App\Policies\RefundPolicy;
 use App\Policies\ScreenPolicy;
 use App\Policies\SitePolicy;
+use App\Services\GioiHanNetwork;
 use Filament\Http\Responses\Auth\Contracts\LoginResponse as LoginResponseContract;
 use App\Http\Responses\LoginResponse;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -40,6 +41,12 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(LoginResponseContract::class, LoginResponse::class);
+
+        // `scoped()`, không `singleton()`: hàng rào mạng lưới được hỏi ở mọi
+        // truy vấn kho nên phải ghi nhớ, nhưng câu trả lời chỉ đúng cho **một**
+        // người dùng. Một thực thể dùng chung giữa các request (Octane) hoặc
+        // giữa các ca test sẽ trả lời bằng giới hạn của người trước.
+        $this->app->scoped(GioiHanNetwork::class);
     }
 
     public function boot(): void

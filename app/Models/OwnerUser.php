@@ -2,12 +2,28 @@
 
 namespace App\Models;
 
+use App\Services\GioiHanNetwork;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OwnerUser extends Model
 {
     protected $table = 'owner_users';
+
+    protected static function booted(): void
+    {
+        // Đổi giới hạn mạng lưới của một thành viên phải có hiệu lực **ngay**.
+        //
+        // `GioiHanNetwork` ghi nhớ câu trả lời trong suốt một request, vì
+        // `HasOwnerScope` hỏi nó ở **mọi** truy vấn kho. Nếu không xoá bộ nhớ
+        // đó khi hàng pivot thay đổi thì một lần lưu rồi đọc lại trong cùng
+        // request sẽ đọc ra con số cũ — và đó là hình dạng của một lỗ an ninh
+        // im lặng, không phải một lỗi hiển thị.
+        $xoaBoNho = fn () => app(GioiHanNetwork::class)->xoaBoNho();
+
+        static::saved($xoaBoNho);
+        static::deleted($xoaBoNho);
+    }
 
     protected $fillable = [
         'owner_id', 'user_id', 'role', 'allowed_network_ids',
@@ -33,6 +49,37 @@ class OwnerUser extends Model
      * trò bằng tên thay vì hỏi `PERMISSIONS`.
      */
     public const ROLE_OWNER = 'owner';
+
+    /**
+     * Những vai trò **có thể** bị giới hạn vào một tập mạng lưới.
+     *
+     * ══ Vì sao danh sách này nằm ở model ══
+     *
+     * Nó từng là `OwnerUserResource::GIOI_HAN_THEO_NETWORK` (private), và bị
+     * viết lại bằng chữ `['operator', 'read_only']` ở **chín** chỗ khác: hai
+     * lần ở trang mời người của panel publisher, sáu lần trong
+     * `OwnerUsersRelationManager` (ba biểu mẫu, mỗi biểu mẫu một lần hiện ô và
+     * một lần lọc lúc lưu), và một lần ở `UserInvitationService` — chỗ quyết
+     * định hàng pivot thật lúc nhận lời mời. Mười bản chép của một luật phân
+     * quyền là đúng thứ CLAUDE.md §4 cấm: "quyền phải được định nghĩa một chỗ".
+     *
+     * Từ 13/10/2026 luật này còn có người đọc thứ năm, và là người quan
+     * trọng nhất: `GioiHanNetwork` — nơi **thực thi** giới hạn. Nên nó phải
+     * ở chỗ mà cả Filament lẫn tầng truy vấn đều thấy.
+     *
+     * ══ Vì sao chỉ hai vai trò này ══
+     *
+     * Bộ quyền của `operator` và `read_only` chỉ có `manage_inventory`,
+     * `import_inventory`, `view_inventory` — tức chúng chỉ chạm tới **kho**.
+     * Một bức tường theo mạng lưới vì thế đủ che hết những gì chúng thấy.
+     *
+     * `owner` và `manager` sửa được thông tin tổ chức và giá; `reporting_only`
+     * và `sales_manager` đọc báo cáo và doanh thu của **cả** media owner —
+     * những con số đó không chia theo mạng lưới được. Fence một vai trò như
+     * thế sẽ là một lời hứa nửa vời, nên biểu mẫu không mời, và ở đây không
+     * nhận.
+     */
+    public const ROLES_GIOI_HAN_NETWORK = ['operator', 'read_only'];
 
     /**
      * Chữ tiếng Việt cho 6 vai trò trong một media owner, quyền giảm dần.
@@ -155,12 +202,63 @@ class OwnerUser extends Model
         return in_array($this->role, $allowed);
     }
 
-    /** Có quyền quản lý network cụ thể không */
+    /**
+     * Những mạng lưới thành viên này được phép chạm — `null` nghĩa là **tất cả**.
+     *
+     * ══ Đây là chỗ duy nhất trả lời câu hỏi đó ══
+     *
+     * `HasOwnerScope` (đọc), ba policy kho (ghi và xem một hàng), chốt
+     * `Site::saving` (không cho đặt địa điểm vào mạng lưới ngoài hàng rào) và
+     * `NetworkResource::canCreate()` đều đi qua `GioiHanNetwork`, và
+     * `GioiHanNetwork` chỉ gọi hàm này. Thêm một đường thứ hai là cách một
+     * hàng rào bắt đầu rò.
+     *
+     * ══ `[]` nghĩa là tất cả, không phải không gì ══
+     *
+     * Nhãn trên biểu mẫu nói "để trống = tất cả". `CheckboxList` không tích ô
+     * nào lưu xuống `[]`, không phải `null`. Nếu ở đây đọc `[]` là "không thấy
+     * mạng lưới nào" thì một chủ sở hữu bỏ tích hết ô sẽ **làm mù** nhân viên
+     * của mình mà giao diện vẫn hứa điều ngược lại. Giữa hai cách hiểu, chọn
+     * cách mà chữ trên màn hình đã hứa.
+     *
+     * ══ Khác với hàm cũ ở chỗ nào ══
+     *
+     * Hàm `canAccessNetwork()` cũ cho `owner` và `manager` đi qua bằng cách so
+     * **tên vai trò**. Nay luật đó đọc từ `ROLES_GIOI_HAN_NETWORK`: ai không
+     * nằm trong danh sách bị-giới-hạn-được thì không bị giới hạn, kể cả khi
+     * hàng pivot còn sót dữ liệu cũ từ thời họ là `operator`.
+     *
+     * Hệ quả: một hàng `reporting_only` có `allowed_network_ids` khác `null`
+     * trước đây bị giới hạn, nay thì không. Không hàng nào ở trạng thái đó qua
+     * được giao diện — cả bốn đường ghi đều đặt `null` khi vai trò đổi — và
+     * `canAccessNetwork()` chưa từng có người gọi, nên không có hành vi nào
+     * mất đi. Đổi là để luật đúng, không phải để tương thích.
+     *
+     * @return list<int>|null
+     */
+    public function networkDuocPhep(): ?array
+    {
+        if (! in_array($this->role, self::ROLES_GIOI_HAN_NETWORK, true)) {
+            return null;
+        }
+
+        if (empty($this->allowed_network_ids)) {
+            return null;
+        }
+
+        // `networks.id` là `unsignedBigInteger`; JSON đọc ra có thể là chuỗi
+        // ("3") nếu hàng được ghi từ một biểu mẫu. `whereIn` trên cột số với
+        // chuỗi thì MySQL vẫn so được, nhưng `in_array` nghiêm ngặt ở
+        // `canAccessNetwork()` thì không — nên quy về int ngay tại nguồn.
+        return array_values(array_map('intval', $this->allowed_network_ids));
+    }
+
+    /** Có được chạm vào mạng lưới cụ thể này không */
     public function canAccessNetwork(string|int $networkId): bool
     {
-        if (in_array($this->role, ['owner', 'manager'])) return true;
-        if (is_null($this->allowed_network_ids)) return true;
-        return in_array($networkId, $this->allowed_network_ids);
+        $duocPhep = $this->networkDuocPhep();
+
+        return $duocPhep === null || in_array((int) $networkId, $duocPhep, true);
     }
 
     /** Role label để hiển thị UI */

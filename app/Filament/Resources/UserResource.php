@@ -294,11 +294,18 @@ class UserResource extends Resource
                                 ->columnSpan(2),
                             Infolists\Components\TextEntry::make('allowed_network_ids')
                                 ->label('Giới hạn theo mạng lưới')
-                                ->getStateUsing(fn(OwnerUser $record) => $record->allowed_network_ids
-                                    ? count($record->allowed_network_ids) . ' networks restricted'
-                                    : 'All networks')
+                                // `networkDuocPhep()`, không phải cột thô — xem
+                                // chú thích cùng cột ở
+                                // `Publisher\OwnerUserResource`.
+                                ->getStateUsing(function (OwnerUser $record): string {
+                                    $duocPhep = $record->networkDuocPhep();
+
+                                    return $duocPhep === null
+                                        ? 'Tất cả mạng lưới'
+                                        : count($duocPhep) . ' mạng lưới';
+                                })
                                 ->badge()
-                                ->color(fn(OwnerUser $record) => $record->allowed_network_ids ? 'warning' : 'success'),
+                                ->color(fn (OwnerUser $record) => $record->networkDuocPhep() === null ? 'success' : 'warning'),
                         ])
                         ->columns(5)
                         ->contained(false),

@@ -49,7 +49,7 @@ class ListOwnerUsers extends ListRecords
                             'owner_id', auth()->user()->current_owner_id
                         )->pluck('name', 'id'))
                         ->columns(2)
-                        ->visible(fn(Forms\Get $get) => in_array($get('role'), ['operator', 'read_only'])),
+                        ->visible(fn(Forms\Get $get) => in_array($get('role'), OwnerUser::ROLES_GIOI_HAN_NETWORK)),
                 ])
                 ->action(function (array $data): void {
                     try {
@@ -58,7 +58,7 @@ class ListOwnerUsers extends ListRecords
                             tenantType:        UserInvitation::TENANT_OWNER,
                             tenantId:          auth()->user()->current_owner_id,
                             role:              $data['role'],
-                            allowedNetworkIds: in_array($data['role'], ['operator', 'read_only'])
+                            allowedNetworkIds: in_array($data['role'], OwnerUser::ROLES_GIOI_HAN_NETWORK)
                                 ? ($data['allowed_network_ids'] ?? null)
                                 : null,
                             invitedBy:         auth()->user(),
