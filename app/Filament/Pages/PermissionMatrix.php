@@ -30,6 +30,16 @@ class PermissionMatrix extends Page
         $roles       = OwnerUser::ROLE_LABELS;
         $permissions = OwnerUser::PERMISSIONS;
 
+        // Bảng nhãn phải phủ **mọi** khóa của `OwnerUser::PERMISSIONS`.
+        //
+        // View rơi về `['label' => $action, 'desc' => '']` khi thiếu nhãn, nên
+        // một quyền chưa khai hiện ra bằng **mã tiếng Anh** và **không có dòng
+        // mô tả** — trên đúng trang có việc giải thích quyền. Hai quyền từng
+        // rơi vào đó là `manage_bookings` và `settle_refunds`, tức hai quyền có
+        // hệ quả tiền: duyệt đơn đặt chỗ, và khai đã hoàn tiền cho người mua.
+        //
+        // `NhanQuyenOwnerPhaiDuTest` canh việc này tự tìm phạm vi: thêm một
+        // quyền vào `PERMISSIONS` mà quên nhãn là ca đó đỏ.
         $permissionLabels = [
             'manage_users'     => ['label' => 'Quản lý users',     'icon' => 'heroicon-o-users',           'desc' => 'Invite, edit role, remove team members'],
             'edit_owner'       => ['label' => 'Sửa owner',         'icon' => 'heroicon-o-building-office', 'desc' => 'Chỉnh sửa thông tin Media Owner (name, billing...)'],
@@ -40,6 +50,10 @@ class PermissionMatrix extends Page
             'view_reports'     => ['label' => 'Xem reports',       'icon' => 'heroicon-o-chart-bar',       'desc' => 'Xem revenue & impression reports'],
             'export_reports'   => ['label' => 'Export reports',    'icon' => 'heroicon-o-document-arrow-down', 'desc' => 'Export report CSV/Excel'],
             'view_sales'       => ['label' => 'Xem sales',        'icon' => 'heroicon-o-banknotes',       'desc' => 'Xem sales dashboard (CPM, deals)'],
+            // Chữ lấy theo đúng docblock của hai quyền này trong
+            // `OwnerUser::PERMISSIONS`, không đặt nghĩa mới.
+            'manage_bookings'  => ['label' => 'Duyệt đặt chỗ',    'icon' => 'heroicon-o-check-badge',     'desc' => 'Duyệt / từ chối yêu cầu đặt chỗ — quyết định thương mại có hệ quả tiền'],
+            'settle_refunds'   => ['label' => 'Khai đã hoàn tiền', 'icon' => 'heroicon-o-receipt-refund',  'desc' => 'Đánh dấu đã chuyển khoản hoàn cho người mua. Sàn không giữ tiền, nên đây là lời khai về một lần chuyển thật'],
         ];
 
         $roleStats = DB::table('owner_users')
