@@ -647,12 +647,18 @@ class CancellationService
      * Gồm cả chính dòng đang hủy — lúc gọi hàm này nó chưa chuyển trạng thái.
      * Một định nghĩa duy nhất, dùng cho cả lúc hủy và lúc đối soát; hai định
      * nghĩa lệch nhau ở đây là hai con số tiền khác nhau.
+     *
+     * Phần "một định nghĩa duy nhất" nói về **hàm này** — cả `cancelLine()` và
+     * `reconcileAfterPayment()` gọi nó. Nhưng ba mã trạng thái thì từng viết
+     * cứng ở đây và ở năm chỗ khác; nay chúng đọc
+     * `BookingLine::OBLIGATION_STATUSES`, nên mẫu số ở đây và số tiền
+     * `PaymentService` đòi không còn trôi khỏi nhau được.
      */
     private function openCostFor(BookingLine $line): int
     {
         return (int) round((float) $line->campaign->bookingLines()
             ->where('owner_id', $line->owner_id)
-            ->whereIn('status', ['approved', 'active', 'completed'])
+            ->whereIn('status', BookingLine::OBLIGATION_STATUSES)
             ->sum('estimated_cost'));
     }
 

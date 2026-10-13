@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V2\OwnerRemittanceResource;
+use App\Models\BookingLine;
 use App\Models\Campaign;
 use App\Models\CampaignActivity;
 use App\Models\Owner;
@@ -131,15 +132,23 @@ class PaymentRecipientController extends Controller
      * Các media owner CÓ màn hình trong campaign này.
      *
      * Dẫn từ `booking_lines`, cùng nguồn với `PaymentService::breakdownByOwner()`
-     * — nên danh sách ở đây và danh sách công nợ không bao giờ lệch nhau. Lọc
-     * `status` giống hệt bên đó: một dòng đã hủy không còn là nghĩa vụ trả
-     * tiền, nên owner chỉ còn dòng đã hủy thì không có lý do để lộ thông tin
-     * nhận tiền của họ.
+     * — nên danh sách ở đây và danh sách công nợ không bao giờ lệch nhau.
+     *
+     * "Không bao giờ lệch" trước đây là một **lời hứa**: hai bên viết cứng
+     * cùng ba mã trạng thái và chỉ giống nhau nhờ ai đó nhớ ra. Nay cả hai đọc
+     * `BookingLine::OBLIGATION_STATUSES`, nên nó là một **sự thật**.
+     *
+     * Vì sao chỗ này cần đúng danh sách đó, không phải một danh sách "gần
+     * đúng": một dòng đã hủy không còn là nghĩa vụ trả tiền, nên owner chỉ còn
+     * dòng đã hủy thì không có lý do để lộ thông tin nhận tiền của họ. Đây là
+     * đường **duy nhất** của hệ thống mang `bank_*` và `tax_code` ra ngoài, nên
+     * một danh sách rộng hơn ở đây là một lần lộ thông tin ngân hàng của owner
+     * không liên quan.
      */
     private function ownersInCampaign(Campaign $campaign)
     {
         $ownerIds = $campaign->bookingLines()
-            ->whereIn('status', ['approved', 'active', 'completed'])
+            ->whereIn('status', BookingLine::OBLIGATION_STATUSES)
             ->distinct()
             ->pluck('owner_id');
 

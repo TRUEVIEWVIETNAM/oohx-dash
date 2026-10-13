@@ -96,6 +96,62 @@ class BookingLine extends Model
         self::STATUS_COMPLETED,
     ];
 
+    /**
+     * Dòng nào mang **nghĩa vụ trả tiền** cho media owner — một định nghĩa.
+     *
+     * ══ Sáu chỗ, một câu hỏi, sáu bản chép ══
+     *
+     * Danh sách này từng viết cứng ở sáu nơi: `PaymentService` bốn lần
+     * (`breakdownByOwner()`, `getSummary()`, và hai phép tính phần chưa gắn
+     * owner), `CancellationService::openCostFor()`, và
+     * `PaymentRecipientController::ownersInCampaign()`.
+     *
+     * Điều đáng chú ý: mã **đã biết** đây là một định nghĩa và đã viết ra điều
+     * đó. `openCostFor()` ghi "Một định nghĩa duy nhất, dùng cho cả lúc hủy và
+     * lúc đối soát; hai định nghĩa lệch nhau ở đây là hai con số tiền khác
+     * nhau". `ownersInCampaign()` ghi "Lọc `status` giống hệt bên đó". Cả hai
+     * lời hứa đó chỉ được giữ bằng việc ai đó nhớ ra — không có gì bắt chúng
+     * giống nhau.
+     *
+     * Ba chỗ đó quyết định ba thứ khác nhau mà cùng phải khớp: số tiền người
+     * mua phải chuyển cho từng owner, mẫu số chia tỉ lệ khi hoàn tiền, và
+     * **owner nào được lộ `bank_*` + `tax_code`** qua `payment-recipients`.
+     * Chỗ cuối là ngoại lệ bảo mật duy nhất của hệ thống, nên một danh sách
+     * rộng hơn ở đó là một lần lộ thông tin ngân hàng của owner không liên
+     * quan.
+     *
+     * ══ Ba mã bị loại ══
+     *
+     *  - `pending` — owner **chưa duyệt**, có thể từ chối. Chưa có nghĩa vụ.
+     *  - `rejected`, `cancelled` — không có nghĩa vụ. Dòng đã hủy sinh ra
+     *    `Refund` riêng, và `CancellationService` sở hữu phép tính đó.
+     *
+     * ══ Vì sao KHÁC `REPORT_STATUSES` ở đúng `paused` ══
+     *
+     * `REPORT_STATUSES` có `paused`, danh sách này không. Chưa chỗ nào trong
+     * mã đặt `paused` cho một dòng, nên hôm nay hai danh sách cho **cùng** kết
+     * quả và chỗ lệch là lý thuyết. Nhưng nó có chủ ý, và lý do là mức giá của
+     * một lần đoán sai:
+     *
+     *  - Ở báo cáo, thêm `paused` là **phòng ngừa**: ngày dòng tạm dừng được,
+     *    số đã phát của nó không được biến mất khỏi báo cáo. Đoán sai thì một
+     *    con số trên trang sai.
+     *  - Ở đây, thêm `paused` là **đổi số tiền** người mua phải chuyển và đổi
+     *    mẫu số chia tỉ lệ hoàn tiền. Đoán sai thì tiền sai.
+     *
+     * Nên lần gom này giữ danh sách **đúng như nó đang là**: không thêm, không
+     * bớt, không đổi thứ tự. Việc `paused` có mang nghĩa vụ tiền hay không là
+     * quyết định của người làm tính năng tạm dừng dòng đặt chỗ, không phải của
+     * một lần đặt tên.
+     *
+     * @var list<string>
+     */
+    public const OBLIGATION_STATUSES = [
+        self::STATUS_APPROVED,
+        self::STATUS_ACTIVE,
+        self::STATUS_COMPLETED,
+    ];
+
     protected $fillable = [
         'campaign_id', 'product_id', 'bundle_id', 'screen_id', 'owner_id',
         'duration_discount_pct',
