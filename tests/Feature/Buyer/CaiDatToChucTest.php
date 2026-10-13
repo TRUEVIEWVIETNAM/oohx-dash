@@ -7,6 +7,7 @@ use App\Models\OrganizationUser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -33,9 +34,15 @@ use Tests\TestCase;
  *
  * ══ Ca nào là thay đổi hành vi, nói rõ ══
  *
- * `test_planner_khong_sua_duoc` và `test_viewer_khong_sua_duoc` **siết** quyền
- * so với hiện trạng: trước PR này cả hai vai trò sửa được. Lý do siết nằm ở
- * `OrganizationPolicy` — mô tả vai trò đã có trong mã nói đúng điều đó.
+ * `test_viewer_khong_sua_duoc` **siết** quyền so với hiện trạng: trước #55
+ * `viewer` ghi lại được mã số thuế của tổ chức, trong khi mô tả vai trò của
+ * nó nói "không chỉnh sửa". Đó là ca đáng tiền nhất của tệp.
+ *
+ * `planner` thì đi hai chặng: #55 siết (tác dụng phụ của việc chọn
+ * `manage_team` làm quyền gác), rồi **13/10/2026 trả lại** qua một quyền riêng
+ * `manage_org_profile`. Hai ca `test_planner_sua_duoc_thong_tin_to_chuc` và
+ * `test_planner_van_khong_quan_ly_duoc_thanh_vien` đi cùng nhau: ca đầu là
+ * quyền được trả lại, ca sau là phần **không** được mở kèm.
  */
 class CaiDatToChucTest extends TestCase
 {
@@ -139,17 +146,21 @@ class CaiDatToChucTest extends TestCase
      */
     public function test_quyen_sua_to_chuc_tra_dung_theo_vai_tro(): void
     {
-        $this->actingAs($this->thanhVien(OrganizationUser::ROLE_ADMIN))
-            ->getJson(self::URL_DOC)
-            ->assertOk()
-            ->assertJsonPath('data.permissions.can_update_organization', true);
-
-        foreach ([OrganizationUser::ROLE_PLANNER, OrganizationUser::ROLE_VIEWER] as $role) {
+        // Cờ này lấy từ `can('update', $org)`, tức CHÍNH policy gác đường ghi.
+        // Nên nó tự đi theo mỗi lần quyền đổi — không có bản chép thứ hai nào
+        // phải sửa kèm. Lần trả quyền cho `planner` (13/10/2026) chỉ đổi đúng
+        // một dòng trong `PERMISSIONS`, và ca này là chỗ chứng minh điều đó.
+        foreach ([OrganizationUser::ROLE_ADMIN, OrganizationUser::ROLE_PLANNER] as $role) {
             $this->actingAs($this->thanhVien($role))
                 ->getJson(self::URL_DOC)
                 ->assertOk()
-                ->assertJsonPath('data.permissions.can_update_organization', false);
+                ->assertJsonPath('data.permissions.can_update_organization', true);
         }
+
+        $this->actingAs($this->thanhVien(OrganizationUser::ROLE_VIEWER))
+            ->getJson(self::URL_DOC)
+            ->assertOk()
+            ->assertJsonPath('data.permissions.can_update_organization', false);
     }
 
     /**
@@ -243,19 +254,56 @@ class CaiDatToChucTest extends TestCase
     }
 
     /**
-     * `planner` **mất** quyền sửa — thay đổi hành vi, có chủ ý.
+     * `planner` **sửa được** — quyền đã trả lại ngày 13/10/2026.
      *
-     * Mô tả vai trò trong mã: "Tạo campaign, submit booking, upload creative,
-     * xem reports. **Không quản lý team**." Thông tin pháp lý và thanh toán
-     * của tổ chức thuộc việc quản trị, không thuộc việc lập kế hoạch.
+     * Bản đầu của tệp này có ca ngược lại (`test_planner_khong_sua_duoc`), và
+     * nó đúng với policy lúc đó: policy đòi `manage_team`, quyền chỉ `admin`
+     * có. Nhưng việc `planner` mất quyền là **tác dụng phụ** của lần bịt lỗ
+     * #55 — `manage_team` trả lời câu "ai quản lý thành viên", không phải câu
+     * "ai sửa thông tin tổ chức".
+     *
+     * Chủ dự án quyết trả lại. Nay policy đòi `manage_org_profile`, và
+     * `planner` có nó.
      */
-    public function test_planner_khong_sua_duoc(): void
+    public function test_planner_sua_duoc_thong_tin_to_chuc(): void
     {
         $this->actingAs($this->thanhVien(OrganizationUser::ROLE_PLANNER))
             ->putJson(self::URL_GHI, $this->duLieu())
-            ->assertForbidden();
+            ->assertOk();
 
-        $this->assertSame('0100000001', $this->org->fresh()->tax_id);
+        $this->assertSame('9999999999', $this->org->fresh()->tax_id);
+    }
+
+    /**
+     * Trả lại quyền sửa thông tin tổ chức **không** mở quyền quản lý thành viên.
+     *
+     * Đây là ca phân biệt "tách một quyền mới" với "thêm `manage_team` cho
+     * `planner`" — cách thứ hai cũng làm ca trên xanh, nhưng nó mở luôn việc
+     * mời và gỡ người, đúng điều mô tả vai trò nói là KHÔNG.
+     */
+    public function test_planner_van_khong_quan_ly_duoc_thanh_vien(): void
+    {
+        $planner = $this->thanhVien(OrganizationUser::ROLE_PLANNER);
+
+        $this->assertTrue(
+            OrganizationUser::where('organization_id', $this->org->id)
+                ->where('user_id', $planner->id)
+                ->first()
+                ->can('manage_org_profile'),
+        );
+
+        $this->assertFalse(
+            OrganizationUser::where('organization_id', $this->org->id)
+                ->where('user_id', $planner->id)
+                ->first()
+                ->can('manage_team'),
+            'planner không được có manage_team: đó là quyền mời và gỡ thành viên.',
+        );
+
+        // Và phép gác thật của việc quản lý thành viên cũng phải từ chối nó.
+        $this->actingAs($planner);
+        $this->assertFalse(Gate::allows('viewAny', OrganizationUser::class));
+        $this->assertFalse(Gate::allows('create', OrganizationUser::class));
     }
 
     /**

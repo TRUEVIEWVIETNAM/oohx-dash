@@ -29,19 +29,30 @@ use App\Models\User;
  * Đường ĐỌC của cùng trang cũng đi qua cột đó, nên người đã bị gỡ còn **xem**
  * được email thanh toán, số điện thoại và mã số thuế của tổ chức cũ.
  *
- * ══ `manage_team`, và nó hẹp hơn hiện trạng ══
+ * ══ `manage_team` là quyền SAI cho việc này — sửa 13/10/2026 ══
  *
- * Chọn quyền này làm hẹp quyền của `planner` và `viewer` — đó là một thay đổi
- * hành vi nhìn thấy được, không phải một lần sửa trung tính. Lý do chọn vậy:
- * mô tả vai trò **đã có trong mã** nói đúng điều đó.
+ * Bản đầu của policy đòi `manage_team`, quyền duy nhất lúc đó chỉ `admin` có.
+ * Nó bịt được lỗ, nhưng kéo theo một tác dụng phụ: `planner` **mất** quyền sửa
+ * thông tin tổ chức mà nó đang có. Lúc đó tôi lý giải bằng mô tả vai trò ("…
+ * Không quản lý team") và coi đó là làm đúng điều đã viết.
  *
- *   admin   — "Toàn quyền: quản lý team, tạo campaign, duyệt booking, payments."
- *   planner — "… Không quản lý team."
- *   viewer  — "Chỉ xem campaigns và reports, không chỉnh sửa."
+ * Lý giải ấy sai ở một chỗ: `manage_team` trả lời câu "ai quản lý thành viên",
+ * không phải câu "ai sửa thông tin tổ chức". Gộp hai câu vào một quyền là lý
+ * do `planner` mất quyền — không phải vì ai đó quyết định nó không nên có.
  *
- * Thông tin pháp lý và thanh toán của tổ chức thuộc việc quản trị, không thuộc
- * việc lập kế hoạch. Nên đây là làm đúng điều đã viết, không phải đặt luật mới
- * — nhưng vẫn là thứ phải nói ra, vì `planner` mất một quyền đang có.
+ * Chủ dự án đã quyết trả lại (13/10/2026), nên nay policy đòi
+ * `manage_org_profile`: `admin` và `planner` có, `viewer` **không**. Vì sao
+ * tách quyền mới thay vì thêm `manage_team` cho `planner`: thêm `manage_team`
+ * sẽ mở luôn việc mời và gỡ thành viên, đúng điều mô tả vai trò nói là không.
+ *
+ * `viewer` vẫn bị chặn, và đó là phần đáng giá nhất của #55: mô tả của nó là
+ * "Chỉ xem campaigns và reports, **không chỉnh sửa**", vậy mà trước #55 nó ghi
+ * lại được mã số thuế của tổ chức.
+ *
+ * Phạm vi quyền này gồm cả `tax_id` và `billing_*` — xem
+ * `SettingsController::updateOrganization()` về danh sách trường. Chia nhỏ
+ * thành "sửa tên/website" và "sửa thông tin pháp lý" là một quyết định khác,
+ * chưa ai yêu cầu.
  */
 class OrganizationPolicy
 {
@@ -52,7 +63,7 @@ class OrganizationPolicy
 
     public function update(User $user, Organization $org): bool
     {
-        return $this->membership($user, $org)?->can('manage_team') ?? false;
+        return $this->membership($user, $org)?->can('manage_org_profile') ?? false;
     }
 
     /**

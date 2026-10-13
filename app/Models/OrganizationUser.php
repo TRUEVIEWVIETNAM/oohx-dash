@@ -36,16 +36,51 @@ class OrganizationUser extends Model
         self::ROLE_VIEWER  => 'Chỉ xem',
     ];
 
-    /** Mô tả ngắn về quyền của từng role — dùng làm helperText. */
+    /**
+     * Mô tả ngắn về quyền của từng role — dùng làm helperText.
+     *
+     * Chữ này là thứ người gán vai trò đọc **ngay lúc gán**, nên nó phải nói
+     * đúng `PERMISSIONS`. Bản trước nói `planner` chỉ "Không quản lý team" mà
+     * không nhắc gì tới thông tin tổ chức — đúng vào lúc `planner` không sửa
+     * được thông tin tổ chức. Nay nó sửa được, nên chữ phải kể ra.
+     * `OwnerUser::ROLE_DESCRIPTIONS` đã có đúng loại lỗi này một lần.
+     */
     public const ROLE_DESCRIPTIONS = [
         'admin'   => '👑 Toàn quyền: quản lý team, tạo campaign, duyệt booking, payments.',
-        'planner' => '📋 Tạo campaign, submit booking, upload creative, xem reports. Không quản lý team.',
+        'planner' => '📋 Tạo campaign, submit booking, upload creative, xem reports, sửa thông tin tổ chức. Không quản lý team.',
         'viewer'  => '👁 Chỉ xem campaigns và reports, không chỉnh sửa.',
     ];
 
+    /**
+     * ══ `manage_org_profile` tách khỏi `manage_team` (13/10/2026) ══
+     *
+     * PR #55 bịt một lỗ thật: `BuyerSettingsController::updateOrganization()`
+     * chạy `update($data)` không qua policy nào, nên vai trò `viewer` ghi lại
+     * được `tax_id` và `billing_*` của tổ chức. Cách bịt khi đó là đòi
+     * `manage_team` — quyền duy nhất lúc ấy chỉ `admin` có.
+     *
+     * Nhưng `manage_team` trả lời câu **"ai quản lý thành viên"**, không phải
+     * câu "ai sửa thông tin tổ chức". Dùng nó cho cả hai làm `planner` mất
+     * quyền sửa thông tin tổ chức mà nó đang có, và đó là một tác dụng phụ của
+     * lần bịt lỗ, không phải một quyết định.
+     *
+     * Chủ dự án quyết **trả lại** quyền đó cho `planner` (13/10/2026). Nên
+     * tách ra một quyền riêng chứ không thêm `manage_team` cho `planner`: thêm
+     * `manage_team` sẽ mở luôn việc quản lý thành viên, đúng điều mô tả vai
+     * trò nói là **không**.
+     *
+     * `viewer` vẫn **không** có quyền này. Mô tả của nó là "Chỉ xem campaigns
+     * và reports, không chỉnh sửa", và chính nó là lỗ mà #55 bịt.
+     *
+     * **Lưu ý cho người đọc sau:** sau lần tách này, `manage_team` không còn
+     * được kiểm ở đâu cả — `OrganizationUserPolicy` gác việc quản lý thành
+     * viên bằng cách so `role === 'admin'` **trực tiếp**, không qua
+     * `PERMISSIONS`. Hai bộ luật cho một câu hỏi; chưa gom vì đó là đường phân
+     * quyền của chính việc mời/gỡ người, không thuộc phạm vi lần sửa này.
+     */
     public const PERMISSIONS = [
-        'admin'   => ['manage_team', 'create_campaign', 'submit_booking', 'upload_creative', 'view_campaigns', 'view_reports', 'manage_payments'],
-        'planner' => ['create_campaign', 'submit_booking', 'upload_creative', 'view_campaigns', 'view_reports'],
+        'admin'   => ['manage_team', 'manage_org_profile', 'create_campaign', 'submit_booking', 'upload_creative', 'view_campaigns', 'view_reports', 'manage_payments'],
+        'planner' => ['manage_org_profile', 'create_campaign', 'submit_booking', 'upload_creative', 'view_campaigns', 'view_reports'],
         'viewer'  => ['view_campaigns', 'view_reports'],
     ];
 
