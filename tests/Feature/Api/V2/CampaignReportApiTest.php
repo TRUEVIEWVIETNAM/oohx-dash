@@ -96,6 +96,36 @@ class CampaignReportApiTest extends TestCase
         return $campaign;
     }
 
+    /**
+     * Thêm một dòng đặt chỗ nữa, trên một màn hình MỚI, với trạng thái cho sẵn.
+     *
+     * Màn hình mới mỗi lần gọi để `breakdown` phân biệt được các hàng bằng tên.
+     */
+    private function themDong(Campaign $campaign, string $trangThai, string $tenManHinh): BookingLine
+    {
+        $owner  = Owner::factory()->create(['status' => 'active']);
+        $site   = Site::factory()->create(['owner_id' => $owner->id, 'city' => 'Đà Nẵng']);
+        $screen = Screen::factory()->create([
+            'owner_id' => $owner->id,
+            'site_id'  => $site->id,
+            'name'     => $tenManHinh,
+        ]);
+
+        return BookingLine::create([
+            'campaign_id'           => $campaign->id,
+            'screen_id'             => $screen->id,
+            'owner_id'              => $owner->id,
+            'start_date'            => now()->subDays(4),
+            'end_date'              => now()->addDays(5),
+            'spot_length'           => 10,
+            'status'                => $trangThai,
+            'estimated_cost'        => 4_000_000,
+            'actual_cost'           => 0,
+            'estimated_impressions' => 200_000,
+            'actual_impressions'    => 0,
+        ]);
+    }
+
     private function url(Campaign $campaign): string
     {
         return '/api/v2/campaigns/' . $campaign->id . '/report';
@@ -258,6 +288,128 @@ class CampaignReportApiTest extends TestCase
 
         foreach ($than['impressions'] as $n) {
             $this->assertIsInt($n);
+        }
+    }
+
+    // ── Ô tổng và bảng chi tiết đếm CÙNG một tập dòng ───────────────────────
+
+    /**
+     * Bất biến: ô tổng bằng tổng của bảng.
+     *
+     * `CampaignReportService` từng lọc `booking_lines` bằng **hai** danh sách:
+     * `getOverview()` dùng `['active','completed']`, `getScreenBreakdown()`
+     * thêm `'approved'`. Hệ quả người mua thấy được: bảng liệt kê 2 màn hình,
+     * ô "Tổng màn hình" ngay phía trên nói 1.
+     *
+     * Ca này **không ghim danh sách trạng thái**, mà ghim quan hệ giữa hai phía.
+     * Nên nó đỏ với mọi lần hai bên lệch nhau, bất kể ai đổi danh sách thành
+     * gì — và nó vẫn đúng khi danh sách đổi vì một lý do nghiệp vụ thật.
+     */
+    public function test_o_tong_luon_bang_tong_cua_bang_chi_tiet(): void
+    {
+        $campaign = $this->campaign();
+
+        // Một dòng mỗi trạng thái đáng quan tâm, cạnh dòng `active` có sẵn.
+        $this->themDong($campaign, BookingLine::STATUS_APPROVED, 'Đã duyệt chưa chạy');
+        $this->themDong($campaign, BookingLine::STATUS_PENDING, 'Chờ owner duyệt');
+        $this->themDong($campaign, BookingLine::STATUS_CANCELLED, 'Đã hủy');
+        $this->themDong($campaign, BookingLine::STATUS_REJECTED, 'Owner từ chối');
+
+        $than = $this->actingAs($this->buyer)
+            ->getJson($this->url($campaign))
+            ->assertOk()
+            ->json('data');
+
+        $this->assertCount(
+            $than['overview']['total_screens'],
+            $than['breakdown'],
+            'Ô "Tổng màn hình" phải bằng số hàng của bảng chi tiết: '
+            . $than['overview']['total_screens'] . ' vs ' . count($than['breakdown']),
+        );
+
+        $this->assertSame(
+            array_sum(array_column($than['breakdown'], 'estimated_impressions')),
+            $than['overview']['total_estimated_impressions'],
+            'Tổng impressions dự kiến phải bằng tổng cột tương ứng của bảng.',
+        );
+
+        $this->assertSame(
+            array_sum(array_column($than['breakdown'], 'actual_impressions')),
+            $than['overview']['total_actual_impressions'],
+        );
+    }
+
+    /**
+     * Dòng `approved` PHẢI có trong báo cáo — ở cả hai phía.
+     *
+     * Đây là nửa còn lại của ca trên: bất biến "hai phía bằng nhau" cũng được
+     * thỏa nếu ai đó bỏ `approved` khỏi cả hai. Nhưng một màn hình owner đã
+     * duyệt là một cam kết có thật, và ẩn nó đi thì người mua không thấy thứ
+     * mình đã đặt.
+     */
+    public function test_dong_da_duyet_co_mat_trong_bao_cao(): void
+    {
+        $campaign = $this->campaign();
+        $this->themDong($campaign, BookingLine::STATUS_APPROVED, 'Đã duyệt chưa chạy');
+
+        $than = $this->actingAs($this->buyer)
+            ->getJson($this->url($campaign))
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame(2, $than['overview']['total_screens']);
+        $this->assertContains('Đã duyệt chưa chạy', array_column($than['breakdown'], 'screen_name'));
+    }
+
+    /**
+     * Ba trạng thái KHÔNG được vào báo cáo, mỗi mã một lý do khác nhau.
+     *
+     * `pending` — owner chưa duyệt và có thể từ chối; vẽ nó vào báo cáo phát
+     * sóng là hứa một màn hình chưa ai nhận. `cancelled` và `rejected` thì
+     * không có nghĩa vụ nào và sẽ không phát.
+     */
+    public function test_cho_duyet_da_huy_va_tu_choi_khong_vao_bao_cao(): void
+    {
+        $campaign = $this->campaign();
+        $this->themDong($campaign, BookingLine::STATUS_PENDING, 'Chờ owner duyệt');
+        $this->themDong($campaign, BookingLine::STATUS_CANCELLED, 'Đã hủy');
+        $this->themDong($campaign, BookingLine::STATUS_REJECTED, 'Owner từ chối');
+
+        $than = $this->actingAs($this->buyer)
+            ->getJson($this->url($campaign))
+            ->assertOk()
+            ->json('data');
+
+        $ten = array_column($than['breakdown'], 'screen_name');
+
+        $this->assertSame(1, $than['overview']['total_screens']);
+        $this->assertNotContains('Chờ owner duyệt', $ten);
+        $this->assertNotContains('Đã hủy', $ten);
+        $this->assertNotContains('Owner từ chối', $ten);
+    }
+
+    /**
+     * Danh sách trạng thái chiến dịch có báo cáo nằm ở MODEL, và cả hai cửa
+     * cùng đọc nó.
+     *
+     * Hằng từng là `Api\V2\CampaignReportController::REPORTABLE_STATUSES`, và
+     * controller Blade của khu người mua đọc **sang** controller API để lấy.
+     * Ca này đi qua cả tám trạng thái và đòi hai cửa trả lời **giống nhau** ở
+     * từng mã — nên một bản chép thứ hai xuất hiện ở đâu đó sẽ làm nó đỏ.
+     */
+    public function test_hai_cua_bao_cao_dong_y_nhau_o_ca_tam_trang_thai(): void
+    {
+        foreach (array_keys(Campaign::STATUS_LABELS) as $ma) {
+            $campaign = $this->campaign($ma);
+            $coBaoCao = in_array($ma, Campaign::REPORTABLE_STATUSES, true);
+
+            $this->actingAs($this->buyer)
+                ->getJson($this->url($campaign))
+                ->assertStatus($coBaoCao ? 200 : 404);
+
+            $this->actingAs($this->buyer)
+                ->get('/my/campaigns/' . $campaign->id . '/report')
+                ->assertStatus($coBaoCao ? 200 : 404);
         }
     }
 }

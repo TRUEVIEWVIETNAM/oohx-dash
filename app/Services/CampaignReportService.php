@@ -2,10 +2,24 @@
 
 namespace App\Services;
 
+use App\Models\BookingLine;
 use App\Models\Campaign;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Ba phép đọc của báo cáo phát sóng, và **một** định nghĩa về dòng nào tính.
+ *
+ * Cả ba hàm lọc `booking_lines` qua `BookingLine::REPORT_STATUSES`. Trước đây
+ * chúng mang hai danh sách khác nhau viết cứng, nên ô "Tổng màn hình" của
+ * `getOverview()` và số hàng của `getScreenBreakdown()` không bằng nhau trên
+ * cùng một trang — lý do đầy đủ ở docblock của hằng đó.
+ *
+ * Bất biến mà `CampaignReportApiTest` canh: `overview.total_screens` bằng số
+ * hàng của `breakdown`, và `overview.total_estimated_impressions` bằng tổng
+ * cột tương ứng của bảng. Phép kiểm ấy đỏ với **mọi** lần hai bên lệch nhau,
+ * bất kể ai đổi danh sách thành gì — mạnh hơn một ca ghim cứng bốn mã.
+ */
 class CampaignReportService
 {
     /**
@@ -13,7 +27,7 @@ class CampaignReportService
      */
     public function getOverview(Campaign $campaign): array
     {
-        $lines = $campaign->bookingLines()->whereIn('status', ['active', 'completed'])->get();
+        $lines = $campaign->bookingLines()->whereIn('status', BookingLine::REPORT_STATUSES)->get();
 
         $totalEstimatedImpressions = $lines->sum('estimated_impressions');
         $totalActualImpressions = $lines->sum('actual_impressions');
@@ -64,7 +78,7 @@ class CampaignReportService
         // chết khi số màn hình tăng. Bảng tổng hợp do `impressions:rollup` cập
         // nhật mỗi giờ.
         $screenIds = $campaign->bookingLines()
-            ->whereIn('status', ['active', 'completed'])
+            ->whereIn('status', BookingLine::REPORT_STATUSES)
             ->pluck('screen_id');
 
         $data = DB::table('impression_daily_rollups')
@@ -105,7 +119,7 @@ class CampaignReportService
     {
         return $campaign->bookingLines()
             ->with(['screen.spec', 'screen.owner', 'screen.site'])
-            ->whereIn('status', ['active', 'completed', 'approved'])
+            ->whereIn('status', BookingLine::REPORT_STATUSES)
             ->get()
             ->map(fn ($line) => [
                 'screen_name'           => $line->screen->name,

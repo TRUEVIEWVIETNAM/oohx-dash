@@ -36,6 +36,12 @@ use Illuminate\Http\Request;
  * CLAUDE.md mục 2: DTO danh sách trắng. Một trường phát ra mà không ai dùng là
  * một trường phải nghĩ lại khi có người hỏi "ai được thấy cái này".
  *
+ * ══ Danh sách trạng thái có báo cáo KHÔNG ở đây ══
+ *
+ * Nó là `Campaign::REPORTABLE_STATUSES`. Hằng đó từng nằm trong lớp này và
+ * `Buyer\BuyerReportController` phải đọc sang — xem docblock của hằng về việc
+ * vì sao chỗ cũ sai.
+ *
  * ══ Tiền ra ngoài là SỐ NGUYÊN ══
  *
  * Service trả `(float)`. VND không có phần thập phân, và một số thực đi qua
@@ -43,20 +49,13 @@ use Illuminate\Http\Request;
  */
 class CampaignReportController extends Controller
 {
-    /** Trạng thái chiến dịch có báo cáo. Trùng danh sách của trang Blade. */
-    public const REPORTABLE_STATUSES = [
-        Campaign::STATUS_ACTIVE,
-        Campaign::STATUS_COMPLETED,
-        Campaign::STATUS_PAUSED,
-    ];
-
     public function __construct(private readonly CampaignReportService $reports) {}
 
     public function __invoke(Request $request, Campaign $campaign): JsonResponse
     {
         abort_unless($request->user()?->can('viewReports', $campaign) ?? false, 403);
 
-        if (! in_array($campaign->status, self::REPORTABLE_STATUSES, true)) {
+        if (! in_array($campaign->status, Campaign::REPORTABLE_STATUSES, true)) {
             return response()->json([
                 'error'   => 'report_not_available',
                 'message' => 'Báo cáo chỉ khả dụng cho campaign đang chạy, tạm dừng hoặc đã hoàn thành.',

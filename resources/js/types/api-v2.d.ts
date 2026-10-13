@@ -2194,6 +2194,14 @@ export interface paths {
          *     chiến dịch chưa chạy thì chưa có báo cáo. Chỉ `active`, `paused`,
          *     `completed` có.
          *
+         *     **Dòng đặt chỗ nào tính:** `approved`, `active`, `paused`, `completed`
+         *     (`BookingLine::REPORT_STATUSES`). `pending` không tính vì owner chưa
+         *     duyệt và có thể từ chối; `rejected` và `cancelled` thì không có phát
+         *     sóng nào. `overview` và `breakdown` đọc **cùng** danh sách đó, nên
+         *     `overview.total_screens` luôn bằng số phần tử của `breakdown` — hai bên
+         *     từng dùng hai danh sách khác nhau và lệch nhau đúng ở các dòng
+         *     `approved`.
+         *
          *     Danh sách trắng ở đây **hẹp hơn** cái `CampaignReportService` trả:
          *     `daily.revenue`, `breakdown[].estimated_cost`, `breakdown[].status` và
          *     `overview.total_paid` không ra ngoài, vì trang không hiện chúng.

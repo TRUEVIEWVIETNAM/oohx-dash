@@ -76,6 +76,35 @@ class Campaign extends Model
     ];
 
     /**
+     * Trạng thái chiến dịch **có báo cáo phát sóng**.
+     *
+     * ══ Trước ở đâu, và vì sao chỗ đó sai ══
+     *
+     * Hằng này từng là `Api\V2\CampaignReportController::REPORTABLE_STATUSES`,
+     * và `Buyer\BuyerReportController` đọc **sang** controller API để lấy nó.
+     * Một controller Blade phụ thuộc hằng của một controller API là thứ không
+     * giải thích được cho người đọc sau: hai lớp đó không có quan hệ nào, và
+     * cái tên `Api\V2\...` trong một controller khu người mua trông như một lần
+     * chép thiếu suy nghĩ.
+     *
+     * Đây là tính chất của **chiến dịch** — "chiến dịch ở trạng thái này thì
+     * có báo cáo" — nên nó thuộc model, cạnh `STATUS_LABELS`. Cả hai cửa nay
+     * đọc cùng một chỗ, và chỗ đó không thuộc bên nào.
+     *
+     * Vì sao `paused` có mặt: một chiến dịch tạm dừng vẫn đã phát một phần, và
+     * số đã phát không mất đi vì người mua bấm tạm dừng. `draft`,
+     * `pending_approval`, `approved` thì chưa phát lần nào; `rejected` và
+     * `cancelled` thì sẽ không phát.
+     *
+     * @var list<string>
+     */
+    public const REPORTABLE_STATUSES = [
+        self::STATUS_ACTIVE,
+        self::STATUS_PAUSED,
+        self::STATUS_COMPLETED,
+    ];
+
+    /**
      * Nhãn cho một **tập con** trạng thái, giữ đúng thứ tự của `STATUS_LABELS`.
      *
      * ══ Vì sao cần tập con, không phải cứ lấy cả tám ══
