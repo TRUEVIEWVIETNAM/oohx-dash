@@ -13,6 +13,7 @@ use App\Http\Resources\V2\MapPinResource;
 use App\Http\Resources\V2\OwnerDetailResource;
 use App\Http\Requests\Api\V2\AgencyListingRequest;
 use App\Http\Resources\V2\AgencySummaryResource;
+use App\Http\Resources\V2\OwnerPublicReviewResource;
 use App\Http\Resources\V2\OwnerSummaryResource;
 use App\Http\Resources\V2\ProductDetailResource;
 use App\Http\Resources\V2\ProductSummaryResource;
@@ -21,6 +22,7 @@ use App\Http\Resources\V2\ScreenSummaryResource;
 use App\Services\AvailabilityService;
 use App\Services\FrontpageService;
 use App\Services\InventoryHoldService;
+use App\Services\OwnerReviewService;
 use App\Services\ProductService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -470,6 +472,20 @@ class CatalogController extends Controller
 
         $screens = $this->catalog->getOwnerScreens($owner->id, $request, $perPage);
 
+        // Đánh giá công khai + điểm trung bình (lát 5).
+        //
+        // `OwnerReviewService` là nơi duy nhất biết "đã duyệt" nghĩa là gì
+        // (`OwnerReview::published()`), nên controller không tự lọc theo
+        // `status` — một phép lọc viết lại ở đây là một nơi thứ hai có thể
+        // trôi, và chỗ trôi đó sẽ cho nhận xét chưa duyệt lên trang công khai.
+        //
+        // Giới hạn 10 như mặc định của service: đây là khối phụ của một trang
+        // hồ sơ, không phải một danh sách có phân trang. Cần nhiều hơn thì đó
+        // là một endpoint riêng, có `page`.
+        $reviewService = app(OwnerReviewService::class);
+        $reviews       = $reviewService->publishedFor($owner->id);
+        $summary       = $reviewService->summaryFor($owner->id);
+
         return response()->json([
             'data' => (new OwnerDetailResource($owner))->resolve(),
             'screens' => [
@@ -481,6 +497,22 @@ class CatalogController extends Controller
                     'last_page'    => $screens->lastPage(),
                     'max_per_page' => self::MAX_PER_PAGE,
                 ],
+            ],
+
+            // `reviews` và `rating` nằm NGOÀI `data`, cùng tầng với `screens`.
+            //
+            // Vì sao không nhét vào `data`: `data` là hồ sơ owner, và nó đã có
+            // ở nhiều nơi khác dưới hình dạng `OwnerDetail`. Thêm một mảng
+            // đánh giá vào đó là đổi hình dạng của một DTO đang dùng chung,
+            // cho một khối chỉ trang này cần.
+            'reviews' => OwnerPublicReviewResource::collection($reviews)->resolve(),
+
+            'rating' => [
+                // `null` khi chưa có đánh giá nào — KHÔNG phải 0. Điểm 0 đọc
+                // ra là "bị đánh giá rất tệ", trong khi sự thật là "chưa ai
+                // đánh giá". Trang phải phân biệt được hai chuyện đó.
+                'average' => $summary['avg'],
+                'count'   => $summary['count'],
             ],
         ]);
     }
