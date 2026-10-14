@@ -86,11 +86,29 @@ paths:
                 properties:
                   data:
                     type: object
-                    required: [cities, venue_types, networks, owners, price_range]
+                    required: [cities, venue_types, networks, owners, price_range, categories_networks]
                     properties:
                       cities:      { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
                       venue_types: { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
                       networks:    { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
+                      categories_networks:
+                        type: array
+                        description: |
+                          Cùng danh sách loại hình như `venue_types`, nhưng có
+                          network lồng bên trong. Cần cho ô tìm kiếm lớn, vì
+                          `networks` phẳng không mang khóa loại hình nào nên
+                          quan hệ cha–con không suy ra được ở phía trình duyệt.
+                        items:
+                          type: object
+                          required: [code, name, count, networks]
+                          properties:
+                            code:  { type: [string, 'null'] }
+                            name:  { type: [string, 'null'] }
+                            icon:  { type: [string, 'null'] }
+                            count: { type: integer }
+                            networks:
+                              type: array
+                              items: { $ref: '#/components/schemas/FilterFacet' }
                       owners:
                         type: array
                         items:

@@ -217,6 +217,37 @@ class CatalogController extends Controller
                         'count' => (int) ($format['count'] ?? 0),
                     ])->values()->all(),
 
+                // Cùng danh sách loại hình, nhưng **có network lồng bên trong**
+                // (thêm 14/10/2026).
+                //
+                // Vì sao không bỏ qua và để bên gọi tự ghép: `networks` phẳng ở
+                // dưới **không mang khóa loại hình nào**, nên quan hệ cha–con
+                // không suy ra được ở phía trình duyệt. Ô tìm kiếm lớn của bản
+                // Blade (`partials/mega-search.blade.php`) vẽ đúng cây này —
+                // `getFilterAggregates()` đã tính nó sẵn, endpoint chỉ không
+                // mang ra.
+                //
+                // Giữ cả `venue_types` phẳng: hai bên tiêu thụ khác nhau (chip
+                // lọc ở `/owners` chỉ cần danh sách phẳng), và bỏ nó đi là đổi
+                // hợp đồng đã công bố.
+                //
+                // Danh sách trắng theo khóa, không trả nguyên phần tử: nhóm
+                // loại hình còn mang `thumb` — một đường ảnh — và nó không
+                // thuộc về một endpoint bộ lọc.
+                'categories_networks' => collect($aggregates['categories_networks'] ?? [])
+                    ->map(fn ($cat) => [
+                        'code'     => $cat['type'] ?? null,
+                        'name'     => $cat['label'] ?? null,
+                        'icon'     => $cat['icon'] ?? null,
+                        'count'    => (int) ($cat['count'] ?? 0),
+                        'networks' => collect($cat['networks'] ?? [])
+                            ->map(fn ($net) => [
+                                'code'  => $net['code'] ?? null,
+                                'name'  => $net['name'] ?? null,
+                                'count' => (int) ($net['count'] ?? 0),
+                            ])->values()->all(),
+                    ])->values()->all(),
+
                 'networks' => collect($aggregates['networks'] ?? [])
                     ->map(fn ($network) => [
                         'code'  => $network->code ?? null,

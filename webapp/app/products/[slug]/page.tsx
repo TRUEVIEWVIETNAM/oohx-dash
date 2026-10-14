@@ -4,7 +4,7 @@ import { getProduct, type ProductDetail } from '@/lib/api';
 import { buildMetadata, jsonLd, OgType } from '@/lib/seo';
 import { SiteHeader } from '@/components/SiteHeader';
 import { ScreenCard } from '@/components/ScreenCard';
-import { formatProductPrice } from '../page';
+import { formatProductPrice } from '@/components/ProductCard';
 
 /**
  * `/products/{slug}` — chi tiết một gói.

@@ -2,6 +2,28 @@
 
 Viết 14/10/2026 · Claude Code · Đối chiếu bản Blade trước giai đoạn 7 với bản Next đang chạy
 
+> **Tiến độ, cập nhật 14/10/2026.** Lát **0, 1 và 2 đã làm** (chủ dự án duyệt
+> ngay sau khi đọc bản khảo sát này). Lát 3 → 7 còn nguyên.
+>
+> **Hai chỗ bản kế hoạch này đo sai, phát hiện khi làm:**
+>
+> 1. Bảng dưới nói lát 0 "không cần API". Sai: `cover_url` của owner trả
+>    **đường dẫn trong disk** chứ không phải URL, nên mọi ảnh bìa owner trên
+>    `/owners` và trang chủ là ảnh hỏng — và thẻ owner của bản Blade còn in
+>    logo, số tỉnh thành, nhãn loại hình, dấu đã xác minh mà DTO không mang ra.
+>    Bốn trường đó `loadOwnerExtras()` **đã tính sẵn**. Nên lát 0 có một lần sửa
+>    DTO.
+> 2. Bảng dưới nói lát 2 dựng ô tìm kiếm lớn được từ `locations` + `filters`
+>    "phía client". Sai: cây *loại hình → network* không suy ra được từ hai danh
+>    sách phẳng, vì `networks` không mang khóa loại hình nào. `/api/v2/filters`
+>    nay trả thêm `categories_networks` — một trường **thêm vào endpoint có
+>    sẵn**, không phải endpoint mới.
+>
+> **Ba việc cần chủ dự án quyết** (đều là lời hứa sản phẩm, không phải kỹ
+> thuật): thanh `trust` năm mục, mục "Marketplace OOH đầu tiên có AI", và câu
+> chữ của bốn thẻ WORKFLOW. Chi tiết ở mục "Ba khối chưa dựng vì chúng là lời
+> hứa, không phải hình" ở cuối tài liệu.
+
 ## Vì sao tài liệu này tồn tại
 
 Sở Thông tin sẽ vào chụp lại màn hình. Banner trên mọi trang công khai hiện nói
@@ -194,9 +216,9 @@ lát một PR, CI xanh mới merge.
 
 | Lát | Việc | API cần thêm | Ước lượng |
 |---|---|---|---|
-| **0** | Ba lỗi trên: `sc` → `sc-card`; thẻ owner về `oc-card-*`; mở rộng `class-css.test.mjs` sang `webapp/` | không | nửa ngày |
-| **1** | Thẻ và lưới: `inv-grid` cho lưới màn hình (thay `oc-grid`), đổi kiểu xem lưới/danh sách, `sc-product-badge`, `sc-quote-ic`; `/owners` có lại ô tìm kiếm + `cat-chips` | không — `filters` đã có | 1 ngày |
-| **2** | **Trang chủ**: mega-search, Live Map View, 4 bước đặt booking, khối AI, Gói chiến dịch, Owner CTA | `locations` ✔ `pins` ✔ `filters` ✔ `stats` ✔ — gợi ý tìm kiếm dựng từ `locations` + `filters` phía client, không cần endpoint mới | 2–3 ngày |
+| ~~**0**~~ **XONG 14/10** | Ba lỗi trên: `sc` → `sc-card`; thẻ owner về `oc-card-*`; mở rộng `class-css.test.mjs` sang `webapp/` | ~~không~~ — **có**: `logo_url`/`cover_url` phải là URL đầy đủ, thêm `city_count`, `venue_types`, `verified`, `featured` vào `OwnerSummary` | nửa ngày |
+| ~~**1**~~ **XONG 14/10** | Thẻ và lưới: `inv-grid` cho lưới màn hình (thay `oc-grid`), đổi kiểu xem lưới/danh sách; `/owners` có lại ô tìm kiếm + `cat-chips` | không — `filters` đã có | 1 ngày |
+| ~~**2**~~ **XONG 14/10** | **Trang chủ**: mega-search, Live Map View, 4 bước đặt booking, Gói chiến dịch, Owner CTA, và phần hero còn thiếu (badge, `hstat`, hint, ảnh mô phỏng) | `locations` ✔ `pins` ✔ `stats` ✔ — **thêm** `categories_networks` vào `/filters` | 2–3 ngày |
 | **3** | `/explore` + `/products`: sidebar lọc, results header, sắp xếp, drawer mobile, load-more | `filters` ✔ (phải kiểm đủ trường cho sidebar gói) | 2 ngày |
 | **4** | `/explore/{slug}`: gallery + lightbox, bốn tab, insights, lịch trống theo tháng, panel giá | **cần bốn món** — bảng dưới | 3–4 ngày |
 | **5** | `/owners/{slug}`: bố cục hồ sơ `fp-*` (chuyển 98 dòng CSS nội tuyến vào `frontpage.css`), đánh giá người mua | `owners/{slug}` ✔ đã có `cover_url`, `logo_url`, `tagline`, `about`, `contact`, `stats`, `venue_types`; `OwnerReviewResource` đã có | 2 ngày |
@@ -245,3 +267,84 @@ cũ** và vẫn chạy: chúng chưa chuyển sang Next (giai đoạn 8, hoãn c
 4. Banner *"đang chạy thử nghiệm, chưa hoàn tất đăng ký"* hiện trên mọi trang và
    tự ẩn sau 6,5 giây. Nó bật/tắt bằng `OOHX_TRIAL_MODE`. Giữ hay tắt trong lúc
    chụp là quyết định pháp lý, không phải quyết định kỹ thuật.
+
+---
+
+## Ba khối chưa dựng vì chúng là lời hứa, không phải hình (ghi 14/10/2026)
+
+Lát 2 dựng lại trang chủ và dừng trước ba khối. Không phải vì khó — cả ba là
+HTML tĩnh, dựng trong mười phút — mà vì nội dung của chúng **nói những điều tôi
+không kiểm được**, và trang này sắp được một cơ quan quản lý chụp màn hình.
+
+| Khối | Nó nói gì | Kiểm được không |
+|---|---|---|
+| Thanh `trust` (5 mục, ngay dưới hero) | "Verified inventory" · "Traffic real-time" · "AI-powered search" · "Secure payment" · "Agency support 24/7" | **Không.** Cột `verified` có thật nhưng thanh này nói về cả sàn; `impression_logs` chưa có bản ghi nào nên không có "real-time"; không có tính năng AI nào trong mã; sàn **không thu hộ** (người mua chuyển khoản trực tiếp cho owner) nên "secure payment" nói sai cách tiền chạy; "24/7" là cam kết vận hành, không phải một thuộc tính của hệ thống |
+| Mục "Marketplace OOH đầu tiên có AI" (`value-grid` + `ai-cards`) | Nhan đề khẳng định có AI; `vv-number` in **3.2×** "nhanh hơn cách đặt truyền thống"; ảnh nền hotlink từ `images.unsplash.com` | **Không.** 3.2× không có nguồn nào; không có tính năng AI; và một trang công khai hotlink ảnh của dịch vụ ngoài là thêm một điểm hỏng cùng một câu hỏi bản quyền |
+| Bốn thẻ WORKFLOW | "AI search", "traffic data", "so sánh tối đa 5 vị trí", "proof-of-play report tự động" | **Một phần.** Bốn *bước* là thật và đã dựng lại; bốn *câu mô tả* thì không — không có chức năng so sánh, chưa có dữ liệu phát sóng |
+
+Bốn thẻ WORKFLOW đã dựng với **chữ viết lại**, mô tả đúng những gì hôm nay làm
+được. Hai khối còn lại **chưa có trên trang**.
+
+Đây là ba quyết định về lời hứa sản phẩm, nên chúng thuộc chủ dự án, không
+thuộc người sửa giao diện. Ba lựa chọn cho mỗi khối: dựng lại **đúng câu chữ
+cũ** (và nhận rủi ro đứng trước cơ quan quản lý), dựng lại với **câu chữ chỉ
+nói điều kiểm được**, hoặc **không dựng**.
+
+Ghi lại vì nó là cùng một đường cắt mà giai đoạn 4 đã cắt một lần: audit F-15 gỡ
+"30M+ impressions", bộ đếm chạy bằng `Math.random()`, "AI Match 94%", "tăng fill
+rate 40%" — nhưng **để lại** thanh `trust` và mục AI. Chúng sống sót vì đợt đó
+dọn theo *con số*, còn đây là *lời khẳng định năng lực*. Cùng một loại rủi ro,
+khác hình dạng.
+
+## Những gì lát 0–2 đã đổi, để lần sau không phải đọc lại git log
+
+**Bốn lỗi, không phải ba.** Lỗi thứ tư tìm thấy khi sửa lỗi thẻ owner: hai
+resource owner trả `cover_url`/`logo_url` là **đường dẫn trong disk**, nên trình
+duyệt giải chúng tương đối với trang đang mở — `/owners/owners/cover/abc.jpg`.
+Quy ước của repo (`AgencySummaryResource`, `Product::getPhotoUrlsAttribute()`)
+là URL đầy đủ; hai resource đó là ngoại lệ duy nhất.
+
+**Thẻ `.sc` → `.sc-card` không chỉ là một tên class.** Ba chỗ cấu trúc phải
+trả lại đúng: `.sc-foot` là **con trực tiếp** của thẻ (nó có `border-top` và
+`margin-top`; lồng trong `.sc-body` thì viền không chạy hết thẻ và lề đếm hai
+lần); `.sc-price-sub` là **div em** của `.sc-price`, không phải `<span>` bên
+trong (lề trên của inline span không có tác dụng); và cả thẻ là **một** liên
+kết, nên nút "Chi tiết" là `<span class="btn">` chứ không phải một `<Link>`
+lồng trong `<Link>`.
+
+**Ba tên class của bản Blade cố ý KHÔNG mang sang.** Chốt mới
+(`class-css.test.mjs` nay soi cả `webapp/`) báo `ms-drop-close`, `ms-compact`,
+`has-children` không có định nghĩa nào — và đúng là không có, kể cả ở bản Blade:
+chúng là **móc cho JS** (`querySelectorAll('.ms-drop-close')`) và một biến thể
+rỗng. Ở React thì sự kiện gắn trực tiếp, nên ba cái móc đó không còn việc gì.
+Chốt bắt đúng thứ nó sinh ra để bắt, ngay trên mã mới.
+
+**Mục "Gói chiến dịch" đọc gói THẬT.** Bản Blade vẽ ba thẻ viết cứng ("City
+Launch", "Retail Activation", "Event Blitz") và chú thích tại chỗ đã nêu nghi
+vấn là chúng không ứng với bản ghi nào — ba nút của chúng đã bị gỡ vì không có
+đích. Mục này nay đọc `/api/v2/products`, nên mỗi tên gói trên trang là một bản
+ghi có thật và bấm vào thì tới đúng trang đó.
+
+**Bản đồ trang chủ dùng `/screens/map`, không dùng `/screens/pins`.** Thanh chọn
+thành phố của bản Blade có nút "Toàn quốc", mà `CityPinsRequest` chỉ nhận slug
+tỉnh thành có thật. Endpoint bản đồ nhận khung nhìn + `city`, nên một đường phục
+vụ cả hai nhánh, và bộ đếm dưới bản đồ là `meta.total` thật của vùng. Lần vẽ đầu
+vẫn dùng pin mà `getHomeData()` đã lấy ở máy chủ, nên không có lời gọi nào ở
+trình duyệt khi mới mở trang.
+
+**Khung nhìn đi theo dữ liệu.** Chọn một thành phố thì bản đồ `fitBounds` theo
+chính các pin trả về, không theo một bảng toạ độ viết cứng — thêm một tỉnh vào
+`CITY_SLUG_MAP` mà quên bảng đó thì bản đồ mở ra ở giữa biển, và đó là lỗi khó
+truy.
+
+**Một chốt mới, và nó đã được thử bằng đột biến.**
+`webapp/test/khoi-giao-dien.mjs` (`npm run test:khoi`, có bước riêng trong CI)
+đọc HTML **đã render** của `/`, `/explore`, `/owners`, `/products` và đòi 49
+khẳng định: khối nào phải có mặt, và tên class nào **không được** có. Đổi
+`sc-card` về `sc` rồi build lại: ba lỗi đỏ, gọi đúng tên trang và tên class. Trả
+lại: xanh.
+
+Vì sao nó cần tồn tại bên cạnh hai chốt đã có: `class-css.test.mjs` hỏi "tên
+class này có người định nghĩa không" — `.sc` **có**, nên nó không thấy gì sai;
+`test:seo` chỉ đo thẻ `<meta>`. Không chốt nào trả lời được câu "khối này còn
+trên trang không".

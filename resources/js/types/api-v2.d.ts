@@ -84,6 +84,19 @@ export interface paths {
                                 cities: components["schemas"]["FilterFacet"][];
                                 venue_types: components["schemas"]["FilterFacet"][];
                                 networks: components["schemas"]["FilterFacet"][];
+                                /**
+                                 * @description Cùng danh sách loại hình như `venue_types`, nhưng có
+                                 *     network lồng bên trong. Cần cho ô tìm kiếm lớn, vì
+                                 *     `networks` phẳng không mang khóa loại hình nào nên
+                                 *     quan hệ cha–con không suy ra được ở phía trình duyệt.
+                                 */
+                                categories_networks: {
+                                    code: string | null;
+                                    name: string | null;
+                                    icon?: string | null;
+                                    count: number;
+                                    networks: components["schemas"]["FilterFacet"][];
+                                }[];
                                 owners: {
                                     slug?: string | null;
                                     name?: string | null;

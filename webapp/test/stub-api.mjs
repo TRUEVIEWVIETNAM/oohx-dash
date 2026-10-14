@@ -222,6 +222,22 @@ const ROUTES = {
             venue_types: [{ code: 'retail', name: 'Bán lẻ', count: 1 }],
             networks: [],
             owners: [],
+
+            // Cây loại hình có network lồng bên trong — ô tìm kiếm lớn vẽ đúng
+            // cây này (thêm 14/10/2026). Một nhóm CÓ network con và một nhóm
+            // KHÔNG, vì hai nhánh render khác nhau: nhóm có con thì hiện mũi
+            // thu gọn, nhóm không thì hiện ô trống giữ chỗ.
+            categories_networks: [
+                {
+                    code: 'retail',
+                    name: 'Bán lẻ',
+                    icon: 'storefront',
+                    count: 1,
+                    networks: [{ code: 'NET1', name: 'Mạng Một', count: 1 }],
+                },
+                { code: 'transit', name: 'Giao thông', icon: 'train', count: 0, networks: [] },
+            ],
+
             price_range: { min: 0, max: 1000000 },
         },
     },

@@ -132,6 +132,18 @@ jobs:
         working-directory: webapp
         run: npm run test:seo
 
+      # Khối giao diện phải có mặt trong HTML đã render.
+      #
+      # Vì sao lớp này cần tồn tại, bên cạnh `test:seo` và `class-css.test.mjs`:
+      # ba lỗi giao diện đã lên production mà không test nào đỏ. Thẻ màn hình
+      # mở bằng `class="sc"` — một ô bảng thông số — thay vì `class="sc-card"`;
+      # cả hai tên đều CÓ định nghĩa nên phép kiểm "class có người định nghĩa"
+      # không thấy gì sai. Và trang chủ mất năm trong mười khối của bản Blade
+      # nó thay, trong khi `test:seo` chỉ đo thẻ `<meta>`.
+      - name: Khối giao diện trên HTML đã render
+        working-directory: webapp
+        run: npm run test:khoi
+
   # Phần JS của hai trang Blade đọc `/api/v2` từ trình duyệt: `/cart` và
   # `/booking/{campaign}/payment`.
   #
