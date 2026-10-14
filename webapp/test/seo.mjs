@@ -85,7 +85,11 @@ const TRANG = [
     { path: '/explore/man-hinh-co-gia', ogType: 'product', jsonLd: 'Product', coGia: true },
     { path: '/explore/man-hinh-khong-gia', ogType: 'product', jsonLd: 'Product', coGia: false },
     { path: '/owners', ogType: 'website' },
-    { path: '/owners/owner-mot', ogType: 'website', jsonLd: 'Organization' },
+    // `profile`, không `website`: `frontpage/owner-detail.blade.php` phát
+    // `og:type=profile` (xem `seoType` trong khối `@section('seo')`), và đó là
+    // giá trị đúng cho một trang về một tổ chức. Bản Next hạ nó xuống
+    // `website` khi chưa dựng lại bố cục hồ sơ; lát 5 trả lại.
+    { path: '/owners/owner-mot', ogType: 'profile', jsonLd: 'Organization' },
     { path: '/products', ogType: 'website' },
     { path: '/products/goi-mot', ogType: 'product', jsonLd: 'Product', coGia: true },
     { path: '/map', ogType: 'website' },
@@ -434,13 +438,47 @@ async function kiem404(base) {
     }
 }
 
-/** Dữ liệu riêng của owner không được lộ ra trang công khai. */
+/**
+ * Trường NHẠY CẢM của owner không được lộ ra trang công khai.
+ *
+ * ══ Luật này đổi ngày 14/10/2026 (lát 5), và đổi có chủ ý ══
+ *
+ * Bản đầu cấm cả `email`, `phone` và chuỗi `contact` xuất hiện trên
+ * `/owners/{slug}`. Lý do khi đó: *"một trang công khai in email và số điện
+ * thoại là một trang cho máy thu thập địa chỉ"*, kèm một câu phụ — *"bản Blade
+ * cũng không in"*.
+ *
+ * **Câu phụ đó sai.** `frontpage/owner-detail.blade.php` in email, điện thoại,
+ * website và địa chỉ trong thẻ "Giới thiệu", cộng hai nút "Liên hệ" / "Gửi
+ * email" ở hàng tiêu đề. Chúng đã công khai trước khi có bản Next.
+ *
+ * Và lý do chính không đứng được một mình: sàn **không thu hộ** — người mua
+ * chuyển khoản trực tiếp cho từng media owner (hồ sơ Bộ Công Thương). Không
+ * thấy đường liên hệ owner thì không đặt được gì. Lát 4 đã mở đúng hai trường
+ * này ở `/explore/{slug}` vì cùng lý do.
+ *
+ * Nên luật nay canh đúng thứ **phải** chặn: danh sách cấm của CLAUDE.md mục 2.
+ * Stub không trả những trường đó, nên phép kiểm này là chống hồi quy — nó đỏ
+ * nếu có ngày ai thêm chúng vào DTO rồi in ra trang.
+ *
+ * Nếu chủ dự án muốn ẩn liên hệ owner khỏi trang công khai thì đó là một
+ * quyết định mới, và nó phải sửa **cả ba chỗ**: DTO, trang hồ sơ, trang chi
+ * tiết màn hình.
+ */
 async function kiemKhongLo(base) {
     const html = await (await fetch(base + '/owners/owner-mot')).text();
 
-    for (const camKy of ['khong-duoc-lo@example.com', '0900000001', 'contact']) {
+    for (const camKy of [
+        'revenue_share_pct',
+        'billing_info',
+        'bank_account_number',
+        'bank_account_name',
+        'business_license_path',
+        'tax_code',
+        'device_token',
+    ]) {
         if (html.includes(camKy)) {
-            bao('/owners/owner-mot', `để lộ "${camKy}"`);
+            bao('/owners/owner-mot', `để lộ trường nhạy cảm "${camKy}"`);
         }
     }
 }

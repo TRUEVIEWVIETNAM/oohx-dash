@@ -481,6 +481,28 @@ export interface paths {
                                 data: components["schemas"]["ScreenSummary"][];
                                 meta: components["schemas"]["PageMeta"];
                             };
+                            /**
+                             * @description Đánh giá **đã duyệt** của media owner này, tối đa 10, mới
+                             *     nhất trước. Nguồn là `OwnerReviewService::publishedFor()`
+                             *     — lớp duy nhất biết "đã duyệt" nghĩa là gì, nên không có
+                             *     chỗ thứ hai nào lọc theo `status` và trôi.
+                             *
+                             *     Nằm NGOÀI `data` có chủ ý: `data` là `OwnerDetail`, một
+                             *     DTO dùng ở nhiều nơi. Thêm một mảng đánh giá vào đó là
+                             *     đổi hình dạng của DTO dùng chung cho một khối chỉ trang
+                             *     này cần.
+                             */
+                            reviews: components["schemas"]["OwnerPublicReview"][];
+                            rating: {
+                                /**
+                                 * @description `null` khi chưa có đánh giá nào — **không phải 0**.
+                                 *     Điểm 0 đọc ra là "bị đánh giá rất tệ", trong khi sự
+                                 *     thật là "chưa ai đánh giá"; trang và JSON-LD phải
+                                 *     phân biệt được hai chuyện đó.
+                                 */
+                                average: number | null;
+                                count: number;
+                            };
                         };
                     };
                 };
@@ -2735,6 +2757,30 @@ export interface components {
             venue_types?: string[] | null;
             verified?: boolean;
             featured?: boolean;
+        };
+        /**
+         * @description Một đánh giá đã duyệt, nhìn từ phía người lạ.
+         *
+         *     KHÔNG dùng lại `OwnerReview` của khu người mua: DTO kia viết cho **tác
+         *     giả** nhận xét và trả `id`, `status`, `status_label`, `owner.id`. Trên
+         *     một trang công khai thì `status` luôn là một giá trị duy nhất (đường
+         *     này chỉ trả bản đã đăng), còn id là khóa nội bộ không giúp người đọc
+         *     làm gì.
+         *
+         *     `organization` là tên **tổ chức**, không phải tên người viết: người
+         *     viết là một nhân viên của một agency, và tên cá nhân họ không phải
+         *     thông tin trang này cần công bố.
+         *
+         *     `published_at` là ngày **đăng**, không phải ngày viết — hai mốc có thể
+         *     cách nhau nhiều ngày vì nhận xét đi qua kiểm duyệt, và trang in ngày
+         *     đăng.
+         */
+        OwnerPublicReview: {
+            organization: string | null;
+            rating: number;
+            comment: string | null;
+            /** Format: date */
+            published_at: string | null;
         };
         /**
          * @description Bộ trường lấy đúng bằng những gì trang owner công khai đang hiển thị,

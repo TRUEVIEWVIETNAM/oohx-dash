@@ -2,15 +2,20 @@
 
 namespace Tests\Feature\Api\V2;
 
+use App\Models\Campaign;
 use App\Models\Network;
+use App\Models\Organization;
 use App\Models\Owner;
+use App\Models\OwnerReview;
 use App\Models\Screen;
 use App\Models\ScreenInventory;
 use App\Models\ScreenSpec;
 use App\Models\Site;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -488,4 +493,159 @@ class CatalogFiltersAndOwnerApiTest extends TestCase
         $this->assertTrue($hang['verified']);
         $this->assertFalse($hang['featured']);
     }
+    // ── Đánh giá công khai trên trang hồ sơ owner (lát 5) ───────────────────
+
+    /**
+     * Một đánh giá đã duyệt + một chưa duyệt trên cùng owner.
+     *
+     * Repo không có factory cho `Campaign`, nên dựng bằng `::create()` — đúng
+     * cách `BookingApiTest` làm. `campaigns.created_by` không có giá trị mặc
+     * định nên phải có người tạo thật.
+     */
+    private function danhGia(Owner $owner, int $rating, string $status, ?string $comment = 'Nhận xét thử'): OwnerReview
+    {
+        $org  = Organization::factory()->create();
+        $user = User::factory()->create();
+
+        $campaign = Campaign::create([
+            'organization_id' => $org->id,
+            'created_by'      => $user->id,
+            'code'            => 'CPN-' . Str::random(8),
+            'name'            => 'Chiến dịch thử',
+            'start_date'      => now()->subMonth()->toDateString(),
+            'end_date'        => now()->subDays(2)->toDateString(),
+            'status'          => Campaign::STATUS_COMPLETED,
+        ]);
+
+        return OwnerReview::create([
+            'campaign_id'     => $campaign->id,
+            'owner_id'        => $owner->id,
+            'organization_id' => $org->id,
+            'user_id'         => $user->id,
+            'rating'          => $rating,
+            'comment'         => $comment,
+            'status'          => $status,
+            'published_at'    => $status === OwnerReview::STATUS_PUBLISHED ? now() : null,
+        ]);
+    }
+
+    public function test_chi_tiet_owner_tra_danh_gia_da_duyet_va_diem_trung_binh(): void
+    {
+        $owner = Owner::factory()->create(['status' => 'active']);
+        $this->screen($owner);
+
+        $this->danhGia($owner, 5, OwnerReview::STATUS_PUBLISHED);
+        $this->danhGia($owner, 4, OwnerReview::STATUS_PUBLISHED);
+
+        $body = $this->getJson('/api/v2/owners/' . $owner->slug)->assertOk()->json();
+
+        $this->assertCount(2, $body['reviews']);
+        $this->assertSame(4.5, $body['rating']['average']);
+        $this->assertSame(2, $body['rating']['count']);
+    }
+
+    /**
+     * Ca quan trọng nhất của lát 5.
+     *
+     * `OwnerReviewService::publishedFor()` lọc theo `OwnerReview::published()`.
+     * Nếu có ngày ai viết lại phép lọc đó ở controller — hoặc bỏ nó — thì nhận
+     * xét **chưa qua kiểm duyệt** lên trang công khai, và người viết nó không
+     * biết mình đang viết cho công chúng.
+     */
+    public function test_danh_gia_chua_duyet_khong_ra_trang_cong_khai(): void
+    {
+        $owner = Owner::factory()->create(['status' => 'active']);
+        $this->screen($owner);
+
+        $this->danhGia($owner, 5, OwnerReview::STATUS_PUBLISHED, 'Đã duyệt, được hiện');
+        $this->danhGia($owner, 1, OwnerReview::STATUS_PENDING, 'CHUA DUYET khong duoc hien');
+        $this->danhGia($owner, 1, OwnerReview::STATUS_REJECTED, 'BI TU CHOI khong duoc hien');
+
+        $response = $this->getJson('/api/v2/owners/' . $owner->slug)->assertOk();
+
+        $response->assertDontSee('CHUA DUYET');
+        $response->assertDontSee('BI TU CHOI');
+
+        $this->assertCount(1, $response->json('reviews'));
+
+        // Điểm trung bình cũng chỉ tính bản đã duyệt: một đánh giá 1 sao đang
+        // chờ duyệt không được kéo điểm xuống khi chưa ai đọc nó.
+        //
+        // `assertEquals`, không `assertSame`: `round(5.0, 1)` là float trong
+        // PHP nhưng `json_encode` in nó là `5`, nên phía JSON nó về như **int**.
+        // Một điểm 4,5 thì về như float. Hợp đồng khai `type: [number, 'null']`
+        // — JSON "number" bao cả hai, nên đây là hình dạng đúng, không phải
+        // chỗ cần sửa ở DTO.
+        $this->assertEquals(5, $response->json('rating.average'));
+        $this->assertSame(1, $response->json('rating.count'));
+    }
+
+    public function test_owner_chua_co_danh_gia_thi_diem_la_null_khong_phai_0(): void
+    {
+        $owner = Owner::factory()->create(['status' => 'active']);
+        $this->screen($owner);
+
+        $body = $this->getJson('/api/v2/owners/' . $owner->slug)->assertOk()->json();
+
+        $this->assertSame([], $body['reviews']);
+        $this->assertSame(0, $body['rating']['count']);
+
+        // `null`, KHÔNG phải 0. Điểm 0 đọc ra là "bị đánh giá rất tệ", trong
+        // khi sự thật là "chưa ai đánh giá" — và trang dùng chính chỗ phân
+        // biệt này để quyết định có khai `aggregateRating` trong JSON-LD hay
+        // không.
+        $this->assertNull($body['rating']['average']);
+    }
+
+    public function test_danh_gia_cong_khai_chi_tra_bon_khoa_da_liet_ke(): void
+    {
+        $owner = Owner::factory()->create(['status' => 'active']);
+        $this->screen($owner);
+        $this->danhGia($owner, 5, OwnerReview::STATUS_PUBLISHED);
+
+        $review = $this->getJson('/api/v2/owners/' . $owner->slug)->assertOk()->json('reviews.0');
+
+        $this->assertSame(['organization', 'rating', 'comment', 'published_at'], array_keys($review));
+
+        // `id`, `status`, `status_label`, `owner.id`, `created_at` thuộc DTO
+        // của khu người mua (`OwnerReviewResource`), viết cho tác giả nhận
+        // xét. Trên trang công khai chúng không có việc gì: `status` luôn là
+        // một giá trị duy nhất, và id là khóa nội bộ.
+        $this->assertArrayNotHasKey('id', $review);
+        $this->assertArrayNotHasKey('status', $review);
+        $this->assertArrayNotHasKey('created_at', $review);
+    }
+
+    public function test_danh_gia_tra_ten_to_chuc_khong_tra_ten_nguoi_viet(): void
+    {
+        $owner = Owner::factory()->create(['status' => 'active']);
+        $this->screen($owner);
+
+        $review = $this->danhGia($owner, 5, OwnerReview::STATUS_PUBLISHED);
+        $tenToChuc = Organization::find($review->organization_id)->name;
+
+        $response = $this->getJson('/api/v2/owners/' . $owner->slug)->assertOk();
+
+        $this->assertSame($tenToChuc, $response->json('reviews.0.organization'));
+
+        // Người viết là một nhân viên của agency; tên cá nhân họ không phải
+        // thông tin trang này cần công bố.
+        $nguoiViet = User::find($review->user_id);
+        $response->assertDontSee($nguoiViet->email);
+    }
+
+    public function test_danh_gia_khong_lo_ghi_chu_kiem_duyet(): void
+    {
+        $owner = Owner::factory()->create(['status' => 'active']);
+        $this->screen($owner);
+
+        $review = $this->danhGia($owner, 2, OwnerReview::STATUS_PUBLISHED);
+        $review->update(['moderation_note' => 'GHI CHU NOI BO cua nguoi kiem duyet']);
+
+        $this->getJson('/api/v2/owners/' . $owner->slug)
+            ->assertOk()
+            ->assertDontSee('GHI CHU NOI BO')
+            ->assertDontSee('moderation_note');
+    }
+
 }

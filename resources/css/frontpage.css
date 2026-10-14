@@ -2302,3 +2302,117 @@ body.page-map{overflow:hidden}
 .screen-pin-inner .material-symbols-outlined{font-size:24px;font-variation-settings:'FILL' 1,'wght' 600}
 .screen-pin-pulse{position:absolute;top:-4px;left:-4px;width:52px;height:52px;border-radius:50%;background:rgba(42,79,246,.25);animation:screen-pulse 2s ease-in-out infinite;z-index:1}
 @keyframes screen-pulse{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.3);opacity:.1}}
+
+/* ══ Trang hồ sơ media owner (`/owners/{slug}`) ═════════════════════════
+   Chuyển vào đây 14/10/2026 (lát 5).
+
+   96 dòng này sống trong `@push('head')` của
+   `frontpage/owner-detail.blade.php` — tức trong chính cái view đã bị gỡ ở
+   giai đoạn 7. Nên bản Next dựng lại bố cục hồ sơ mà không mang chúng theo
+   thì **không một tên class nào có định nghĩa**: ảnh bìa không có chiều cao,
+   avatar không tròn và không chồng lên bìa, hai cột thành một cột, và các
+   `fp-panel` hiện cùng lúc vì không có luật `display:none`.
+
+   Đây là lần thứ hai cùng một chuyện: lát 4 đã chuyển 70 dòng lightbox + POI
+   từ `detail.blade.php`. `tests/js/class-css.test.mjs` là thứ bắt được cả
+   hai lần — nó hỏi "tên class này có người định nghĩa không", và câu trả lời
+   là không.
+
+   `--mw` dùng trong các luật dưới là biến đã có của `.w` (chiều rộng khung
+   nội dung), nên bố cục hồ sơ thẳng hàng với mọi trang khác. */
+/* ── Facebook-style Page Layout ─────────────────────────── */
+
+/* Cover */
+.fp-cover { position:relative; width:100%; }
+.fp-cover-img { width:100%; height:clamp(200px,28vw,360px); object-fit:cover; display:block; background:var(--bg2); }
+
+/* Avatar overlaps cover bottom-left */
+.fp-cover-inner { position:relative; max-width:var(--mw); margin:0 auto; height:100%; }
+.fp-avatar-wrap { position:absolute; bottom:-40px; left:24px; z-index:3; }
+.fp-avatar { width:140px; height:140px; border-radius:50%; border:5px solid var(--bg1); overflow:hidden; background:linear-gradient(135deg,#1D1D1F,#3A3A3C); display:flex; align-items:center; justify-content:center; font-size:40px; font-weight:800; color:#fff; }
+.fp-avatar img { width:100%; height:100%; object-fit:cover; }
+
+/* Info row beside avatar */
+.fp-header { max-width:var(--mw); margin:0 auto; padding:0 24px; display:flex; align-items:flex-end; gap:20px; min-height:56px; }
+.fp-header-spacer { width:148px; flex-shrink:0; } /* avatar width + gap */
+.fp-header-info { flex:1; min-width:0; padding-top:8px; }
+.fp-name { font-size:clamp(22px,3vw,30px); font-weight:900; color:var(--t1); line-height:1.2; }
+.fp-tagline { font-size:14px; color:var(--t3); margin-top:2px; }
+.fp-meta { display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:6px; font-size:13px; color:var(--t3); }
+.fp-meta-item { display:inline-flex; align-items:center; gap:4px; }
+.fp-meta-item svg { width:14px; height:14px; fill:var(--t4); flex-shrink:0; }
+.fp-header-actions { display:flex; gap:8px; flex-shrink:0; padding-bottom:4px; }
+
+/* Divider + Tabs */
+.fp-nav-wrap { max-width:var(--mw); margin:16px auto 0; padding:0 24px; border-bottom:1px solid var(--ln2); overflow:hidden; }
+.fp-tabs { display:flex; gap:0; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; }
+.fp-tabs::-webkit-scrollbar { display:none; }
+.fp-tab { padding:12px 16px; font-size:15px; font-weight:600; color:var(--t3); cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-1px; white-space:nowrap; transition:color .15s; border-radius:8px 8px 0 0; }
+.fp-tab:hover { background:var(--bg2); color:var(--t1); }
+.fp-tab.on { color:var(--bl); border-bottom-color:var(--bl); }
+
+/* Content area */
+.fp-content { max-width:var(--mw); margin:0 auto; padding:20px 24px; }
+.fp-panel { display:none; }
+.fp-panel.on { display:block; }
+
+/* ── Tab: Tổng quan (2-column like FB) ──────────────────── */
+.fp-overview { display:grid; grid-template-columns:340px 1fr; gap:20px; align-items:start; }
+.fp-sidebar { display:flex; flex-direction:column; gap:16px; }
+.fp-card { background:var(--bg1); border-radius:12px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.06); border:1px solid var(--ln2); }
+.fp-card-title { font-size:16px; font-weight:700; color:var(--t1); margin-bottom:12px; }
+.fp-info-row { display:flex; align-items:flex-start; gap:10px; padding:6px 0; }
+.fp-info-row svg { width:16px; height:16px; fill:var(--t4); flex-shrink:0; margin-top:2px; }
+.fp-info-label { font-size:13px; color:var(--t3); }
+.fp-info-val { font-size:14px; color:var(--t1); font-weight:500; }
+.fp-info-val a { color:var(--bl); text-decoration:none; }
+.fp-info-val a:hover { text-decoration:underline; }
+
+.fp-stats-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.fp-stat { background:var(--bg2); border-radius:10px; padding:12px; text-align:center; }
+.fp-stat-n { font-size:20px; font-weight:800; color:var(--t1); }
+.fp-stat-n .u { font-size:11px; font-weight:500; color:var(--t4); }
+.fp-stat-l { font-size:11px; color:var(--t4); margin-top:2px; }
+
+.fp-venue-tags { display:flex; flex-wrap:wrap; gap:6px; }
+.fp-venue-tag { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; background:var(--bl-lt); color:var(--bl); }
+
+/* ── Featured screens slider ───────────────────────────── */
+.fp-featured-card { padding:16px; }
+.fp-featured-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.fp-slider-nav { display:flex; gap:6px; }
+.fp-slider-btn { width:32px; height:32px; border-radius:50%; border:1.5px solid var(--ln2); background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--t3); transition:all 140ms; }
+.fp-slider-btn:hover { border-color:var(--bl); color:var(--bl); background:rgba(42,79,246,.04); }
+.fp-slider-btn:disabled { opacity:.3; cursor:default; }
+.fp-slider-btn svg { width:16px; height:16px; }
+.fp-slider { display:flex; gap:12px; overflow-x:auto; scroll-behavior:smooth; scrollbar-width:none; padding:4px 0 8px; scroll-snap-type:x mandatory; }
+.fp-slider::-webkit-scrollbar { display:none; }
+.fp-slider > .sc-card { min-width:220px; max-width:240px; flex-shrink:0; scroll-snap-align:start; }
+@media(min-width:768px) { .fp-slider > .sc-card { min-width:230px; max-width:260px; } }
+
+/* ── Tab: Inventory ─────────────────────────────────────── */
+.fp-inv-filter { margin-bottom:20px; }
+.fp-inv-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width:768px) {
+    .fp-cover-img { border-radius:0; height:clamp(160px,30vw,220px); }
+    .fp-avatar-wrap { left:50%; transform:translateX(-50%); bottom:-32px; }
+    .fp-avatar { width:100px; height:100px; font-size:28px; border-width:4px; }
+    .fp-header { flex-direction:column; align-items:center; text-align:center; padding-top:40px; }
+    .fp-header-spacer { display:none; }
+    .fp-header-actions { justify-content:center; }
+    .fp-meta { justify-content:center; }
+    .fp-overview { grid-template-columns:1fr; }
+    .fp-nav-wrap { padding:0 16px; }
+    .fp-content { padding:16px; }
+    .fp-stats-grid { grid-template-columns:repeat(3,1fr); }
+}
+@media (max-width:480px) {
+    .fp-avatar { width:80px; height:80px; font-size:22px; }
+    .fp-header { padding-top:36px; }
+    .fp-name { font-size:20px; }
+    .fp-stats-grid { grid-template-columns:repeat(2,1fr); }
+    .fp-header-actions { flex-direction:column; width:100%; }
+    .fp-header-actions .btn { justify-content:center; }
+}

@@ -55,7 +55,11 @@ export type SeoInput = {
     /** Đường dẫn tương đối, ví dụ `/explore`. Canonical dựng từ nó. */
     path: string;
     image?: string | null;
-    type?: 'website' | 'article' | 'product';
+    // `profile` thêm 14/10/2026 (lát 5): trang hồ sơ media owner ở bản Blade
+    // phát `og:type=profile`, và đó là giá trị đúng cho một trang về một tổ
+    // chức. Giữ nguyên thay vì hạ xuống `website` — mạng xã hội dựng thẻ xem
+    // trước khác nhau cho hai giá trị này.
+    type?: 'website' | 'article' | 'product' | 'profile';
 };
 
 export function buildMetadata({

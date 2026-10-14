@@ -265,6 +265,114 @@ const TRANG = [
         khong: ['class="oc"', 'class="oc-body"', 'class="oc-stats"'],
     },
     {
+        path: '/owners/owner-mot',
+        ten: 'hồ sơ media owner',
+        co: [
+            // Lát 5 — ảnh bìa + avatar
+            'class="fp-cover"',
+            'class="fp-cover-img"',
+            'class="fp-avatar-wrap"',
+            'class="fp-avatar"',
+
+            // Lát 5 — hàng tên + meta + nút liên hệ
+            'class="fp-header"',
+            'class="fp-name"',
+            'class="fp-tagline"',
+            'class="fp-meta"',
+            'class="fp-meta-item"',
+            'class="fp-header-actions"',
+            'class="fp-meta-item own-rating"', // điểm trung bình, chỉ khi có đánh giá
+            'class="own-rating-avg"',
+
+            // Lát 5 — hai tab, và nội dung CẢ HAI render ở máy chủ
+            'class="fp-nav-wrap"',
+            'class="fp-tabs"',
+            'id="fp-overview"',
+            'id="fp-inventory"',
+
+            // Lát 5 — cột trái: bốn thẻ
+            'class="fp-overview"',
+            'class="fp-sidebar"',
+            'class="fp-card"',
+            'class="fp-card-title"',
+            'class="fp-info-row"',
+            'class="fp-info-val"',
+            'class="fp-info-label"',
+            'class="fp-stats-grid"',
+            'class="fp-stat"',
+            'class="fp-stat-n"',
+            'class="fp-venue-tags"',
+            'class="fp-venue-tag"',
+
+            // Lát 5 — đánh giá người mua
+            'class="own-rv"',
+            'class="own-rv-hd"',
+            'class="own-rv-org"',
+            'class="own-rv-cmt"',
+            'class="own-rv-date"',
+
+            // Lát 5 — cột phải: băng trượt
+            'class="fp-card fp-featured-card"',
+            'class="fp-featured-head"',
+            'class="fp-slider-nav"',
+            'class="fp-slider-btn"',
+            'class="fp-slider"',
+            'class="sc-card sc-compact"',
+
+            // Lát 5 — tab kho: ô tìm kiếm lớn + lưới + bộ đếm
+            'class="fp-inv-filter"',
+            'class="ms-wrap"',
+            'class="fp-inv-header"',
+            'class="avail-badge"',
+            'class="inv-grid"',
+
+            // JSON-LD có `aggregateRating` vì fixture CÓ đánh giá
+            'aggregateRating',
+
+            // `og:type=profile` như bản Blade
+            'content="profile"',
+        ],
+        khong: [
+            // Bố cục cũ của bản Next: `pg-hero` + một `<h2>` là tất cả những
+            // gì trang này từng có.
+            'class="pg-hero"',
+
+            // Lưới thẻ owner KHÔNG thuộc trang hồ sơ của một owner.
+            'class="oc-grid oc-grid--full"',
+
+            // `stats.screens` / `stats.cities` là hai khóa KHÔNG có trong hợp
+            // đồng `OwnerDetail` (stub từng viết sai thế). Nếu trang đọc chúng
+            // thì hai số đếm ra 0 — nên canh chuỗi "0 màn hình".
+            '>0 màn hình',
+        ],
+    },
+    {
+        path: '/owners/owner-khong-danh-gia',
+        ten: 'hồ sơ owner chưa có đánh giá',
+        co: [
+            'class="fp-avatar"',
+            'id="fp-overview"',
+
+            // Owner này KHÔNG có màn hình nào: thẻ "Màn hình nổi bật" vẫn phải
+            // có mặt với câu nói rõ, không phải một băng trượt rỗng.
+            'Media owner này chưa công khai màn hình nào',
+        ],
+        khong: [
+            // Chưa ai đánh giá → không thẻ đánh giá, không điểm trung bình,
+            // và JSON-LD KHÔNG được khai `aggregateRating`: `ratingValue: 0`
+            // nói với công cụ tìm kiếm rằng owner bị đánh giá 0/5.
+            'class="own-rv"',
+            'class="fp-meta-item own-rating"',
+            'aggregateRating',
+
+            // Không `founded` → không ô "Kinh nghiệm".
+            'Kinh nghiệm',
+
+            // Băng trượt không dựng khi không có thẻ nào.
+            'class="fp-slider"',
+        ],
+    },
+    {
         path: '/products',
         ten: 'danh sách gói',
         co: [

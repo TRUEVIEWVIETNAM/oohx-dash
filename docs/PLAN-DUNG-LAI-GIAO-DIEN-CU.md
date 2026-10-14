@@ -2,8 +2,8 @@
 
 Viết 14/10/2026 · Claude Code · Đối chiếu bản Blade trước giai đoạn 7 với bản Next đang chạy
 
-> **Tiến độ, cập nhật 14/10/2026.** Lát **0, 1, 2, 3 và 4 đã làm** (chủ dự án
-> duyệt từng lát). Lát 5 → 7 còn nguyên.
+> **Tiến độ, cập nhật 14/10/2026.** Lát **0 → 5 đã làm** (chủ dự án duyệt từng
+> lát). Lát 6 và 7 còn nguyên.
 >
 > **Hai chỗ bản kế hoạch này đo sai, phát hiện khi làm:**
 >
@@ -228,7 +228,7 @@ lát một PR, CI xanh mới merge.
 | ~~**2**~~ **XONG 14/10** | **Trang chủ**: mega-search, Live Map View, 4 bước đặt booking, Gói chiến dịch, Owner CTA, và phần hero còn thiếu (badge, `hstat`, hint, ảnh mô phỏng) | `locations` ✔ `pins` ✔ `stats` ✔ — **thêm** `categories_networks` vào `/filters` | 2–3 ngày |
 | ~~**3**~~ **XONG 14/10** | `/explore` + `/products`: sidebar lọc, results header, sắp xếp, drawer mobile | ~~`filters` ✔~~ — **có**: `filters` của màn hình không mang `categories`/`types` của gói, nên thêm `GET /api/v2/products/filters` | 2 ngày |
 | ~~**4**~~ **XONG 14/10** | `/explore/{slug}`: gallery + lightbox, bốn tab, insights, lịch trống theo tháng, panel giá, khối vị trí + POI, màn hình tương tự | **bốn món, đúng như dự đoán**: `photo_urls[]`, insights, lịch trống theo ngày (đường riêng, trần 3 tháng), màn hình gần đó — cộng `ScreenDetailResource` mới | 3–4 ngày |
-| **5** | `/owners/{slug}`: bố cục hồ sơ `fp-*` (chuyển 98 dòng CSS nội tuyến vào `frontpage.css`), đánh giá người mua | `owners/{slug}` ✔ đã có `cover_url`, `logo_url`, `tagline`, `about`, `contact`, `stats`, `venue_types`; `OwnerReviewResource` đã có | 2 ngày |
+| ~~**5**~~ **XONG 14/10** | `/owners/{slug}`: bố cục hồ sơ `fp-*` (chuyển **96** dòng CSS nội tuyến vào `frontpage.css`), hai tab, băng trượt, đánh giá người mua | `owners/{slug}` ✔ cho hồ sơ — nhưng **đánh giá cần một DTO mới**: `OwnerReviewResource` viết cho tác giả nhận xét (có `status`, `id`), không dùng được cho trang công khai | 2 ngày |
 | **6** | `/map`: smart-filter, thanh thành phố, nút zoom, chú giải, bộ đếm | `filters` ✔ `map` ✔ | 1–2 ngày |
 | **7** | `/products/{slug}`: gallery, panel giá có tab, danh sách màn hình trong gói | `products/{slug}` ✔ đã có `photo_urls`, `specs`, `package_options`, `screens` | 1–2 ngày |
 
@@ -379,6 +379,70 @@ nên câu sau là một cam kết chưa ai duyệt. Thay bằng liên kết tớ
 **Nút "Thêm vào Plan" dẫn tới `/login`.** Khu người mua chưa chuyển sang Next,
 nên nút gửi `POST` vào một đường chưa tồn tại là tệ hơn một nút nói thật là nó
 cần đăng nhập. Nút "lưu" (trái tim) cũng không dựng: nó gọi `POST /save/{id}`.
+
+## Những gì lát 5 đã đổi, và một quyết định tôi phải đảo
+
+**96 dòng CSS `fp-*` sống trong view đã bị gỡ — lần thứ hai cùng một chuyện.**
+Toàn bộ bố cục hồ sơ (`fp-cover`, `fp-avatar`, `fp-header`, `fp-tabs`,
+`fp-panel`, `fp-overview`, `fp-card`, `fp-stat`, `fp-slider`…) nằm trong
+`@push('head')` của `frontpage/owner-detail.blade.php`. Dựng lại bố cục mà
+không mang chúng theo thì **không một tên class nào có định nghĩa**: ảnh bìa
+không có chiều cao, avatar không tròn và không chồng lên bìa, hai cột thành
+một cột, và cả hai `fp-panel` hiện cùng lúc vì không có luật `display:none`.
+Lát 4 đã chuyển 70 dòng lightbox + POI từ `detail.blade.php` vì đúng lý do
+này; `tests/js/class-css.test.mjs` bắt được cả hai lần.
+
+**Một quyết định của bản Next trước đó phải đảo lại.** Trang `/owners/{slug}`
+của bản Next ghi trong docblock: *"tôi không in `contact`, vì một trang công
+khai in email và số điện thoại là một trang cho máy thu thập địa chỉ"* — kèm
+một câu phụ, *"bản Blade cũng không in"*. Câu phụ đó **sai**:
+`owner-detail.blade.php` in email, điện thoại, website và địa chỉ trong thẻ
+"Giới thiệu", cộng hai nút "Liên hệ" / "Gửi email" ở hàng tiêu đề. Và lý do
+chính không đứng được một mình: sàn **không thu hộ**, nên không thấy đường liên
+hệ owner thì không ai đặt được gì — lát 4 đã mở đúng hai trường này ở
+`/explore/{slug}` vì cùng lý do đó.
+
+Hệ quả: `webapp/test/seo.mjs` có một luật cấm `email`/`phone`/`contact` xuất
+hiện trên trang owner, và luật đó nay canh **đúng thứ phải chặn** — danh sách
+cấm của CLAUDE.md mục 2 (`revenue_share_pct`, `bank_*`, `tax_code`,
+`business_license_path`, `device_token`…). Nếu chủ dự án muốn ẩn liên hệ owner
+khỏi trang công khai thì đó là một quyết định mới, và nó phải sửa **cả ba
+chỗ**: DTO, trang hồ sơ, trang chi tiết màn hình.
+
+**`og:type` trả lại `profile`.** Bản Blade phát `profile` cho trang này; bản
+Next hạ xuống `website` khi chưa dựng bố cục hồ sơ. Mạng xã hội dựng thẻ xem
+trước khác nhau cho hai giá trị.
+
+**Đánh giá công khai có DTO RIÊNG, không dùng lại `OwnerReviewResource`.** DTO
+kia viết cho **tác giả** nhận xét (đường `GET campaigns/{campaign}`) và trả
+`id`, `status`, `status_label`, `owner.id`, `created_at`. Trên trang công khai
+`status` luôn là một giá trị duy nhất, id là khóa nội bộ, và `created_at` là
+thời điểm *viết* — có thể cách thời điểm *đăng* nhiều ngày vì đi qua kiểm
+duyệt. `OwnerPublicReviewResource` trả đúng bốn trường: `organization`,
+`rating`, `comment`, `published_at`.
+
+**`rating.average` là `null` khi chưa có đánh giá, KHÔNG phải 0.** Điểm 0 đọc
+ra là "bị đánh giá rất tệ"; sự thật là "chưa ai đánh giá". Trang dùng chính chỗ
+phân biệt này để quyết định có khai `aggregateRating` trong JSON-LD hay không —
+khai với `ratingValue: 0` là nói với công cụ tìm kiếm rằng owner bị 0/5, cùng
+loại lỗi `price: 0` của audit F-15.
+
+**Stub lại nói sai hợp đồng, và lại che một lỗi.** `OWNER_DETAIL.stats` trong
+`stub-api.mjs` viết `{ screens: 2, cities: 1 }` — hai khóa **không có** trong
+`OwnerDetail` (hợp đồng là `screen_count`, `city_count`, `venue_types`). Nên
+trang in "0 màn hình · 0 tỉnh/thành" trong mọi lượt build thử và không chốt nào
+đỏ. Đây là lần thứ hai: lát 3 đã sửa `type: 'bundle'` nằm ngoài enum. Cả hai
+lần, lỗi nằm ở **dữ liệu giả**, không ở mã — và cả hai lần nó làm trang hiện
+sai mà không ai thấy.
+
+**Hai chỗ tốt hơn bản Blade, có chủ ý:**
+
+- Tab mở sẵn do **máy chủ** quyết (`?tab=inventory`, có bộ lọc, hoặc `page>1`).
+  Bản Blade mở "Tổng quan" rồi nhảy sang "Màn hình" trong một IIFE sau khi tải
+  xong — người dùng thấy một nhịp nội dung sai trước khi nó biến mất.
+- Hai nút băng trượt **vô hiệu ở hai đầu**. `frontpage.css` đã có
+  `.fp-slider-btn:disabled` (opacity .3) nhưng không có JS nào đặt `disabled`,
+  nên ở bản cũ chúng luôn trông bấm được kể cả khi không còn gì để cuộn.
 
 ## Ba khối chưa dựng vì chúng là lời hứa, không phải hình (ghi 14/10/2026)
 

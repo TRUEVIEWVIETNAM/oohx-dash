@@ -205,6 +205,9 @@ export async function getScreenAvailability(
 export type OwnerSummary = components['schemas']['OwnerSummary'];
 export type OwnerDetail = components['schemas']['OwnerDetail'];
 
+/** Đánh giá đã duyệt của một media owner — khối phụ của trang hồ sơ. */
+export type OwnerPublicReview = components['schemas']['OwnerPublicReview'];
+
 export type OwnerListResult =
     paths['/api/v2/owners']['get']['responses'][200]['content']['application/json'];
 

@@ -200,13 +200,51 @@ const OWNER = {
 const OWNER_DETAIL = {
     ...OWNER,
     tagline: 'Khẩu hiệu của Công Ty Một',
-    about: 'Giới thiệu dài về Công Ty Một.',
+    about: 'Giới thiệu dài về Công Ty Một.\nDòng thứ hai, để kiểm `white-space: pre-line`.',
     logo_url: 'https://oohx.net/storage/owners/logo.jpg',
-    contact: { email: 'khong-duoc-lo@example.com', phone: '0900000001' },
+
+    // Bốn trường của `contact`, đủ như `OwnerDetailResource` trả — bản trước
+    // chỉ có `email` + `phone`, nên hai nhánh "Website" và "Trụ sở" của thẻ
+    // Giới thiệu không bao giờ được render trong lúc test.
+    contact: {
+        website: 'https://cong-ty-mot.test',
+        email: 'lien-he@cong-ty-mot.test',
+        phone: '0900000001',
+        address: 'Số 1 Đường Thử',
+    },
+
     location: { province: 'Hà Nội', commune: 'Ba Đình' },
     founded: 2015,
-    stats: { screens: 2, cities: 1 },
+
+    // `stats` **đúng hình dạng hợp đồng**: `screen_count`, `city_count`,
+    // `venue_types`. Bản trước viết `{ screens: 2, cities: 1 }` — hai khóa
+    // không có trong `OwnerDetail`, nên trang in "0 màn hình · 0 tỉnh/thành"
+    // trong mọi lượt build thử và không chốt nào đỏ. Cùng loại lỗi với
+    // `type: 'bundle'` đã sửa ở lát 3: một stub nói sai hợp đồng thì nó che
+    // đúng loại lỗi nó phải phơi ra.
+    stats: {
+        screen_count: 2,
+        city_count: 1,
+        venue_types: ['Trung tâm thương mại', 'Toà nhà văn phòng'],
+    },
 };
+
+/** Đánh giá đã duyệt + điểm trung bình của owner (lát 5). */
+const OWNER_REVIEWS = [
+    {
+        organization: 'Agency Thử',
+        rating: 5,
+        comment: 'Vị trí tốt, hỗ trợ nhanh.',
+        published_at: '2026-09-20',
+    },
+    {
+        // Không có `comment`: một nhận xét chỉ có số sao là nhánh render riêng.
+        organization: 'Brand Hai',
+        rating: 4,
+        comment: null,
+        published_at: '2026-08-02',
+    },
+];
 
 const PRODUCT = {
     slug: 'goi-mot',
@@ -436,7 +474,33 @@ function chiTiet(pathname, searchParams = new URLSearchParams()) {
     }
 
     if (pathname === '/api/v2/owners/owner-mot') {
-        return { data: OWNER_DETAIL, screens: { data: [SCREEN_CO_GIA], meta: PAGE_META } };
+        return {
+            data: OWNER_DETAIL,
+            screens: { data: [SCREEN_CO_GIA], meta: PAGE_META },
+            reviews: OWNER_REVIEWS,
+            rating: { average: 4.5, count: 2 },
+        };
+    }
+
+    // Owner thứ hai: KHÔNG có đánh giá nào, không logo, không `founded`.
+    // Ba nhánh rỗng của trang hồ sơ (không thẻ đánh giá, avatar là chữ cái
+    // đầu, không ô "Kinh nghiệm") phải được render ở đâu đó, nếu không thì
+    // chốt chỉ canh trường hợp đầy đủ.
+    if (pathname === '/api/v2/owners/owner-khong-danh-gia') {
+        return {
+            data: {
+                ...OWNER_DETAIL,
+                slug: 'owner-khong-danh-gia',
+                name: 'Công Ty Hai',
+                logo_url: null,
+                cover_url: null,
+                founded: null,
+                stats: { screen_count: 0, city_count: 0, venue_types: [] },
+            },
+            screens: { data: [], meta: { ...PAGE_META, total: 0 } },
+            reviews: [],
+            rating: { average: null, count: 0 },
+        };
     }
 
     if (pathname === '/api/v2/products/goi-mot') {
