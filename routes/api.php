@@ -119,6 +119,11 @@ Route::prefix('v2')->group(function () {
     Route::get('agencies',         [V2CatalogController::class, 'agencies']);
 
     Route::get('products',        [V2CatalogController::class, 'products']);
+    // Đứng TRƯỚC `products/{slug}`, cùng lý do như `screens/map` ở trên: đặt
+    // sau thì Laravel khớp "filters" vào {slug} và endpoint bộ lọc trả 404 —
+    // một 404 không ai đọc ra nguyên nhân, vì đó là câu trả lời hợp lệ của
+    // đường kia.
+    Route::get('products/filters', [V2CatalogController::class, 'productFilters']);
     Route::get('products/{slug}', [V2CatalogController::class, 'product']);
 
     // Nội dung công khai ngoài danh mục, cho những route của giai đoạn 6 không

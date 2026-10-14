@@ -246,6 +246,38 @@ export async function getFilters(): Promise<Filters> {
     return body.data;
 }
 
+// ── Bộ lọc cho danh sách sản phẩm, và danh sách tỉnh thành ──────────────────
+
+export type ProductFilters =
+    paths['/api/v2/products/filters']['get']['responses'][200]['content']['application/json']['data'];
+
+export type Region = components['schemas']['Region'];
+
+/**
+ * Bộ lọc của sidebar `/products`.
+ *
+ * Đường riêng, không phải `/filters`: `/filters` đếm trên bảng **màn hình**,
+ * nên `cities` ở đó là thành phố có màn hình — không phải thành phố có gói.
+ * Cùng tên khóa, khác con số.
+ */
+export async function getProductFilters(): Promise<ProductFilters> {
+    const body = await get<{ data: ProductFilters }>('/products/filters', { revalidate: 900 });
+
+    return body.data;
+}
+
+/**
+ * Tỉnh thành nhóm theo vùng — ô tìm kiếm lớn cần nó, cả ở trang chủ lẫn
+ * `/explore`.
+ *
+ * `revalidate` dài: danh sách chỉ đổi khi một tỉnh có màn hình đầu tiên.
+ */
+export async function getLocations(): Promise<Region[]> {
+    const body = await get<{ data: Region[] }>('/locations', { revalidate: 1800 });
+
+    return body.data;
+}
+
 // ── Phản ánh của tổ chức xã hội ─────────────────────────────────────────────
 
 export type ReflectionListResult =

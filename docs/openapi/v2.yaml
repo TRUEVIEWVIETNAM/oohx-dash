@@ -368,6 +368,41 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '500': { $ref: '#/components/responses/ServerError' }
 
+  /api/v2/products/filters:
+    get:
+      tags: [catalog]
+      summary: Bộ lọc cho danh sách sản phẩm
+      description: |
+        Tách khỏi `/api/v2/filters`, và tách có lý do: hai bên đếm hai miền
+        khác nhau. `/filters` lấy `cities` từ bảng **màn hình**; ở đây
+        `cities` là thành phố **của gói**. Cùng tên khóa, khác con số — nhét
+        chung một payload là mời bên gọi ghi nhãn bộ lọc gói bằng số đếm của
+        màn hình.
+
+        Nguồn là `ProductService::getFilterAggregates()`, đúng thứ sidebar
+        `/products` của bản Blade đang vẽ.
+
+        `cities[].name` vừa là nhãn vừa là giá trị gửi lên `?city=`: cột
+        `products.city` là chuỗi tự do, không phải mã tỉnh thành như bên màn
+        hình.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [categories, types, cities]
+                    properties:
+                      categories: { type: array, items: { $ref: '#/components/schemas/ProductFacet' } }
+                      types:      { type: array, items: { $ref: '#/components/schemas/ProductFacet' } }
+                      cities:     { type: array, items: { $ref: '#/components/schemas/ProductCityFacet' } }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /api/v2/products/{slug}:
     get:
       tags: [catalog]
@@ -2191,6 +2226,28 @@ components:
       required: [code, name, count]
       properties:
         code:  { type: [string, 'null'] }
+        name:  { type: [string, 'null'] }
+        count: { type: integer }
+
+    ProductFacet:
+      type: object
+      description: |
+        Khóa là `slug`, không phải `code` như `FilterFacet`: đó là tên trường
+        bộ lọc sản phẩm nhận (`?category=`, `?type=`). Đổi tên ở DTO chỉ để
+        trông giống bên màn hình là bắt bên gọi tự dịch lại.
+      required: [slug, label, count]
+      properties:
+        slug:  { type: [string, 'null'] }
+        label: { type: [string, 'null'] }
+        count: { type: integer }
+
+    ProductCityFacet:
+      type: object
+      description: |
+        `name` vừa là nhãn vừa là giá trị gửi lên `?city=`, vì cột
+        `products.city` là chuỗi tự do chứ không phải mã tỉnh thành.
+      required: [name, count]
+      properties:
         name:  { type: [string, 'null'] }
         count: { type: integer }
 

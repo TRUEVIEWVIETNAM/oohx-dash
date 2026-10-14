@@ -1135,6 +1135,14 @@ ul{list-style:none}
 .ex-results{padding:20px 0 48px}
 @media(min-width:768px){.ex-results{padding:24px 0 56px}}
 @media(min-width:1024px){.ex-results{padding:28px 0 64px}}
+/* Listing layout (sidebar | results) — dùng ở /products.
+   Thêm 14/10/2026: bản Blade đặt class này trên thẻ bọc nhưng KHÔNG có
+   định nghĩa nào trong stylesheet, nên trên desktop sidebar nằm thành một
+   khối chiếm hết chiều rộng phía trên lưới. Một bố cục hai cột thiếu cột.
+   Hai cột chỉ bật từ 1024px — dưới mức đó `.sidebar` vốn là `display:none`
+   và chỉ hiện ra dưới dạng drawer, nên một cột là đúng. */
+.listing-layout{display:block;padding:20px 0 48px}
+@media(min-width:1024px){.listing-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;align-items:start;padding:28px 0 64px}}
 /* Sidebar: mobile-first — bottom sheet 60vh (same as map-panel), inline on desktop */
 .sidebar{display:none;width:100%;background:#fff;overflow:hidden}
 .sidebar.open{display:flex;flex-direction:column;position:fixed;bottom:var(--nav);left:0;right:0;top:auto;height:60vh;z-index:300;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.12)}

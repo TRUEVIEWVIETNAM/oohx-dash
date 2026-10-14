@@ -49,6 +49,7 @@ export function KhoiKetQua({
     sort = '',
     basePath,
     query = {},
+    kieuXem = true,
     children,
 }: {
     tong: number;
@@ -56,6 +57,15 @@ export function KhoiKetQua({
     sort?: string;
     basePath: string;
     query?: Record<string, string | undefined>;
+    /**
+     * Hai nút đổi kiểu xem lưới/danh sách.
+     *
+     * `/products` của bản Blade **không có** chúng, và lý do nằm trong CSS:
+     * `.inv-grid.list-view` chỉ đặt lưới về một cột rồi nhắm tiếp vào `.ic-*`
+     * — bộ class của `.inv-card`, không phải `.pd-card` của thẻ gói. Dựng hai
+     * nút đó ở đây là cho người dùng một công tắc chỉ làm lưới hẹp lại.
+     */
+    kieuXem?: boolean;
     children: ReactNode;
 }) {
     const router = useRouter();
@@ -114,29 +124,33 @@ export function KhoiKetQua({
                     ))}
                 </select>
 
-                <button
-                    type="button"
-                    className={dangList ? 'view-btn' : 'view-btn on'}
-                    onClick={() => doiKieuXem(false)}
-                    aria-label="Xem dạng lưới"
-                    aria-pressed={!dangList}
-                >
-                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z" />
-                    </svg>
-                </button>
+                {kieuXem ? (
+                    <>
+                    <button
+                        type="button"
+                        className={dangList ? 'view-btn' : 'view-btn on'}
+                        onClick={() => doiKieuXem(false)}
+                        aria-label="Xem dạng lưới"
+                        aria-pressed={!dangList}
+                    >
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z" />
+                        </svg>
+                    </button>
 
-                <button
-                    type="button"
-                    className={dangList ? 'view-btn on' : 'view-btn'}
-                    onClick={() => doiKieuXem(true)}
-                    aria-label="Xem dạng danh sách"
-                    aria-pressed={dangList}
-                >
-                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
-                    </svg>
-                </button>
+                    <button
+                        type="button"
+                        className={dangList ? 'view-btn on' : 'view-btn'}
+                        onClick={() => doiKieuXem(true)}
+                        aria-label="Xem dạng danh sách"
+                        aria-pressed={dangList}
+                    >
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
+                        </svg>
+                    </button>
+                    </>
+                ) : null}
             </div>
 
             <div className={dangList ? 'inv-grid list-view' : 'inv-grid'}>{children}</div>

@@ -216,6 +216,26 @@ const ROUTES = {
         meta: { page: 1, per_page: 12, total: 2, last_page: 1, max_per_page: 50 },
     },
 
+    // Bộ lọc của sidebar /products (lát 3). Đường RIÊNG, không phải
+    // /api/v2/filters: ở đó `cities` đếm trên bảng màn hình, còn đây là
+    // thành phố có gói — cùng tên khóa, khác con số. Số đếm ở đây cố ý khác
+    // hẳn bên kia để một lần nhầm hai endpoint là thấy ngay trên trang.
+    '/api/v2/products/filters': {
+        data: {
+            categories: [
+                { slug: 'led', label: 'Màn hình LED', count: 7 },
+                { slug: 'billboard', label: 'Biển bảng', count: 2 },
+            ],
+            types: [
+                { slug: 'package', label: 'Gói', count: 6 },
+                { slug: 'single', label: 'Đơn lẻ', count: 3 },
+            ],
+            cities: [
+                { name: 'Hà Nội', count: 5 },
+                { name: 'Đà Nẵng', count: 4 },
+            ],
+        },
+    },
     '/api/v2/filters': {
         data: {
             cities: [{ code: 'hanoi', name: 'Hà Nội', count: 104 }],
