@@ -5,6 +5,7 @@ import { buildMetadata, OgType } from '@/lib/seo';
 import { ScreenCard } from '@/components/ScreenCard';
 import { SiteHeader } from '@/components/SiteHeader';
 import { Pagination } from '@/components/Pagination';
+import { KhoiKetQua } from '@/components/KhoiKetQua';
 
 /**
  * `/explore` — danh sách màn hình. Đường dẫn ĐẦU TIÊN chuyển sang Next.js.
@@ -71,29 +72,53 @@ export default async function ExplorePage({
             <div className="ex-hero">
                 <div className="w">
                     <div className="ex-top">
-                        <div>
-                            <h1>Khám phá inventory</h1>
-                            <p>
-                                {new Intl.NumberFormat('vi-VN').format(meta.total ?? 0)} vị trí
-                                OOH/DOOH trên toàn quốc.
-                            </p>
-                        </div>
+                        <h1 className="ex-title">Khám phá Inventory</h1>
+
+                        {/*
+                          Nút sang bản đồ, đúng chỗ bản Blade đặt nó. Hai trang
+                          nhìn cùng một kho theo hai cách, nên mỗi bên phải có
+                          đường sang bên kia; thiếu nó thì `/map` chỉ đến được
+                          từ thanh điều hướng.
+                        */}
+                        <Link href="/map" className="ph-map-btn">
+                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z" />
+                            </svg>
+                            Bản đồ
+                        </Link>
                     </div>
+
+                    {/*
+                      Bản Blade có `mega-search` (biến thể `compact`) ngay dưới
+                      hàng tiêu đề này. Nó **chưa** được dựng lại ở đây: nó là
+                      lát 3 của `docs/PLAN-DUNG-LAI-GIAO-DIEN-CU.md`, và lát 3
+                      chưa được duyệt. Khối thiếu, không phải khối quên.
+                    */}
                 </div>
             </div>
 
-            <div className="w">
-                {screens.length === 0 ? (
-                    <div style={{ padding: '64px 20px', textAlign: 'center', color: 'var(--t4)' }}>
-                        Không có vị trí nào khớp bộ lọc.
-                    </div>
-                ) : (
-                    <div className="oc-grid oc-grid--full">
-                        {screens.map((screen) => (
-                            <ScreenCard key={screen.slug} screen={screen} />
-                        ))}
-                    </div>
-                )}
+            <div className="w ex-results">
+                <KhoiKetQua
+                    tong={meta.total ?? 0}
+                    sort={params.sort ?? ''}
+                    basePath="/explore"
+                    query={params}
+                >
+                    {screens.length === 0 ? (
+                        <div
+                            style={{
+                                gridColumn: '1/-1',
+                                textAlign: 'center',
+                                padding: '60px 0',
+                                color: 'var(--t4)',
+                            }}
+                        >
+                            Không tìm thấy inventory phù hợp
+                        </div>
+                    ) : (
+                        screens.map((screen) => <ScreenCard key={screen.slug} screen={screen} />)
+                    )}
+                </KhoiKetQua>
 
                 <Pagination basePath="/explore" params={params} meta={meta} />
                 </div>

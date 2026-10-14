@@ -54,12 +54,21 @@ const SCREEN_KHONG_GIA = {
 
 const AVAILABILITY = { window_days: 30, remaining_sov_pct: 60, has_capacity: true };
 
+// `logo_url`, `city_count`, `venue_types`, `verified` thêm 14/10/2026 cùng với
+// `OwnerSummaryResource`: thẻ owner dựng lại theo bản Blade in cả bốn, nên dữ
+// liệu giả phải có chúng — nếu không thì HTML đã render không đi qua những
+// nhánh đó và phép kiểm khối giao diện canh một thẻ nghèo hơn thẻ thật.
 const OWNER = {
     slug: 'owner-mot',
     name: 'Công Ty Một',
     type: 'agency',
+    logo_url: 'https://oohx.net/storage/owners/logo.jpg',
     cover_url: 'https://oohx.net/storage/owners/a.jpg',
     screen_count: 2,
+    city_count: 1,
+    venue_types: ['Trung tâm thương mại', 'Toà nhà văn phòng'],
+    verified: true,
+    featured: false,
 };
 
 const OWNER_DETAIL = {

@@ -4,6 +4,7 @@ import { getHomeData, DEFAULT_CITY } from '@/lib/home';
 import { buildMetadata, jsonLd, OgType } from '@/lib/seo';
 import { SiteHeader } from '@/components/SiteHeader';
 import { ScreenCard } from '@/components/ScreenCard';
+import { OwnerCard } from '@/components/OwnerCard';
 
 /**
  * Trang chủ — đường dẫn cuối của giai đoạn 6 trước nhóm trang chính sách.
@@ -172,7 +173,7 @@ export default async function HomePage() {
                             <h2 className="section-hed">Vị trí nổi bật</h2>
                         </div>
 
-                        <div className="oc-grid oc-grid--full">
+                        <div className="inv-grid">
                             {featuredScreens.map((screen) => (
                                 <ScreenCard
                                     key={screen.slug}
@@ -203,33 +204,20 @@ export default async function HomePage() {
                             <h2 className="section-hed">Media owner trên sàn</h2>
                         </div>
 
-                        <div className="oc-grid oc-grid--full">
-                            {featuredOwners.map((owner) => (
-                                <article className="oc" key={owner.slug}>
-                                    <Link href={`/owners/${owner.slug}`} className="oc-cover">
-                                        {owner.cover_url ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img
-                                                src={owner.cover_url}
-                                                alt={owner.name ?? ''}
-                                                loading="lazy"
-                                            />
-                                        ) : null}
-                                    </Link>
-                                    <div className="oc-body">
-                                        <h3 className="oc-name">
-                                            <Link href={`/owners/${owner.slug}`}>{owner.name}</Link>
-                                        </h3>
-                                        <div className="oc-stats">
-                                            <span>
-                                                {new Intl.NumberFormat('vi-VN').format(
-                                                    owner.screen_count ?? 0,
-                                                )}{' '}
-                                                màn hình
-                                            </span>
-                                        </div>
-                                    </div>
-                                </article>
+                        {/*
+                          `oc-grid` KHÔNG kèm `oc-grid--full`: biến thể `full`
+                          là lưới 4 cột cho thẻ owner đầy đủ ở `/owners`, còn
+                          trang chủ dùng thẻ `compact` trong lưới gốc — đúng
+                          cặp mà bản Blade dùng.
+                        */}
+                        <div className="oc-grid">
+                            {featuredOwners.map((owner, i) => (
+                                <OwnerCard
+                                    key={owner.slug}
+                                    owner={owner}
+                                    index={i}
+                                    variant="compact"
+                                />
                             ))}
                         </div>
                     </section>

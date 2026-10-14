@@ -502,3 +502,202 @@ test('toán hạng so sánh không bị nhận là tên class', () => {
         'Bộ trích phải lấy hai nhánh màu và bỏ toán hạng so sánh',
     );
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+// Trang Next — cùng stylesheet, trước đây không ai canh
+//
+// `webapp/app/globals.css` chỉ `@import` chính `frontpage.css`, nên mọi tên
+// class trong `webapp/` chịu đúng một ràng buộc như Blade: **đặt vào DOM thì
+// phải có người định nghĩa.** Nhưng mọi phép kiểm phía trên lấy phạm vi từ
+// `resources/views`, nên trang Next nằm ngoài — và hai lỗi thật đã sống sót
+// qua mọi lượt CI vì thế:
+//
+//   • Thẻ owner ở `/owners` và trang chủ dùng SÁU tên class không ai định
+//     nghĩa: `oc`, `oc-cover`, `oc-body`, `oc-name`, `oc-stats`, `oc-type`.
+//     Thẻ ra DOM mà không có một kiểu nào, kể cả khung. Bộ đúng là `oc-card-*`
+//     — và `frontpage.css` dòng 1836 còn ghi đúng điều đó trong một chú thích:
+//     "Old .owners-layout / .oc removed — replaced by .oc-card system above".
+//
+//   • Thẻ màn hình và thẻ gói mở bằng `className="sc"`, trong khi `.sc` là một
+//     ô bảng thông số và thẻ màn hình là `.sc-card`.
+//
+// Lỗi thứ hai **không** bị phép kiểm này bắt: cả hai tên đều có định nghĩa.
+// Nó được canh ở `webapp/test/khoi-giao-dien.mjs`, trên HTML đã render. Ghi ở
+// đây để người đọc không tin rằng tệp này phủ cả hai.
+// ════════════════════════════════════════════════════════════════════════════
+
+const THU_MUC_NEXT = ['webapp/app', 'webapp/components'];
+
+function moiTepTsx() {
+    const ra = [];
+
+    for (const goc of THU_MUC_NEXT) {
+        (function quet(thuMuc) {
+            for (const m of readdirSync(thuMuc, { withFileTypes: true })) {
+                const d = join(thuMuc, m.name);
+
+                // `.next/` là đầu ra của build, không phải mã nguồn.
+                if (m.isDirectory() && m.name !== '.next' && m.name !== 'node_modules') quet(d);
+                else if (m.isFile() && /\.tsx$/.test(m.name)) ra.push(d);
+            }
+        })(resolve(GOC, goc));
+    }
+
+    return ra.sort();
+}
+
+/**
+ * Phần trong `{…}` ngay sau một vị trí, cắt theo ngoặc **khớp cặp**.
+ *
+ * Không dùng biểu thức chính quy cho việc này. `className={`a ${x ? 'b' : ''}`}`
+ * có ngoặc lồng, và một regex không tham sẽ dừng ở `}` của `${…}` — bản đầu của
+ * bộ trích này làm đúng vậy và bỏ sót mọi className dạng template. Lỗi đó không
+ * làm test đỏ: nó làm test **xanh vì không thấy gì**, nên phải đếm ngoặc thật.
+ *
+ * Trả `null` khi không khớp cặp — tệp vỡ cú pháp thì để `tsc` nói, không đoán.
+ */
+function trongNgoac(raw, batDau) {
+    let sau = 0;
+
+    for (let i = batDau; i < raw.length; i++) {
+        const c = raw[i];
+
+        if (c === '{') sau++;
+        else if (c === '}') {
+            sau--;
+
+            if (sau === 0) return raw.slice(batDau + 1, i);
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Mọi tên class một tệp TSX có thể đặt vào DOM.
+ *
+ * Ba dạng, vì cả ba đều có trong `webapp/`:
+ *
+ *   className="sc-card"                     — chuỗi thuần
+ *   className={`sc-card ${x ? 'a' : 'b'}`}  — template, có phần tĩnh
+ *   className={dk ? 'a b' : 'c'}            — chuỗi trong biểu thức
+ *
+ * Dạng template có tên class **ngoài** dấu nháy (`sc-card` ở trên), nên phải
+ * lấy riêng: cắt `${…}` đi rồi tách phần văn bản còn lại. Phần bên trong `${…}`
+ * thì lấy như một biểu thức — mọi chuỗi nháy, bỏ toán hạng so sánh, cùng lý do
+ * như bên Blade: `x === 'package'` không phải một tên class.
+ */
+function classCuaTepTsx(raw) {
+    const ra = new Map();
+
+    for (const m of raw.matchAll(/className=(["'])([^"'{}]*)\1/g)) tach(m[2], 'className="…"', ra);
+
+    for (const m of raw.matchAll(/className=(?=\{)/g)) {
+        const bieuThuc = trongNgoac(raw, m.index + m[0].length);
+
+        if (bieuThuc === null) continue;
+
+        // Phần tĩnh của mọi template literal trong biểu thức.
+        for (const t of bieuThuc.matchAll(/`([\s\S]*?)`/g)) {
+            tach(t[1].replace(/\$\{[\s\S]*?\}/g, ' '), 'className={`…`}', ra);
+        }
+
+        for (const s of chuoiTrongBieuThuc(bieuThuc.replace(/`[\s\S]*?`/g, ' '))) {
+            tach(s, 'className={…}', ra);
+        }
+
+        // Chuỗi nháy nằm TRONG `${…}` của template — `${full ? '' : 'x'}`.
+        for (const t of bieuThuc.matchAll(/\$\{([\s\S]*?)\}/g)) {
+            for (const s of chuoiTrongBieuThuc(t[1])) tach(s, 'className={`${…}`}', ra);
+        }
+    }
+
+    for (const m of raw.matchAll(/classList\.(?:add|remove|toggle)\(([^)]*)\)/g)) {
+        for (const s of m[1].matchAll(/(['"])([^'"]+)\1/g)) tach(s[2], 'classList', ra);
+    }
+
+    return ra;
+}
+
+const TEP_TSX = moiTepTsx();
+
+/**
+ * Một tên class có người định nghĩa.
+ *
+ * Token kết thúc bằng `-` là **tiền tố**, không phải tên đầy đủ: nó là phần
+ * còn lại sau khi cắt `${…}` khỏi một template, ví dụ
+ * `` `rfl-badge rfl-badge--${r.status}` `` để lại `rfl-badge--`. Với dạng đó,
+ * điều kiểm được là **có ít nhất một** class trong CSS mang tiền tố ấy — đủ để
+ * bắt một tiền tố viết sai (`rfl-bdge--`), và không báo oan cho một hậu tố mà
+ * chỉ thời gian chạy mới biết.
+ *
+ * Giữ nguyên mức này thay vì liệt kê các hậu tố có thể: danh sách hậu tố nằm
+ * ở phía API (`reflections.status`), và chép nó vào đây là tạo bản thứ hai của
+ * một enum — đúng thứ `NhanEnumMotNoiTest` tồn tại để chống.
+ */
+function coNguoiDinhNghia(t) {
+    if (CO_CSS.has(t)) return true;
+
+    if (t.endsWith('-')) {
+        for (const c of CO_CSS) if (c.startsWith(t) && c.length > t.length) return true;
+    }
+
+    return false;
+}
+
+test('mọi class của mọi trang Next đều có người định nghĩa trong CSS', () => {
+    const thieu = [];
+
+    for (const d of TEP_TSX) {
+        for (const [t, nguon] of classCuaTepTsx(readFileSync(d, 'utf8'))) {
+            if (! coNguoiDinhNghia(t)) {
+                thieu.push(`${d.slice(resolve(GOC).length + 1)}: .${t} (từ ${nguon})`);
+            }
+        }
+    }
+
+    assert.deepEqual(
+        thieu,
+        [],
+        `Các class sau ra DOM từ trang Next mà không có định nghĩa nào trong ${TEP_CSS}:\n  `
+        + thieu.join('\n  '),
+    );
+});
+
+test('phạm vi Next không rỗng — đổi thư mục hay đổi cú pháp phải đỏ', () => {
+    // Không có phép kiểm này thì đổi `webapp/app` sang một tên khác, hay đổi
+    // cách viết className, sẽ làm phạm vi co về rỗng — và phép kiểm trên xanh
+    // vì không quét gì cả. Đó đúng là tình trạng của tệp này trước 14/10/2026,
+    // chỉ khác là phạm vi rỗng vì chưa ai viết nó.
+    assert.ok(TEP_TSX.length >= 15, `Chỉ thấy ${TEP_TSX.length} tệp .tsx — bộ quét thư mục đã vỡ`);
+
+    let tong = 0;
+
+    for (const d of TEP_TSX) tong += classCuaTepTsx(readFileSync(d, 'utf8')).size;
+
+    assert.ok(tong >= 80, `Chỉ trích được ${tong} class trên cả nhóm Next — bộ trích đã vỡ`);
+});
+
+test('bộ trích TSX đọc được cả ba dạng className', () => {
+    // Canh chính bộ trích. Dạng template và dạng biểu thức là nơi tên class dễ
+    // lọt: một bộ trích chỉ hiểu `className="…"` sẽ bỏ qua chúng và vẫn xanh.
+    const ra = classCuaTepTsx(`
+        <div className="sc-card" />
+        <div className={\`oc-card \${full ? '' : 'oc-card--compact'}\`} />
+        <div className={loai === 'package' ? 'pd-badge' : 'pd-badge-cat'} />
+    `);
+
+    assert.deepEqual(
+        [...ra.keys()].sort(),
+        ['oc-card', 'oc-card--compact', 'pd-badge', 'pd-badge-cat', 'sc-card'],
+        'Bộ trích phải lấy cả ba dạng và bỏ toán hạng so sánh',
+    );
+});
+
+test('tiền tố động phải có ít nhất một class mang nó', () => {
+    // Canh chính luật tiền tố. Nếu nó nới thành "cứ kết thúc bằng - là bỏ qua"
+    // thì một tiền tố viết sai sẽ lọt, và đó là cả giá trị còn lại của luật này.
+    assert.ok(coNguoiDinhNghia('rfl-badge--'), '.rfl-badge--* có trong CSS, tiền tố phải được nhận');
+    assert.ok(! coNguoiDinhNghia('rfl-bdge--'), 'Tiền tố viết sai phải bị báo');
+    assert.ok(! coNguoiDinhNghia('khong-co-that'), 'Tên không có trong CSS phải bị báo');
+});

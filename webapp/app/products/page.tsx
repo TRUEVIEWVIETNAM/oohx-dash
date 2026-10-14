@@ -67,7 +67,7 @@ export default async function ProductsPage({
                             Không có gói nào khớp bộ lọc.
                         </div>
                     ) : (
-                        <div className="oc-grid oc-grid--full">
+                        <div className="inv-grid">
                             {products.map((product) => (
                                 <ProductCard key={product.slug} product={product} />
                             ))}
@@ -81,79 +81,102 @@ export default async function ProductsPage({
     );
 }
 
+/**
+ * Chữ và màu cho `products.type`.
+ *
+ * Chép đúng bản Blade (`products/partials/product-card.blade.php`). Màu đi
+ * trong `style` chứ không thành class: bản Blade cũng vậy, và `frontpage.css`
+ * không có lớp màu nào cho ba giá trị này.
+ */
+const KIEU_GOI: Record<string, { nhan: string; mau: string }> = {
+    single: { nhan: 'Đơn lẻ', mau: 'var(--bl)' },
+    package: { nhan: 'Gói', mau: 'var(--grn)' },
+    custom: { nhan: 'Combo', mau: 'var(--org)' },
+};
+
+/**
+ * Thẻ một gói sản phẩm.
+ *
+ * ══ Vì sao viết lại 14/10/2026 ══
+ *
+ * Bản trước mở bằng `<article className="sc">` và dùng tiếp bộ `sc-*` — tức bộ
+ * class của **thẻ màn hình**, và `sc` lại là một ô bảng thông số. Bản Blade có
+ * bộ riêng cho gói: `pd-card`, `pd-photo`, `pd-badges`, `pd-units`, `pd-body`,
+ * `pd-name`, `pd-owner`, `pd-loc`, `pd-desc`, `pd-foot`, `pd-price`, `pd-btn`.
+ * Chúng vẫn nằm đủ trong `frontpage.css`.
+ *
+ * Hai thứ bản Blade in mà DTO không có: `category_label` làm chữ cho ảnh thay
+ * thế, và `price_display` (chuỗi đã định dạng ở phía PHP). Giá ở đây tự định
+ * dạng — xem `formatProductPrice()` về việc vì sao không in `0 ₫`.
+ */
 export function ProductCard({ product }: { product: ProductSummary }) {
+    const kieu = product.type ? KIEU_GOI[product.type] : undefined;
+    const gia = formatProductPrice(product);
+    const laGoi = product.type === 'package';
+    const soViTri = product.quantity?.total_units ?? 0;
+
     return (
-        <article className="sc">
-            <Link href={`/products/${product.slug}`} className="sc-photo">
+        <Link href={`/products/${product.slug}`} className="pd-card">
+            <div className="pd-photo">
                 {product.cover_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={product.cover_url} alt={product.name ?? ''} loading="lazy" />
                 ) : null}
-            </Link>
 
-            <div className="sc-body">
-                <div className="sc-breadcrumb">
-                    {product.location?.city ? <span>{product.location.city}</span> : null}
+                <div className="pd-badges">
+                    {product.type ? (
+                        <span
+                            className="pd-badge"
+                            style={{ background: kieu?.mau ?? 'var(--bl)' }}
+                        >
+                            {kieu?.nhan ?? product.type}
+                        </span>
+                    ) : null}
+
                     {/*
                       `category` là một đối tượng `{code, label}`, không phải
                       chuỗi — in `label`, không in cả khối. Type checker bắt
                       được chỗ này; nếu không thì trang hiện `[object Object]`.
                     */}
                     {product.category?.label ? (
-                        <>
-                            <span className="sc-bc-sep">·</span>
-                            <span>{product.category.label}</span>
-                        </>
+                        <span className="pd-badge pd-badge-cat">{product.category.label}</span>
                     ) : null}
                 </div>
 
-                <h3 className="sc-title">
-                    <Link href={`/products/${product.slug}`}>{product.name}</Link>
-                </h3>
+                {/*
+                  `quantity.total_units` là số **suất bán**, khác
+                  `quantity.screen_count` là số màn hình. Bản Blade in số suất ở
+                  đây, nên giữ đúng con số đó.
+                */}
+                {laGoi && soViTri > 1 ? <div className="pd-units">{soViTri} vị trí</div> : null}
+            </div>
 
-                {product.short_description ? (
-                    <p className="sc-loc">{product.short_description}</p>
+            <div className="pd-body">
+                <div className="pd-name">{product.name}</div>
+
+                {product.owner?.name ? <div className="pd-owner">{product.owner.name}</div> : null}
+
+                {product.location?.city ? (
+                    <div className="pd-loc">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                        </svg>
+                        {product.location.city}
+                    </div>
                 ) : null}
 
-                <div className="sc-specs">
-                    {/*
-                      `quantity` cũng là đối tượng: `{total_units, min, max,
-                      screen_count}`. Số màn hình là `screen_count` —
-                      `total_units` là số suất bán, một con số khác và dễ lẫn.
-                    */}
-                    {product.quantity?.screen_count ? (
-                        <div className="sc-spec">
-                            <span className="sc-spec-l">Số màn hình</span>
-                            <span className="sc-spec-v">{product.quantity.screen_count}</span>
-                        </div>
-                    ) : null}
-                    {product.owner?.name ? (
-                        <div className="sc-spec">
-                            <span className="sc-spec-l">Chủ sở hữu</span>
-                            <span className="sc-spec-v">{product.owner.name}</span>
-                        </div>
-                    ) : null}
-                </div>
-
-                <div className="sc-foot">
-                    {formatProductPrice(product) ? (
-                        <div className="sc-price">
-                            {formatProductPrice(product)}
-                            <span className="sc-price-sub">chưa gồm VAT</span>
-                        </div>
-                    ) : (
-                        <div className="sc-price-quote">Liên hệ báo giá</div>
-                    )}
-
-                    <Link
-                        href={`/products/${product.slug}`}
-                        className="btn btn-p btn-sm sc-btn"
-                    >
-                        Xem chi tiết
-                    </Link>
-                </div>
+                {product.short_description ? (
+                    <div className="pd-desc">{product.short_description}</div>
+                ) : null}
             </div>
-        </article>
+
+            <div className="pd-foot">
+                <div>
+                    <div className="pd-price">{gia ?? 'Liên hệ báo giá'}</div>
+                </div>
+                <span className="btn btn-p btn-sm pd-btn">{laGoi ? 'Chọn gói' : 'Chi tiết'}</span>
+            </div>
+        </Link>
     );
 }
 

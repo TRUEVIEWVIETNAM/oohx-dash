@@ -121,7 +121,7 @@ export default async function OwnerDetailPage({
                             Đối tác này chưa công khai màn hình nào.
                         </div>
                     ) : (
-                        <div className="oc-grid oc-grid--full">
+                        <div className="inv-grid">
                             {screens.data.map((screen) => (
                                 <ScreenCard key={screen.slug} screen={screen} />
                             ))}

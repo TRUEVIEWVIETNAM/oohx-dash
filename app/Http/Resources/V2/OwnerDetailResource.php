@@ -32,8 +32,13 @@ class OwnerDetailResource extends JsonResource
             'tagline' => $this->tagline,
             'about'   => $this->about,
 
-            'logo_url'  => $this->logo_url,
-            'cover_url' => $this->cover_url,
+            // URL đầy đủ, không phải đường dẫn trong disk (sửa 14/10/2026).
+            // Cột lưu `owners/cover/abc.jpg`; trả thẳng giá trị đó thì trình
+            // duyệt giải nó tương đối với trang đang mở và ảnh là ảnh hỏng.
+            // Quy ước của repo — `AgencySummaryResource`,
+            // `Product::getPhotoUrlsAttribute()` — là `asset('storage/' . …)`.
+            'logo_url'  => $this->logo_url ? asset('storage/' . $this->logo_url) : null,
+            'cover_url' => $this->cover_url ? asset('storage/' . $this->cover_url) : null,
 
             // Thông tin liên hệ doanh nghiệp — đã công khai trên trang owner.
             'contact' => [
