@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V2;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V2\CityPinsRequest;
 use App\Http\Requests\Api\V2\MapViewportRequest;
+use App\Http\Requests\Api\V2\ScreenAvailabilityRequest;
 use App\Http\Requests\Api\V2\OwnerListingRequest;
 use App\Http\Requests\FrontpageListingRequest;
 use App\Http\Requests\ProductListingRequest;
@@ -15,10 +16,13 @@ use App\Http\Resources\V2\AgencySummaryResource;
 use App\Http\Resources\V2\OwnerSummaryResource;
 use App\Http\Resources\V2\ProductDetailResource;
 use App\Http\Resources\V2\ProductSummaryResource;
+use App\Http\Resources\V2\ScreenDetailResource;
 use App\Http\Resources\V2\ScreenSummaryResource;
+use App\Services\AvailabilityService;
 use App\Services\FrontpageService;
 use App\Services\InventoryHoldService;
 use App\Services\ProductService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -143,17 +147,125 @@ class CatalogController extends Controller
             now()->addDays(30)->toDateString(),
         );
 
+        // Màn hình tương tự: `getSimilarScreens()` đã có từ giai đoạn 4 và
+        // chưa có endpoint nào mang ra. Trả kèm ở đây chứ không mở một đường
+        // riêng, vì nó chỉ có nghĩa **trong ngữ cảnh một màn hình** — một
+        // `/screens/similar?of=x` là cùng một truy vấn với một tham số bắt
+        // buộc, tức một đường thừa.
+        $similar = $this->catalog->getSimilarScreens($screen)
+            ->map(fn ($s) => (new ScreenSummaryResource($s))->resolve())
+            ->values()
+            ->all();
+
         return response()->json([
-            'data' => (new ScreenSummaryResource($screen))->resolve() + [
-                'availability' => [
-                    'window_days'         => 30,
-                    'remaining_sov_pct'   => $remaining,
-                    'has_capacity'        => $remaining > 0,
+            'data' => (new ScreenDetailResource(
+                $screen,
+                $this->catalog->getVnCategoryLabels(),
+                $similar,
+                $this->nearbyPois($screen),
+                [
+                    'window_days'       => 30,
+                    'remaining_sov_pct' => $remaining,
+                    'has_capacity'      => $remaining > 0,
                 ],
+            ))->resolve(),
+        ]);
+    }
+
+    /**
+     * Lịch trống theo từng ngày, cho N tháng tới.
+     *
+     * Vì sao một endpoint riêng, không trả kèm trong chi tiết: nó là dữ liệu
+     * **đổi theo từng lượt đặt chỗ**, trong khi phần còn lại của trang chi
+     * tiết đổi theo tháng. Gộp vào nhau là buộc cả trang cache theo nhịp của
+     * phần động nhất, hoặc buộc lịch cache theo nhịp của phần tĩnh nhất và
+     * hiện ngày đã bán là còn trống.
+     *
+     * Giới hạn cứng: tối đa 3 tháng. Một đường công khai nhận `months=240` là
+     * một đường cho người lạ yêu cầu 7.300 ngày dữ liệu mỗi lần gọi.
+     */
+    public function screenAvailability(string $slug, ScreenAvailabilityRequest $request): JsonResponse
+    {
+        $screen = $this->catalog->getScreenDetail($slug);
+
+        if (! $screen) {
+            return $this->notFound('Không tìm thấy màn hình với slug này.');
+        }
+
+        $months = $request->months();
+        $from   = CarbonImmutable::today();
+        $to     = $from->addMonths($months)->endOfMonth();
+
+        $theoNgay = app(AvailabilityService::class)
+            ->getDailyRemainingSOV($screen->id, $from->toDateString(), $to->toDateString());
+
+        $max = (int) ($screen->inventory?->share_of_voice_max_pct ?? 100);
+
+        return response()->json([
+            'data' => [
+                'from'        => $from->toDateString(),
+                'to'          => $to->toDateString(),
+                'months'      => $months,
+                'sov_max_pct' => $max,
+
+                // `remaining_sov_pct` cho TỪNG ngày, không phải một trạng thái
+                // ba màu đã quy đổi sẵn. Màu là việc của tầng hiển thị; API
+                // trả con số, nên một client khác có thể vẽ ngưỡng khác mà
+                // không cần endpoint mới.
+                'days' => collect($theoNgay)
+                    ->map(fn (int $con, string $ngay) => [
+                        'date'              => $ngay,
+                        'remaining_sov_pct' => $con,
+                    ])
+                    ->values()
+                    ->all(),
             ],
         ]);
     }
 
+    /**
+     * POI quanh màn hình, từ ảnh chụp OSM đã cache.
+     *
+     * Dùng lại `PoiProjection` — đúng lớp trang Blade và panel Filament dùng,
+     * nên nhãn, icon, màu và nhóm không thể lệch giữa ba nơi.
+     *
+     * Không có toạ độ, hoặc chưa có ảnh chụp nào còn hạn, thì trả mảng rỗng.
+     * KHÔNG gọi OSM tại đây: một endpoint công khai không được đi hỏi dịch vụ
+     * ngoài trong lúc trả lời.
+     */
+    private function nearbyPois(\App\Models\Screen $screen): array
+    {
+        $lat = $screen->site?->lat;
+        $lon = $screen->site?->lon;
+
+        if (! $lat || ! $lon) {
+            return [];
+        }
+
+        $snapshot = \App\Models\PoiSnapshot::freshFor((float) $lat, (float) $lon, 500, 'osm')->first();
+
+        if (! $snapshot || ! is_array($snapshot->pois)) {
+            return [];
+        }
+
+        return collect(\App\Support\PoiProjection::project($snapshot->pois, (float) $lat, (float) $lon, 60))
+            // Danh sách trắng theo khóa: `PoiProjection::project()` giữ lại cả
+            // phần tử OSM gốc ở một số khóa, và một endpoint danh mục không
+            // phải nơi để dữ liệu thô của dịch vụ khác đi qua.
+            ->map(fn (array $poi) => [
+                'id'     => $poi['id'] ?? null,
+                'name'   => $poi['name'] ?? null,
+                'group'  => $poi['group'] ?? null,
+                'label'  => $poi['gLabel'] ?? null,
+                'icon'   => $poi['icon'] ?? null,
+                'color'  => $poi['color'] ?? null,
+                'dist_m' => isset($poi['dist']) ? (int) $poi['dist'] : null,
+                'lat'    => isset($poi['lat']) ? (float) $poi['lat'] : null,
+                'lng'    => isset($poi['lon']) ? (float) $poi['lon'] : null,
+            ])
+            ->values()
+            ->all();
+    }
     /**
      * Pin bản đồ trong một khung nhìn.
      *

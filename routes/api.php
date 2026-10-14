@@ -107,6 +107,10 @@ Route::prefix('v2')->group(function () {
     Route::get('screens/featured', [V2CatalogController::class, 'featuredScreens']);
     Route::get('screens',          [V2CatalogController::class, 'screens']);
     Route::get('screens/{slug}',   [V2CatalogController::class, 'screen']);
+    // Lịch trống theo ngày. Đứng sau `screens/{slug}` được vì đoạn thứ hai
+    // ("availability") làm nó không thể khớp vào `{slug}` — khác với
+    // `screens/map`, vốn chỉ có một đoạn.
+    Route::get('screens/{slug}/availability', [V2CatalogController::class, 'screenAvailability']);
 
     Route::get('owners/featured',  [V2CatalogController::class, 'featuredOwners']);
     Route::get('owners',           [V2CatalogController::class, 'owners']);

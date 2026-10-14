@@ -2217,3 +2217,88 @@ body.page-map{overflow:hidden}
 .own-rv-org{font-size:13px;font-weight:700;color:var(--t1)}
 .own-rv-date{font-size:12px;color:var(--t4)}
 .own-rv-cmt{font-size:13.5px;color:var(--t3);line-height:1.7}
+
+/* ══ Trang chi tiết màn hình: lightbox + khối vị trí (POI) ══════════════
+   Chuyển vào đây 14/10/2026 (lát 4).
+
+   Những luật này sống trong `@push('head')` của `frontpage/detail.blade.php`
+   — tức trong chính cái view đã bị gỡ ở giai đoạn 7. Nên khi bản Next dựng
+   lại thư viện ảnh và khối POI, mọi tên class ở đây **không có định nghĩa
+   nào**: lightbox mở ra là một ảnh trần giữa trang, không có lớp nền đen.
+
+   `#loc-map` đổi thành `.loc-map`: một id trong CSS buộc mọi nơi dùng lại
+   khối này phải đặt đúng id đó, và hai khối bản đồ trên cùng một trang thì
+   id trùng.
+
+   `.gal-thumb-on` cũng ở trong đó, và nó là thứ cho biết thumbnail nào đang
+   được chọn. */
+.lb-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center}
+.lb-img{max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px}
+.lb-close{position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lb-prev,.lb-next{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,.15);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lb-prev{left:16px}.lb-next{right:16px}
+.lb-prev:hover,.lb-next:hover,.lb-close:hover{background:rgba(255,255,255,.3)}
+.lb-counter{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);font-size:13px;font-weight:600}
+.gal-thumb-on{outline:2px solid var(--bl);outline-offset:1px;border-radius:8px}
+
+/* ── Location section: 2-col POI browser ─────────────────────── */
+.loc-section{padding:48px 0;background:var(--bg2);border-top:1px solid var(--ln2);border-bottom:1px solid var(--ln2)}
+.loc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:20px;flex-wrap:wrap}
+.loc-eyebrow{font-size:13px;font-weight:700;color:var(--bl);margin-bottom:6px;letter-spacing:.5px}
+.loc-title{font-size:clamp(20px,3vw,28px);font-weight:800;color:var(--t1);letter-spacing:-.5px;margin-bottom:8px;line-height:1.2}
+.loc-addr{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--t3);line-height:1.4}
+.loc-meta{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.loc-poi-count{font-size:13px;color:var(--t3);padding:6px 12px;background:#fff;border-radius:980px;border:1px solid var(--ln2)}
+.loc-poi-count strong{color:var(--bl);font-weight:800}
+
+/* 2-col grid */
+.loc-browser{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:20px;height:600px}
+@media(max-width:1024px){.loc-browser{grid-template-columns:1fr;height:auto}.loc-list{max-height:360px}.loc-map-wrap{height:480px}}
+@media(max-width:768px){.loc-map-wrap{height:380px}}
+
+/* LEFT: list */
+.loc-list{overflow-y:auto;border:1px solid var(--ln2);border-radius:16px;background:#fff;box-shadow:var(--sh1)}
+.loc-list::-webkit-scrollbar{width:8px}
+.loc-list::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px}
+
+/* Filter pills (group toggle) */
+.loc-filter{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-bottom:1px solid var(--ln2);background:#fff;position:sticky;top:0;z-index:5}
+.loc-filter-pill{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;font-size:11px;font-weight:600;color:var(--t2);background:#fff;border:1px solid var(--ln2);border-radius:980px;cursor:pointer;transition:all 140ms;line-height:1;font-family:inherit}
+.loc-filter-pill .material-symbols-outlined{font-size:14px;color:inherit;font-variation-settings:'FILL' 1,'wght' 500}
+.loc-filter-pill .loc-filter-ct{margin-left:2px;font-size:10px;background:var(--bg2);color:var(--t3);padding:1px 6px;border-radius:980px;font-weight:700;letter-spacing:0;border:1px solid var(--ln2)}
+.loc-filter-pill:hover{border-color:var(--bl);color:var(--bl)}
+.loc-filter-pill.is-active{background:var(--bl);color:#fff;border-color:var(--bl)}
+.loc-filter-pill.is-active .loc-filter-ct{background:rgba(255,255,255,.25);color:#fff;border-color:transparent}
+.loc-grp-h{padding:10px 14px;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.4px;background:var(--bg2);color:var(--t2);border-top:1px solid var(--ln2);position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:6px}
+.loc-grp-h:first-child{border-top:0}
+.loc-grp-h .material-symbols-outlined{font-size:18px;color:var(--bl)}
+.loc-grp-ct{margin-left:auto;font-size:11px;background:#fff;color:var(--t2);padding:2px 8px;border-radius:980px;font-weight:700;letter-spacing:0;border:1px solid var(--ln2)}
+.loc-item{display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;border-top:1px solid var(--ln2);transition:background 140ms}
+.loc-item:first-child{border-top:0}
+.loc-item:hover{background:rgba(42,79,246,.04)}
+.loc-item.is-active{background:rgba(42,79,246,.08);box-shadow:inset 3px 0 0 var(--bl)}
+.loc-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.loc-dot .material-symbols-outlined{font-size:18px;font-variation-settings:'FILL' 1,'wght' 500}
+.loc-meta-c{min-width:0;flex:1}
+.loc-name{font-weight:600;font-size:13px;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.loc-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.loc-sub b{color:var(--bl);font-weight:700}
+.loc-empty{padding:60px 20px;text-align:center;color:var(--t3);font-size:13px}
+.loc-empty .material-symbols-outlined{font-size:36px;color:var(--ln1);display:block;margin:0 auto 12px;font-variation-settings:'FILL' 0,'wght' 300}
+.loc-empty-sub{margin-top:6px;font-size:12px;color:var(--t4)}
+
+/* RIGHT: map */
+.loc-map-wrap{height:600px;border-radius:16px;overflow:hidden;border:1px solid var(--ln2);box-shadow:var(--sh1);background:#fff}
+.loc-map{width:100%;height:100%}
+
+/* Map markers — Material icons */
+.poi-pin{background:none;border:none}
+.poi-pin-inner{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25);cursor:pointer;transition:transform 160ms}
+.poi-pin-inner .material-symbols-outlined{font-size:16px;font-variation-settings:'FILL' 1,'wght' 500}
+.poi-pin-inner:hover{transform:scale(1.25);z-index:1000}
+
+.screen-pin{background:none;border:none;position:relative}
+.screen-pin-inner{position:absolute;top:0;left:0;width:44px;height:44px;border-radius:50%;background:var(--bl);color:#fff;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 4px 16px rgba(42,79,246,.4);cursor:pointer;z-index:2}
+.screen-pin-inner .material-symbols-outlined{font-size:24px;font-variation-settings:'FILL' 1,'wght' 600}
+.screen-pin-pulse{position:absolute;top:-4px;left:-4px;width:52px;height:52px;border-radius:50%;background:rgba(42,79,246,.25);animation:screen-pulse 2s ease-in-out infinite;z-index:1}
+@keyframes screen-pulse{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.3);opacity:.1}}

@@ -166,6 +166,40 @@ export async function getScreen(slug: string): Promise<ScreenDetail | null> {
     return body?.data ?? null;
 }
 
+export type ScreenInsights = components['schemas']['ScreenInsights'];
+export type NearbyPoi = components['schemas']['NearbyPoi'];
+
+/** Lịch trống theo ngày — `GET /api/v2/screens/{slug}/availability`. */
+export type AvailabilityCalendar =
+    paths['/api/v2/screens/{slug}/availability']['get']['responses'][200]['content']['application/json']['data'];
+
+/**
+ * Lịch trống theo ngày.
+ *
+ * `revalidate` ngắn hơn hẳn phần còn lại của trang chi tiết: nó đổi theo từng
+ * lượt đặt chỗ, trong khi thông số và ảnh đổi theo tháng. Cache nó dài là
+ * hiện ngày đã bán thành còn trống — loại sai làm người mua đi hết một luồng
+ * đặt chỗ rồi mới biết.
+ *
+ * Trả `null` thay vì ném khi API lỗi: lịch là một tab của trang, không phải
+ * trang. Mất lịch thì tab nói "chưa lấy được", chứ không làm trắng cả trang.
+ */
+export async function getScreenAvailability(
+    slug: string,
+    months = 2,
+): Promise<AvailabilityCalendar | null> {
+    try {
+        const body = await get<{ data: AvailabilityCalendar }>(
+            `/screens/${encodeURIComponent(slug)}/availability`,
+            { query: { months }, revalidate: 60 },
+        );
+
+        return body.data;
+    } catch {
+        return null;
+    }
+}
+
 // ── Media owner ─────────────────────────────────────────────────────────────
 
 export type OwnerSummary = components['schemas']['OwnerSummary'];
