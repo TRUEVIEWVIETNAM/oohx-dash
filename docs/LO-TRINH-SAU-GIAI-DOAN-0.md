@@ -707,6 +707,24 @@ Nằm sau đăng nhập nên **không có lợi ích SEO**, mà lại đụng t�
 
 Không có giai đoạn nào cho `/admin` và `/publisher`. Nếu sau này vẫn muốn bỏ Filament ở đó, đó là một dự án riêng cần lý do riêng.
 
+
+### Mục mới 14/10/2026 — giao diện bản Next không bằng bản Blade nó thay
+
+Giai đoạn 6 nhận "xong" theo bốn điều kiện: SEO không tụt, sitemap/canonical
+giữ nguyên, thời gian phản hồi tốt hơn, ranh giới với Laravel còn nguyên. **Không
+điều nào trong bốn điều đó là "giao diện giống bản cũ"** — và khi đo lại ngày
+14/10 thì 8 trang danh mục đã bị rút gọn đáng kể: trang chủ còn 5 trong 10 khối,
+`/explore` và `/products` mất hẳn bộ lọc hiện ra cho người dùng, `/explore/{slug}`
+mất gallery, bốn tab, insights, lịch trống và panel giá.
+
+Kèm theo là ba lỗi tên lớp CSS — trong đó **mọi thẻ màn hình trên production
+đang dùng `.sc` (một ô bảng thông số) thay vì `.sc-card`** — sống sót vì
+`tests/js/class-css.test.mjs` chỉ soi `resources/views`, không soi `webapp/`.
+
+Việc này có lịch riêng vì nó phục vụ đợt Sở Thông tin vào chụp màn hình:
+**`docs/PLAN-DUNG-LAI-GIAO-DIEN-CU.md`** — bảy lát, bảng đối chiếu từng trang,
+và danh sách những thứ **không** được dựng lại (số liệu F-15 đã dọn).
+
 ---
 
 ## Việc quản trị
