@@ -317,6 +317,89 @@ class CatalogProductApiTest extends TestCase
             ->assertJson(['error' => 'not_found', 'code' => 404, 'details' => []]);
     }
 
+
+    // ── Bộ lọc của sidebar /products (lát 3) ────────────────────────────────
+
+    public function test_bo_loc_san_pham_tra_ba_nhom_co_so_dem(): void
+    {
+        $owner = $this->owner();
+        $this->product($owner, ['category' => 'led', 'type' => Product::TYPE_PACKAGE, 'city' => 'Hà Nội']);
+        $this->product($owner, ['category' => 'led', 'type' => Product::TYPE_PACKAGE, 'city' => 'Hà Nội']);
+        $this->product($owner, ['category' => 'billboard', 'type' => Product::TYPE_SINGLE, 'city' => 'Đà Nẵng']);
+
+        $body = $this->getJson('/api/v2/products/filters')->assertOk()->json('data');
+
+        $categories = collect($body['categories']);
+        $this->assertSame(2, $categories->firstWhere('slug', 'led')['count']);
+        $this->assertSame(1, $categories->firstWhere('slug', 'billboard')['count']);
+
+        // Nhãn tiếng Việt đến từ `Product::CATEGORIES`, không phải mã thô: đó
+        // là chữ sidebar in ra, và bắt trình duyệt tự dịch mã là dựng bảng
+        // nhãn thứ hai ở chỗ không ai bảo trì.
+        $this->assertSame(Product::CATEGORIES['led'], $categories->firstWhere('slug', 'led')['label']);
+
+        $types = collect($body['types']);
+        $this->assertSame(2, $types->firstWhere('slug', Product::TYPE_PACKAGE)['count']);
+        $this->assertSame('Gói', $types->firstWhere('slug', Product::TYPE_PACKAGE)['label']);
+
+        $cities = collect($body['cities']);
+        $this->assertSame(2, $cities->firstWhere('name', 'Hà Nội')['count']);
+        $this->assertSame(1, $cities->firstWhere('name', 'Đà Nẵng')['count']);
+    }
+
+    public function test_bo_loc_san_pham_chi_dem_san_pham_cong_khai(): void
+    {
+        $owner = $this->owner();
+        $this->product($owner, ['category' => 'led', 'city' => 'Hà Nội']);
+        $this->product($owner, ['category' => 'led', 'city' => 'Hà Nội', 'status' => 'draft']);
+
+        $data = $this->getJson('/api/v2/products/filters')->assertOk()->json('data');
+
+        // Một bộ lọc đếm cả bản nháp là nói với người dùng rằng có 2 gói ở Hà
+        // Nội, rồi trả về 1 khi họ bấm vào — và không có gì báo lỗi.
+        $this->assertSame(1, collect($data['categories'])->firstWhere('slug', 'led')['count']);
+        $this->assertSame(1, collect($data['cities'])->firstWhere('name', 'Hà Nội')['count']);
+    }
+
+    public function test_bo_loc_san_pham_chi_tra_khoa_da_liet_ke(): void
+    {
+        $this->product(null, ['category' => 'led', 'city' => 'Hà Nội']);
+
+        $data = $this->getJson('/api/v2/products/filters')->assertOk()->json('data');
+
+        $this->assertSame(['categories', 'types', 'cities'], array_keys($data));
+        $this->assertSame(['slug', 'label', 'count'], array_keys($data['categories'][0]));
+        $this->assertSame(['slug', 'label', 'count'], array_keys($data['types'][0]));
+        $this->assertSame(['name', 'count'], array_keys($data['cities'][0]));
+    }
+
+    /**
+     * `products/filters` phải khớp TRƯỚC `products/{slug}`.
+     *
+     * Đổi thứ tự hai route thì Laravel coi "filters" là một slug, không tìm
+     * thấy sản phẩm nào, và trả 404 — một 404 trông hoàn toàn hợp lệ. Cùng
+     * cái bẫy `screens/map` đã mắc một lần.
+     */
+    public function test_duong_bo_loc_khong_bi_khop_vao_slug(): void
+    {
+        $this->product(null, ['slug' => 'filters']);
+
+        $data = $this->getJson('/api/v2/products/filters')->assertOk()->json('data');
+
+        $this->assertArrayHasKey('categories', $data);
+    }
+
+    public function test_bo_loc_san_pham_khong_lo_truong_nhay_cam(): void
+    {
+        $this->product(null, ['category' => 'led', 'city' => 'Hà Nội']);
+
+        $this->getJson('/api/v2/products/filters')
+            ->assertOk()
+            ->assertJsonMissing(['floor_price' => 30_000_000])
+            ->assertDontSee('revenue_share_pct')
+            ->assertDontSee('floor_price');
+    }
+
     // ── Hai ca về trang Blade /products: GỠ ─────────────────────────────
     //
     // `test_trang_products_blade_van_chay_binh_thuong` và

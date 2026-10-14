@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { listScreens } from '@/lib/api';
+import { listScreens, getFilters, getLocations, type Filters, type Region } from '@/lib/api';
+import { MegaSearch } from '@/components/MegaSearch';
 import { buildMetadata, OgType } from '@/lib/seo';
 import { ScreenCard } from '@/components/ScreenCard';
 import { SiteHeader } from '@/components/SiteHeader';
@@ -52,15 +53,37 @@ export default async function ExplorePage({
 
     const page = Math.max(1, Number.parseInt(params.page ?? '1', 10) || 1);
 
-    const { data: screens, meta } = await listScreens({
-        page,
-        per_page: PER_PAGE,
-        q: params.q,
-        city: params.city,
-        venue_type: params.venue_type,
-        screen_type: params.screen_type,
-        sort: params.sort,
-    });
+    /*
+     * Ba lời gọi song song, và `allSettled` chứ không `all`.
+     *
+     * Danh sách là nội dung của trang; hai cái sau chỉ nuôi ô tìm kiếm.
+     * Để `/locations` hỏng làm trắng cả trang danh mục là biến một lỗi nhỏ
+     * thành một lỗi toàn phần — cùng lý do `getHomeData()` chọn
+     * `allSettled`. Thiếu dữ liệu thì dropdown rỗng, không phải trang trắng.
+     *
+     * Nhưng danh sách thì KHÔNG được lặng lẽ rỗng: lỗi của nó phải nổi lên
+     * để Next trả 500, thay vì một trang nói "không tìm thấy inventory" khi
+     * thật ra API không trả lời được.
+     */
+    const [ketQua, vungMien, boLoc] = await Promise.allSettled([
+        listScreens({
+            page,
+            per_page: PER_PAGE,
+            q: params.q,
+            city: params.city,
+            venue_type: params.venue_type,
+            screen_type: params.screen_type,
+            sort: params.sort,
+        }),
+        getLocations(),
+        getFilters(),
+    ]);
+
+    if (ketQua.status === 'rejected') throw ketQua.reason;
+
+    const { data: screens, meta } = ketQua.value;
+    const regions: Region[] = vungMien.status === 'fulfilled' ? vungMien.value : [];
+    const filters: Filters | null = boLoc.status === 'fulfilled' ? boLoc.value : null;
 
     return (
         <>
@@ -87,13 +110,29 @@ export default async function ExplorePage({
                             Bản đồ
                         </Link>
                     </div>
-
                     {/*
-                      Bản Blade có `mega-search` (biến thể `compact`) ngay dưới
-                      hàng tiêu đề này. Nó **chưa** được dựng lại ở đây: nó là
-                      lát 3 của `docs/PLAN-DUNG-LAI-GIAO-DIEN-CU.md`, và lát 3
-                      chưa được duyệt. Khối thiếu, không phải khối quên.
+                      Ô tìm kiếm lớn, biến thể `compact` — đúng chỗ bản Blade
+                      đặt nó (`listing.blade.php` gọi partial với
+                      `'variant' => 'compact'`).
+
+                      Trước lát 3, trang này đọc `city`, `venue_type`,
+                      `screen_type`, `sort` từ URL rồi vẽ lưới mà **không có
+                      bộ lọc nào hiện ra** — và thông báo rỗng vẫn viết "Không
+                      tìm thấy inventory phù hợp", tức mời người dùng đổi một
+                      bộ lọc không tồn tại trên trang.
+
+                      `variant="compact"` khác `hero` ở đúng hai chỗ: không
+                      chip gợi ý, và `ms-wrap` không mang thêm `ms-hero`
+                      (`max-width` 820px thay vì 760px). Không có `.ms-compact`
+                      trong CSS — ở bản Blade nó là một class rỗng.
                     */}
+                    <MegaSearch
+                        variant="compact"
+                        target="/explore"
+                        regions={regions}
+                        categories={filters?.categories_networks ?? []}
+                        params={params}
+                    />
                 </div>
             </div>
 

@@ -82,8 +82,27 @@ const TRANG = [
             'class="inv-grid"',
             'class="sc-card"', // thẻ màn hình, đúng tên
             'class="sc-foot"',
+
+            // Lát 3 — ô tìm kiếm lớn, biến thể compact. Trước lát 3 trang này
+            // đọc city/venue_type/sort từ URL mà không hiện ra bộ lọc nào.
+            'class="ms-wrap"',
+            'class="ms-box"',
+            'class="ms-pill"',
+            'class="mega-drop"',
         ],
-        khong: ['class="sc"', 'class="oc-grid oc-grid--full"'],
+        khong: [
+            'class="sc"',
+            'class="oc-grid oc-grid--full"',
+
+            // `ms-hero` chỉ thuộc biến thể của trang chủ (max-width 760px);
+            // có nó ở đây nghĩa là `variant` bị truyền sai.
+            'ms-wrap ms-hero',
+
+            // Ba tên class của bản Blade không có định nghĩa CSS nào — chúng
+            // là móc `querySelectorAll` và một biến thể rỗng, và ở React thì
+            // sự kiện gắn trực tiếp.
+            'ms-compact',
+        ],
     },
     {
         path: '/owners',
@@ -103,8 +122,69 @@ const TRANG = [
     {
         path: '/products',
         ten: 'danh sách gói',
-        co: ['class="inv-grid"', 'class="pd-card"', 'class="pd-photo"', 'class="pd-foot"'],
-        khong: ['class="sc"'],
+        co: [
+            'class="inv-grid"',
+            'class="pd-card"',
+            'class="pd-photo"',
+            'class="pd-foot"',
+
+            // Lát 3 — hero và chip danh mục
+            'class="ph"',
+            'class="ph-top"',
+            'class="ph-title"',
+            'class="ph-map-btn"',
+            'class="fchips"',
+            'class="fchip-count"',
+
+            // Lát 3 — bố cục hai cột và sidebar lọc
+            'class="listing-layout"',
+            'class="sidebar"',
+            'class="sidebar-scroll"',
+            'class="sb-card"',
+            'class="sb-title"',
+            'class="sb-group"',
+            'class="sb-item',
+            'class="sb-checkbox"',
+            'class="sb-count"',
+            'class="sb-input"',
+
+            // Lát 3 — drawer của mobile
+            'class="drawer-drag"',
+            'class="drawer-drag-bar"',
+            'class="filter-float"',
+
+            // Lát 3 — thanh kết quả và ô sắp xếp
+            'class="results-header"',
+            'class="rh-count"',
+            'class="sort-sel"',
+
+            // Nhãn loại gói phải là chữ tiếng Việt tra từ bảng, không phải mã
+            // thô. `ProductCard` có `kieu?.nhan ?? product.type`, nên một giá
+            // trị ngoài enum đi thẳng ra trang — và đúng thế đã xảy ra: stub
+            // trả `type: 'bundle'` và thẻ in "bundle".
+            '>Gói</span>',
+        ],
+        khong: [
+            'class="sc"',
+
+            // `sb-search-inp` KHÔNG có định nghĩa trong frontpage.css; bản
+            // Blade bù bằng một đống style nội tuyến, trong khi `.sb-input`
+            // (dòng 1179) đã có đúng bộ thuộc tính đó kèm `:focus`.
+            'sb-search-inp',
+
+            // `.filter-backdrop{display:none}` + `!important` ở desktop, kèm
+            // chú thích "removed, panel is opaque white". Ở bản Blade nó là một
+            // div không bao giờ hiện mà JS vẫn gắn click để đóng drawer.
+            'filter-backdrop',
+
+            // Hai nút đổi kiểu xem KHÔNG thuộc trang này: `.inv-grid.list-view`
+            // nhắm vào `.ic-*` của `.inv-card`, không phải `.pd-card`.
+            'class="view-btn',
+
+            // Mã loại gói lọt ra trang thay vì nhãn.
+            '>package</span>',
+            '>bundle</span>',
+        ],
     },
 ];
 

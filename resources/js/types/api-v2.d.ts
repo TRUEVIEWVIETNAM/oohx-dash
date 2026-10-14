@@ -481,6 +481,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/products/filters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bộ lọc cho danh sách sản phẩm
+         * @description Tách khỏi `/api/v2/filters`, và tách có lý do: hai bên đếm hai miền
+         *     khác nhau. `/filters` lấy `cities` từ bảng **màn hình**; ở đây
+         *     `cities` là thành phố **của gói**. Cùng tên khóa, khác con số — nhét
+         *     chung một payload là mời bên gọi ghi nhãn bộ lọc gói bằng số đếm của
+         *     màn hình.
+         *
+         *     Nguồn là `ProductService::getFilterAggregates()`, đúng thứ sidebar
+         *     `/products` của bản Blade đang vẽ.
+         *
+         *     `cities[].name` vừa là nhãn vừa là giá trị gửi lên `?city=`: cột
+         *     `products.city` là chuỗi tự do, không phải mã tỉnh thành như bên màn
+         *     hình.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                categories: components["schemas"]["ProductFacet"][];
+                                types: components["schemas"]["ProductFacet"][];
+                                cities: components["schemas"]["ProductCityFacet"][];
+                            };
+                        };
+                    };
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/products/{slug}": {
         parameters: {
             query?: never;
@@ -2897,6 +2954,24 @@ export interface components {
         };
         FilterFacet: {
             code: string | null;
+            name: string | null;
+            count: number;
+        };
+        /**
+         * @description Khóa là `slug`, không phải `code` như `FilterFacet`: đó là tên trường
+         *     bộ lọc sản phẩm nhận (`?category=`, `?type=`). Đổi tên ở DTO chỉ để
+         *     trông giống bên màn hình là bắt bên gọi tự dịch lại.
+         */
+        ProductFacet: {
+            slug: string | null;
+            label: string | null;
+            count: number;
+        };
+        /**
+         * @description `name` vừa là nhãn vừa là giá trị gửi lên `?city=`, vì cột
+         *     `products.city` là chuỗi tự do chứ không phải mã tỉnh thành.
+         */
+        ProductCityFacet: {
             name: string | null;
             count: number;
         };

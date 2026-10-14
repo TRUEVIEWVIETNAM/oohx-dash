@@ -374,6 +374,59 @@ class CatalogController extends Controller
     }
 
     /**
+     * Bộ lọc cho danh sách **sản phẩm**, tách khỏi `/filters` của màn hình.
+     *
+     * Vì sao một endpoint riêng chứ không thêm khóa vào `/api/v2/filters`:
+     * hai bên đếm hai miền khác nhau. `/filters` lấy `cities` từ bảng màn
+     * hình; sidebar của `/products` cần `cities` **của gói** — cùng tên khóa,
+     * khác con số. Nhét chung một payload là mời người đọc dùng số đếm của
+     * màn hình để ghi nhãn cho bộ lọc gói, và không có cách nào nhận ra ở chỗ
+     * gọi.
+     *
+     * `ProductService::getFilterAggregates()` đã tính sẵn ba nhóm này cho
+     * trang Blade `/products` — endpoint chỉ mang ra, không tính mới.
+     *
+     * Danh sách trắng theo khóa như mọi DTO v2: các phần tử từ service là
+     * mảng do service tự dựng, nhưng trả thẳng nghĩa là một trường thêm vào
+     * service sau này tự động ra ngoài mà không ai duyệt.
+     */
+    public function productFilters(): JsonResponse
+    {
+        $aggregates = $this->products->getFilterAggregates();
+
+        return response()->json([
+            'data' => [
+                // `slug` chứ không `code`: đó là tên trường của bộ lọc sản
+                // phẩm (`?category=`, `?type=`), và đổi tên ở DTO chỉ để trông
+                // giống `/filters` là bắt bên gọi tự dịch lại.
+                'categories' => collect($aggregates['categories'] ?? [])
+                    ->map(fn ($row) => [
+                        'slug'  => $row['slug'] ?? null,
+                        'label' => $row['label'] ?? null,
+                        'count' => (int) ($row['count'] ?? 0),
+                    ])->values()->all(),
+
+                'types' => collect($aggregates['types'] ?? [])
+                    ->map(fn ($row) => [
+                        'slug'  => $row['slug'] ?? null,
+                        'label' => $row['label'] ?? null,
+                        'count' => (int) ($row['count'] ?? 0),
+                    ])->values()->all(),
+
+                // Thành phố của gói là **chuỗi tự do** trong cột `products.city`,
+                // không phải mã tỉnh thành như bên màn hình. Nên khóa là `name`
+                // và chính nó cũng là giá trị gửi lên `?city=` — giống hệt cách
+                // `ProductService` lọc (`whereIn('city', ...)`).
+                'cities' => collect($aggregates['cities'] ?? [])
+                    ->map(fn ($row) => [
+                        'name'  => $row['name'] ?? null,
+                        'count' => (int) ($row['count'] ?? 0),
+                    ])->values()->all(),
+            ],
+        ]);
+    }
+
+    /**
      * Danh sách sản phẩm (gói và vị trí lẻ), phân trang có giới hạn cứng.
      *
      * Dùng chung `ProductService` với trang `/products`, nên bộ lọc và thứ tự
