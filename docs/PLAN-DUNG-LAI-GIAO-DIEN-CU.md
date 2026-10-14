@@ -2,8 +2,8 @@
 
 Viết 14/10/2026 · Claude Code · Đối chiếu bản Blade trước giai đoạn 7 với bản Next đang chạy
 
-> **Tiến độ, cập nhật 14/10/2026.** Lát **0, 1 và 2 đã làm** (chủ dự án duyệt
-> ngay sau khi đọc bản khảo sát này). Lát 3 → 7 còn nguyên.
+> **Tiến độ, cập nhật 14/10/2026.** Lát **0, 1, 2 và 3 đã làm** (chủ dự án
+> duyệt từng lát). Lát 4 → 7 còn nguyên.
 >
 > **Hai chỗ bản kế hoạch này đo sai, phát hiện khi làm:**
 >
@@ -18,6 +18,13 @@ Viết 14/10/2026 · Claude Code · Đối chiếu bản Blade trước giai đo
 >    sách phẳng, vì `networks` không mang khóa loại hình nào. `/api/v2/filters`
 >    nay trả thêm `categories_networks` — một trường **thêm vào endpoint có
 >    sẵn**, không phải endpoint mới.
+> 3. Bảng dưới nói lát 3 dùng được `filters` đã có, kèm dấu hỏi "phải kiểm đủ
+>    trường cho sidebar gói". Đã kiểm: **không đủ**. `/api/v2/filters` đếm trên
+>    bảng **màn hình** — `cities` ở đó là thành phố có màn hình, `venue_types`
+>    là loại điểm đặt. Sidebar gói cần `categories` của gói, `types`
+>    (đơn lẻ/gói/tùy chỉnh) và `cities` **của gói**: cùng tên khóa `cities`,
+>    khác con số. Nên lát 3 có một endpoint mới,
+>    `GET /api/v2/products/filters`, chứ không phải một trường thêm.
 >
 > **Ba việc cần chủ dự án quyết** (đều là lời hứa sản phẩm, không phải kỹ
 > thuật): thanh `trust` năm mục, mục "Marketplace OOH đầu tiên có AI", và câu
@@ -219,7 +226,7 @@ lát một PR, CI xanh mới merge.
 | ~~**0**~~ **XONG 14/10** | Ba lỗi trên: `sc` → `sc-card`; thẻ owner về `oc-card-*`; mở rộng `class-css.test.mjs` sang `webapp/` | ~~không~~ — **có**: `logo_url`/`cover_url` phải là URL đầy đủ, thêm `city_count`, `venue_types`, `verified`, `featured` vào `OwnerSummary` | nửa ngày |
 | ~~**1**~~ **XONG 14/10** | Thẻ và lưới: `inv-grid` cho lưới màn hình (thay `oc-grid`), đổi kiểu xem lưới/danh sách; `/owners` có lại ô tìm kiếm + `cat-chips` | không — `filters` đã có | 1 ngày |
 | ~~**2**~~ **XONG 14/10** | **Trang chủ**: mega-search, Live Map View, 4 bước đặt booking, Gói chiến dịch, Owner CTA, và phần hero còn thiếu (badge, `hstat`, hint, ảnh mô phỏng) | `locations` ✔ `pins` ✔ `stats` ✔ — **thêm** `categories_networks` vào `/filters` | 2–3 ngày |
-| **3** | `/explore` + `/products`: sidebar lọc, results header, sắp xếp, drawer mobile, load-more | `filters` ✔ (phải kiểm đủ trường cho sidebar gói) | 2 ngày |
+| ~~**3**~~ **XONG 14/10** | `/explore` + `/products`: sidebar lọc, results header, sắp xếp, drawer mobile | ~~`filters` ✔~~ — **có**: `filters` của màn hình không mang `categories`/`types` của gói, nên thêm `GET /api/v2/products/filters` | 2 ngày |
 | **4** | `/explore/{slug}`: gallery + lightbox, bốn tab, insights, lịch trống theo tháng, panel giá | **cần bốn món** — bảng dưới | 3–4 ngày |
 | **5** | `/owners/{slug}`: bố cục hồ sơ `fp-*` (chuyển 98 dòng CSS nội tuyến vào `frontpage.css`), đánh giá người mua | `owners/{slug}` ✔ đã có `cover_url`, `logo_url`, `tagline`, `about`, `contact`, `stats`, `venue_types`; `OwnerReviewResource` đã có | 2 ngày |
 | **6** | `/map`: smart-filter, thanh thành phố, nút zoom, chú giải, bộ đếm | `filters` ✔ `map` ✔ | 1–2 ngày |
@@ -270,6 +277,51 @@ cũ** và vẫn chạy: chúng chưa chuyển sang Next (giai đoạn 8, hoãn c
 
 ---
 
+
+## Những gì lát 3 đã đổi, và hai thứ tìm thấy trong CSS
+
+**`load-more` không được dựng lại, vì nó không là gì.** Bảng kế hoạch kể nó
+như một khối. Trong `products/index.blade.php` nó là một `<div>` bọc
+`$products->links()`, và `frontpage.css` **không có luật nào** cho
+`.load-more` — nó không mang kiểu, không mang hành vi "tải thêm". Phân trang
+ở đây dùng `Pagination` như `/explore`, cùng một thành phần cho hai trang.
+
+**`.listing-layout` được dùng mà chưa bao giờ được định nghĩa.** Bản Blade
+đặt class này trên thẻ bọc hai cột, nhưng không có luật CSS nào — nên trên
+desktop sidebar nằm thành một khối chiếm hết chiều rộng **phía trên** lưới:
+một bố cục hai cột thiếu cột. Lát này thêm định nghĩa
+(`grid-template-columns:260px minmax(0,1fr)` từ 1024px). Đây là lần thêm CSS
+thật sự, không phải dựng lại — và nó nằm trong 803 tên class mà bản khảo sát
+đếm được, chỉ ở chiều ngược lại: class được **dùng** mà không được khai.
+
+**Nút "danh sách" ở `/explore` không làm được việc nó hứa — và đã thế từ bản
+Blade.** `.inv-grid.list-view` đặt lưới về một cột rồi nhắm tiếp vào `.ic-*`
+— bộ class của `.inv-card`. Không view nào trong repo dùng `.inv-card`, kể cả
+bản Blade trước khi gỡ: thẻ màn hình là `.sc-card`. Nên bật kiểu danh sách
+chỉ làm mỗi thẻ rộng ra hết hàng, không xếp ảnh sang bên trái như thiết kế
+của bộ `ic-*` mô tả. **Chưa sửa trong lát 3** vì sửa là viết kiểu mới, không
+phải dựng lại kiểu cũ; vì cùng lý do, `/products` không có hai nút đó (bản
+Blade cũng không).
+
+**Ba tên class của bản Blade cố ý không mang sang:** `sb-search-inp` (không
+có định nghĩa; `.sb-input` dòng 1179 đã có đúng bộ thuộc tính đó cộng
+`:focus`, nên bản Blade bù bằng style nội tuyến là bù cho một tên viết sai),
+`filter-backdrop` (`display:none`, rồi `!important` ở desktop, kèm chú thích
+"removed, panel is opaque white" — và JS bản Blade vẫn gắn `click` lên nó để
+đóng drawer, tức một trình xử lý không bao giờ chạy), và `ms-compact` (lớp
+rỗng, đã bỏ từ lát 2).
+
+**Một chỗ tốt hơn bản Blade, có chủ ý.** Bấm lại mục "Loại sản phẩm" đang
+chọn thì bỏ chọn. Radio HTML không bỏ chọn được, nên ở bản Blade đó là một
+lựa chọn vào rồi không ra — muốn bỏ phải bấm "Xoá bộ lọc" và mất cả các bộ
+lọc khác.
+
+**Stub API nói sai hợp đồng, và điều đó che một lỗi.** `webapp/test/stub-api.mjs`
+trả `type: 'bundle'` cho gói, trong khi OpenAPI khai `enum: [single, package,
+custom]`. `ProductCard` có `kieu?.nhan ?? product.type`, nên thẻ in **mã thô**
+"bundle" ra trang trong mọi lượt build thử — và không chốt nào đỏ. Đã sửa
+stub, và thêm vào `khoi-giao-dien.mjs` một khẳng định rằng nhãn trên thẻ là
+chữ tiếng Việt, không phải mã.
 ## Ba khối chưa dựng vì chúng là lời hứa, không phải hình (ghi 14/10/2026)
 
 Lát 2 dựng lại trang chủ và dừng trước ba khối. Không phải vì khó — cả ba là

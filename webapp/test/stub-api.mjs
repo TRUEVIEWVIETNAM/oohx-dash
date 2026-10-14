@@ -85,7 +85,13 @@ const OWNER_DETAIL = {
 const PRODUCT = {
     slug: 'goi-mot',
     name: 'Gói Một',
-    type: 'bundle',
+
+    // `package`, không phải `bundle`: OpenAPI khai `enum: [single, package,
+    // custom]`, và `ProductCard` tra nhãn tiếng Việt theo đúng ba khóa đó. Một
+    // giá trị ngoài enum làm thẻ in **mã thô** ra trang ("bundle") mà không
+    // test nào đỏ — stub nói sai hợp đồng thì nó che đúng loại lỗi nó phải
+    // phơi ra.
+    type: 'package',
     category: { code: 'retail', label: 'Bán lẻ' },
     listing_mode: 'package',
     owner: { slug: 'owner-mot', name: 'Công Ty Một' },

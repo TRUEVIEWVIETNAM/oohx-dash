@@ -317,6 +317,18 @@ export function BoLocGoi({
               Nút nổi, chỉ hiện dưới 1024px (`frontpage.css:1154`). Nó mở
               drawer; `.filter-float.hidden` là cách bản Blade ẩn nó trong lúc
               drawer mở.
+
+              Nút này ra DOM **bên trong** `.listing-layout` — khác bản Blade,
+              nơi nó nằm cuối `@section`. An toàn vì `.filter-float` là
+              `position:fixed`, nên nó ra khỏi dòng chảy và **không chiếm một ô
+              của lưới hai cột**; ở desktop nó còn `display:none`. Nếu có ngày
+              ai đổi nó sang `position:sticky` hay bỏ `fixed`, nó sẽ thành item
+              thứ ba của grid và đẩy cột kết quả xuống hàng dưới — nên chỗ đó
+              là chỗ phải đọc lại chú thích này.
+
+              Vì sao không dùng portal ra `<body>`: portal chỉ chạy sau khi
+              mount, nên nút sẽ **không có trong HTML máy chủ render** — và
+              `webapp/test/khoi-giao-dien.mjs` đọc đúng HTML đó.
             */}
             <button
                 className={mo ? 'filter-float hidden' : 'filter-float'}

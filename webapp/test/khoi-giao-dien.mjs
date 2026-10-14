@@ -157,6 +157,12 @@ const TRANG = [
             'class="results-header"',
             'class="rh-count"',
             'class="sort-sel"',
+
+            // Nhãn loại gói phải là chữ tiếng Việt tra từ bảng, không phải mã
+            // thô. `ProductCard` có `kieu?.nhan ?? product.type`, nên một giá
+            // trị ngoài enum đi thẳng ra trang — và đúng thế đã xảy ra: stub
+            // trả `type: 'bundle'` và thẻ in "bundle".
+            '>Gói</span>',
         ],
         khong: [
             'class="sc"',
@@ -174,6 +180,10 @@ const TRANG = [
             // Hai nút đổi kiểu xem KHÔNG thuộc trang này: `.inv-grid.list-view`
             // nhắm vào `.ic-*` của `.inv-card`, không phải `.pd-card`.
             'class="view-btn',
+
+            // Mã loại gói lọt ra trang thay vì nhãn.
+            '>package</span>',
+            '>bundle</span>',
         ],
     },
 ];
