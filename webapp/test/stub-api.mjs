@@ -54,6 +54,132 @@ const SCREEN_KHONG_GIA = {
 
 const AVAILABILITY = { window_days: 30, remaining_sov_pct: 60, has_capacity: true };
 
+// ══ Chi tiết màn hình, lát 4 ══
+//
+// Fixture này cố ý **đủ các nhánh**: nhiều ảnh (để dải thumbnail và lightbox
+// render), insights có cả ba khối con, POI có hai nhóm, và `similar` không
+// rỗng. Thiếu một nhánh thì HTML đã render không đi qua đó, và phép kiểm khối
+// giao diện canh một trang nghèo hơn trang thật.
+const SCREEN_CHI_TIET = {
+    description: 'Màn hình LED trong sảnh trung tâm thương mại.',
+    photo_urls: [
+        'https://oohx.net/storage/screens/a.jpg',
+        'https://oohx.net/storage/screens/b.jpg',
+        'https://oohx.net/storage/screens/c.jpg',
+    ],
+    specs: {
+        width_px: 1920,
+        height_px: 1080,
+        allow_image: true,
+        allow_video: true,
+        spot_length_s: 15,
+        orientation: 'landscape',
+        venue_label: 'Trung tâm thương mại',
+        venue_type: 'indoor',
+        sov_max_pct: 100,
+        io_kpi_spots_per_day: 240,
+    },
+    site: {
+        name: 'Toà Nhà A',
+        address: 'Số 1 Đường Thử',
+        city: 'Hà Nội',
+        lat: 21.0278,
+        lng: 105.8342,
+    },
+    owner: {
+        slug: 'owner-mot',
+        name: 'Công Ty Một',
+        logo_url: 'https://oohx.net/storage/owners/logo.jpg',
+        verified: true,
+        phone: '0900000001',
+        email: 'lien-he@owner.test',
+    },
+    insights: {
+        placement_zone: 'escalator',
+        placement_label: 'Cạnh thang cuốn',
+        daily_footfall: 12000,
+        monthly_reach: 250000,
+        daily_impressions_est: 7200,
+        audience_profile: {
+            male_pct: 52,
+            female_pct: 48,
+            age_18_24_pct: 30,
+            age_25_34_pct: 40,
+            age_35_44_pct: 20,
+            age_45_plus_pct: 10,
+            income_tier: 'mid',
+            lifestyle_tags: ['sinh viên', 'nhân viên văn phòng'],
+            source_note: 'Đếm thủ công 3 ngày',
+        },
+        time_performance: {
+            best_day: 'sat',
+            morning_pct: 20,
+            afternoon_pct: 45,
+            evening_pct: 35,
+            rationale: 'Cao điểm cuối tuần theo lưu lượng trung tâm.',
+        },
+        nearby_context: {
+            brands: ['Highlands', 'Uniqlo'],
+            landmarks: ['Ga metro S9'],
+            highlights: 'Cạnh cửa ra ga metro, lối đi chính của trung tâm.',
+        },
+        methodology_note: 'Media owner đếm thủ công, chưa có đo độc lập.',
+        source: 'owner',
+    },
+    nearby_pois: [
+        {
+            id: 'p1',
+            name: 'Cafe Thử',
+            group: 'food_bev',
+            label: 'Cafe',
+            icon: 'local_cafe',
+            color: '#8B4513',
+            dist_m: 45,
+            lat: 21.028,
+            lng: 105.8344,
+        },
+        {
+            id: 'p2',
+            name: 'Ngân Hàng Thử',
+            group: 'finance',
+            label: 'Ngân hàng',
+            icon: 'account_balance',
+            color: '#16A085',
+            dist_m: 120,
+            lat: 21.0275,
+            lng: 105.8349,
+        },
+    ],
+};
+
+/** Lịch trống giả: N tháng từ hôm nay, một ngày đã đặt hết và một ngày đặt phần. */
+function lichTrong(months) {
+    const hom_nay = new Date();
+    const het = new Date(
+        Date.UTC(hom_nay.getUTCFullYear(), hom_nay.getUTCMonth() + Number(months) + 1, 0),
+    );
+
+    const days = [];
+    const d = new Date(Date.UTC(hom_nay.getUTCFullYear(), hom_nay.getUTCMonth(), hom_nay.getUTCDate()));
+
+    let i = 0;
+    while (d <= het) {
+        // Ba trạng thái đều có mặt, nên cả ba class `cd-*` được render.
+        const con = i === 3 ? 0 : i === 4 ? 40 : 100;
+        days.push({ date: d.toISOString().slice(0, 10), remaining_sov_pct: con });
+        d.setUTCDate(d.getUTCDate() + 1);
+        i++;
+    }
+
+    return {
+        from: days[0]?.date,
+        to: days[days.length - 1]?.date,
+        months: Number(months),
+        sov_max_pct: 100,
+        days,
+    };
+}
+
 // `logo_url`, `city_count`, `venue_types`, `verified` thêm 14/10/2026 cùng với
 // `OwnerSummaryResource`: thẻ owner dựng lại theo bản Blade in cả bốn, nên dữ
 // liệu giả phải có chúng — nếu không thì HTML đã render không đi qua những
@@ -270,13 +396,37 @@ const ROUTES = {
 };
 
 /** Đường chi tiết: khớp theo slug, trả 404 cho slug lạ. */
-function chiTiet(pathname) {
+function chiTiet(pathname, searchParams = new URLSearchParams()) {
+    // Lịch trống đi qua cùng hàm này vì nó cũng là một đường có tham số đường
+    // dẫn. `months` đọc từ query, mặc định 2 — đúng mặc định của API thật.
+    if (/^\/api\/v2\/screens\/[^/]+\/availability$/.test(pathname)) {
+        return { data: lichTrong(searchParams.get('months') ?? 2) };
+    }
+
     if (pathname === '/api/v2/screens/man-hinh-co-gia') {
-        return { data: { ...SCREEN_CO_GIA, availability: AVAILABILITY } };
+        return {
+            data: {
+                ...SCREEN_CO_GIA,
+                ...SCREEN_CHI_TIET,
+                availability: AVAILABILITY,
+                similar: [SCREEN_KHONG_GIA],
+            },
+        };
     }
 
     if (pathname === '/api/v2/screens/man-hinh-khong-gia') {
-        return { data: { ...SCREEN_KHONG_GIA, availability: AVAILABILITY } };
+        return {
+            data: {
+                ...SCREEN_KHONG_GIA,
+                ...SCREEN_CHI_TIET,
+                availability: AVAILABILITY,
+                // Màn hình không giá KHÔNG có insights: trang phải ẩn hẳn tab
+                // Insights, và đó là một nhánh riêng cần được render ở đâu đó.
+                insights: null,
+                nearby_pois: [],
+                similar: [],
+            },
+        };
     }
 
     for (const trang of [CHINH_SACH_DA_BAN_HANH, CHINH_SACH_BAN_NHAP]) {
@@ -310,7 +460,7 @@ export function startStubApi(port = 0) {
     return new Promise((resolve) => {
         const server = createServer((req, res) => {
             const url = new URL(req.url, 'http://127.0.0.1');
-            const body = ROUTES[url.pathname] ?? chiTiet(url.pathname);
+            const body = ROUTES[url.pathname] ?? chiTiet(url.pathname, url.searchParams);
 
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
 

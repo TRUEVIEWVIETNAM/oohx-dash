@@ -7,6 +7,7 @@ use App\Models\CartItem;
 use App\Models\InventoryHold;
 use App\Models\Screen;
 use App\Models\ScreenInventory;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -231,6 +232,73 @@ class InventoryHoldService
      * @param  array<int, string>  $screenIds
      * @return array<string, int>  screen_id => SOV còn lại
      */
+    /**
+     * SOV còn lại **theo từng ngày** trong một khoảng.
+     *
+     * Vì sao ở đây chứ không ở controller: lớp này là nơi duy nhất biết công
+     * thức sức chứa (`share_of_voice_max_pct` trừ dòng đặt chỗ đang sống trừ
+     * giữ chỗ trong giỏ). Lịch trống của trang chi tiết Blade tự viết lại một
+     * nửa công thức đó — nó cộng `share_of_voice_pct` của `BookingLine` có
+     * `status` trong `['approved','active']` và **bỏ qua giữ chỗ trong giỏ**,
+     * nên lịch nói "còn trống" cho một ngày mà người khác đang thanh toán.
+     * Hai nửa công thức ở hai nơi là đúng thứ đã làm `InventoryController`
+     * trôi khỏi `FrontpageService`.
+     *
+     * Hai truy vấn, không phải một truy vấn mỗi ngày: lấy mọi dòng và mọi giữ
+     * chỗ **chồng lấn khoảng**, rồi bung ra theo ngày trong PHP. Một trang
+     * lịch hai tháng gọi theo ngày là 60 lượt hỏi CSDL cho một câu trả lời.
+     *
+     * Trả về `['Y-m-d' => int]` cho **mọi** ngày trong khoảng, kể cả ngày
+     * không ai đặt — bên gọi không phải đoán ngày thiếu nghĩa là gì.
+     */
+    public function remainingSovByDay(Screen $screen, string $startDate, string $endDate): array
+    {
+        $max   = (int) ($screen->inventory?->share_of_voice_max_pct ?? 100);
+        $from  = CarbonImmutable::parse($startDate)->startOfDay();
+        $to    = CarbonImmutable::parse($endDate)->startOfDay();
+
+        if ($to->lessThan($from)) {
+            return [];
+        }
+
+        $lines = BookingLine::withoutGlobalScopes()
+            ->where('screen_id', $screen->id)
+            ->whereIn('status', self::LIVE_LINE_STATUSES)
+            ->where('start_date', '<=', $to->toDateString())
+            ->where('end_date', '>=', $from->toDateString())
+            ->get(['start_date', 'end_date', 'share_of_voice_pct']);
+
+        $holds = InventoryHold::effective()
+            ->where('screen_id', $screen->id)
+            ->whereNull('booking_line_id')
+            ->overlapping($from->toDateString(), $to->toDateString())
+            ->get(['start_date', 'end_date', 'sov_pct']);
+
+        $daDung = [];
+
+        foreach ([[$lines, 'share_of_voice_pct'], [$holds, 'sov_pct']] as [$rows, $cot]) {
+            foreach ($rows as $row) {
+                $batDau = CarbonImmutable::parse($row->start_date)->startOfDay()->max($from);
+                $ketThuc = CarbonImmutable::parse($row->end_date)->startOfDay()->min($to);
+                $pct = (int) ($row->{$cot} ?? 100);
+
+                for ($ngay = $batDau; $ngay->lessThanOrEqualTo($ketThuc); $ngay = $ngay->addDay()) {
+                    $khoa = $ngay->toDateString();
+                    $daDung[$khoa] = ($daDung[$khoa] ?? 0) + $pct;
+                }
+            }
+        }
+
+        $ketQua = [];
+
+        for ($ngay = $from; $ngay->lessThanOrEqualTo($to); $ngay = $ngay->addDay()) {
+            $khoa = $ngay->toDateString();
+            $ketQua[$khoa] = max(0, $max - ($daDung[$khoa] ?? 0));
+        }
+
+        return $ketQua;
+    }
+
     public function remainingSovForScreens(array $screenIds, string $startDate, string $endDate): array
     {
         if ($screenIds === []) {

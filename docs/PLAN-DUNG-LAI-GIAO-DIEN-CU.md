@@ -2,8 +2,8 @@
 
 Viết 14/10/2026 · Claude Code · Đối chiếu bản Blade trước giai đoạn 7 với bản Next đang chạy
 
-> **Tiến độ, cập nhật 14/10/2026.** Lát **0, 1, 2 và 3 đã làm** (chủ dự án
-> duyệt từng lát). Lát 4 → 7 còn nguyên.
+> **Tiến độ, cập nhật 14/10/2026.** Lát **0, 1, 2, 3 và 4 đã làm** (chủ dự án
+> duyệt từng lát). Lát 5 → 7 còn nguyên.
 >
 > **Hai chỗ bản kế hoạch này đo sai, phát hiện khi làm:**
 >
@@ -227,7 +227,7 @@ lát một PR, CI xanh mới merge.
 | ~~**1**~~ **XONG 14/10** | Thẻ và lưới: `inv-grid` cho lưới màn hình (thay `oc-grid`), đổi kiểu xem lưới/danh sách; `/owners` có lại ô tìm kiếm + `cat-chips` | không — `filters` đã có | 1 ngày |
 | ~~**2**~~ **XONG 14/10** | **Trang chủ**: mega-search, Live Map View, 4 bước đặt booking, Gói chiến dịch, Owner CTA, và phần hero còn thiếu (badge, `hstat`, hint, ảnh mô phỏng) | `locations` ✔ `pins` ✔ `stats` ✔ — **thêm** `categories_networks` vào `/filters` | 2–3 ngày |
 | ~~**3**~~ **XONG 14/10** | `/explore` + `/products`: sidebar lọc, results header, sắp xếp, drawer mobile | ~~`filters` ✔~~ — **có**: `filters` của màn hình không mang `categories`/`types` của gói, nên thêm `GET /api/v2/products/filters` | 2 ngày |
-| **4** | `/explore/{slug}`: gallery + lightbox, bốn tab, insights, lịch trống theo tháng, panel giá | **cần bốn món** — bảng dưới | 3–4 ngày |
+| ~~**4**~~ **XONG 14/10** | `/explore/{slug}`: gallery + lightbox, bốn tab, insights, lịch trống theo tháng, panel giá, khối vị trí + POI, màn hình tương tự | **bốn món, đúng như dự đoán**: `photo_urls[]`, insights, lịch trống theo ngày (đường riêng, trần 3 tháng), màn hình gần đó — cộng `ScreenDetailResource` mới | 3–4 ngày |
 | **5** | `/owners/{slug}`: bố cục hồ sơ `fp-*` (chuyển 98 dòng CSS nội tuyến vào `frontpage.css`), đánh giá người mua | `owners/{slug}` ✔ đã có `cover_url`, `logo_url`, `tagline`, `about`, `contact`, `stats`, `venue_types`; `OwnerReviewResource` đã có | 2 ngày |
 | **6** | `/map`: smart-filter, thanh thành phố, nút zoom, chú giải, bộ đếm | `filters` ✔ `map` ✔ | 1–2 ngày |
 | **7** | `/products/{slug}`: gallery, panel giá có tab, danh sách màn hình trong gói | `products/{slug}` ✔ đã có `photo_urls`, `specs`, `package_options`, `screens` | 1–2 ngày |
@@ -322,6 +322,64 @@ custom]`. `ProductCard` có `kieu?.nhan ?? product.type`, nên thẻ in **mã th
 "bundle" ra trang trong mọi lượt build thử — và không chốt nào đỏ. Đã sửa
 stub, và thêm vào `khoi-giao-dien.mjs` một khẳng định rằng nhãn trên thẻ là
 chữ tiếng Việt, không phải mã.
+## Những gì lát 4 đã đổi, và một thứ tìm thấy trong CSS
+
+**Bốn món API mà bảng trên dự đoán — đúng cả bốn, và không thêm món nào.**
+`photo_urls[]`, insights, lịch trống theo ngày, màn hình gần đó. Ba món đầu vào
+`ScreenDetailResource` (một DTO **mới**, không phải thêm trường vào DTO danh
+sách: `/api/v2/screens` trả 24 bản ghi mỗi trang, và nhồi insights vào đó là
+nhân payload danh sách lên nhiều lần cho dữ liệu mà lưới thẻ không in ra). Lịch
+trống thành một đường riêng.
+
+**Lịch trống là một đường riêng vì nhịp đổi khác nhau.** Chỗ trống đổi theo
+từng lượt đặt chỗ; thông số và ảnh đổi theo tháng. Gộp vào chi tiết là buộc cả
+trang cache theo nhịp của phần động nhất — hoặc buộc lịch cache theo nhịp của
+phần tĩnh nhất và hiện ngày đã bán là còn trống. `months` có **trần 3**, và quá
+trần là 422 chứ không lặng lẽ cắt: endpoint trả một phần tử mỗi ngày, nên
+`months=240` là 7.300 phần tử một lần gọi trên một đường không cần đăng nhập.
+
+**Lịch của bản Blade bỏ qua giữ chỗ trong giỏ — và đó là một lỗi, không phải
+một lựa chọn.** View cũ tự cộng `share_of_voice_pct` của `BookingLine` có
+`status` trong `['approved','active']`, và không biết gì về `InventoryHold`. Nên
+nó sơn **xanh** những ngày người khác đang thanh toán. Endpoint mới đi qua
+`InventoryHoldService::remainingSovByDay()` — lớp duy nhất biết công thức sức
+chứa — nên hai nơi không thể trôi khỏi nhau. Có một ca test cho đúng chuyện này
+(`test_lich_trong_tru_ca_suat_dang_co_nguoi_giu_trong_gio`).
+
+**Toàn bộ CSS của lightbox và khối POI sống trong view đã bị gỡ.** `.lb-*`,
+`.loc-*`, `.poi-pin*`, `.screen-pin*`, `.gal-thumb-on` — 70 dòng nằm trong
+`@push('head')` của `frontpage/detail.blade.php`, tức chúng biến mất cùng view ở
+giai đoạn 7. Dựng lại thư viện ảnh mà không chuyển chúng vào `frontpage.css` thì
+lightbox mở ra là một ảnh trần giữa trang, không có lớp nền đen. Lát này chuyển
+cả 70 dòng, và đổi `#loc-map` thành `.loc-map`: một id trong CSS buộc mọi nơi
+dùng lại khối này phải đặt đúng id đó, và hai bản đồ trên một trang thì id trùng.
+
+**`.sc` trên trang chi tiết là HỢP LỆ** — và đó là chỗ phải cẩn thận khi đọc
+lỗi của lát 0. `.sc` là một ô trong bảng thông số (`frontpage.css:1330`), và
+trang chi tiết có đúng bảng đó trong `specs-grid`. Lỗi lát 0 là thẻ **màn hình**
+mở bằng tên ấy. Nên `khoi-giao-dien.mjs` cấm `class="sc"` ở `/explore` và
+`/products`, nhưng KHÔNG cấm ở `/explore/{slug}` — chỗ canh ở trang này là
+`class="sc-card sc-compact"` của khối "Inventory tương tự".
+
+### Ba thứ của bản Blade KHÔNG dựng lại, và một thứ dựng khác
+
+| Thứ | Quyết định | Vì sao |
+|---|---|---|
+| Bốn thẻ "Điểm nổi bật" (`hl-card`) | **không dựng** | "AI Traffic Data · Cập nhật theo giờ thực" (không có AI trong mã), "Proof of Play · Video xác nhận hàng ngày" (`impression_logs` chưa có bản ghi nào), "Verified Location · Kiểm tra thực địa 2024" (khẳng định về quy trình), "Fast Booking · Xác nhận trong 48h" (cam kết vận hành). Cùng đường cắt với thanh `trust` ở trang chủ |
+| Bốn thẻ đánh giá 4.9 sao | **không dựng** | Bản Blade đã bọc chúng trong `@if(false)` — chính tác giả đã tắt vì là dữ liệu bịa. Tab "Đánh giá" dựng lại đúng trạng thái đang bật: chưa có đánh giá nào |
+| Dòng "Nguồn traffic: OOHX Data Engine · Method · Confidence" | **không dựng** | Nó đọc `$screen->traffic_estimate`, một accessor gọi HTTP sang tunnel nội bộ. `/api/v2/screens/{slug}` là đường công khai có giới hạn tần suất; để nó chờ một dịch vụ khác là đổi một trang danh mục thành một trang phụ thuộc tunnel còn sống. Số liệu trong Insights vì thế là cột do owner khai, và `insights.source` nói đúng thế |
+| Panel giá: hàng VAT + "Tổng cộng" | **dựng khác** | Bản Blade tính cả ba bằng JS và trình bày như số tiền thật — chú thích trong chính view đó kể lại một lần nhãn (config 8%) và con số (nhân cứng 0,1) đã lệch nhau. CLAUDE.md mục 5: **số tiền do máy chủ tính**. Nên panel in **một** hàng tạm tính, gọi nó là ước tính, và nói số chính thức do hệ thống tính khi thêm vào kế hoạch. Thuế suất không có trong hợp đồng API công khai, và viết cứng 8% vào mã trình duyệt là dựng bản sao thứ hai của một chính sách |
+
+Chân panel cũng đổi: bản Blade viết *"Thanh toán bảo mật bởi OOHX · Hoàn tiền
+100% nếu hủy trước 48h"*. Sàn **không thu hộ** (người mua chuyển khoản trực tiếp
+cho owner, hồ sơ Bộ Công Thương), nên câu đầu nói sai cách tiền chạy; và chính
+sách hủy/hoàn tiền là một trong **sáu câu hỏi nghiệp vụ còn chờ chủ dự án chốt**,
+nên câu sau là một cam kết chưa ai duyệt. Thay bằng liên kết tới `/bang-phi`.
+
+**Nút "Thêm vào Plan" dẫn tới `/login`.** Khu người mua chưa chuyển sang Next,
+nên nút gửi `POST` vào một đường chưa tồn tại là tệ hơn một nút nói thật là nó
+cần đăng nhập. Nút "lưu" (trái tim) cũng không dựng: nó gọi `POST /save/{id}`.
+
 ## Ba khối chưa dựng vì chúng là lời hứa, không phải hình (ghi 14/10/2026)
 
 Lát 2 dựng lại trang chủ và dừng trước ba khối. Không phải vì khó — cả ba là

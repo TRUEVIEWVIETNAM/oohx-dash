@@ -105,6 +105,151 @@ const TRANG = [
         ],
     },
     {
+        path: '/explore/man-hinh-co-gia',
+        ten: 'chi tiết màn hình',
+        co: [
+            // Lát 4 — thư viện ảnh
+            'class="bc"', // breadcrumb
+            'class="bc-sep"',
+            'class="gallery"', // nhiều ảnh nên KHÔNG có gallery--single
+            'class="gal-main"',
+            'class="gal-thumbs"',
+            'class="gal-thumb gal-thumb-on"',
+            'class="gal-count"',
+            'class="gal-badge"',
+
+            // Lát 4 — bố cục hai cột và hàng số liệu
+            'class="detail-layout"',
+            'class="detail-sidebar"',
+            'class="dtitle"',
+            'class="dmeta"',
+            'class="stats-row"',
+            'class="stat-box"',
+            'class="oc-mini"', // thẻ owner một dòng
+
+            // Lát 4 — bốn tab, và nội dung CỦA CẢ BỐN phải có trong HTML máy
+            // chủ render (bản Blade cũng in hết rồi ẩn bằng CSS)
+            'class="tabs"',
+            'id="tp-info"',
+            'id="tp-insights"',
+            'id="tp-avail"',
+            'id="tp-review"',
+            'class="specs-grid"',
+
+            // Lát 4 — insights
+            'class="ins"',
+            'class="ins-stats"',
+            'class="ins-stat-src"', // badge "Đo"
+            'class="ins-block"',
+            'class="ins-bar-fill ins-bar-fill--bl"',
+            'class="ins-day is-best"',
+            'class="ins-pill ins-pill--mid"',
+            'class="ins-tag ins-tag--bl"',
+            'class="ins-source ins-source-foot"',
+
+            // Lát 4 — lịch trống, cả ba trạng thái (fixture dựng đủ ba)
+            'class="avail-grid"',
+            'class="month-card"',
+            'class="cal-grid"',
+            'class="cal-dh"',
+            'class="cal-day cd-ok"',
+            'class="cal-day cd-pt"',
+            'class="cal-day cd-bk"',
+            'class="cal-legend"',
+
+            // Lát 4 — panel giá
+            'class="bp"',
+            'class="bp-head"',
+            'class="bp-price"',
+            'class="bp-body"',
+            'class="bp-field"',
+            'class="bp-inp"',
+            'class="bp-sum"',
+            'class="bp-ctas"',
+            'class="bp-foot"',
+
+            // Lát 4 — khối vị trí + POI
+            'class="loc-section"',
+            'class="loc-browser"',
+            'class="loc-list"',
+            'class="loc-filter"',
+            'class="loc-filter-pill is-active"',
+            'class="loc-grp-h"',
+            'class="loc-item"',
+            'class="loc-dot"',
+            'class="loc-map-wrap"',
+            'class="loc-map"',
+
+            // Lát 4 — màn hình tương tự
+            'class="similar-section"',
+            'class="inv-grid"',
+            'class="sc-card sc-compact"',
+        ],
+        khong: [
+            // CHÚ Ý: `class="sc"` KHÔNG nằm trong danh sách này, khác với
+            // `/explore` và `/products`. `.sc` là một ô bảng thông số
+            // (frontpage.css:1330) và trang chi tiết có đúng bảng đó bên trong
+            // `specs-grid`. Lỗi của lát 0 là thẻ **màn hình** mở bằng tên ấy —
+            // và chỗ canh điều đó ở trang này là `class="sc-card sc-compact"`
+            // trong danh sách `co` phía trên.
+
+            // Bốn thẻ "Điểm nổi bật" của bản Blade: bốn câu không câu nào kiểm
+            // được ("AI Traffic Data", "Proof of Play", "Verified Location
+            // 2024", "Fast Booking 48h"). Chờ chủ dự án quyết.
+            'class="hl-grid"',
+            'class="hl-card"',
+
+            // Bốn thẻ đánh giá 4.9 sao: bản Blade đã bọc trong `@if(false)`,
+            // tức chính tác giả đã tắt vì chúng là dữ liệu bịa.
+            'class="rv-item"',
+            'class="rv-big"',
+
+            // Hàng VAT và "Tổng cộng" tính bằng JS: CLAUDE.md mục 5 nói số
+            // tiền do máy chủ tính, và thuế suất không có trong hợp đồng API.
+            'class="bp-row bp-total"',
+
+            // Nút "lưu" (trái tim) gọi POST /save/{id} — khu người mua chưa
+            // chuyển sang Next, nên một trái tim bấm vào không làm gì.
+            'id="savebtn"',
+
+            // Câu "Thanh toán bảo mật bởi OOHX": sàn KHÔNG thu hộ.
+            'Thanh toán bảo mật',
+        ],
+    },
+    {
+        path: '/explore/man-hinh-khong-gia',
+        ten: 'chi tiết màn hình chưa có giá',
+        co: [
+            // Không giá → panel báo giá, không panel tính tiền.
+            'class="bp bp-quote"',
+            'class="bp-quote-title"',
+
+            // Fixture của màn hình này KHÔNG có insights, nên tab Insights
+            // phải vắng mặt hẳn — đúng cách bản Blade ẩn tab khi
+            // `has_insights` là false.
+            'id="tp-info"',
+            'id="tp-avail"',
+
+            // Fixture này có toạ độ nhưng KHÔNG có POI: khối bản đồ vẫn dựng,
+            // danh sách bên trái hiện trạng thái rỗng. Đó là một nhánh render
+            // riêng, và nó phải được đi qua ở đâu đó.
+            'class="loc-browser"',
+            'class="loc-empty"',
+            'class="loc-empty-sub"',
+        ],
+        khong: [
+            'id="tp-insights"',
+
+            // `offers` trong JSON-LD chỉ xuất hiện khi CÓ giá: `price: 0` với
+            // schema.org nghĩa là MIỄN PHÍ.
+            '"offers"',
+
+            // Có toạ độ nên khối bản đồ vẫn dựng, nhưng KHÔNG có POI nào —
+            // nên thanh chip lọc nhóm không được xuất hiện.
+            'class="loc-filter"',
+        ],
+    },
+    {
         path: '/owners',
         ten: 'danh sách media owner',
         co: [

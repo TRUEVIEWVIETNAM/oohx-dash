@@ -245,6 +245,19 @@ paths:
     get:
       tags: [catalog]
       summary: Chi tiết một màn hình
+      description: |
+        DTO rộng hơn `ScreenSummary` của danh sách: thêm thư viện ảnh, thông
+        số đầy đủ, toạ độ của site, đường liên hệ media owner, khối Insights,
+        POI lân cận và danh sách màn hình tương tự.
+
+        Hai DTO khác nhau vì hai nơi cần khác nhau: `/api/v2/screens` trả 24
+        bản ghi mỗi trang, và nhồi các khối này vào đó là nhân payload danh
+        sách lên nhiều lần cho dữ liệu mà lưới thẻ không in ra.
+
+        `insights` là `null` khi màn hình không có dữ liệu nào — trang ẩn hẳn
+        tab Insights khi đó. Số liệu trong `insights` do **media owner khai**
+        (`source: owner`); endpoint này KHÔNG gọi Data Engine, vì một đường
+        công khai không nên chặn trên một lời gọi mạng sang dịch vụ khác.
       parameters:
         - { name: slug, in: path, required: true, schema: { type: string } }
       responses:
@@ -256,14 +269,51 @@ paths:
                 type: object
                 required: [data]
                 properties:
-                  data:
-                    allOf:
-                      - $ref: '#/components/schemas/ScreenSummary'
-                      - type: object
-                        required: [availability]
-                        properties:
-                          availability: { $ref: '#/components/schemas/Availability' }
+                  data: { $ref: '#/components/schemas/ScreenDetail' }
         '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v2/screens/{slug}/availability:
+    get:
+      tags: [catalog]
+      summary: Lịch trống theo từng ngày
+      description: |
+        SOV còn lại cho **mỗi ngày** từ hôm nay đến hết tháng thứ N.
+
+        Trả con số, không trả trạng thái ba màu đã quy đổi sẵn: màu là việc
+        của tầng hiển thị, nên một client khác vẽ ngưỡng khác mà không cần
+        endpoint mới.
+
+        Số này đi qua `InventoryHoldService`, nên nó đã **trừ cả suất người
+        khác đang giữ trong giỏ**. Lịch trống của trang Blade tự cộng
+        `BookingLine` lấy và bỏ qua giữ chỗ, nên nó sơn xanh những ngày người
+        khác đang thanh toán.
+
+        Đường riêng, không gộp vào chi tiết: dữ liệu này đổi theo từng lượt
+        đặt chỗ, còn phần còn lại của trang chi tiết đổi theo tháng. Gộp là
+        buộc cả trang cache theo nhịp của phần động nhất — hoặc buộc lịch cache
+        theo nhịp của phần tĩnh nhất và hiện ngày đã bán là còn trống.
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - name: months
+          in: query
+          description: |
+            Số tháng, **tối đa 3**. Endpoint trả một phần tử mỗi ngày, nên
+            không có trần thì `months=240` là 7.300 phần tử một lần gọi trên
+            một đường không cần đăng nhập. Quá trần là 422, không phải lặng lẽ
+            cắt về 3 — client phải biết nó không nhận được điều đã xin.
+          schema: { type: integer, minimum: 1, maximum: 3, default: 2 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/ScreenAvailabilityCalendar' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /api/v2/owners:
@@ -2250,6 +2300,166 @@ components:
       properties:
         name:  { type: [string, 'null'] }
         count: { type: integer }
+
+    ScreenDetail:
+      allOf:
+        - $ref: '#/components/schemas/ScreenSummary'
+        - type: object
+          required: [photo_urls, specs, site, owner, insights, nearby_pois, similar, availability]
+          properties:
+            description: { type: [string, 'null'] }
+            photo_urls:
+              type: array
+              description: |
+                Thư viện ảnh, theo đúng chuỗi dự phòng của trang Blade:
+                `spec.photos[]` → `spec.photo_url` → ảnh của site / network /
+                owner / loại điểm đặt. Không có ảnh nào thì **mảng rỗng** —
+                không trả URL của một dịch vụ ảnh giữ chỗ nào.
+              items: { type: string }
+            specs:
+              type: object
+              required: [width_px, height_px, allow_image, allow_video, spot_length_s, orientation, venue_label, venue_type, sov_max_pct, io_kpi_spots_per_day]
+              properties:
+                width_px:      { type: [integer, 'null'] }
+                height_px:     { type: [integer, 'null'] }
+                allow_image:   { type: boolean }
+                allow_video:   { type: boolean }
+                spot_length_s: { type: [integer, 'null'] }
+                orientation:   { type: [string, 'null'], enum: [landscape, portrait, square, null] }
+                venue_label:
+                  type: [string, 'null']
+                  description: |
+                    Nhãn loại điểm đặt, KHÔNG phải `vn_category_id`. Id của
+                    `venue_categories` là khóa nội bộ mà client không tra
+                    được.
+                venue_type:    { type: [string, 'null'] }
+                sov_max_pct:   { type: [integer, 'null'] }
+                io_kpi_spots_per_day: { type: [integer, 'null'] }
+            site:
+              type: [object, 'null']
+              required: [name, address, city, lat, lng]
+              properties:
+                name:    { type: [string, 'null'] }
+                address: { type: [string, 'null'] }
+                city:    { type: [string, 'null'] }
+                lat:     { type: [number, 'null'] }
+                lng:     { type: [number, 'null'] }
+            owner:
+              type: object
+              description: |
+                Kèm `phone` và `email`: trang chi tiết Blade in đúng hai thứ
+                đó, công khai. Sàn không thu hộ, nên đó là đường liên hệ duy
+                nhất trên trang.
+              required: [slug, name, logo_url, verified, phone, email]
+              properties:
+                slug:     { type: [string, 'null'] }
+                name:     { type: [string, 'null'] }
+                logo_url: { type: [string, 'null'] }
+                verified: { type: boolean }
+                phone:    { type: [string, 'null'] }
+                email:    { type: [string, 'null'] }
+            insights: { $ref: '#/components/schemas/ScreenInsights' }
+            nearby_pois:
+              type: array
+              items: { $ref: '#/components/schemas/NearbyPoi' }
+            similar:
+              type: array
+              items: { $ref: '#/components/schemas/ScreenSummary' }
+            availability: { $ref: '#/components/schemas/Availability' }
+
+    ScreenInsights:
+      type: [object, 'null']
+      description: |
+        `null` khi màn hình không có dữ liệu nào — không phải một đối tượng
+        toàn trường rỗng, vì khi đó mỗi client lại tự định nghĩa "rỗng là thế
+        nào". Các khối con cũng `null` khi trống, theo cùng lý lẽ.
+      required: [placement_zone, placement_label, daily_footfall, monthly_reach, daily_impressions_est, audience_profile, time_performance, nearby_context, methodology_note, source]
+      properties:
+        placement_zone:  { type: [string, 'null'] }
+        placement_label: { type: [string, 'null'] }
+        daily_footfall:  { type: [integer, 'null'] }
+        monthly_reach:   { type: [integer, 'null'] }
+        daily_impressions_est:
+          type: [integer, 'null']
+          description: |
+            **Ước tính**: `daily_footfall` × 0,6 — một hệ số kinh nghiệm, không
+            phải một phép đo. Tên trường nói ra điều đó.
+        audience_profile:
+          type: [object, 'null']
+          description: Danh sách trắng theo khóa; cột gốc là JSON tự do.
+          properties:
+            male_pct:         { type: [integer, number, 'null'] }
+            female_pct:       { type: [integer, number, 'null'] }
+            age_18_24_pct:    { type: [integer, number, 'null'] }
+            age_25_34_pct:    { type: [integer, number, 'null'] }
+            age_35_44_pct:    { type: [integer, number, 'null'] }
+            age_45_plus_pct:  { type: [integer, number, 'null'] }
+            income_tier:      { type: [string, 'null'], enum: [low, mid, high, null] }
+            lifestyle_tags:   { type: array, items: { type: string } }
+            source_note:      { type: [string, 'null'] }
+        time_performance:
+          type: [object, 'null']
+          properties:
+            peak_hour_start: { type: [integer, string, 'null'] }
+            peak_hour_end:   { type: [integer, string, 'null'] }
+            best_day:        { type: [string, 'null'], enum: [mon, tue, wed, thu, fri, sat, sun, null] }
+            morning_pct:     { type: [integer, number, 'null'] }
+            afternoon_pct:   { type: [integer, number, 'null'] }
+            evening_pct:     { type: [integer, number, 'null'] }
+            rationale:       { type: [string, 'null'] }
+        nearby_context:
+          type: [object, 'null']
+          properties:
+            brands:     { type: array, items: { type: string } }
+            landmarks:  { type: array, items: { type: string } }
+            highlights: { type: [string, 'null'] }
+        methodology_note: { type: [string, 'null'] }
+        source:
+          type: string
+          enum: [owner]
+          description: |
+            Nguồn của mọi con số trong khối này. Hôm nay chỉ có `owner` (cột
+            do media owner khai). Trang in badge theo giá trị này, nên nó đến
+            từ API chứ không từ một giả định ở tầng hiển thị.
+
+    NearbyPoi:
+      type: object
+      description: |
+        POI quanh màn hình, từ ảnh chụp OSM đã cache (`poi_snapshots`) qua
+        `PoiProjection` — đúng lớp trang Blade và panel Filament dùng, nên
+        nhãn, icon, màu và nhóm không lệch giữa ba nơi. Endpoint KHÔNG gọi OSM
+        khi trả lời.
+      required: [id, name, group, label, icon, color, dist_m, lat, lng]
+      properties:
+        id:     { type: [string, 'null'] }
+        name:   { type: [string, 'null'] }
+        group:  { type: [string, 'null'] }
+        label:  { type: [string, 'null'] }
+        icon:   { type: [string, 'null'] }
+        color:  { type: [string, 'null'] }
+        dist_m: { type: [integer, 'null'] }
+        lat:    { type: [number, 'null'] }
+        lng:    { type: [number, 'null'] }
+
+    ScreenAvailabilityCalendar:
+      type: object
+      required: [from, to, months, sov_max_pct, days]
+      properties:
+        from:        { type: string, format: date }
+        to:          { type: string, format: date }
+        months:      { type: integer, minimum: 1, maximum: 3 }
+        sov_max_pct: { type: integer }
+        days:
+          type: array
+          description: |
+            Một phần tử cho **mỗi ngày** trong khoảng, kể cả ngày không ai
+            đặt — bên gọi không phải đoán ngày thiếu nghĩa là gì.
+          items:
+            type: object
+            required: [date, remaining_sov_pct]
+            properties:
+              date:              { type: string, format: date }
+              remaining_sov_pct: { type: integer }
 
     Availability:
       type: object

@@ -44,6 +44,29 @@ class AvailabilityService
     }
 
     /**
+     * SOV còn lại theo từng ngày — lịch trống của trang chi tiết đọc cái này.
+     *
+     * Đi qua `InventoryHoldService` chứ không tự cộng `BookingLine`: lịch của
+     * bản Blade tự cộng lấy và **bỏ qua giữ chỗ trong giỏ**, nên nó sơn xanh
+     * những ngày người khác đang thanh toán.
+     *
+     * Trả `['Y-m-d' => int]` cho mọi ngày trong khoảng. Màn hình không tồn tại
+     * thì trả mảng rỗng — cùng cách `getRemainingSOV()` trả 0, tức "không có
+     * suất nào" chứ không phải một ngoại lệ.
+     */
+    public function getDailyRemainingSOV(string $screenId, string $startDate, string $endDate): array
+    {
+        $screen = Screen::withoutGlobalScopes()->with('inventory')->find($screenId);
+
+        if (! $screen) {
+            return [];
+        }
+
+        return app(InventoryHoldService::class)
+            ->remainingSovByDay($screen, $startDate, $endDate);
+    }
+
+    /**
      * Check if a screen is available for booking with given SOV.
      */
     public function isAvailable(string $screenId, string $startDate, string $endDate, int $sovPct = 100): bool

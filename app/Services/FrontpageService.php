@@ -725,9 +725,15 @@ class FrontpageService
             return Screen::publiclyVisible()
                 ->with([
                     'spec:screen_id,photo_url,photos,width_px,height_px,width_cm,height_cm,allow_image,allow_video',
-                    'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day',
+                    // `spot_length` và `share_of_voice_max_pct` thêm 14/10/2026:
+                    // trang chi tiết in thời lượng spot, và lịch trống cần biết
+                    // trần SOV để tô màu một ngày là "đầy" hay "còn".
+                    'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day,spot_length,share_of_voice_max_pct',
                     'inventory.vnCategory:id,thumb',
-                    'owner:id,name,slug,logo_url,cover_url,verified',
+                    // `phone` và `email`: khối "Liên hệ media owner" của trang
+                    // chi tiết. Sàn không thu hộ, nên đó là đường liên hệ duy
+                    // nhất trên trang — thiếu hai cột này thì khối đó rỗng.
+                    'owner:id,name,slug,logo_url,cover_url,verified,phone,email',
                     'site:id,network_id,name,city,address,lat,lon,banner',
                     'site.network:id,name,code,banner',
                 ])

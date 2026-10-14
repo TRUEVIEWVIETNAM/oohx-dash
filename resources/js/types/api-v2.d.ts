@@ -277,7 +277,21 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Chi tiết một màn hình */
+        /**
+         * Chi tiết một màn hình
+         * @description DTO rộng hơn `ScreenSummary` của danh sách: thêm thư viện ảnh, thông
+         *     số đầy đủ, toạ độ của site, đường liên hệ media owner, khối Insights,
+         *     POI lân cận và danh sách màn hình tương tự.
+         *
+         *     Hai DTO khác nhau vì hai nơi cần khác nhau: `/api/v2/screens` trả 24
+         *     bản ghi mỗi trang, và nhồi các khối này vào đó là nhân payload danh
+         *     sách lên nhiều lần cho dữ liệu mà lưới thẻ không in ra.
+         *
+         *     `insights` là `null` khi màn hình không có dữ liệu nào — trang ẩn hẳn
+         *     tab Insights khi đó. Số liệu trong `insights` do **media owner khai**
+         *     (`source: owner`); endpoint này KHÔNG gọi Data Engine, vì một đường
+         *     công khai không nên chặn trên một lời gọi mạng sang dịch vụ khác.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -296,13 +310,78 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            data: components["schemas"]["ScreenSummary"] & {
-                                availability: components["schemas"]["Availability"];
-                            };
+                            data: components["schemas"]["ScreenDetail"];
                         };
                     };
                 };
                 404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/screens/{slug}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lịch trống theo từng ngày
+         * @description SOV còn lại cho **mỗi ngày** từ hôm nay đến hết tháng thứ N.
+         *
+         *     Trả con số, không trả trạng thái ba màu đã quy đổi sẵn: màu là việc
+         *     của tầng hiển thị, nên một client khác vẽ ngưỡng khác mà không cần
+         *     endpoint mới.
+         *
+         *     Số này đi qua `InventoryHoldService`, nên nó đã **trừ cả suất người
+         *     khác đang giữ trong giỏ**. Lịch trống của trang Blade tự cộng
+         *     `BookingLine` lấy và bỏ qua giữ chỗ, nên nó sơn xanh những ngày người
+         *     khác đang thanh toán.
+         *
+         *     Đường riêng, không gộp vào chi tiết: dữ liệu này đổi theo từng lượt
+         *     đặt chỗ, còn phần còn lại của trang chi tiết đổi theo tháng. Gộp là
+         *     buộc cả trang cache theo nhịp của phần động nhất — hoặc buộc lịch cache
+         *     theo nhịp của phần tĩnh nhất và hiện ngày đã bán là còn trống.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /**
+                     * @description Số tháng, **tối đa 3**. Endpoint trả một phần tử mỗi ngày, nên
+                     *     không có trần thì `months=240` là 7.300 phần tử một lần gọi trên
+                     *     một đường không cần đăng nhập. Quá trần là 422, không phải lặng lẽ
+                     *     cắt về 3 — client phải biết nó không nhận được điều đã xin.
+                     */
+                    months?: number;
+                };
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ScreenAvailabilityCalendar"];
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["ValidationFailed"];
                 429: components["responses"]["TooManyRequests"];
             };
         };
@@ -2974,6 +3053,144 @@ export interface components {
         ProductCityFacet: {
             name: string | null;
             count: number;
+        };
+        ScreenDetail: components["schemas"]["ScreenSummary"] & {
+            description?: string | null;
+            /**
+             * @description Thư viện ảnh, theo đúng chuỗi dự phòng của trang Blade:
+             *     `spec.photos[]` → `spec.photo_url` → ảnh của site / network /
+             *     owner / loại điểm đặt. Không có ảnh nào thì **mảng rỗng** —
+             *     không trả URL của một dịch vụ ảnh giữ chỗ nào.
+             */
+            photo_urls: string[];
+            specs: {
+                width_px: number | null;
+                height_px: number | null;
+                allow_image: boolean;
+                allow_video: boolean;
+                spot_length_s: number | null;
+                /** @enum {string|null} */
+                orientation: "landscape" | "portrait" | "square" | null;
+                /**
+                 * @description Nhãn loại điểm đặt, KHÔNG phải `vn_category_id`. Id của
+                 *     `venue_categories` là khóa nội bộ mà client không tra
+                 *     được.
+                 */
+                venue_label: string | null;
+                venue_type: string | null;
+                sov_max_pct: number | null;
+                io_kpi_spots_per_day: number | null;
+            };
+            site: {
+                name: string | null;
+                address: string | null;
+                city: string | null;
+                lat: number | null;
+                lng: number | null;
+            } | null;
+            /**
+             * @description Kèm `phone` và `email`: trang chi tiết Blade in đúng hai thứ
+             *     đó, công khai. Sàn không thu hộ, nên đó là đường liên hệ duy
+             *     nhất trên trang.
+             */
+            owner: {
+                slug: string | null;
+                name: string | null;
+                logo_url: string | null;
+                verified: boolean;
+                phone: string | null;
+                email: string | null;
+            };
+            insights: components["schemas"]["ScreenInsights"];
+            nearby_pois: components["schemas"]["NearbyPoi"][];
+            similar: components["schemas"]["ScreenSummary"][];
+            availability: components["schemas"]["Availability"];
+        };
+        /**
+         * @description `null` khi màn hình không có dữ liệu nào — không phải một đối tượng
+         *     toàn trường rỗng, vì khi đó mỗi client lại tự định nghĩa "rỗng là thế
+         *     nào". Các khối con cũng `null` khi trống, theo cùng lý lẽ.
+         */
+        ScreenInsights: {
+            placement_zone: string | null;
+            placement_label: string | null;
+            daily_footfall: number | null;
+            monthly_reach: number | null;
+            /**
+             * @description **Ước tính**: `daily_footfall` × 0,6 — một hệ số kinh nghiệm, không
+             *     phải một phép đo. Tên trường nói ra điều đó.
+             */
+            daily_impressions_est: number | null;
+            /** @description Danh sách trắng theo khóa; cột gốc là JSON tự do. */
+            audience_profile: {
+                male_pct?: number | null;
+                female_pct?: number | null;
+                age_18_24_pct?: number | null;
+                age_25_34_pct?: number | null;
+                age_35_44_pct?: number | null;
+                age_45_plus_pct?: number | null;
+                /** @enum {string|null} */
+                income_tier?: "low" | "mid" | "high" | null;
+                lifestyle_tags?: string[];
+                source_note?: string | null;
+            } | null;
+            time_performance: {
+                peak_hour_start?: number | string | null;
+                peak_hour_end?: number | string | null;
+                /** @enum {string|null} */
+                best_day?: "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun" | null;
+                morning_pct?: number | null;
+                afternoon_pct?: number | null;
+                evening_pct?: number | null;
+                rationale?: string | null;
+            } | null;
+            nearby_context: {
+                brands?: string[];
+                landmarks?: string[];
+                highlights?: string | null;
+            } | null;
+            methodology_note: string | null;
+            /**
+             * @description Nguồn của mọi con số trong khối này. Hôm nay chỉ có `owner` (cột
+             *     do media owner khai). Trang in badge theo giá trị này, nên nó đến
+             *     từ API chứ không từ một giả định ở tầng hiển thị.
+             * @enum {string}
+             */
+            source: "owner";
+        } | null;
+        /**
+         * @description POI quanh màn hình, từ ảnh chụp OSM đã cache (`poi_snapshots`) qua
+         *     `PoiProjection` — đúng lớp trang Blade và panel Filament dùng, nên
+         *     nhãn, icon, màu và nhóm không lệch giữa ba nơi. Endpoint KHÔNG gọi OSM
+         *     khi trả lời.
+         */
+        NearbyPoi: {
+            id: string | null;
+            name: string | null;
+            group: string | null;
+            label: string | null;
+            icon: string | null;
+            color: string | null;
+            dist_m: number | null;
+            lat: number | null;
+            lng: number | null;
+        };
+        ScreenAvailabilityCalendar: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            months: number;
+            sov_max_pct: number;
+            /**
+             * @description Một phần tử cho **mỗi ngày** trong khoảng, kể cả ngày không ai
+             *     đặt — bên gọi không phải đoán ngày thiếu nghĩa là gì.
+             */
+            days: {
+                /** Format: date */
+                date: string;
+                remaining_sov_pct: number;
+            }[];
         };
         /** @description Suất còn lại tính thật, gồm cả suất người khác đang giữ trong giỏ. */
         Availability: {

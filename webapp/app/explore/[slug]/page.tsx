@@ -1,8 +1,16 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getScreen, type ScreenDetail } from '@/lib/api';
+import { getScreen, getScreenAvailability, type ScreenDetail } from '@/lib/api';
 import { buildMetadata, jsonLd, OgType } from '@/lib/seo';
 import { SiteHeader } from '@/components/SiteHeader';
+import { ScreenCard } from '@/components/ScreenCard';
+import { ThuVienAnh } from '@/components/ThuVienAnh';
+import { TabChiTiet } from '@/components/TabChiTiet';
+import { KhoiInsights } from '@/components/KhoiInsights';
+import { LichTrong } from '@/components/LichTrong';
+import { PanelGia } from '@/components/PanelGia';
+import { KhoiViTri } from '@/components/KhoiViTri';
 
 /**
  * `/explore/{slug}` — chi tiết một màn hình.
@@ -19,6 +27,29 @@ import { SiteHeader } from '@/components/SiteHeader';
  * `getScreen()` trả `null` khi API trả 404, và trang gọi `notFound()`. Trả một
  * trang 200 rỗng cho slug không tồn tại là để công cụ tìm kiếm giữ URL đó
  * trong chỉ mục mãi, và đó là cách làm chỉ mục bẩn dần mà không ai thấy.
+ *
+ * ══ Lát 4: từ 189 dòng lên trang đầy đủ ══
+ *
+ * Bản Blade 776 dòng; bản Next trước lát 4 là 189 và mất gần hết: một ảnh thay
+ * cho thư viện ảnh, không hàng số liệu, không tab nào, không insights, không
+ * lịch trống, không panel giá, không thẻ owner, không bản đồ vị trí, không
+ * màn hình tương tự. Lát này dựng lại tất cả — trừ hai thứ nói rõ ở dưới.
+ *
+ * ══ Hai thứ KHÔNG dựng lại ══
+ *
+ * 1. **Khối "Điểm nổi bật" bốn thẻ `hl-card`** — "AI Traffic Data / Cập nhật
+ *    theo giờ thực", "Proof of Play / Video xác nhận hàng ngày", "Verified
+ *    Location / Kiểm tra thực địa 2024", "Fast Booking / Xác nhận trong 48h".
+ *    Bốn câu, không câu nào kiểm được: không có tính năng AI trong mã,
+ *    `impression_logs` chưa có bản ghi nào nên không có proof-of-play, "kiểm
+ *    tra thực địa 2024" là một khẳng định về quy trình, và "48h" là cam kết
+ *    vận hành. Cùng đường cắt với thanh `trust` và mục AI ở trang chủ (lát 2)
+ *    — và cùng cần chủ dự án quyết.
+ *
+ * 2. **Bốn thẻ đánh giá 4.9 sao** ("Minh Hằng · Ogilvy Vietnam"…). Bản Blade
+ *    đã bọc chúng trong `@if(false)` — tức chính tác giả đã tắt vì chúng là
+ *    dữ liệu bịa. Tab "Đánh giá" dựng lại đúng trạng thái đang bật: chưa có
+ *    đánh giá nào.
  */
 
 type Params = { slug: string };
@@ -41,7 +72,7 @@ export async function generateMetadata({
         title: `${screen.name ?? 'Chi tiết vị trí'} | OOHX`,
         description: describe(screen),
         path: `/explore/${slug}`,
-        image: screen.photo_url,
+        image: screen.photo_urls?.[0] ?? screen.photo_url,
         // Bản Blade dùng `product`, giữ nguyên: đổi `og:type` là đổi cách
         // mạng xã hội dựng thẻ xem trước cho đúng URL đó.
         type: 'product',
@@ -50,7 +81,11 @@ export async function generateMetadata({
 
 export default async function ScreenDetailPage({ params }: { params: Promise<Params> }) {
     const { slug } = await params;
-    const screen = await getScreen(slug);
+
+    // Hai lời gọi song song: chi tiết là nội dung của trang, lịch trống là một
+    // tab. `getScreenAvailability()` tự trả `null` khi lỗi, nên không cần
+    // `allSettled` ở đây — mất lịch thì tab nói "chưa lấy được".
+    const [screen, lich] = await Promise.all([getScreen(slug), getScreenAvailability(slug, 2)]);
 
     if (!screen) {
         notFound();
@@ -59,6 +94,28 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
     const price = screen.pricing?.io_rate?.amount ?? screen.pricing?.floor_cpm?.amount ?? 0;
     const currency =
         screen.pricing?.io_rate?.currency ?? screen.pricing?.floor_cpm?.currency ?? 'VND';
+
+    const anh = screen.photo_urls?.length
+        ? screen.photo_urls
+        : screen.photo_url
+          ? [screen.photo_url]
+          : [];
+
+    const thanhPho = screen.location?.city ?? '';
+    const sovMax = screen.specs?.sov_max_pct ?? 100;
+
+    const tabs = [
+        { khoa: 'info', nhan: 'Thông tin', noiDung: <TabThongTin screen={screen} /> },
+        ...(screen.insights
+            ? [{ khoa: 'insights', nhan: 'Insights', noiDung: <KhoiInsights insights={screen.insights} /> }]
+            : []),
+        {
+            khoa: 'avail',
+            nhan: 'Lịch trống',
+            noiDung: <LichTrong lich={lich} sovMax={sovMax} />,
+        },
+        { khoa: 'review', nhan: 'Đánh giá', noiDung: <TabDanhGia /> },
+    ];
 
     return (
         <>
@@ -80,7 +137,7 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
                     '@type': 'Product',
                     name: screen.name,
                     description: describe(screen),
-                    image: screen.photo_url ?? '',
+                    image: anh[0] ?? '',
                     brand: { '@type': 'Organization', name: screen.owner?.name ?? 'OOHX' },
 
                     // `offers` chỉ xuất hiện khi CÓ giá thật.
@@ -111,69 +168,419 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
             />
 
             <div className="w">
-                <nav className="sc-breadcrumb" aria-label="Đường dẫn">
-                    {screen.location?.city ? <span>{screen.location.city}</span> : null}
-                    {screen.location?.city && screen.location?.district ? (
-                        <span className="sc-bc-sep">·</span>
+                {/*
+                  Breadcrumb. Bản Blade tra slug loại hình bằng một truy vấn
+                  `DB::table('venue_categories')` ngay trong view; ở đây chỉ có
+                  nhãn từ API, nên mục loại hình là **chữ**, không phải liên
+                  kết. Một liên kết trỏ tới `/explore?venue_type=` với slug
+                  đoán sai thì ra trang rỗng — tệ hơn không có liên kết.
+                */}
+                <nav className="bc" aria-label="Đường dẫn">
+                    <Link href="/">OOHX</Link>
+                    <BcSep />
+                    <Link href="/explore">Inventory</Link>
+
+                    {screen.specs?.venue_label ? (
+                        <>
+                            <BcSep />
+                            <span>{screen.specs.venue_label}</span>
+                        </>
                     ) : null}
-                    {screen.location?.district ? <span>{screen.location.district}</span> : null}
+
+                    {thanhPho ? (
+                        <>
+                            <BcSep />
+                            <span>{thanhPho}</span>
+                        </>
+                    ) : null}
+
+                    <BcSep />
+                    <span style={{ color: 'var(--t2)' }}>{screen.name}</span>
                 </nav>
 
-                <h1>{screen.name}</h1>
+                <ThuVienAnh
+                    anh={anh}
+                    ten={screen.name ?? ''}
+                    conTrong={Boolean(screen.availability?.has_capacity)}
+                    soNgay={screen.availability?.window_days ?? 30}
+                />
 
-                {screen.photo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                        src={screen.photo_url}
-                        alt={screen.name ?? ''}
-                        style={{ width: '100%', borderRadius: 12 }}
-                    />
-                ) : null}
+                <div className="detail-layout">
+                    <div>
+                        <h1 className="dtitle">{screen.name}</h1>
 
-                <dl className="sc-specs">
-                    <Spec label="Media owner" value={screen.owner?.name} />
-                    <Spec label="Địa điểm" value={screen.location?.site} />
-                    <Spec label="Thành phố" value={screen.location?.city} />
-                    <Spec label="Loại màn hình" value={screen.screen_type} />
-                    <Spec
-                        label="Kích thước"
-                        value={
-                            screen.size?.width_m && screen.size?.height_m
-                                ? `${screen.size.width_m}×${screen.size.height_m}m`
-                                : null
-                        }
-                    />
-                    <Spec label="Mạng lưới" value={screen.network?.name} />
-                </dl>
+                        <div className="dmeta">
+                            <div className="dloc">
+                                <svg viewBox="0 0 24 24" fill="var(--bl)" aria-hidden="true">
+                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                                </svg>{' '}
+                                {thanhPho}
+                            </div>
+                            <span className="msep" />
+                            <span style={{ fontSize: 13, color: 'var(--t3)' }}>
+                                {screen.owner?.name}
+                            </span>
+                        </div>
 
-                {/*
-                  Tình trạng suất nói ra bằng SỐ THẬT từ API, không bằng một
-                  badge in vô điều kiện — audit F-15, và
-                  `NoFabricatedMetricsTest` canh đúng chuyện đó ở bản Blade.
-                */}
-                {screen.availability ? (
-                    <p className="bp-avail">
-                        {screen.availability.has_capacity
-                            ? `Còn ${screen.availability.remaining_sov_pct}% thời lượng trong ${screen.availability.window_days} ngày tới`
-                            : `Đã đầy ${screen.availability.window_days} ngày tới`}
-                    </p>
-                ) : null}
+                        {screen.owner?.slug ? <OwnerMini screen={screen} /> : null}
+
+                        <div className="stats-row">
+                            <StatBox nhan="Site" giaTri={screen.site?.name} />
+                            <StatBox nhan="Network" giaTri={screen.network?.name} />
+                            <StatBox
+                                nhan="Kích thước"
+                                giaTri={
+                                    screen.size?.width_m && screen.size?.height_m
+                                        ? `${screen.size.width_m}×${screen.size.height_m}m`
+                                        : null
+                                }
+                            />
+                            <StatBox
+                                nhan="Floor CPM"
+                                giaTri={
+                                    screen.pricing?.floor_cpm?.amount
+                                        ? dinhDangTien(
+                                              screen.pricing.floor_cpm.amount,
+                                              screen.pricing.floor_cpm.currency ?? 'VND',
+                                          )
+                                        : null
+                                }
+                            />
+                        </div>
+
+                        <TabChiTiet tabs={tabs} />
+                    </div>
+
+                    <div className="detail-sidebar">
+                        <PanelGia screen={screen} />
+                        <KhoiLienHe screen={screen} />
+                    </div>
+                </div>
             </div>
+
+            {screen.site?.lat != null && screen.site?.lng != null ? (
+                <KhoiViTri
+                    lat={screen.site.lat}
+                    lng={screen.site.lng}
+                    tenSite={screen.site.name ?? ''}
+                    diaChi={[screen.site.address, screen.site.city].filter(Boolean).join(', ')}
+                    tenManHinh={screen.name ?? ''}
+                    pois={screen.nearby_pois ?? []}
+                />
+            ) : null}
+
+            {screen.similar?.length ? (
+                <div className="similar-section">
+                    <div className="w">
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                justifyContent: 'space-between',
+                                gap: 16,
+                                marginBottom: 20,
+                            }}
+                        >
+                            <div>
+                                <div
+                                    style={{
+                                        fontSize: 13,
+                                        fontWeight: 700,
+                                        color: 'var(--bl)',
+                                        marginBottom: 6,
+                                    }}
+                                >
+                                    GỢI Ý THÊM
+                                </div>
+                                <h2
+                                    style={{
+                                        fontSize: 'clamp(20px,3vw,28px)',
+                                        fontWeight: 800,
+                                        color: 'var(--t1)',
+                                        letterSpacing: '-.5px',
+                                    }}
+                                >
+                                    Inventory tương tự
+                                </h2>
+                            </div>
+
+                            <Link
+                                href="/explore"
+                                className="btn btn-s btn-sm"
+                                style={{ marginTop: 6, flexShrink: 0 }}
+                            >
+                                Xem tất cả
+                            </Link>
+                        </div>
+
+                        <div className="inv-grid">
+                            {screen.similar.map((s) => (
+                                <ScreenCard key={s.slug} screen={s} compact />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
             </main>
         </>
     );
 }
 
-function Spec({ label, value }: { label: string; value?: string | number | null }) {
-    if (value === null || value === undefined || value === '') return null;
-
+function BcSep() {
     return (
-        <div className="sc-spec">
-            <dt className="sc-spec-l">{label}</dt>
-            <dd className="sc-spec-v">{value}</dd>
+        <span className="bc-sep">
+            <svg viewBox="0 0 24 24" fill="var(--t4)" aria-hidden="true" style={{ width: 14, height: 14 }}>
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+            </svg>
+        </span>
+    );
+}
+
+function StatBox({ nhan, giaTri }: { nhan: string; giaTri?: string | null }) {
+    return (
+        <div className="stat-box">
+            <div className="stat-n">{giaTri || '—'}</div>
+            <div className="stat-l">{nhan}</div>
         </div>
     );
 }
+
+function dinhDangTien(so: number, donVi: string): string {
+    if (donVi === 'VND') {
+        return new Intl.NumberFormat('vi-VN').format(so) + ' ₫';
+    }
+
+    return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(so) + ' ' + donVi;
+}
+
+/** Thẻ owner một dòng — biến thể `mini` của `partials/owner-card.blade.php`. */
+function OwnerMini({ screen }: { screen: ScreenDetail }) {
+    const ten = screen.owner?.name ?? '';
+    const chuDau = ten
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((t) => t[0] ?? '')
+        .join('')
+        .toUpperCase();
+
+    return (
+        <Link href={`/owners/${screen.owner?.slug}`} className="oc-mini">
+            {screen.owner?.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={screen.owner.logo_url} className="oc-mini-logo" alt={ten} />
+            ) : (
+                <div
+                    className="oc-mini-logo oc-mini-logo--txt"
+                    style={{ background: 'var(--bl-lt)', color: 'var(--bl)' }}
+                >
+                    {chuDau}
+                </div>
+            )}
+
+            <div className="oc-mini-body">
+                <div className="oc-mini-name">{ten}</div>
+
+                {screen.owner?.verified ? (
+                    <div className="oc-mini-ver">
+                        <svg viewBox="0 0 24 24" fill="var(--bl)" aria-hidden="true" style={{ width: 12, height: 12 }}>
+                            <path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.7L1 12l2.44 2.79-.34 3.7 3.61.82 1.89 3.2L12 21.04l3.4 1.46 1.89-3.19 3.61-.82-.34-3.69L23 12zm-12.91 4.72l-3.8-3.81 1.48-1.48 2.32 2.33 5.85-5.87 1.48 1.48-7.33 7.35z" />
+                        </svg>{' '}
+                        Đã xác minh
+                    </div>
+                ) : null}
+            </div>
+
+            <div className="oc-mini-right">
+                {screen.network?.name ? (
+                    <span className="oc-mini-extra">{screen.network.name}</span>
+                ) : null}
+                <svg viewBox="0 0 24 24" fill="var(--t4)" aria-hidden="true" style={{ width: 16, height: 16 }}>
+                    <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                </svg>
+            </div>
+        </Link>
+    );
+}
+
+/** Tab "Thông tin": bảng thông số + mô tả. */
+function TabThongTin({ screen }: { screen: ScreenDetail }) {
+    const spec = screen.specs;
+
+    const loaiNoiDung = [spec?.allow_image ? 'Ảnh' : null, spec?.allow_video ? 'Video' : null]
+        .filter(Boolean)
+        .join(', ');
+
+    return (
+        <>
+            <div className="specs-grid">
+                <SpecO nhan="Chủ sở hữu" giaTri={screen.owner?.name} />
+                <SpecO nhan="Network" giaTri={screen.network?.name} />
+                <SpecO nhan="Site" giaTri={screen.site?.name} />
+                <SpecO nhan="Địa điểm" giaTri={spec?.venue_label} />
+                <SpecO
+                    nhan="Kích thước"
+                    giaTri={
+                        screen.size?.width_m && screen.size?.height_m
+                            ? `${screen.size.width_m} × ${screen.size.height_m} m`
+                            : null
+                    }
+                />
+                <SpecO
+                    nhan="Độ phân giải"
+                    giaTri={
+                        spec?.width_px && spec?.height_px
+                            ? `${spec.width_px} × ${spec.height_px} px`
+                            : null
+                    }
+                />
+                <SpecO nhan="Loại nội dung" giaTri={loaiNoiDung} />
+                <SpecO
+                    nhan="Floor CPM"
+                    giaTri={
+                        screen.pricing?.floor_cpm?.amount
+                            ? dinhDangTien(
+                                  screen.pricing.floor_cpm.amount,
+                                  screen.pricing.floor_cpm.currency ?? 'VND',
+                              )
+                            : null
+                    }
+                />
+                <SpecO nhan="Vị trí" giaTri={screen.site?.address} />
+                <SpecO nhan="Tỉnh/Thành" giaTri={screen.site?.city ?? screen.location?.city} />
+                <SpecO
+                    nhan="Thời lượng QC"
+                    giaTri={spec?.spot_length_s ? `${spec.spot_length_s}s` : null}
+                />
+            </div>
+
+            {screen.description ? (
+                <div style={{ marginBottom: 28 }}>
+                    <h3
+                        style={{
+                            fontSize: 18,
+                            fontWeight: 700,
+                            color: 'var(--t1)',
+                            marginBottom: 14,
+                            letterSpacing: '-.3px',
+                        }}
+                    >
+                        Mô tả
+                    </h3>
+                    <div className="desc">
+                        <p>{screen.description}</p>
+                    </div>
+                </div>
+            ) : null}
+
+            {/*
+              Khối "Điểm nổi bật" bốn thẻ `hl-card` của bản Blade KHÔNG được
+              dựng lại — xem docblock đầu tệp. Bốn câu chữ trong đó không câu
+              nào kiểm được, và đó là quyết định về lời hứa sản phẩm.
+            */}
+        </>
+    );
+}
+
+function SpecO({ nhan, giaTri }: { nhan: string; giaTri?: string | number | null }) {
+    return (
+        <div className="sc">
+            <div className="sc-l">{nhan}</div>
+            <div className="sc-v">{giaTri || '—'}</div>
+        </div>
+    );
+}
+
+/** Tab "Đánh giá" — đúng trạng thái đang bật của bản Blade. */
+function TabDanhGia() {
+    return (
+        <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--t4)' }}>
+            <svg
+                viewBox="0 0 24 24"
+                fill="var(--ln2)"
+                aria-hidden="true"
+                style={{ width: 48, height: 48, margin: '0 auto 16px', display: 'block' }}
+            >
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+            </svg>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t3)', marginBottom: 6 }}>
+                Chưa có đánh giá
+            </div>
+            <div style={{ fontSize: 13 }}>
+                Đánh giá sẽ hiển thị sau khi có booking được hoàn thành.
+            </div>
+        </div>
+    );
+}
+
+/** Khối liên hệ media owner ở cột phải. */
+function KhoiLienHe({ screen }: { screen: ScreenDetail }) {
+    const ten = screen.owner?.name ?? 'OOHX';
+    const dienThoai = screen.owner?.phone;
+    const email = screen.owner?.email;
+
+    return (
+        <div
+            style={{
+                marginTop: 16,
+                padding: 18,
+                background: 'var(--bg2)',
+                borderRadius: 16,
+                border: '1px solid var(--ln2)',
+            }}
+        >
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>
+                Liên hệ {ten}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--t4)', marginBottom: 12 }}>
+                Media owner quản lý vị trí này
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {dienThoai ? (
+                    <a href={`tel:${dienThoai}`} className="btn btn-s" style={nutLienHe}>
+                        Gọi: {dienThoai}
+                    </a>
+                ) : null}
+
+                {email ? (
+                    <a href={`mailto:${email}`} className="btn btn-s" style={nutLienHe}>
+                        Email: {email}
+                    </a>
+                ) : null}
+
+                {!dienThoai && !email ? (
+                    <a href="mailto:hi@oohx.net" className="btn btn-s" style={nutLienHe}>
+                        Liên hệ OOHX: hi@oohx.net
+                    </a>
+                ) : null}
+            </div>
+
+            {screen.owner?.slug ? (
+                <Link
+                    href={`/owners/${screen.owner.slug}`}
+                    style={{
+                        display: 'block',
+                        marginTop: 10,
+                        fontSize: 12,
+                        color: 'var(--bl)',
+                        fontWeight: 600,
+                    }}
+                >
+                    Xem hồ sơ {ten} →
+                </Link>
+            ) : null}
+        </div>
+    );
+}
+
+const nutLienHe = {
+    justifyContent: 'flex-start' as const,
+    gap: 10,
+    borderRadius: 10,
+    height: 44,
+    fontWeight: 600,
+    textDecoration: 'none',
+};
 
 /**
  * Mô tả dùng cho cả `<meta name="description">` và JSON-LD.
@@ -183,7 +590,8 @@ function Spec({ label, value }: { label: string; value?: string | number | null 
  * JSON-LD thì không. Lệch thì không ai thấy, vì cả hai đều hợp lệ.
  */
 function describe(screen: ScreenDetail): string {
-    const parts = [screen.name, screen.location?.site, screen.location?.city].filter(Boolean);
+    const parts = [screen.name, screen.site?.name ?? screen.location?.site, screen.location?.city]
+        .filter(Boolean);
 
     return parts.join(', ') + '.';
 }
