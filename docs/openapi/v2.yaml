@@ -86,11 +86,29 @@ paths:
                 properties:
                   data:
                     type: object
-                    required: [cities, venue_types, networks, owners, price_range]
+                    required: [cities, venue_types, networks, owners, price_range, categories_networks]
                     properties:
                       cities:      { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
                       venue_types: { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
                       networks:    { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
+                      categories_networks:
+                        type: array
+                        description: |
+                          Cùng danh sách loại hình như `venue_types`, nhưng có
+                          network lồng bên trong. Cần cho ô tìm kiếm lớn, vì
+                          `networks` phẳng không mang khóa loại hình nào nên
+                          quan hệ cha–con không suy ra được ở phía trình duyệt.
+                        items:
+                          type: object
+                          required: [code, name, count, networks]
+                          properties:
+                            code:  { type: [string, 'null'] }
+                            name:  { type: [string, 'null'] }
+                            icon:  { type: [string, 'null'] }
+                            count: { type: integer }
+                            networks:
+                              type: array
+                              items: { $ref: '#/components/schemas/FilterFacet' }
                       owners:
                         type: array
                         items:
@@ -1807,12 +1825,28 @@ components:
       description: |
         Danh sách trắng. Không bao giờ chứa `revenue_share_pct`, `billing_info`,
         `bank_*`, `tax_code` hay `business_license_path`.
+
+        `logo_url` và `cover_url` là **URL đầy đủ** (`asset('storage/…')`),
+        không phải đường dẫn trong disk — cùng quy ước với `AgencySummary` và
+        `ProductDetail.photo_urls`.
+
+        `city_count` và `venue_types` có thể là `null`: null nghĩa là **không
+        đếm** (người gọi không nạp phần phụ), khác `0` nghĩa là đếm rồi và
+        không có cái nào.
       properties:
         slug:         { type: string }
         name:         { type: string }
         type:         { type: [string, 'null'] }
+        logo_url:     { type: [string, 'null'] }
         cover_url:    { type: [string, 'null'] }
         screen_count: { type: [integer, 'null'] }
+        city_count:   { type: [integer, 'null'] }
+        venue_types:
+          type: [array, 'null']
+          description: Nhãn loại hình điểm đặt, tiếng Việt khi có.
+          items: { type: string }
+        verified:     { type: boolean }
+        featured:     { type: boolean }
 
     OwnerDetail:
       type: object
@@ -1821,6 +1855,9 @@ components:
         Bộ trường lấy đúng bằng những gì trang owner công khai đang hiển thị,
         không thêm. Không bao giờ chứa `revenue_share_pct`, `billing_info`,
         `bank_*`, `tax_code`, `business_license_path` hay `legal_*`.
+
+        `logo_url` và `cover_url` là **URL đầy đủ**, không phải đường dẫn trong
+        disk — xem `OwnerSummary`.
       properties:
         slug:      { type: string }
         name:      { type: string }

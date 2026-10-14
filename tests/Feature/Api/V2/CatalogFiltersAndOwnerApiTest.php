@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V2;
 
+use App\Models\Network;
 use App\Models\Owner;
 use App\Models\Screen;
 use App\Models\ScreenInventory;
@@ -9,6 +10,7 @@ use App\Models\ScreenSpec;
 use App\Models\Site;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -98,10 +100,92 @@ class CatalogFiltersAndOwnerApiTest extends TestCase
             ->assertOk()
             ->assertJsonStructure([
                 'data' => [
-                    'cities', 'venue_types', 'networks', 'owners',
+                    'cities', 'venue_types', 'networks', 'owners', 'categories_networks',
                     'price_range' => ['currency', 'min', 'max'],
                 ],
             ]);
+    }
+
+    /**
+     * `categories_networks` — loại hình có network lồng bên trong (14/10/2026).
+     *
+     * Vì sao nó phải có ở API thay vì ghép ở trình duyệt: `networks` phẳng
+     * **không mang khóa loại hình nào**, nên quan hệ cha–con không suy ra được
+     * từ phản hồi cũ. Ô tìm kiếm lớn của bản Blade vẽ đúng cây này.
+     *
+     * Kiểm luôn cả việc `thumb` **không** lọt ra: nhóm loại hình trong service
+     * mang thêm một đường ảnh, và nó không thuộc về một endpoint bộ lọc.
+     */
+    public function test_bo_loc_tra_cay_loai_hinh_co_network(): void
+    {
+        // Fixture phải có nhóm điểm đặt VÀ network, nếu không cây rỗng một cách
+        // hợp lệ: `getVenueTypesWithCounts()` join `screen_inventory` với
+        // `venue_categories`, nên một màn hình không gán `vn_category_id` thì
+        // không thuộc nhóm nào. Helper `screen()` không gán — đó là lý do ca
+        // này dựng fixture riêng chứ không dùng nó.
+        $nhomId = 7;
+        DB::table('venue_categories')->insert([
+            'id'         => $nhomId,
+            'name'       => 'Mall',
+            'slug'       => 'mall',
+            'name_vi'    => 'Trung tâm thương mại',
+            'icon'       => 'storefront',
+            'sort_order' => 1,
+            'is_active'  => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $owner   = Owner::factory()->create(['status' => 'active']);
+        $network = Network::factory()->create([
+            'owner_id'       => $owner->id,
+            'status'         => 'active',
+            'vn_category_id' => $nhomId,
+        ]);
+        $site = Site::factory()->create([
+            'owner_id'   => $owner->id,
+            'network_id' => $network->id,
+            'status'     => 'active',
+        ]);
+        $screen = Screen::factory()->create([
+            'owner_id' => $owner->id,
+            'site_id'  => $site->id,
+            'active'   => true,
+        ]);
+        ScreenInventory::create([
+            'screen_id'              => $screen->id,
+            'vn_category_id'         => $nhomId,
+            'pricing_model'          => 'io',
+            'io_rate'                => 1_000_000,
+            'io_rate_unit'           => 'month',
+            'spot_length'            => 15,
+            'share_of_voice_max_pct' => 100,
+        ]);
+
+        $cay = $this->getJson('/api/v2/filters')->assertOk()->json('data.categories_networks');
+
+        $this->assertNotEmpty($cay, 'Có màn hình trong một nhóm điểm đặt thì cây không được rỗng.');
+        $this->assertSame('mall', $cay[0]['code']);
+        $this->assertSame('Trung tâm thương mại', $cay[0]['name']);
+        $this->assertNotEmpty(
+            $cay[0]['networks'],
+            'Network của nhóm phải lồng bên trong — đó là cả lý do trường này tồn tại.'
+        );
+        $this->assertSame($network->code, $cay[0]['networks'][0]['code']);
+
+        foreach ($cay as $nhom) {
+            $this->assertSame(
+                ['code', 'name', 'icon', 'count', 'networks'],
+                array_keys($nhom),
+                'Danh sách trắng theo khóa — thêm khóa lạ nghĩa là trả nguyên phần tử của service.'
+            );
+            $this->assertIsArray($nhom['networks']);
+            $this->assertArrayNotHasKey('thumb', $nhom);
+
+            foreach ($nhom['networks'] as $net) {
+                $this->assertSame(['code', 'name', 'count'], array_keys($net));
+            }
+        }
     }
 
     public function test_bo_loc_khong_lo_truong_nhay_cam(): void
@@ -289,5 +373,119 @@ class CatalogFiltersAndOwnerApiTest extends TestCase
             ['kim-ngan-adv'],
             collect($response->json('data'))->pluck('slug')->all()
         );
+    }
+
+    // ── Ảnh và số liệu của thẻ owner (14/10/2026) ───────────────────────────
+
+    /**
+     * `logo_url` và `cover_url` phải là URL dùng được, không phải đường dẫn
+     * trong disk.
+     *
+     * Lỗi thật: cột lưu `owners/cover/abc.jpg`, DTO trả thẳng giá trị đó, và
+     * `<img src="owners/cover/abc.jpg">` trên `/owners` được trình duyệt giải
+     * **tương đối với trang đang mở** — thành `/owners/owners/cover/abc.jpg`.
+     * Mọi ảnh bìa trên trang danh sách là ảnh hỏng, và không test nào đỏ.
+     *
+     * Kiểm bằng tiền tố `http`, không bằng chuỗi URL đầy đủ: `asset()` dựng
+     * theo `APP_URL`, nên so cả chuỗi là ghim test vào cấu hình môi trường.
+     */
+    public function test_anh_owner_tra_url_dung_duoc_khong_phai_duong_dan_trong_disk(): void
+    {
+        Owner::factory()->create([
+            'status'    => 'active',
+            'slug'      => 'owner-co-anh',
+            'logo_url'  => 'owners/logo/kim-ngan.png',
+            'cover_url' => 'owners/cover/kim-ngan.jpg',
+        ]);
+        $this->screen(Owner::where('slug', 'owner-co-anh')->first());
+
+        foreach ([
+            'danh sách' => ['/api/v2/owners', 'data.0'],
+            'chi tiết'  => ['/api/v2/owners/owner-co-anh', 'data'],
+        ] as $ten => [$url, $goc]) {
+            $body = $this->getJson($url)->assertOk();
+
+            foreach (['logo_url' => 'owners/logo/kim-ngan.png', 'cover_url' => 'owners/cover/kim-ngan.jpg'] as $truong => $duongDan) {
+                $gia_tri = $body->json("{$goc}.{$truong}");
+
+                $this->assertIsString($gia_tri, "{$ten}: {$truong} phải có giá trị");
+                $this->assertStringStartsWith(
+                    'http',
+                    $gia_tri,
+                    "{$ten}: {$truong} trả \"{$gia_tri}\" — đó là đường dẫn trong disk, "
+                    . 'trình duyệt sẽ giải nó tương đối với trang đang mở và ảnh là ảnh hỏng.'
+                );
+                $this->assertStringEndsWith('/storage/' . $duongDan, $gia_tri);
+            }
+        }
+    }
+
+    /** Không có ảnh thì trả `null`, không trả một URL trỏ vào `/storage/`. */
+    public function test_owner_khong_co_anh_thi_tra_null_chu_khong_tra_url_rong(): void
+    {
+        Owner::factory()->create([
+            'status'    => 'active',
+            'slug'      => 'owner-khong-anh',
+            'logo_url'  => null,
+            'cover_url' => null,
+        ]);
+        $this->screen(Owner::where('slug', 'owner-khong-anh')->first());
+
+        $this->getJson('/api/v2/owners')
+            ->assertOk()
+            ->assertJsonPath('data.0.logo_url', null)
+            ->assertJsonPath('data.0.cover_url', null);
+    }
+
+    /**
+     * Thẻ owner của bản Blade in số tỉnh thành và nhãn loại hình.
+     * `loadOwnerExtras()` đã tính cả hai cho cùng truy vấn — DTO chỉ không
+     * mang ra, nên bản Next vẽ một thẻ nghèo hơn bản nó thay.
+     *
+     * `city_count` null khác 0: null là **không đếm**, 0 là đếm rồi và không
+     * có tỉnh nào. Ở đường này service luôn tính, nên phải là số.
+     */
+    public function test_danh_sach_owner_tra_so_tinh_thanh_va_nhan_loai_hinh(): void
+    {
+        $owner = Owner::factory()->create(['status' => 'active', 'slug' => 'owner-hai-tinh']);
+
+        foreach (['Hà Nội', 'Đà Nẵng'] as $thanhPho) {
+            $site = Site::factory()->create([
+                'owner_id' => $owner->id,
+                'city'     => $thanhPho,
+                'status'   => 'active',
+            ]);
+            Screen::factory()->create([
+                'owner_id' => $owner->id,
+                'site_id'  => $site->id,
+                'active'   => true,
+            ]);
+        }
+
+        $hang = collect($this->getJson('/api/v2/owners')->assertOk()->json('data'))
+            ->firstWhere('slug', 'owner-hai-tinh');
+
+        $this->assertSame(2, $hang['city_count'], 'Hai địa điểm ở hai tỉnh thì city_count phải là 2');
+        $this->assertIsArray($hang['venue_types']);
+        $this->assertArrayHasKey('verified', $hang);
+        $this->assertArrayHasKey('featured', $hang);
+    }
+
+    /** Cờ `verified`/`featured` đọc đúng cột, và là boolean chứ không phải 0/1. */
+    public function test_co_verified_va_featured_la_boolean_doc_dung_cot(): void
+    {
+        $owner = Owner::factory()->create([
+            'status'   => 'active',
+            'slug'     => 'owner-da-xac-minh',
+            'verified' => true,
+            'featured' => false,
+        ]);
+        $this->screen($owner);
+
+        $hang = collect($this->getJson('/api/v2/owners')->assertOk()->json('data'))
+            ->firstWhere('slug', 'owner-da-xac-minh');
+
+        $this->assertTrue($hang['verified']);
+        $this->assertFalse($hang['featured']);
     }
 }

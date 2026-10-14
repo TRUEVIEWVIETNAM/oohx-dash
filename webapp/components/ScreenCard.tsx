@@ -4,24 +4,56 @@ import type { ScreenSummary } from '@/lib/api';
 /**
  * Thẻ một màn hình trong danh sách.
  *
- * Dùng **đúng tên class** của `resources/views/frontpage/partials/screen-card.blade.php`
- * (`sc-photo`, `sc-body`, `sc-title`…), nên stylesheet dùng chung áp vào mà
- * không cần CSS mới. Đổi tên class ở đây là tự tạo một giao diện thứ hai.
+ * ══ Vì sao tệp này được viết lại ngày 14/10/2026 ══
+ *
+ * Bản trước mở bằng `<article className="sc">`. Nhưng trong `frontpage.css`,
+ * `.sc` (dòng 1330) là **một ô trong bảng thông số** — `padding` + viền phải +
+ * viền dưới + `:nth-child` để ghép thành bảng — còn thẻ màn hình là `.sc-card`
+ * (dòng 1939): bo góc 14px, `box-shadow`, `flex-direction:column`,
+ * `overflow:hidden`, và `:hover` nâng thẻ 4px kèm phóng ảnh.
+ *
+ * Nên mọi thẻ màn hình trên production mang kiểu của một ô bảng. Bản Blade
+ * (`partials/screen-card.blade.php`) dùng `sc-card`, và tệp này nay dùng lại
+ * đúng cấu trúc đó.
+ *
+ * ══ Ba chỗ cấu trúc, không chỉ một tên class ══
+ *
+ *  1. `.sc-foot` là **con trực tiếp** của `.sc-card`, không nằm trong
+ *     `.sc-body`. Nó có `border-top` và `margin-top:12px`, và `.sc-body` có
+ *     `padding:14px 14px 0` — lồng vào trong thì viền không chạy hết chiều
+ *     ngang thẻ và lề bị đếm hai lần.
+ *  2. `.sc-price-sub` là **div em** của `.sc-price`, không phải `<span>` bên
+ *     trong: nó có `margin-top:1px`, mà lề trên của một inline span thì không
+ *     có tác dụng.
+ *  3. Cả thẻ là **một** liên kết. `.sc-card` khai `text-decoration:none`,
+ *     `color:inherit`, `cursor:pointer` — nó được viết cho một `<a>`. Nút
+ *     "Chi tiết" vì thế là `<span class="btn">`, không phải `<Link>` lồng
+ *     trong `<Link>` (HTML không cho phép, và React sẽ cảnh báo).
  *
  * ══ Badge "Còn trống" chỉ hiện khi CÓ dữ liệu suất ══
  *
- * `availability` là prop **tuỳ chọn**, và mặc định là không có. Bản Blade cũng
- * vậy: nó chỉ in badge khi người gọi truyền mảng suất vào, và
+ * `availability` là prop **tuỳ chọn**, mặc định không có. Bản Blade cũng vậy:
+ * nó chỉ in badge khi người gọi truyền mảng suất vào, và
  * `NoFabricatedMetricsTest` canh đúng điều đó — thiếu dữ liệu thì không nói gì,
  * chứ không mặc định là còn trống (audit F-15).
  *
  * Thực tế hiện nay: `/api/v2/screens`, `/api/v2/owners/{slug}` và
- * `/api/v2/products/{slug}` **không** trả suất, nên thẻ ở các trang đó không
- * có badge. Chỉ `/api/v2/screens/featured` trả, nên chỉ trang chủ có.
+ * `/api/v2/products/{slug}` **không** trả suất, nên thẻ ở các trang đó không có
+ * badge. Chỉ `/api/v2/screens/featured` trả, nên chỉ trang chủ có.
  *
  * Và `availability` có thể là `null` ngay cả khi endpoint trả nó: `null` nghĩa
  * là **chưa biết**, khác `remaining_sov_pct: 0` nghĩa là **đã đặt kín**. Gộp
- * hai thứ đó là cách in badge "đã đầy" cho một màn hình không ai đặt.
+ * hai thứ đó là cách in badge "còn trống" cho một màn hình đã bán kín.
+ *
+ * Chữ trên badge giữ đúng bản Blade — "Còn trống". Con số phần trăm đi vào
+ * `title` chứ không vào thân badge: `.sc-badge` là một viên thuốc nhỏ ở góc
+ * ảnh, và "Còn 100% trong 30 ngày" làm nó tràn.
+ *
+ * ══ `sc-compact` ══
+ *
+ * Biến thể của bản Blade cho băng trượt "nổi bật" và khối "màn hình gần đó":
+ * ảnh thấp hơn, một dòng tiêu đề, không có bảng thông số, ẩn nút. CSS đã có
+ * sẵn (`.sc-compact *`), nên đây chỉ là một cờ.
  */
 type Availability = {
     window_days?: number;
@@ -32,15 +64,20 @@ type Availability = {
 export function ScreenCard({
     screen,
     availability,
+    compact = false,
 }: {
     screen: ScreenSummary;
     availability?: Availability;
+    compact?: boolean;
 }) {
     const price = formatPrice(screen);
+    const href = `/explore/${screen.slug}`;
+    const networkName = screen.network?.name;
+    const siteName = screen.location?.site;
 
     return (
-        <article className="sc">
-            <Link href={`/explore/${screen.slug}`} className="sc-photo">
+        <Link href={href} className={compact ? 'sc-card sc-compact' : 'sc-card'}>
+            <div className="sc-photo">
                 {screen.photo_url ? (
                     // Dùng `<img>` chứ không `next/image`: ảnh do media owner
                     // tải lên và phục vụ từ Laravel trên cùng tên miền. Cho
@@ -51,77 +88,104 @@ export function ScreenCard({
                     <img src={screen.photo_url} alt={screen.name ?? ''} loading="lazy" />
                 ) : null}
 
-                {/*
-                  Badge chỉ khi CÓ dữ liệu suất và còn suất. Không có dữ liệu
-                  thì không nói gì — xem chú thích đầu file.
-                */}
                 {availability?.has_capacity ? (
-                    <span className="sc-badge">
-                        Còn {availability.remaining_sov_pct}% trong{' '}
-                        {availability.window_days} ngày
-                    </span>
+                    <div
+                        className="sc-badge"
+                        title={
+                            availability.remaining_sov_pct !== undefined &&
+                            availability.window_days !== undefined
+                                ? `Còn ${availability.remaining_sov_pct}% thời lượng trong ${availability.window_days} ngày tới`
+                                : undefined
+                        }
+                    >
+                        Còn trống
+                    </div>
                 ) : null}
-            </Link>
+            </div>
 
             <div className="sc-body">
-                <div className="sc-breadcrumb">
-                    {screen.location?.city ? <span>{screen.location.city}</span> : null}
-                    {screen.location?.city && screen.location?.district ? (
-                        <span className="sc-bc-sep">·</span>
-                    ) : null}
-                    {screen.location?.district ? <span>{screen.location.district}</span> : null}
-                </div>
-
-                <h3 className="sc-title">
-                    <Link href={`/explore/${screen.slug}`}>{screen.name}</Link>
-                </h3>
-
-                {screen.location?.site ? (
-                    <div className="sc-loc">
-                        <span className="sc-loc-icon" aria-hidden="true" />
-                        {screen.location.site}
+                {!compact && (networkName || siteName) ? (
+                    <div className="sc-breadcrumb">
+                        {networkName ? <span>{networkName}</span> : null}
+                        {networkName && siteName ? <span className="sc-bc-sep">›</span> : null}
+                        {siteName ? <span>{siteName}</span> : null}
                     </div>
                 ) : null}
 
-                <div className="sc-specs">
-                    {screen.screen_type ? (
-                        <div className="sc-spec">
-                            <span className="sc-spec-l">Loại</span>
-                            <span className="sc-spec-v">{screen.screen_type}</span>
-                        </div>
-                    ) : null}
+                <div className="sc-title">{screen.name}</div>
 
-                    {screen.size?.width_m && screen.size?.height_m ? (
+                {screen.location?.city ? (
+                    <div className="sc-loc">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="sc-loc-icon"
+                            aria-hidden="true"
+                        >
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" />
+                        </svg>
+                        {screen.location.city}
+                    </div>
+                ) : null}
+
+                {!compact ? (
+                    <div className="sc-specs">
+                        <div className="sc-spec">
+                            <span className="sc-spec-l">Chủ sở hữu</span>
+                            <span className="sc-spec-v">{screen.owner?.name ?? '—'}</span>
+                        </div>
+                        <div className="sc-spec">
+                            <span className="sc-spec-l">Loại hình</span>
+                            <span className="sc-spec-v">{screen.screen_type ?? '—'}</span>
+                        </div>
                         <div className="sc-spec">
                             <span className="sc-spec-l">Kích thước</span>
-                            <span className="sc-spec-v">
-                                {screen.size.width_m}×{screen.size.height_m}m
-                            </span>
+                            <span className="sc-spec-v">{sizeLabel(screen)}</span>
                         </div>
-                    ) : null}
-                </div>
-
-                <div className="sc-foot">
-                    {price ? (
-                        <div className="sc-price">
-                            {price}
-                            <span className="sc-price-sub">chưa gồm VAT</span>
-                        </div>
-                    ) : (
-                        <div className="sc-price-quote">Liên hệ báo giá</div>
-                    )}
-
-                    <Link href={`/explore/${screen.slug}`} className="btn btn-p btn-sm sc-btn">
-                        Xem chi tiết
-                    </Link>
-                </div>
+                    </div>
+                ) : null}
             </div>
-        </article>
+
+            <div className="sc-foot">
+                {price ? (
+                    <div>
+                        <div className="sc-price">
+                            {price.amount}
+                            <sup>{price.currency}</sup>
+                        </div>
+                        <div className="sc-price-sub">/ {price.unit}</div>
+                    </div>
+                ) : (
+                    <div className="sc-price-quote">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="sc-quote-ic"
+                            aria-hidden="true"
+                        >
+                            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+                        </svg>
+                        Liên hệ báo giá
+                    </div>
+                )}
+
+                <span className="btn btn-p btn-sm sc-btn">Chi tiết</span>
+            </div>
+        </Link>
     );
 }
 
+function sizeLabel(screen: ScreenSummary): string {
+    const w = screen.size?.width_m;
+    const h = screen.size?.height_m;
+
+    return w && h ? `${w}x${h}m` : '—';
+}
+
 /**
- * Giá niêm yết, định dạng theo tiếng Việt.
+ * Giá niêm yết, tách thành ba phần vì bản Blade in chúng ở ba chỗ khác nhau:
+ * số trong `.sc-price`, đơn vị tiền trong `<sup>`, kỳ tính trong
+ * `.sc-price-sub`.
  *
  * Trả `null` khi không có giá — chỗ gọi hiện "Liên hệ báo giá" thay vì in `0 ₫`.
  * In số 0 là nói sai: nó đọc như miễn phí.
@@ -131,30 +195,56 @@ export function ScreenCard({
  * `CartService` chặn đặt trực tuyến với giá ngoài VND. Nên in kèm đúng đơn vị
  * mà API trả về.
  */
-function formatPrice(screen: ScreenSummary): string | null {
+function formatPrice(
+    screen: ScreenSummary,
+): { amount: string; currency: string; unit: string } | null {
     const io = screen.pricing?.io_rate;
 
     if (io?.amount) {
-        return `${formatAmount(io.amount, io.currency)}/${unitLabel(io.unit)}`;
+        return {
+            amount: formatAmount(io.amount, io.currency),
+            currency: currencyLabel(io.currency),
+            unit: `màn hình/${unitLabel(io.unit)}`,
+        };
     }
 
     const cpm = screen.pricing?.floor_cpm;
 
     if (cpm?.amount) {
-        return `${formatAmount(cpm.amount, cpm.currency)}/1.000 lượt`;
+        return {
+            amount: formatAmount(cpm.amount, cpm.currency),
+            currency: currencyLabel(cpm.currency),
+            unit: '1.000 lượt',
+        };
     }
 
     return null;
 }
 
+/**
+ * Số tiền, không kèm đơn vị: đơn vị đi riêng vào `<sup>`.
+ *
+ * Hàng ngoài VND in hai số thập phân — bản Blade ghi lại lý do: một màn hình
+ * 2,50 USD làm tròn về số nguyên thì hiện ra "2", và đó là một con số giá sai
+ * (Codex R39).
+ */
 function formatAmount(amount: number, currency?: string | null): string {
     const code = currency || 'VND';
 
     if (code === 'VND') {
-        return `${new Intl.NumberFormat('vi-VN').format(amount)} ₫`;
+        return new Intl.NumberFormat('vi-VN').format(amount);
     }
 
-    return `${new Intl.NumberFormat('vi-VN').format(amount)} ${code}`;
+    return new Intl.NumberFormat('vi-VN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(amount);
+}
+
+function currencyLabel(currency?: string | null): string {
+    const code = currency || 'VND';
+
+    return code === 'VND' ? 'đ' : code;
 }
 
 function unitLabel(unit?: string | null): string {

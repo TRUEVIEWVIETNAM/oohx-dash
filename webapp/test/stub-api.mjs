@@ -54,12 +54,21 @@ const SCREEN_KHONG_GIA = {
 
 const AVAILABILITY = { window_days: 30, remaining_sov_pct: 60, has_capacity: true };
 
+// `logo_url`, `city_count`, `venue_types`, `verified` thêm 14/10/2026 cùng với
+// `OwnerSummaryResource`: thẻ owner dựng lại theo bản Blade in cả bốn, nên dữ
+// liệu giả phải có chúng — nếu không thì HTML đã render không đi qua những
+// nhánh đó và phép kiểm khối giao diện canh một thẻ nghèo hơn thẻ thật.
 const OWNER = {
     slug: 'owner-mot',
     name: 'Công Ty Một',
     type: 'agency',
+    logo_url: 'https://oohx.net/storage/owners/logo.jpg',
     cover_url: 'https://oohx.net/storage/owners/a.jpg',
     screen_count: 2,
+    city_count: 1,
+    venue_types: ['Trung tâm thương mại', 'Toà nhà văn phòng'],
+    verified: true,
+    featured: false,
 };
 
 const OWNER_DETAIL = {
@@ -213,6 +222,22 @@ const ROUTES = {
             venue_types: [{ code: 'retail', name: 'Bán lẻ', count: 1 }],
             networks: [],
             owners: [],
+
+            // Cây loại hình có network lồng bên trong — ô tìm kiếm lớn vẽ đúng
+            // cây này (thêm 14/10/2026). Một nhóm CÓ network con và một nhóm
+            // KHÔNG, vì hai nhánh render khác nhau: nhóm có con thì hiện mũi
+            // thu gọn, nhóm không thì hiện ô trống giữ chỗ.
+            categories_networks: [
+                {
+                    code: 'retail',
+                    name: 'Bán lẻ',
+                    icon: 'storefront',
+                    count: 1,
+                    networks: [{ code: 'NET1', name: 'Mạng Một', count: 1 }],
+                },
+                { code: 'transit', name: 'Giao thông', icon: 'train', count: 0, networks: [] },
+            ],
+
             price_range: { min: 0, max: 1000000 },
         },
     },

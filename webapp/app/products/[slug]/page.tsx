@@ -4,7 +4,7 @@ import { getProduct, type ProductDetail } from '@/lib/api';
 import { buildMetadata, jsonLd, OgType } from '@/lib/seo';
 import { SiteHeader } from '@/components/SiteHeader';
 import { ScreenCard } from '@/components/ScreenCard';
-import { formatProductPrice } from '../page';
+import { formatProductPrice } from '@/components/ProductCard';
 
 /**
  * `/products/{slug}` — chi tiết một gói.
@@ -157,7 +157,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<Pa
                     {product.screens && product.screens.length > 0 ? (
                         <section style={{ padding: '24px 0' }}>
                             <h2 className="section-hed">Màn hình trong gói</h2>
-                            <div className="oc-grid oc-grid--full">
+                            <div className="inv-grid">
                                 {product.screens.map((screen) => (
                                     <ScreenCard key={screen.slug} screen={screen} />
                                 ))}

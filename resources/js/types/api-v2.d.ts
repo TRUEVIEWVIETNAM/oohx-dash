@@ -84,6 +84,19 @@ export interface paths {
                                 cities: components["schemas"]["FilterFacet"][];
                                 venue_types: components["schemas"]["FilterFacet"][];
                                 networks: components["schemas"]["FilterFacet"][];
+                                /**
+                                 * @description Cùng danh sách loại hình như `venue_types`, nhưng có
+                                 *     network lồng bên trong. Cần cho ô tìm kiếm lớn, vì
+                                 *     `networks` phẳng không mang khóa loại hình nào nên
+                                 *     quan hệ cha–con không suy ra được ở phía trình duyệt.
+                                 */
+                                categories_networks: {
+                                    code: string | null;
+                                    name: string | null;
+                                    icon?: string | null;
+                                    count: number;
+                                    networks: components["schemas"]["FilterFacet"][];
+                                }[];
                                 owners: {
                                     slug?: string | null;
                                     name?: string | null;
@@ -2565,18 +2578,35 @@ export interface components {
         /**
          * @description Danh sách trắng. Không bao giờ chứa `revenue_share_pct`, `billing_info`,
          *     `bank_*`, `tax_code` hay `business_license_path`.
+         *
+         *     `logo_url` và `cover_url` là **URL đầy đủ** (`asset('storage/…')`),
+         *     không phải đường dẫn trong disk — cùng quy ước với `AgencySummary` và
+         *     `ProductDetail.photo_urls`.
+         *
+         *     `city_count` và `venue_types` có thể là `null`: null nghĩa là **không
+         *     đếm** (người gọi không nạp phần phụ), khác `0` nghĩa là đếm rồi và
+         *     không có cái nào.
          */
         OwnerSummary: {
             slug: string;
             name: string;
             type?: string | null;
+            logo_url?: string | null;
             cover_url?: string | null;
             screen_count?: number | null;
+            city_count?: number | null;
+            /** @description Nhãn loại hình điểm đặt, tiếng Việt khi có. */
+            venue_types?: string[] | null;
+            verified?: boolean;
+            featured?: boolean;
         };
         /**
          * @description Bộ trường lấy đúng bằng những gì trang owner công khai đang hiển thị,
          *     không thêm. Không bao giờ chứa `revenue_share_pct`, `billing_info`,
          *     `bank_*`, `tax_code`, `business_license_path` hay `legal_*`.
+         *
+         *     `logo_url` và `cover_url` là **URL đầy đủ**, không phải đường dẫn trong
+         *     disk — xem `OwnerSummary`.
          */
         OwnerDetail: {
             slug: string;

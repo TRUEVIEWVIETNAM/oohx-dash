@@ -1,0 +1,350 @@
+# Dựng lại giao diện cũ trên API + Next.js
+
+Viết 14/10/2026 · Claude Code · Đối chiếu bản Blade trước giai đoạn 7 với bản Next đang chạy
+
+> **Tiến độ, cập nhật 14/10/2026.** Lát **0, 1 và 2 đã làm** (chủ dự án duyệt
+> ngay sau khi đọc bản khảo sát này). Lát 3 → 7 còn nguyên.
+>
+> **Hai chỗ bản kế hoạch này đo sai, phát hiện khi làm:**
+>
+> 1. Bảng dưới nói lát 0 "không cần API". Sai: `cover_url` của owner trả
+>    **đường dẫn trong disk** chứ không phải URL, nên mọi ảnh bìa owner trên
+>    `/owners` và trang chủ là ảnh hỏng — và thẻ owner của bản Blade còn in
+>    logo, số tỉnh thành, nhãn loại hình, dấu đã xác minh mà DTO không mang ra.
+>    Bốn trường đó `loadOwnerExtras()` **đã tính sẵn**. Nên lát 0 có một lần sửa
+>    DTO.
+> 2. Bảng dưới nói lát 2 dựng ô tìm kiếm lớn được từ `locations` + `filters`
+>    "phía client". Sai: cây *loại hình → network* không suy ra được từ hai danh
+>    sách phẳng, vì `networks` không mang khóa loại hình nào. `/api/v2/filters`
+>    nay trả thêm `categories_networks` — một trường **thêm vào endpoint có
+>    sẵn**, không phải endpoint mới.
+>
+> **Ba việc cần chủ dự án quyết** (đều là lời hứa sản phẩm, không phải kỹ
+> thuật): thanh `trust` năm mục, mục "Marketplace OOH đầu tiên có AI", và câu
+> chữ của bốn thẻ WORKFLOW. Chi tiết ở mục "Ba khối chưa dựng vì chúng là lời
+> hứa, không phải hình" ở cuối tài liệu.
+
+## Vì sao tài liệu này tồn tại
+
+Sở Thông tin sẽ vào chụp lại màn hình. Banner trên mọi trang công khai hiện nói
+*"website đang chạy thử nghiệm, chưa hoàn tất đăng ký với Bộ Công Thương"*, nên
+đợt chụp này gần như chắc chắn phục vụ hồ sơ đó — và ảnh chụp phải khớp với
+giao diện đã đăng ký.
+
+Trang công khai đã rời Blade ngày 07–08/10/2026 (giai đoạn 6 và 7). Câu hỏi phải
+trả lời trước khi ai đó chụp màn hình: **bản Next có còn là cùng một giao diện?**
+
+Câu trả lời ngắn: **đường dẫn thì đủ, giao diện thì không.**
+
+| Nhóm trang | Tình trạng |
+|---|---|
+| 4 trang pháp lý (`quy-che-hoat-dong`, `chinh-sach-bao-mat`, `giai-quyet-tranh-chap`, `bang-phi`) | **Y NGUYÊN** — chuyển đúng từng tên lớp CSS |
+| 2 trang phản ánh TCXH (`/phan-anh-to-chuc-xa-hoi`, `/danh-sach`) | **Y NGUYÊN** — đúng từng tên lớp |
+| Khối pháp lý ở chân trang (tên pháp nhân, MSDN, địa chỉ, người đại diện, đầu mối liên hệ cơ quan nhà nước) | **Y NGUYÊN**, có trên mọi trang |
+| `/login`, `/register` | Chuyển đủ |
+| `/agency` | Chuyển gần đủ — dùng đúng bộ `oc-card-*` như bản cũ |
+| **8 trang danh mục** (`/`, `/explore`, `/explore/{slug}`, `/owners`, `/owners/{slug}`, `/products`, `/products/{slug}`, `/map`) | **RÚT GỌN ĐÁNG KỂ** — mất phần lớn khối giao diện |
+
+Nghĩa là: thứ cơ quan quản lý cần đọc thì còn nguyên văn và nguyên hình. Thứ
+người mua nhìn thấy đầu tiên — trang chủ và trang kho — thì không còn giống bản
+cũ.
+
+## Cách đo, để ai cũng kiểm lại được
+
+Markup cũ **không mất**, nó nằm trong git:
+
+```bash
+git show d7d3446^:resources/views/frontpage/index.blade.php   # trang chủ bản Blade
+git show 10cbc86^:resources/views/frontpage/agency.blade.php  # /agency, gỡ ở commit sau
+```
+
+`d7d3446` là commit "gỡ trang công khai Blade đã được Next thay" (07/10),
+`10cbc86` là lát cuối (`/agency`). Tổng cộng 15 view trang + 11 partial + 3
+controller.
+
+CSS cũng **không mất**. `resources/css/frontpage.css` (2.211 dòng) vẫn là
+stylesheet duy nhất của cả hai bản — `webapp/app/globals.css` chỉ có một dòng
+thật: `@import '../../resources/css/frontpage.css'`.
+
+Đo mức độ giao diện cũ đang bị bỏ không, bằng cách đếm tên lớp:
+
+```bash
+# 1.094 tên lớp được định nghĩa trong frontpage.css
+grep -ohE "\.[a-zA-Z][a-zA-Z0-9_-]*" resources/css/frontpage.css | sed 's/^\.//' | sort -u | wc -l
+# rồi với mỗi tên: có trang nào trong webapp/ hoặc resources/views/ tham chiếu không
+```
+
+| Phép đếm | Kết quả |
+|---|---|
+| Tên lớp định nghĩa trong `frontpage.css` | **1.094** |
+| Không trang nào hôm nay dùng | **803** (73%) |
+| Trong 803 đó, thuộc chính các view đã gỡ — tức dựng lại là dùng lại được | **445** |
+| Không ai dùng, kể cả view cũ — CSS chết từ các thiết kế trước (`about-*`, `ag-hero*`, `bk-layout`, `bar-chart`…) | **358** |
+
+445 tên lớp đang chờ sẵn là tin tốt: **dựng lại giao diện cũ không phải thiết kế
+lại.** Markup lấy từ git, CSS đã nằm trong repo, dữ liệu đã có endpoint hoặc đã
+có service sẵn.
+
+## Từng trang: cũ có gì, nay còn gì
+
+### `/` — trang chủ
+
+Bản Blade có **10 khối**; bản Next có **5**, và thứ tự khác.
+
+| Khối bản cũ | Bản Next |
+|---|---|
+| Hero + **mega-search** (ô tìm kiếm lớn: tỉnh / loại điểm / loại màn hình, cây chọn địa điểm, chip đã chọn — `partials/mega-search.blade.php` 158 dòng + 187 dòng JS) | Hero có, **mega-search không có** |
+| Duyệt theo địa điểm | ✔ |
+| `{N}` Tỉnh thành (lưới liên kết theo vùng) | ✔ nhưng **dời xuống cuối trang** |
+| Vị trí nổi bật (băng trượt + dots) | ✔ (lưới, không băng trượt) |
+| **Live Map View** — bản đồ Leaflet nhúng, thanh thành phố, dropdown "thêm", hai nút zoom, popup, bộ đếm "N màn hình tại X" | **không có** |
+| Trusted Media Owners | ✔ (đổi chữ: "Media owner trên sàn") |
+| **4 bước đặt booking OOH** | **không có** |
+| **Marketplace OOH đầu tiên có AI** | **không có** |
+| **Gói chiến dịch** (`pkg-grid`, ba thẻ gói) | **không có** |
+| **Owner CTA** ("Đưa inventory của bạn lên OOHX", `owner-cta` + ba thẻ tính năng) | **không có** |
+
+### `/explore` — danh sách kho
+
+| Bản cũ | Bản Next |
+|---|---|
+| mega-search ngay trên danh sách | không có |
+| `results-header` + `rh-count` (đếm kết quả) + ô sắp xếp | chỉ một dòng đếm trong hero |
+| Bộ lọc hiện ra cho người dùng | **không có** — trang đọc `city`, `screen_type`, `sort` từ URL rồi vẽ lưới. Nặng hơn: thông báo rỗng viết *"Không có vị trí nào khớp bộ lọc"* trong khi **không có bộ lọc nào để đổi** |
+| `inv-grid` + `list-view` (đổi kiểu xem lưới / danh sách) | `oc-grid oc-grid--full` — lưới dành cho thẻ **chủ sở hữu**, không phải thẻ màn hình |
+| Phân trang | ✔ |
+
+### `/explore/{slug}` — chi tiết màn hình
+
+Bản cũ 776 dòng; bản Next 189. Mất gần hết:
+
+| Bản cũ | Bản Next |
+|---|---|
+| Thư viện ảnh + thumbnail + **lightbox** (`lb-overlay`), badge còn/hết suất 30 ngày, bộ đếm ảnh | **một ảnh** |
+| `stats-row` (bốn ô số liệu) | không có |
+| **Bốn tab**: Thông tin · Insights · Lịch trống · Đánh giá | không có |
+| `specs-grid` (bảng thông số) | có, dạng `<dl>` đơn giản |
+| **screen-insights** (315 dòng: vị trí đặt, lưu lượng, chân dung khán giả, hiệu suất theo giờ, bối cảnh quanh điểm, ghi chú phương pháp) | không có |
+| **Lịch trống theo tháng** (`cal-grid` + chú giải màu) | một dòng chữ về SOV 30 ngày |
+| **Panel giá** (`bp-*`): chọn kiểu bán I/O hay CPM, ngày bắt đầu, thời lượng, số màn hình, số CPM, tên brand, tính tiền ngay trên trang | không có |
+| Thẻ chủ sở hữu, màn hình gần đó (`getSimilarScreens`), khối vị trí + bản đồ | không có |
+| ~~Đánh giá 4.9 sao + ba nhận xét~~ | **không được dựng lại** — xem mục dưới |
+
+### `/owners` và `/owners/{slug}`
+
+| Bản cũ | Bản Next |
+|---|---|
+| `/owners`: `pg-hero` + **ô tìm kiếm** (`pg-hero-search`) + **chip lọc theo loại** (`cat-chips`) + lưới thẻ `oc-card-*` | `pg-hero` trơn + lưới thẻ dùng **năm tên lớp không tồn tại** (lỗi #2) |
+| `/owners/{slug}`: bố cục trang hồ sơ — ảnh bìa, avatar, tagline, meta, lưới số liệu, tab, cột phải (thông tin liên hệ, panel), thẻ nổi bật, bộ lọc kho, băng trượt, **đánh giá của người mua**. CSS 98 dòng nằm ngay trong view | `pg-hero` + một tiêu đề + lưới màn hình |
+
+### `/products` và `/products/{slug}`
+
+| Bản cũ | Bản Next |
+|---|---|
+| `/products`: **sidebar lọc** (`sidebar`, `sb-group`, `sb-checkbox`, `sb-search-inp`, `sb-count`), results header, ô sắp xếp, **drawer lọc cho mobile** (`drawer-drag`, `filter-backdrop`, `filter-float`), `load-more`, thẻ gói riêng (`pd-card`) | lưới phẳng, thẻ dùng lớp của **thẻ màn hình** (`sc-*`), không bộ lọc nào |
+| `/products/{slug}`: gallery + thumbnail, bố cục hai cột, **panel giá có tab** (`bp-tabs`), **danh sách màn hình trong gói** có checkbox và ảnh nhỏ | danh sách thông số + lưới màn hình |
+
+### `/map`
+
+| Bản cũ | Bản Next |
+|---|---|
+| Bản đồ + cluster + popup | ✔ (còn tốt hơn: thư viện nạp từ npm, không từ unpkg) |
+| **smart-filter** (sidebar lọc: tỉnh, loại điểm, loại màn hình, network, owner — 101 dòng + 98 dòng JS) | **không có** — lọc chỉ qua tham số URL |
+| Thanh thành phố, hai nút zoom, chú giải, bộ đếm kết quả | không có |
+
+## Ba lỗi phải sửa dù không dựng lại gì
+
+**1. Mọi thẻ màn hình trên bản Next đặt sai tên lớp.**
+
+`webapp/components/ScreenCard.tsx:42` và `webapp/app/products/page.tsx:86` viết
+`<article className="sc">`. Trong `frontpage.css`:
+
+- `.sc` (dòng 1330) = **một ô trong bảng thông số**: `padding`, viền phải, viền
+  dưới, kèm `:nth-child` để ghép thành bảng.
+- `.sc-card` (dòng 1939) = **thẻ màn hình**: `border-radius:14px`, `box-shadow`,
+  `flex-direction:column`, `overflow:hidden`, và `:hover` nâng thẻ 4px kèm phóng
+  ảnh.
+
+Bản cũ dùng `sc-card`. Nên thẻ màn hình trên production hôm nay không có bo góc,
+không đổ bóng, không hiệu ứng hover, và mang viền phải/dưới của một ô bảng. Đây
+là thẻ xuất hiện trên `/`, `/explore`, `/owners/{slug}`, `/products` — tức hầu
+hết ảnh sẽ chụp.
+
+**2. Thẻ chủ sở hữu dùng năm tên lớp không ai định nghĩa.**
+
+`oc-cover`, `oc-body`, `oc-name`, `oc-stats`, `oc-type` — không có trong
+`frontpage.css`, không có trong bất kỳ khối `<style>` nào. Dùng ở
+`webapp/app/owners/page.tsx` và `webapp/app/page.tsx`. Vỏ ngoài `oc-card` thì có
+kiểu, nên thẻ có khung nhưng **ruột không có kiểu**: ảnh bìa không bị giới hạn
+chiều cao, tên không có cỡ chữ, số liệu không có bố cục.
+
+Thứ đáng nói: bản cũ dùng `oc-card-cover` / `oc-card-name` / `oc-card-stats`, và
+**`/agency` trong cùng repo vẫn đang dùng đúng bộ đó**. Bản mẫu đúng nằm cách đó
+một tệp.
+
+**3. Chốt canh tên lớp không soi `webapp/`.**
+
+`tests/js/class-css.test.mjs` tồn tại chính vì hai lỗi cùng loại (`.b-gray` chưa
+từng có trong CSS, `b-green` sai tên) đã lên production. Nhưng phạm vi của nó là
+`resources/views` — Blade. Trang Next nằm ngoài. Nên hai lỗi trên sống sót qua
+mọi lượt CI.
+
+Đây là **lỗ thứ tám** cùng họ với bảy lỗ đã ghi ở `LO-TRINH-SAU-GIAI-DOAN-0.md`:
+một chốt xanh chưa chứng minh nó đang canh thứ nó nói.
+
+## Thứ KHÔNG dựng lại, và vì sao
+
+Dựng lại giao diện cũ nghĩa là dựng lại **hình**, không phải dựng lại những con
+số bịa mà giai đoạn 4 đã dọn (audit F-15). Năm thứ sau nằm trong markup cũ và
+**phải để lại trong git**:
+
+| Thứ bỏ lại | Vì sao |
+|---|---|
+| `4.9` sao + ba nhận xét có tên người ở `/explore/{slug}` | Không có model Review nào. Chữ viết cứng trong template |
+| `"price": 0` trong JSON-LD khi màn hình chưa niêm yết giá | schema.org đọc `price: 0` là **miễn phí** |
+| Ba nút gói "City Launch / Retail Activation / Event Blitz" | `<button>` trần, không hành vi, không có bản ghi tương ứng |
+| Hai nút ở owner CTA + thẻ "Tăng fill rate lên 40%" | Không có trang đăng ký owner; 40% không tính được từ dữ liệu nào |
+| Bốn liên kết `href="#"` ở chân trang | Liên kết không đi đâu |
+
+Khối **hình** của chúng (`pkg-grid`, `owner-cta`, `oc-feat`) thì dựng lại được —
+chỉ cần nội dung bên trong có nguồn thật, hoặc bỏ phần không có nguồn.
+
+## Kế hoạch — bảy lát
+
+Thứ tự theo *thứ sẽ bị chụp trước*, trong cùng mức ưu tiên thì *rẻ trước*. Mỗi
+lát một PR, CI xanh mới merge.
+
+| Lát | Việc | API cần thêm | Ước lượng |
+|---|---|---|---|
+| ~~**0**~~ **XONG 14/10** | Ba lỗi trên: `sc` → `sc-card`; thẻ owner về `oc-card-*`; mở rộng `class-css.test.mjs` sang `webapp/` | ~~không~~ — **có**: `logo_url`/`cover_url` phải là URL đầy đủ, thêm `city_count`, `venue_types`, `verified`, `featured` vào `OwnerSummary` | nửa ngày |
+| ~~**1**~~ **XONG 14/10** | Thẻ và lưới: `inv-grid` cho lưới màn hình (thay `oc-grid`), đổi kiểu xem lưới/danh sách; `/owners` có lại ô tìm kiếm + `cat-chips` | không — `filters` đã có | 1 ngày |
+| ~~**2**~~ **XONG 14/10** | **Trang chủ**: mega-search, Live Map View, 4 bước đặt booking, Gói chiến dịch, Owner CTA, và phần hero còn thiếu (badge, `hstat`, hint, ảnh mô phỏng) | `locations` ✔ `pins` ✔ `stats` ✔ — **thêm** `categories_networks` vào `/filters` | 2–3 ngày |
+| **3** | `/explore` + `/products`: sidebar lọc, results header, sắp xếp, drawer mobile, load-more | `filters` ✔ (phải kiểm đủ trường cho sidebar gói) | 2 ngày |
+| **4** | `/explore/{slug}`: gallery + lightbox, bốn tab, insights, lịch trống theo tháng, panel giá | **cần bốn món** — bảng dưới | 3–4 ngày |
+| **5** | `/owners/{slug}`: bố cục hồ sơ `fp-*` (chuyển 98 dòng CSS nội tuyến vào `frontpage.css`), đánh giá người mua | `owners/{slug}` ✔ đã có `cover_url`, `logo_url`, `tagline`, `about`, `contact`, `stats`, `venue_types`; `OwnerReviewResource` đã có | 2 ngày |
+| **6** | `/map`: smart-filter, thanh thành phố, nút zoom, chú giải, bộ đếm | `filters` ✔ `map` ✔ | 1–2 ngày |
+| **7** | `/products/{slug}`: gallery, panel giá có tab, danh sách màn hình trong gói | `products/{slug}` ✔ đã có `photo_urls`, `specs`, `package_options`, `screens` | 1–2 ngày |
+
+**Nếu Sở vào trong tuần này:** lát 0 + lát 1 + lát 2. Trang chủ là ảnh đầu tiên
+và là trang khác bản cũ nhiều nhất; thẻ màn hình thì có mặt trên gần hết các
+trang còn lại. Ba lát đó không cần endpoint mới nào.
+
+## API còn thiếu — chỉ ở lát 4
+
+Dữ liệu đã có trong CSDL và đã có service đọc. Việc là **mở ra ở DTO v2**, không
+phải tính mới.
+
+| Món | Dữ liệu nằm ở đâu hôm nay | Việc cần làm |
+|---|---|---|
+| Thư viện ảnh của màn hình | `screen_specs.photos[]`, accessor `display_photo` | `ScreenSummaryResource` chỉ trả `photo_url`. Thêm `photo_urls[]` ở đường chi tiết |
+| Insights | `screens.placement_zone`, `daily_footfall`, `monthly_reach`, `audience_profile`, `time_performance`, `nearby_context`, `traffic_methodology_note` — **`/api/v1` đã trả** qua `?include=intelligence` | Mở ở `/api/v2/screens/{slug}`. **Không đổi `/api/v1`** (CLAUDE.md mục 1) |
+| Lịch trống theo tháng | `AvailabilityService::getRemainingSOV()` theo khoảng ngày | Thêm đường trả SOV còn lại theo từng ngày cho N tháng, có giới hạn cứng số tháng |
+| Màn hình gần đó | `FrontpageService::getSimilarScreens()` — đã có, chưa có endpoint | Trả kèm trong `/api/v2/screens/{slug}` |
+
+Panel giá **không** cần endpoint mới cho phần hiển thị, nhưng phải giữ đúng
+CLAUDE.md mục 5: *số tiền do máy chủ tính*. Bản cũ tính tiền bằng JS ngay trên
+trang. Dựng lại thì con số hiển thị chỉ là **ước tính** và phải nói rõ là ước
+tính; số thật vẫn do `/api/v2/cart` trả về khi thêm vào giỏ.
+
+## Khu người mua — không nằm trong việc này
+
+11 trang Blade (`cart`, `dashboard/*`, `booking/*`) **vẫn đang mang giao diện
+cũ** và vẫn chạy: chúng chưa chuyển sang Next (giai đoạn 8, hoãn có chủ ý). Cả
+11 đã đọc dữ liệu qua `/api/v2` từ trình duyệt, nên nếu Sở cần chụp quy trình
+đặt chỗ thì phần đó **không cần dựng lại gì**.
+
+## Rủi ro
+
+1. **Ảnh chụp trong hồ sơ cũ tôi chưa thấy.** Tài liệu này so bản Next với bản
+   Blade *ở commit cuối trước khi gỡ*. Nếu hồ sơ đã nộp dùng ảnh chụp **trước**
+   đợt dọn F-15 (giai đoạn 4, 29/09 và 03/10) thì bản cũ trong ảnh còn những con
+   số đã bị gỡ vì chúng bịa. Khớp lại đúng những con số đó là việc không nên
+   làm, và cần nói trước với cơ quan quản lý thay vì dựng lại.
+2. **358 tên lớp CSS chết** vẫn còn sau khi làm hết bảy lát. Dọn chúng là việc
+   khác, và chỉ nên làm sau khi giao diện đã chốt.
+3. **Lát 4 là lát duy nhất kéo theo API mới**, nên cũng là lát duy nhất có thể
+   trượt lịch vì lý do không nằm ở giao diện.
+4. Banner *"đang chạy thử nghiệm, chưa hoàn tất đăng ký"* hiện trên mọi trang và
+   tự ẩn sau 6,5 giây. Nó bật/tắt bằng `OOHX_TRIAL_MODE`. Giữ hay tắt trong lúc
+   chụp là quyết định pháp lý, không phải quyết định kỹ thuật.
+
+---
+
+## Ba khối chưa dựng vì chúng là lời hứa, không phải hình (ghi 14/10/2026)
+
+Lát 2 dựng lại trang chủ và dừng trước ba khối. Không phải vì khó — cả ba là
+HTML tĩnh, dựng trong mười phút — mà vì nội dung của chúng **nói những điều tôi
+không kiểm được**, và trang này sắp được một cơ quan quản lý chụp màn hình.
+
+| Khối | Nó nói gì | Kiểm được không |
+|---|---|---|
+| Thanh `trust` (5 mục, ngay dưới hero) | "Verified inventory" · "Traffic real-time" · "AI-powered search" · "Secure payment" · "Agency support 24/7" | **Không.** Cột `verified` có thật nhưng thanh này nói về cả sàn; `impression_logs` chưa có bản ghi nào nên không có "real-time"; không có tính năng AI nào trong mã; sàn **không thu hộ** (người mua chuyển khoản trực tiếp cho owner) nên "secure payment" nói sai cách tiền chạy; "24/7" là cam kết vận hành, không phải một thuộc tính của hệ thống |
+| Mục "Marketplace OOH đầu tiên có AI" (`value-grid` + `ai-cards`) | Nhan đề khẳng định có AI; `vv-number` in **3.2×** "nhanh hơn cách đặt truyền thống"; ảnh nền hotlink từ `images.unsplash.com` | **Không.** 3.2× không có nguồn nào; không có tính năng AI; và một trang công khai hotlink ảnh của dịch vụ ngoài là thêm một điểm hỏng cùng một câu hỏi bản quyền |
+| Bốn thẻ WORKFLOW | "AI search", "traffic data", "so sánh tối đa 5 vị trí", "proof-of-play report tự động" | **Một phần.** Bốn *bước* là thật và đã dựng lại; bốn *câu mô tả* thì không — không có chức năng so sánh, chưa có dữ liệu phát sóng |
+
+Bốn thẻ WORKFLOW đã dựng với **chữ viết lại**, mô tả đúng những gì hôm nay làm
+được. Hai khối còn lại **chưa có trên trang**.
+
+Đây là ba quyết định về lời hứa sản phẩm, nên chúng thuộc chủ dự án, không
+thuộc người sửa giao diện. Ba lựa chọn cho mỗi khối: dựng lại **đúng câu chữ
+cũ** (và nhận rủi ro đứng trước cơ quan quản lý), dựng lại với **câu chữ chỉ
+nói điều kiểm được**, hoặc **không dựng**.
+
+Ghi lại vì nó là cùng một đường cắt mà giai đoạn 4 đã cắt một lần: audit F-15 gỡ
+"30M+ impressions", bộ đếm chạy bằng `Math.random()`, "AI Match 94%", "tăng fill
+rate 40%" — nhưng **để lại** thanh `trust` và mục AI. Chúng sống sót vì đợt đó
+dọn theo *con số*, còn đây là *lời khẳng định năng lực*. Cùng một loại rủi ro,
+khác hình dạng.
+
+## Những gì lát 0–2 đã đổi, để lần sau không phải đọc lại git log
+
+**Bốn lỗi, không phải ba.** Lỗi thứ tư tìm thấy khi sửa lỗi thẻ owner: hai
+resource owner trả `cover_url`/`logo_url` là **đường dẫn trong disk**, nên trình
+duyệt giải chúng tương đối với trang đang mở — `/owners/owners/cover/abc.jpg`.
+Quy ước của repo (`AgencySummaryResource`, `Product::getPhotoUrlsAttribute()`)
+là URL đầy đủ; hai resource đó là ngoại lệ duy nhất.
+
+**Thẻ `.sc` → `.sc-card` không chỉ là một tên class.** Ba chỗ cấu trúc phải
+trả lại đúng: `.sc-foot` là **con trực tiếp** của thẻ (nó có `border-top` và
+`margin-top`; lồng trong `.sc-body` thì viền không chạy hết thẻ và lề đếm hai
+lần); `.sc-price-sub` là **div em** của `.sc-price`, không phải `<span>` bên
+trong (lề trên của inline span không có tác dụng); và cả thẻ là **một** liên
+kết, nên nút "Chi tiết" là `<span class="btn">` chứ không phải một `<Link>`
+lồng trong `<Link>`.
+
+**Ba tên class của bản Blade cố ý KHÔNG mang sang.** Chốt mới
+(`class-css.test.mjs` nay soi cả `webapp/`) báo `ms-drop-close`, `ms-compact`,
+`has-children` không có định nghĩa nào — và đúng là không có, kể cả ở bản Blade:
+chúng là **móc cho JS** (`querySelectorAll('.ms-drop-close')`) và một biến thể
+rỗng. Ở React thì sự kiện gắn trực tiếp, nên ba cái móc đó không còn việc gì.
+Chốt bắt đúng thứ nó sinh ra để bắt, ngay trên mã mới.
+
+**Mục "Gói chiến dịch" đọc gói THẬT.** Bản Blade vẽ ba thẻ viết cứng ("City
+Launch", "Retail Activation", "Event Blitz") và chú thích tại chỗ đã nêu nghi
+vấn là chúng không ứng với bản ghi nào — ba nút của chúng đã bị gỡ vì không có
+đích. Mục này nay đọc `/api/v2/products`, nên mỗi tên gói trên trang là một bản
+ghi có thật và bấm vào thì tới đúng trang đó.
+
+**Bản đồ trang chủ dùng `/screens/map`, không dùng `/screens/pins`.** Thanh chọn
+thành phố của bản Blade có nút "Toàn quốc", mà `CityPinsRequest` chỉ nhận slug
+tỉnh thành có thật. Endpoint bản đồ nhận khung nhìn + `city`, nên một đường phục
+vụ cả hai nhánh, và bộ đếm dưới bản đồ là `meta.total` thật của vùng. Lần vẽ đầu
+vẫn dùng pin mà `getHomeData()` đã lấy ở máy chủ, nên không có lời gọi nào ở
+trình duyệt khi mới mở trang.
+
+**Khung nhìn đi theo dữ liệu.** Chọn một thành phố thì bản đồ `fitBounds` theo
+chính các pin trả về, không theo một bảng toạ độ viết cứng — thêm một tỉnh vào
+`CITY_SLUG_MAP` mà quên bảng đó thì bản đồ mở ra ở giữa biển, và đó là lỗi khó
+truy.
+
+**Một chốt mới, và nó đã được thử bằng đột biến.**
+`webapp/test/khoi-giao-dien.mjs` (`npm run test:khoi`, có bước riêng trong CI)
+đọc HTML **đã render** của `/`, `/explore`, `/owners`, `/products` và đòi 49
+khẳng định: khối nào phải có mặt, và tên class nào **không được** có. Đổi
+`sc-card` về `sc` rồi build lại: ba lỗi đỏ, gọi đúng tên trang và tên class. Trả
+lại: xanh.
+
+Vì sao nó cần tồn tại bên cạnh hai chốt đã có: `class-css.test.mjs` hỏi "tên
+class này có người định nghĩa không" — `.sc` **có**, nên nó không thấy gì sai;
+`test:seo` chỉ đo thẻ `<meta>`. Không chốt nào trả lời được câu "khối này còn
+trên trang không".

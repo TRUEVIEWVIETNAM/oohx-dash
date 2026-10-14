@@ -1,15 +1,15 @@
 import type { components, paths } from '@api-types';
 
 /**
- * Dữ liệu cho trang chủ, lấy song song từ năm endpoint.
+ * Dữ liệu cho trang chủ, lấy song song từ bảy endpoint.
  *
- * ══ Năm lời gọi, không một endpoint `/home` ══
+ * ══ Bảy lời gọi, không một endpoint `/home` ══
  *
  * Cân nhắc đã bỏ: gộp tất cả vào `GET /api/v2/home`. Nó gọn hơn một lần, rồi
  * thành một endpoint hình dạng theo MỘT trang — đổi layout là đổi hợp đồng
  * API, và endpoint đó không dùng lại được ở đâu khác.
  *
- * Năm lời gọi riêng thì mỗi cái **cache theo nhịp của nó**: số liệu tổng quan
+ * Bảy lời gọi riêng thì mỗi cái **cache theo nhịp của nó**: số liệu tổng quan
  * đổi theo ngày, danh sách tỉnh thành đổi theo tháng. Một `revalidate` chung
  * sẽ sai cho cả hai. Và chúng chạy song song, nên chi phí là lời gọi chậm
  * nhất, không phải tổng.
@@ -51,6 +51,8 @@ async function get<T>(path: string, revalidate: number): Promise<T> {
     return (await response.json()) as T;
 }
 
+export type ProductSummary = components['schemas']['ProductSummary'];
+
 export type HomeData = {
     stats: HeroStats | null;
     featuredScreens: FeaturedScreen[];
@@ -58,13 +60,14 @@ export type HomeData = {
     regions: Region[];
     pins: MapPin[];
     filters: Filters | null;
+    products: ProductSummary[];
 };
 
 /** Thành phố mặc định cho bản đồ nhỏ. Cùng mặc định với bản Blade. */
 export const DEFAULT_CITY = 'hanoi';
 
 export async function getHomeData(city: string = DEFAULT_CITY): Promise<HomeData> {
-    const [stats, screens, owners, regions, pins, filters] = await Promise.allSettled([
+    const [stats, screens, owners, regions, pins, filters, products] = await Promise.allSettled([
         // Số liệu tổng quan: đổi khi có màn hình mới được duyệt, nên 5 phút.
         get<{ data: HeroStats }>('/stats', 300),
 
@@ -80,6 +83,12 @@ export async function getHomeData(city: string = DEFAULT_CITY): Promise<HomeData
         get<{ data: MapPin[] }>(`/screens/pins?city=${encodeURIComponent(city)}&limit=50`, 600),
 
         get<{ data: Filters }>('/filters', 900),
+
+        // Mục "Gói chiến dịch" của bản Blade là ba thẻ viết cứng trong
+        // template, và chú thích ở đó đã nêu nghi vấn: không xác nhận được ba
+        // tên gói ấy ứng với bản ghi nào. Nên mục này đọc **gói thật** —
+        // cùng dữ liệu `/products` đang phục vụ, nên bấm vào là tới đúng trang.
+        get<{ data: ProductSummary[] }>('/products?per_page=3', 900),
     ]);
 
     return {
@@ -89,6 +98,7 @@ export async function getHomeData(city: string = DEFAULT_CITY): Promise<HomeData
         regions: regions.status === 'fulfilled' ? regions.value.data : [],
         pins: pins.status === 'fulfilled' ? pins.value.data : [],
         filters: filters.status === 'fulfilled' ? filters.value.data : null,
+        products: products.status === 'fulfilled' ? products.value.data : [],
     };
 }
 
