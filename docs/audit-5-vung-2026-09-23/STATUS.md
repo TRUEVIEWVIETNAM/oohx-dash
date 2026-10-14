@@ -4,10 +4,15 @@ Một trang duy nhất trả lời: **đã làm gì, đang dở gì, chưa làm 
 
 Baseline: `112e2aa`. **Giai đoạn 0 đã push** lên `feat/tmdt-review-1107` (11 commit, CI xanh). **Giai đoạn 1 đã code xong**, phần cuối còn ở working tree — xem mục 1b.
 
-> **Mốc hiện tại (13/10/2026).** `main` ở `8ba965e`, CI xanh: **933 test PHPUnit
-> / 3.491 phép kiểm** (run `38380434548`), cộng **177 ca jsdom** chạy trên đúng
-> khối script của trang Blade. Deploy production `38380434691` **success**.
-> **Không còn PR nào mở.**
+> **Mốc hiện tại (13/10/2026, cuối ngày).** `main` ở `0aed199`, CI xanh: **960
+> test PHPUnit / 3.565 phép kiểm** (run `38412388041`), cộng **177 ca jsdom**
+> chạy trên đúng khối script của trang Blade. Deploy production `38412388677`
+> **success**. **Không còn PR nào mở.**
+>
+> Mười PR đã lên production trong ngày 13/10 (#74 → #83). Hai PR cuối cùng là
+> phân quyền: **#83 thực thi giới hạn theo mạng lưới** — trước đó
+> `allowed_network_ids` là ô cấu hình không gác gì — và #82 trả lại chữ cho hai
+> quyền có hệ quả tiền trên bảng quyền.
 >
 > Giai đoạn 1 → 7 **đã xong và đã lên production**; giai đoạn 8 (Next.js cho khu
 > người mua) hoãn có chủ ý. Mục 2 và 3 bên dưới viết từ 29/09 nên **đã lạc hậu
@@ -79,6 +84,7 @@ Chốt `sites.network_id` là nguồn sự thật duy nhất. Phần đối chi�
 5. `store` của ScreenController **vẫn cho scheduler đặt giá** — tôi từng khẳng định sai rằng nó không nhận `inventory`.
 6. Chia tiền gói lệch **16 đồng** vì quy giá về một ngày bằng phép chia làm tròn — tỉ lệ 1:3 hóa ra 1.999.984 với 6.000.016.
 7. Cột `campaign_activities.action` bị tôi viết thành `type` trong test — lỗi test, nhưng nó chặn đúng lúc.
+8. Kiểu hẹp `?Authenticatable` trên tham số của `GioiHanNetwork::cho()` làm **mọi lượt ghi `Site` bằng token đối tác thành 500 trên `/api/v1`** (13/10): `ApiClient extends Model` và **không** implement `Authenticatable`, nhưng `auth()->user()` vẫn trả về nó dưới token guard. Ba ca Api đỏ với `TypeError` — đọc code thì kiểu đó trông đúng hơn `mixed`.
 
 ---
 
@@ -89,6 +95,8 @@ Chốt `sites.network_id` là nguồn sự thật duy nhất. Phần đối chi�
 | ~~**Gỡ số liệu bịa trên trang công khai** (F-15)~~ **XONG 03/10/2026** | Giai đoạn 4, hai đợt (29/09 và 03/10). Chi tiết ở `LO-TRINH-SAU-GIAI-DOAN-0.md` |
 | ~~**Chạy đối chiếu mạng lưới trên production** (F-12)~~ **XONG 02/10/2026** | Đã chạy khi deploy: **2970 → 2970 địa điểm, 0 xung đột** |
 | ~~**Xoay khóa deploy** đang nằm trong git~~ **XONG 01/10/2026** | Nhãn "F-07" ở đây **sai**: F07 trong `FINDINGS.md` là chuyện tổng tiền che khuất công nợ theo owner. Việc khóa deploy là **mục 0.2** của `IMPLEMENTATION-P0-CLAUDE.md`. Trình tự đã chạy ghi ở `docs/LO-TRINH-SAU-GIAI-DOAN-0.md`. |
+| **Soát `allowed_network_ids` trên production** (mới 13/10) | Hàng rào mạng lưới nay **có hiệu lực thật** trên dữ liệu cũ: mọi hàng pivot `operator`/`read_only` đang mang danh sách khác rỗng vừa bị thu hẹp tầm nhìn kho. Câu truy vấn để biết hàng nào ở cuối `LO-TRINH-SAU-GIAI-DOAN-0.md`. Nếu hàng nào là dữ liệu sót chứ không phải chủ ý, bỏ tích hết là trả lại "tất cả" |
+| **Kiểm `MAIL_MAILER` trên VPS** và chạy `php artisan policies:consents-before-effective` | Hai việc cần quyền vào máy chủ, tôi không có. Nếu `MAIL_MAILER` vẫn là `log` thì thư nghĩa vụ hoàn tiền (#75) **và hai thông báo có từ trước** chỉ ghi vào log, không tới ai |
 
 ---
 
@@ -97,6 +105,7 @@ Chốt `sites.network_id` là nguồn sự thật duy nhất. Phần đối chi�
 ### Còn lại của T1b
 - DTO lọc trường cho Site/Screen ở `/api/v2`. `price_per_slot_vnd` trả `floor_cpm` dưới cái tên sai (F09) — **cố ý chưa sửa** vì `/api/v1` là hợp đồng với đối tác; đã ghi chú tại chỗ trong code. Chờ trả lời câu hỏi 2.
 - Quyền cho các action Filament còn lại (CRUD product, settings của owner).
+- **Hàng rào theo mạng lưới đã thực thi 13/10** (#83, ba tầng — xem `LO-TRINH-SAU-GIAI-DOAN-0.md`). Còn hai khe đã biết: `ImportScreensJob` không có người dùng đăng nhập nên chặn-ghi không thấy giới hạn nào (hôm nay không ai tới được vì trang nhập kho chỉ có ở `/admin` cho `super_admin`, nhưng **phải truyền hàng rào vào job** trước khi panel publisher có trang nhập); và hai vai trò đọc báo cáo (`reporting_only`, `sales_manager`) **không** bị fence vì số liệu của chúng ở mức cả media owner, không tách được theo mạng lưới.
 
 ### Nợ giao dịch còn lại
 - **Đường phát sóng cho thiết bị**: vẫn chưa tồn tại — không endpoint nào trả lịch phát. Giai đoạn 2 mới làm xong đường thiết bị **báo về**, chưa làm đường máy chủ **gửi xuống**. Cổng nội dung của 1.3 vì thế vẫn đặt ở bước kích hoạt.
@@ -143,9 +152,11 @@ Năm câu còn lại và thứ chúng chặn — gộp cả các câu phát sinh
 | Sau khi hủy/hoàn tiền có lối vào thật (CI, run 36709847798) | 550 | 550 | 0 |
 | Sau bốn trang luồng đặt chỗ — `a6c01c5`, 10/10/2026 (CI, run 38057005171) | 903 | 903 | 0 — 3.368 phép kiểm, 103s |
 | Sau nhóm B — `2ceb100`, 13/10/2026 (CI, run 38360864450) | 922 | 922 | 0 — 3.434 phép kiểm |
-| **Hiện tại — `8ba965e`, 13/10/2026** (CI, run 38380434548) | **933** | **933** | **0** — 3.491 phép kiểm |
+| Sau gom phân quyền thành viên + "nghĩa vụ tiền" — `8ba965e`, 13/10/2026 (CI, run 38380434548) | 933 | 933 | 0 — 3.491 phép kiểm |
+| Sau hàng rào mạng lưới — `2e68844`, 13/10/2026 (CI, run 38406729218) | 958 | 958 | 0 — 3.559 phép kiểm |
+| **Hiện tại — `0aed199`, 13/10/2026** (CI, run 38412388041) | **960** | **960** | **0** — 3.565 phép kiểm |
 
-Cộng thêm **177 ca jsdom** (`npm run test:js`) không nằm trong các con số trên: chúng trích **đúng khối `<script>` sẽ lên production** của 11 trang Blade khu người mua rồi chạy trong jsdom, nên một lỗi chỉ có ở phía trình duyệt vẫn đỏ được. Tám cái chốt "tự tìm phạm vi" — và **sáu lỗ** đã tìm thấy trong chính chúng — liệt kê ở `LO-TRINH-SAU-GIAI-DOAN-0.md`.
+Cộng thêm **177 ca jsdom** (`npm run test:js`) không nằm trong các con số trên: chúng trích **đúng khối `<script>` sẽ lên production** của 11 trang Blade khu người mua rồi chạy trong jsdom, nên một lỗi chỉ có ở phía trình duyệt vẫn đỏ được. Mười cái chốt "tự tìm phạm vi" — và **bảy lỗ** đã tìm thấy trong chính chúng — liệt kê ở `LO-TRINH-SAU-GIAI-DOAN-0.md`.
 
 Trong 10 ca hỏng baseline, **3 ca đã sửa ngày 27/09**: 2 ca `InvitationFlowTest` — trong đó có một lỗi sản phẩm thật, `InvitationController::show` dùng sai tham số thứ ba của `view()` nên link mời hết hạn trả 500 thay vì 410 — và 1 ca `PanelAccessTest` (test dùng `status = inactive`, enum chỉ có `pending/active/suspended`).
 
