@@ -314,6 +314,30 @@ const ROUTES = {
 
     '/api/v2/screens/pins': { data: [], meta: { ...LIMIT_META, city: 'hanoi' } },
 
+    // Bản đồ hỏi endpoint này từ **trình duyệt** sau khi biết khung nhìn, nên
+    // HTML máy chủ render không phụ thuộc nó. Vẫn khai ở đây để stub phản ánh
+    // đúng tập endpoint trang `/map` dùng — một stub thiếu đường là một stub
+    // nói rằng trang không gọi nó.
+    '/api/v2/screens/map': {
+        data: [
+            {
+                slug: 'man-hinh-co-gia',
+                name: 'Màn Hình Có Giá <test>',
+                lat: 21.0285,
+                lng: 105.8542,
+                city: 'Hà Nội',
+                address: 'Số 1 Đường Thử',
+                site: { name: 'Toà Nhà A' },
+                network: { code: 'NET1', name: 'Mạng Một' },
+                venue_type: 'mall',
+                owner: { slug: 'owner-mot', name: 'Công Ty Một' },
+                price: { amount: 1000000, currency: 'VND', unit: 'month' },
+                photo_url: 'https://oohx.net/storage/screens/a.jpg',
+            },
+        ],
+        meta: { returned: 1, total: 1, truncated: false, max: 500 },
+    },
+
     '/api/v2/owners': { data: [OWNER], meta: PAGE_META },
     '/api/v2/owners/featured': { data: [OWNER], meta: LIMIT_META },
 

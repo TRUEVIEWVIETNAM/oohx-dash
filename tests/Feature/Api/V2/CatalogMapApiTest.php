@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V2;
 
+use App\Models\Network;
 use App\Models\Owner;
 use App\Models\Screen;
 use App\Models\ScreenInventory;
@@ -270,4 +271,119 @@ class CatalogMapApiTest extends TestCase
             ->assertJsonPath('meta.viewport.east', 105.9)
             ->assertJsonPath('meta.viewport.west', 105.6);
     }
+    // ── Ba trường cho trang bản đồ (lát 6) ──────────────────────────────────
+
+    public function test_pin_mang_ten_site_de_gom_duoc_theo_toa_nha(): void
+    {
+        $owner = Owner::factory()->create(['status' => 'active']);
+        $site  = Site::factory()->create([
+            'owner_id' => $owner->id,
+            'name'     => 'Toà Nhà Thử',
+            'city'     => 'Hà Nội',
+            'status'   => 'active',
+            'lat'      => 21.0,
+            'lon'      => 105.8,
+        ]);
+
+        // Hai màn hình **cùng một site**: trang bản đồ gom chúng thành một
+        // marker có badge "2". Không có tên site thì không gom được, và hai
+        // pin trùng toạ độ chồng lên nhau thành một chấm.
+        foreach ([1, 2] as $i) {
+            $screen = Screen::factory()->create([
+                'owner_id' => $owner->id,
+                'site_id'  => $site->id,
+                'active'   => true,
+            ]);
+            ScreenSpec::factory()->create(['screen_id' => $screen->id, 'width_cm' => 400, 'height_cm' => 200]);
+            ScreenInventory::create([
+                'screen_id'              => $screen->id,
+                'pricing_model'          => 'io',
+                'io_rate'                => 1_000_000,
+                'io_rate_unit'           => 'month',
+                'share_of_voice_max_pct' => 100,
+            ]);
+        }
+
+        $data = $this->getJson('/api/v2/screens/map?north=22&south=20&east=106&west=105')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertCount(2, $data);
+
+        foreach ($data as $pin) {
+            $this->assertSame('Toà Nhà Thử', $pin['site']['name']);
+        }
+    }
+
+    public function test_pin_mang_network_va_loai_diem_dat_de_to_mau(): void
+    {
+        $owner   = Owner::factory()->create(['status' => 'active']);
+        $network = Network::factory()->create(['code' => 'NET9', 'name' => 'Mạng Chín']);
+
+        $site = Site::factory()->create([
+            'owner_id'   => $owner->id,
+            'network_id' => $network->id,
+            'city'       => 'Hà Nội',
+            'status'     => 'active',
+            'lat'        => 21.0,
+            'lon'        => 105.8,
+        ]);
+
+        $screen = Screen::factory()->create([
+            'owner_id' => $owner->id,
+            'site_id'  => $site->id,
+            'active'   => true,
+        ]);
+        ScreenSpec::factory()->create(['screen_id' => $screen->id, 'width_cm' => 400, 'height_cm' => 200]);
+        ScreenInventory::create([
+            'screen_id'              => $screen->id,
+            'pricing_model'          => 'io',
+            'io_rate'                => 1_000_000,
+            'io_rate_unit'           => 'month',
+            'venue_type'             => 'mall',
+            'share_of_voice_max_pct' => 100,
+        ]);
+
+        $pin = $this->getJson('/api/v2/screens/map?north=22&south=20&east=106&west=105')
+            ->assertOk()
+            ->json('data.0');
+
+        $this->assertSame('NET9', $pin['network']['code']);
+        $this->assertSame('Mạng Chín', $pin['network']['name']);
+
+        // Màu pin đọc trường này. Thiếu nó thì mọi pin một màu.
+        $this->assertSame('mall', $pin['venue_type']);
+    }
+
+    public function test_pin_khong_co_network_thi_tra_null_chu_khong_vo(): void
+    {
+        $this->screenAt(21.0, 105.8);
+
+        $pin = $this->getJson('/api/v2/screens/map?north=22&south=20&east=106&west=105')
+            ->assertOk()
+            ->json('data.0');
+
+        // `SiteFactory` không gán network, nên đây là trường hợp thật chứ
+        // không phải dựng riêng: pin phải trả `null`, không ném lỗi.
+        $this->assertNull($pin['network']);
+        $this->assertArrayHasKey('site', $pin);
+    }
+
+    public function test_pin_van_khong_lo_khoa_noi_bo_sau_khi_them_truong(): void
+    {
+        $this->screenAt(21.0, 105.8);
+
+        $response = $this->getJson('/api/v2/screens/map?north=22&south=20&east=106&west=105')
+            ->assertOk();
+
+        // DTO bản đồ cố ý không trả id. Thêm `site` là chỗ dễ nhất để một
+        // `site_id` lọt ra cùng, nên canh lại sau khi mở rộng.
+        $response->assertDontSee('site_id');
+        $response->assertDontSee('"id"');
+        $response->assertDontSee('device_token');
+
+        $pin = $response->json('data.0');
+        $this->assertSame(['name'], array_keys($pin['site']));
+    }
+
 }

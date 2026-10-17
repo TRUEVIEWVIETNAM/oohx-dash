@@ -32,6 +32,29 @@ class MapPinResource extends JsonResource
 
             'city'     => $this->site?->city,
             'address'  => $this->site?->address,
+
+            // Ba trường thêm 17/10/2026 cho trang `/map` (lát 6).
+            //
+            // `site.name`: bản đồ bản Blade gom pin **theo site** ở máy chủ —
+            // một marker cho một toà nhà, có badge số màn hình. Bản Next gom ở
+            // trình duyệt, và không có tên site thì không gom được: hai màn
+            // hình cùng toà nhà trùng toạ độ và chồng lên nhau thành một chấm.
+            //
+            // `network` và `venue_type`: nhãn trên pin và **màu** pin đọc hai
+            // thứ này (`OOHXMap.pinColor`). Thiếu chúng thì mọi pin một màu và
+            // không mang chữ gì — đúng tình trạng bản Next hôm nay.
+            //
+            // Ba chuỗi ngắn, và DTO này vẫn cố tình gọn: không thêm thông số,
+            // không thêm ảnh thứ hai, không thêm owner logo (pin rich dùng chữ
+            // cái đầu khi thiếu logo).
+            'site' => $this->site ? ['name' => $this->site->name] : null,
+
+            'network' => $this->site?->network ? [
+                'code' => $this->site->network->code,
+                'name' => $this->site->network->name,
+            ] : null,
+
+            'venue_type' => $this->inventory?->venue_type,
             'owner'    => [
                 'slug' => $this->owner?->slug,
                 'name' => $this->owner?->name,
