@@ -2,8 +2,9 @@
 
 Viết 14/10/2026 · Claude Code · Đối chiếu bản Blade trước giai đoạn 7 với bản Next đang chạy
 
-> **Tiến độ, cập nhật 17/10/2026.** Lát **0 → 6 đã làm** (chủ dự án duyệt từng
-> lát). Chỉ còn lát 7.
+> **Tiến độ, cập nhật 17/10/2026.** **Cả bảy lát đã làm** (chủ dự án duyệt
+> từng lát). Những gì còn thiếu so với bản Blade đều là quyết định về lời hứa
+> sản phẩm, liệt kê ở cuối tài liệu.
 >
 > **Hai chỗ bản kế hoạch này đo sai, phát hiện khi làm:**
 >
@@ -230,7 +231,7 @@ lát một PR, CI xanh mới merge.
 | ~~**4**~~ **XONG 14/10** | `/explore/{slug}`: gallery + lightbox, bốn tab, insights, lịch trống theo tháng, panel giá, khối vị trí + POI, màn hình tương tự | **bốn món, đúng như dự đoán**: `photo_urls[]`, insights, lịch trống theo ngày (đường riêng, trần 3 tháng), màn hình gần đó — cộng `ScreenDetailResource` mới | 3–4 ngày |
 | ~~**5**~~ **XONG 14/10** | `/owners/{slug}`: bố cục hồ sơ `fp-*` (chuyển **96** dòng CSS nội tuyến vào `frontpage.css`), hai tab, băng trượt, đánh giá người mua | `owners/{slug}` ✔ cho hồ sơ — nhưng **đánh giá cần một DTO mới**: `OwnerReviewResource` viết cho tác giả nhận xét (có `status`, `id`), không dùng được cho trang công khai | 2 ngày |
 | ~~**6**~~ **XONG 17/10** | `/map`: smart-filter, panel danh sách gom theo site, thanh thành phố + dropdown "Khác", ba nút thu phóng, bộ đếm, popup | ~~`filters` ✔ `map` ✔~~ — **có**: `MapPinResource` thiếu `site.name` (để gom theo toà nhà), `network.name` (chữ trên pin) và `venue_type` (màu pin) | 1–2 ngày |
-| **7** | `/products/{slug}`: gallery, panel giá có tab, danh sách màn hình trong gói | `products/{slug}` ✔ đã có `photo_urls`, `specs`, `package_options`, `screens` | 1–2 ngày |
+| ~~**7**~~ **XONG 17/10** | `/products/{slug}`: gallery, bố cục hai cột, panel giá có tab, danh sách màn hình chọn được, gói tương tự | `products/{slug}` ✔ cho hồ sơ gói — **thêm `similar`** (`getSimilarProducts()` đã có từ giai đoạn 4, chưa endpoint nào mang ra) | 1–2 ngày |
 
 **Nếu Sở vào trong tuần này:** lát 0 + lát 1 + lát 2. Trang chủ là ảnh đầu tiên
 và là trang khác bản cũ nhiều nhất; thẻ màn hình thì có mặt trên gần hết các
@@ -497,6 +498,86 @@ mọi trang. `.map-layout` có chiều cao riêng nên chân trang chỉ nằm b
 vẫn bấm được — bản đồ hỏi pin của tỉnh đó rồi `fitBounds` theo chính chúng. Bản
 Blade có `CITY_COORDS` 10 tỉnh và không có nhánh dự phòng, nên tỉnh thứ 11 bấm
 vào thì bản đồ đứng yên.
+
+## Những gì lát 7 đã đổi, và kế hoạch bảy lát kết thúc ở đâu
+
+**Lát duy nhất không phải chuyển dòng CSS nào.** Mọi tên class của trang gói
+(`pd-detail-layout`, `pd-detail-gallery`, `pd-screen-list`, `bp-tabs`,
+`bp-tab-content`…) đã nằm sẵn trong `frontpage.css`. Ba lát trước phải chuyển
+70 + 96 + 35 dòng từ `@push('head')` của các view đã gỡ; trang gói viết CSS
+vào tệp chung ngay từ đầu.
+
+**API thiếu đúng một món: `similar`.** `ProductService::getSimilarProducts()`
+có từ giai đoạn 4 và chưa endpoint nào mang ra. Trả kèm trong
+`/api/v2/products/{slug}`, ngoài `data` — cùng chỗ `reviews` của owner (lát 5)
+nằm, và cùng lý do: `data` là một `ProductDetail` dùng ở nhiều nơi.
+
+**Bốn id toàn cục của bản Blade biến mất, và một lỗi đi cùng chúng.** Panel giá
+(cột phải) và danh sách màn hình (cột trái) nối với nhau bằng
+`document.querySelectorAll` và `#selected-count`, `#selected-total`,
+`#individual-summary`, `#selected-inputs`. Khi `listing_mode` là
+`individual_only` thì **hai khối cùng khai ba id đầu** — `getElementById` chỉ
+trả về cái đầu tiên, nên khối thứ hai không bao giờ cập nhật. Ở bản Next đó là
+một `useState` trong component cha chung, nên không có khả năng lệch.
+
+**Ba thứ in vô điều kiện không dựng lại:**
+
+| Bản Blade in | Điều kiện thật |
+|---|---|
+| `bp-avail` "Còn trống" theo `status === 'active'` | `/api/v2/products/{slug}` chỉ trả gói **công khai**, nên điều kiện luôn đúng — một badge in vô điều kiện, đúng thứ audit F-15 đã dọn khỏi trang màn hình |
+| "Verified Owner" dưới tên owner trong khối cột phải | Không kiểm gì. `ProductSummary.owner` chỉ có `slug` + `name`; thay bằng "Media owner của gói này" |
+| "Thanh toán bảo mật bởi OOHX" ở chân panel | Sàn **không thu hộ** — thay bằng liên kết `/bang-phi`, cùng chỗ đã sửa ở `PanelGia` (lát 4) |
+
+**Kích thước màn hình in bằng mét, không bằng pixel.** Bản Blade in
+`spec.width_px × height_px`; `ScreenSummary` có `size.width_m`/`height_m` chứ
+không có hai cột pixel. Mở thêm hai trường vào DTO **danh sách** chỉ để in một
+dòng phụ là nhân payload của mọi danh sách màn hình lên — mét nói cùng một thứ
+cho người đang chọn vị trí.
+
+**Thư viện ảnh dùng bộ `pd-detail-*`, không dùng lại `ThuVienAnh` của lát 4.**
+Hai bộ class có kích thước và bố cục khác nhau trong `frontpage.css`, và trang
+gói ở bản Blade **không có lightbox**. Dựng lại đúng thứ đã có, không thêm một
+tính năng chỉ vì component kia sẵn có nó.
+
+**Stub nói sai hợp đồng lần thứ ba.** `PRODUCT.listing_mode` viết
+`'package'` — một chuỗi — trong khi hợp đồng là
+`{code, label, allows_package, allows_individual}`. Nên
+`product.listing_mode?.allows_package` là `undefined`, và panel giá sẽ không
+render nhánh nào trong lượt build thử. Lát 3 là `type: 'bundle'` ngoài enum,
+lát 5 là `stats.screens`/`stats.cities`, lát này là `listing_mode`. **Ba lần
+liên tiếp lỗi nằm ở dữ liệu giả, không ở mã** — và cả ba lần nó làm trang hiện
+sai mà không chốt nào đỏ. Đó là lý do mỗi lát đều phải mở fixture ra đọc, chứ
+không chỉ chạy test.
+
+---
+
+## Kế hoạch bảy lát: xong
+
+| Lát | Trang | API phải thêm |
+|---|---|---|
+| 0 | thẻ màn hình + thẻ owner | URL ảnh owner, 4 trường `OwnerSummary` |
+| 1 | lưới và kiểu xem | không |
+| 2 | trang chủ | `categories_networks` |
+| 3 | `/explore` + `/products` | `GET /products/filters` |
+| 4 | `/explore/{slug}` | `ScreenDetailResource`, lịch trống theo ngày |
+| 5 | `/owners/{slug}` | `OwnerPublicReviewResource`, `reviews` + `rating` |
+| 6 | `/map` | `site.name`, `network`, `venue_type` cho pin |
+| 7 | `/products/{slug}` | `similar` |
+
+**Bảng kế hoạch đoán sai về API ở bốn trong bảy lát** (0, 3, 6, 7 — và lát 5
+đoán đúng là "đã có" nhưng bỏ sót việc đánh giá cần DTO riêng). Mẫu chung:
+trang Blade đọc thẳng model nên không ai thấy nó cần trường gì; chỉ khi dựng
+lại trên API mới lộ ra. Lần sau lập kế hoạch kiểu này, bước "đối chiếu từng
+trường view dùng với DTO đang có" phải nằm trong khảo sát, không để tới lúc
+làm.
+
+**Còn lại sau bảy lát** — không thuộc kế hoạch, cần chủ dự án quyết:
+
+- Thanh `trust` 5 mục và mục "Marketplace OOH đầu tiên có AI" ở trang chủ.
+- Bốn thẻ "Điểm nổi bật" ở `/explore/{slug}`.
+- Kiểu xem danh sách ở `/explore` chỉ thu lưới về một cột (bộ `ic-*` là class
+  chết).
+- `/owners/{slug}` nhận `venue_type` để bộ lọc trong tab kho có tác dụng.
 
 ## Ba khối chưa dựng vì chúng là lời hứa, không phải hình (ghi 14/10/2026)
 
