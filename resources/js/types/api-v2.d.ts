@@ -3058,6 +3058,25 @@ export interface components {
             lng: number;
             city?: string | null;
             address?: string | null;
+            /**
+             * @description Tên địa điểm. Bản đồ gom pin **theo site** — một marker cho một toà
+             *     nhà, có badge số màn hình — và không có tên site thì không gom
+             *     được: hai màn hình cùng toà nhà trùng toạ độ và chồng lên nhau
+             *     thành một chấm.
+             */
+            site?: {
+                name?: string | null;
+            } | null;
+            /** @description Nhãn trên pin ở mức thu phóng gần. */
+            network?: {
+                code?: string | null;
+                name?: string | null;
+            } | null;
+            /**
+             * @description Loại điểm đặt — **màu** của pin đọc trường này. Thiếu nó thì mọi
+             *     pin một màu.
+             */
+            venue_type?: string | null;
             owner?: {
                 slug?: string | null;
                 name?: string | null;

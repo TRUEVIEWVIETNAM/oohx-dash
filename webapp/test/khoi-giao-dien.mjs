@@ -439,6 +439,59 @@ const TRANG = [
             '>bundle</span>',
         ],
     },
+    {
+        path: '/map',
+        ten: 'bản đồ kho',
+        co: [
+            // Lát 6 — bố cục hai cột
+            'class="map-layout"',
+            'class="map-panel"',
+            'class="map-area"',
+            'class="map-canvas"',
+
+            // Lát 6 — bộ lọc thông minh trong panel trái
+            'class="sft"',
+            'class="sft-search"',
+            'class="sft-search-input"',
+            'class="sft-chips"',
+            'class="sft-chip"',
+            'class="sft-adv-toggle"',
+
+            // Lát 6 — danh sách và bộ đếm
+            'class="mp-drag"',
+            'class="mp-drag-bar"',
+            'class="mp-count"',
+            'class="mp-list"',
+
+            // Lát 6 — thanh thành phố, bộ đếm nổi, nút thu phóng
+            'class="map-toolbar"',
+            'class="mt-btn on"', // nút "Tất cả" sáng lúc mở trang
+            'class="mt-top-chips"',
+            'class="map-count-badge"',
+            'class="map-controls"',
+            'class="mc-btn"',
+            'class="panel-toggle"',
+
+            // `h1` vẫn có mặt cho công cụ tìm kiếm, chỉ ẩn khỏi mắt
+            'class="visually-hidden"',
+        ],
+        khong: [
+            // Bố cục cũ của bản Next: một `pg-hero` cao rồi bản đồ bên dưới.
+            'class="pg-hero"',
+
+            // `sft-chips-wrap` là móc `querySelectorAll` của bản Blade, không
+            // có định nghĩa CSS nào; `.sft-chips` đã `flex-wrap: wrap`.
+            'sft-chips-wrap',
+
+            // `#leaflet-map` là id, và CSS theo id buộc mọi nơi dùng lại khối
+            // này phải đặt đúng id đó. Bản Next dùng `.map-canvas`.
+            'id="leaflet-map"',
+
+            // JSON-LD KHÔNG thuộc trang này: `/explore` đã khai cùng dữ liệu,
+            // và hai trang cùng được index là tự tạo nội dung trùng.
+            'application/ld+json',
+        ],
+    },
 ];
 
 const loi = [];

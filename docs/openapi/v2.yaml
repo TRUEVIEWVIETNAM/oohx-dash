@@ -2301,6 +2301,30 @@ components:
         lng:     { type: number }
         city:    { type: [string, 'null'] }
         address: { type: [string, 'null'] }
+
+        site:
+          type: [object, 'null']
+          description: |
+            Tên địa điểm. Bản đồ gom pin **theo site** — một marker cho một toà
+            nhà, có badge số màn hình — và không có tên site thì không gom
+            được: hai màn hình cùng toà nhà trùng toạ độ và chồng lên nhau
+            thành một chấm.
+          properties:
+            name: { type: [string, 'null'] }
+
+        network:
+          type: [object, 'null']
+          description: Nhãn trên pin ở mức thu phóng gần.
+          properties:
+            code: { type: [string, 'null'] }
+            name: { type: [string, 'null'] }
+
+        venue_type:
+          type: [string, 'null']
+          description: |
+            Loại điểm đặt — **màu** của pin đọc trường này. Thiếu nó thì mọi
+            pin một màu.
+
         owner:
           type: object
           properties:

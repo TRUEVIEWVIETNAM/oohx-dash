@@ -2,8 +2,8 @@
 
 Viết 14/10/2026 · Claude Code · Đối chiếu bản Blade trước giai đoạn 7 với bản Next đang chạy
 
-> **Tiến độ, cập nhật 14/10/2026.** Lát **0 → 5 đã làm** (chủ dự án duyệt từng
-> lát). Lát 6 và 7 còn nguyên.
+> **Tiến độ, cập nhật 17/10/2026.** Lát **0 → 6 đã làm** (chủ dự án duyệt từng
+> lát). Chỉ còn lát 7.
 >
 > **Hai chỗ bản kế hoạch này đo sai, phát hiện khi làm:**
 >
@@ -229,7 +229,7 @@ lát một PR, CI xanh mới merge.
 | ~~**3**~~ **XONG 14/10** | `/explore` + `/products`: sidebar lọc, results header, sắp xếp, drawer mobile | ~~`filters` ✔~~ — **có**: `filters` của màn hình không mang `categories`/`types` của gói, nên thêm `GET /api/v2/products/filters` | 2 ngày |
 | ~~**4**~~ **XONG 14/10** | `/explore/{slug}`: gallery + lightbox, bốn tab, insights, lịch trống theo tháng, panel giá, khối vị trí + POI, màn hình tương tự | **bốn món, đúng như dự đoán**: `photo_urls[]`, insights, lịch trống theo ngày (đường riêng, trần 3 tháng), màn hình gần đó — cộng `ScreenDetailResource` mới | 3–4 ngày |
 | ~~**5**~~ **XONG 14/10** | `/owners/{slug}`: bố cục hồ sơ `fp-*` (chuyển **96** dòng CSS nội tuyến vào `frontpage.css`), hai tab, băng trượt, đánh giá người mua | `owners/{slug}` ✔ cho hồ sơ — nhưng **đánh giá cần một DTO mới**: `OwnerReviewResource` viết cho tác giả nhận xét (có `status`, `id`), không dùng được cho trang công khai | 2 ngày |
-| **6** | `/map`: smart-filter, thanh thành phố, nút zoom, chú giải, bộ đếm | `filters` ✔ `map` ✔ | 1–2 ngày |
+| ~~**6**~~ **XONG 17/10** | `/map`: smart-filter, panel danh sách gom theo site, thanh thành phố + dropdown "Khác", ba nút thu phóng, bộ đếm, popup | ~~`filters` ✔ `map` ✔~~ — **có**: `MapPinResource` thiếu `site.name` (để gom theo toà nhà), `network.name` (chữ trên pin) và `venue_type` (màu pin) | 1–2 ngày |
 | **7** | `/products/{slug}`: gallery, panel giá có tab, danh sách màn hình trong gói | `products/{slug}` ✔ đã có `photo_urls`, `specs`, `package_options`, `screens` | 1–2 ngày |
 
 **Nếu Sở vào trong tuần này:** lát 0 + lát 1 + lát 2. Trang chủ là ảnh đầu tiên
@@ -443,6 +443,60 @@ sai mà không ai thấy.
 - Hai nút băng trượt **vô hiệu ở hai đầu**. `frontpage.css` đã có
   `.fp-slider-btn:disabled` (opacity .3) nhưng không có JS nào đặt `disabled`,
   nên ở bản cũ chúng luôn trông bấm được kể cả khi không còn gì để cuộn.
+
+## Những gì lát 6 đã đổi, và lần thứ ba CSS nằm trong view đã gỡ
+
+**Kế hoạch lại đo thiếu một lần nữa — lần thứ ba.** Bảng bảy lát ghi lát 6 cần
+`filters` ✔ `map` ✔, tức không có API mới. Thực tế `MapPinResource` thiếu **ba
+trường** mà bản đồ bản Blade dựa vào:
+
+- `site.name` — bản Blade gom pin theo `site_id` ở **máy chủ**, nên một marker
+  là một toà nhà và badge trên pin là số màn hình bên trong. `/api/v2/screens/map`
+  trả theo màn hình, và hợp đồng đó không nên đổi (nhiều bên dùng dữ liệu thô).
+  Nên việc gom chuyển sang client — và không có tên site thì không gom được:
+  hai màn hình cùng toà nhà trùng toạ độ, chồng lên nhau thành một chấm.
+- `network.name` — chữ trên pin ở mức thu phóng gần.
+- `venue_type` — **màu** pin đọc trường này (`OOHXMap.pinColor`). Thiếu nó thì
+  mọi pin một màu.
+
+Ba chuỗi ngắn, và DTO vẫn cố tình gọn: không thêm thông số, không thêm ảnh thứ
+hai, không thêm logo owner (pin dùng chữ cái đầu khi thiếu logo). Gom theo khóa
+`tên site + toạ độ làm tròn 5 chữ số`, **không** theo id — DTO bản đồ cố ý
+không trả khóa nội bộ, và một ca test canh đúng chuyện đó.
+
+**35 dòng CSS marker sống trong view đã bị gỡ.** `.oohx-rich*` (pin có tên site
++ badge) và `.oohx-cluster*` (vòng tròn gom cụm) nằm trong partial `map-styles`
+mà chỉ `map.blade.php` và `index.blade.php` include. Phần pin cơ bản
+(`.oohx-pin`, `.oohx-pin-box`) đã có sẵn trong `frontpage.css` từ trước, nên
+nhìn qua tưởng đủ — nhưng bản đồ bản Next vẫn vẽ marker mặc định của Leaflet.
+Lát 4 chuyển 70 dòng, lát 5 chuyển 96 dòng, lát này 35.
+
+**`#leaflet-map` → `.map-canvas`.** Cùng lý do đã đổi `#loc-map` ở lát 4: một
+id trong CSS buộc mọi nơi dùng lại khối này phải đặt đúng id đó, và hai bản đồ
+trên một trang thì id trùng. Luật `#leaflet-map` cũ để nguyên — gỡ nó là một
+lần dọn riêng.
+
+**`region` không được gửi lên API, và đó là một khác biệt thật.** Chip vùng
+miền của bản Blade sinh `region[]=north`, nhưng `FrontpageListingRequest` nhận
+`city`, `venue_type`, `network`, `q`, `sort` — **không có** `region`. Tức ở bản
+Blade, bấm "Miền Bắc" rồi "Tìm kiếm" là gửi một tham số máy chủ bỏ qua. Bản Next
+dịch chip vùng thành danh sách `city` của vùng đó trước khi vào URL, nên bộ lọc
+có tác dụng thật.
+
+**`sft-chips-wrap` không mang sang.** Nó là móc `querySelectorAll` của bản
+Blade (đi cùng `data-max`), không có định nghĩa CSS nào; `.sft-chips` đã
+`flex-wrap: wrap`. `class-css.test.mjs` bắt — lần thứ hai sau `ms-drop-close`
+ở lát 2.
+
+**`hideFooter` không dựng lại.** Layout Blade ẩn chân trang cho trang này vì bố
+cục chiếm trọn màn hình. Ở bản Next chân trang nằm trong `app/layout.tsx` dùng
+chung; ẩn nó cho đúng một đường dẫn là thêm một nhánh điều kiện vào layout của
+mọi trang. `.map-layout` có chiều cao riêng nên chân trang chỉ nằm bên dưới.
+
+**Một chỗ tốt hơn bản Blade:** tỉnh **không có trong bảng toạ độ viết cứng**
+vẫn bấm được — bản đồ hỏi pin của tỉnh đó rồi `fitBounds` theo chính chúng. Bản
+Blade có `CITY_COORDS` 10 tỉnh và không có nhánh dự phòng, nên tỉnh thứ 11 bấm
+vào thì bản đồ đứng yên.
 
 ## Ba khối chưa dựng vì chúng là lời hứa, không phải hình (ghi 14/10/2026)
 
