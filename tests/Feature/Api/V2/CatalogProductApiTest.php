@@ -318,6 +318,73 @@ class CatalogProductApiTest extends TestCase
     }
 
 
+    // ── Gói tương tự trên trang chi tiết (lát 7) ────────────────────────────
+
+    public function test_chi_tiet_goi_tra_goi_tuong_tu(): void
+    {
+        $owner = $this->owner();
+        $goi   = $this->product($owner, ['category' => 'led', 'city' => 'Hà Nội']);
+
+        // Cùng danh mục → tương tự.
+        $this->product($owner, ['category' => 'led', 'city' => 'Đà Nẵng']);
+        // Cùng thành phố → cũng tương tự.
+        $this->product($owner, ['category' => 'billboard', 'city' => 'Hà Nội']);
+
+        $body = $this->getJson('/api/v2/products/' . $goi->slug)->assertOk()->json();
+
+        $this->assertCount(2, $body['similar']);
+
+        // Không tự trỏ về chính nó — một mục "tương tự" dẫn về trang đang mở
+        // là một liên kết chết đối với người đọc.
+        foreach ($body['similar'] as $item) {
+            $this->assertNotSame($goi->slug, $item['slug']);
+        }
+    }
+
+    public function test_goi_tuong_tu_dung_dto_cua_danh_sach(): void
+    {
+        $owner = $this->owner();
+        $goi   = $this->product($owner, ['category' => 'led']);
+        $this->product($owner, ['category' => 'led']);
+
+        $item = $this->getJson('/api/v2/products/' . $goi->slug)->assertOk()->json('similar.0');
+
+        // `ProductSummary`, không phải `ProductDetail`: khối này là lưới thẻ,
+        // và trả cả `specs`/`screens` cho bốn gói phụ là nhân payload lên cho
+        // dữ liệu không ai in.
+        $this->assertArrayHasKey('pricing', $item);
+        $this->assertArrayHasKey('listing_mode', $item);
+        $this->assertArrayNotHasKey('screens', $item);
+        $this->assertArrayNotHasKey('specs', $item);
+        $this->assertArrayNotHasKey('package_options', $item);
+    }
+
+    public function test_goi_tuong_tu_chi_lay_goi_cong_khai(): void
+    {
+        $owner = $this->owner();
+        $goi   = $this->product($owner, ['category' => 'led']);
+        $this->product($owner, ['category' => 'led', 'status' => 'draft']);
+
+        $body = $this->getJson('/api/v2/products/' . $goi->slug)->assertOk()->json();
+
+        // Một bản nháp lọt vào khối "tương tự" là công bố một gói chưa ai
+        // duyệt — và nó dẫn tới một trang 404.
+        $this->assertSame([], $body['similar']);
+    }
+
+    public function test_goi_tuong_tu_khong_lo_truong_nhay_cam(): void
+    {
+        $owner = $this->owner();
+        $goi   = $this->product($owner, ['category' => 'led']);
+        $this->product($owner, ['category' => 'led']);
+
+        $this->getJson('/api/v2/products/' . $goi->slug)
+            ->assertOk()
+            ->assertDontSee('revenue_share_pct')
+            ->assertDontSee('floor_price')
+            ->assertDontSee('63.17');
+    }
+
     // ── Bộ lọc của sidebar /products (lát 3) ────────────────────────────────
 
     public function test_bo_loc_san_pham_tra_ba_nhom_co_so_dem(): void

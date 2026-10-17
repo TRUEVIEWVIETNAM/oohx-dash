@@ -605,8 +605,24 @@ class CatalogController extends Controller
             return $this->notFound('Không tìm thấy sản phẩm với slug này.');
         }
 
+        // Gói tương tự: `getSimilarProducts()` đã có từ giai đoạn 4 và chưa có
+        // endpoint nào mang ra. Trả kèm ở đây chứ không mở đường riêng, cùng
+        // lý do `similar` của màn hình (lát 4): nó chỉ có nghĩa **trong ngữ
+        // cảnh một gói**, nên một `/products/similar?of=x` là cùng truy vấn
+        // với một tham số bắt buộc — tức một đường thừa.
+        $similar = $this->products->getSimilarProducts($product)
+            ->map(fn ($p) => (new ProductSummaryResource($p))->resolve())
+            ->values()
+            ->all();
+
         return response()->json([
-            'data' => (new ProductDetailResource($product))->resolve(),
+            'data'    => (new ProductDetailResource($product))->resolve(),
+
+            // Ngoài `data`, cùng tầng với `reviews` của owner (lát 5): `data`
+            // là một `ProductDetail` dùng ở nhiều nơi, và nhét một mảng gói
+            // khác vào đó là đổi hình dạng DTO dùng chung cho một khối chỉ
+            // trang này cần.
+            'similar' => $similar,
         ]);
     }
 

@@ -666,6 +666,15 @@ export interface paths {
                     content: {
                         "application/json": {
                             data: components["schemas"]["ProductDetail"];
+                            /**
+                             * @description Gói tương tự — cùng danh mục hoặc cùng thành phố, tối đa 4.
+                             *
+                             *     Nằm NGOÀI `data` như `reviews` của owner: `data` là một
+                             *     `ProductDetail` dùng ở nhiều nơi, và nhét một mảng gói
+                             *     khác vào đó là đổi hình dạng DTO dùng chung cho một khối
+                             *     chỉ trang chi tiết cần.
+                             */
+                            similar: components["schemas"]["ProductSummary"][];
                         };
                     };
                 };

@@ -1,13 +1,24 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getProduct, type ProductDetail } from '@/lib/api';
+import { getProduct, type ProductDetail, type ProductSummary } from '@/lib/api';
 import { buildMetadata, jsonLd, OgType } from '@/lib/seo';
 import { SiteHeader } from '@/components/SiteHeader';
-import { ScreenCard } from '@/components/ScreenCard';
-import { formatProductPrice } from '@/components/ProductCard';
+import { ProductCard } from '@/components/ProductCard';
+import { KhoiGoi, ThuVienAnhGoi } from '@/components/PanelGiaGoi';
 
 /**
  * `/products/{slug}` — chi tiết một gói.
+ *
+ * ══ Lát 7: bố cục hai cột, thư viện ảnh, panel giá có tab ══
+ *
+ * Bản Blade 383 dòng: breadcrumb, thư viện ảnh + thumbnail, ba badge, tiêu đề
+ * + meta, mô tả, bảng thông số, **danh sách màn hình chọn được bằng
+ * checkbox**, gói tương tự, và cột phải là panel giá có hai tab ("Mua cả gói"
+ * / "Chọn lẻ") cùng khối owner.
+ *
+ * Bản Next trước lát này: `pg-hero` + một ảnh + một dòng giá + `<dl>` thông số
+ * + lưới thẻ màn hình. Một cột, không panel, không chọn lẻ được.
  *
  * ══ `seo.meta_title` và `seo.meta_description` được tôn trọng ══
  *
@@ -49,6 +60,12 @@ export async function generateMetadata({
     });
 }
 
+const NHAN_KIEU: Record<string, string> = {
+    single: 'Đơn lẻ',
+    package: 'Gói',
+    custom: 'Combo',
+};
+
 export default async function ProductDetailPage({ params }: { params: Promise<Params> }) {
     const { slug } = await params;
     const result = await getProduct(slug);
@@ -58,11 +75,21 @@ export default async function ProductDetailPage({ params }: { params: Promise<Pa
     }
 
     const product = result.data;
+    const similar: ProductSummary[] = result.similar ?? [];
     const price = product.pricing?.package ?? product.pricing?.per_screen;
+
+    // Thư viện ảnh: `cover_url` đứng đầu nếu nó không trùng ảnh đầu của
+    // `photo_urls` — bản Blade in `cover_url` làm ảnh lớn rồi liệt kê
+    // `photo_urls` làm thumbnail, nên ảnh bìa xuất hiện hai lần khi nó cũng
+    // nằm trong danh sách.
+    const anh = [
+        ...(product.cover_url ? [product.cover_url] : []),
+        ...(product.photo_urls ?? []).filter((u) => u !== product.cover_url),
+    ];
 
     return (
         <>
-            <SiteHeader />
+            <SiteHeader active="explore" />
             <OgType type="product" />
 
             <script
@@ -72,11 +99,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<Pa
                     '@type': 'Product',
                     name: product.name,
                     description: product.seo?.meta_description || describe(product),
-                    image: product.cover_url ?? product.photo_urls?.[0] ?? '',
+                    image: anh[0] ?? '',
                     brand: {
                         '@type': 'Organization',
                         name: product.owner?.name ?? 'OOHX',
                     },
+                    ...(product.category?.label ? { category: product.category.label } : {}),
 
                     // `offers` chỉ khi CÓ giá thật — xem `/explore/{slug}` để
                     // biết vì sao `price: 0` là nói sai, không phải thiếu.
@@ -94,79 +122,203 @@ export default async function ProductDetailPage({ params }: { params: Promise<Pa
             />
 
             <main>
-                <div className="pg-hero">
-                    <div className="w">
-                        <div className="sc-breadcrumb">
-                            {product.location?.city ? <span>{product.location.city}</span> : null}
-                            {/* `category` là `{code, label}` — in `label`. */}
-                            {product.category?.label ? (
-                                <>
-                                    <span className="sc-bc-sep">·</span>
-                                    <span>{product.category.label}</span>
-                                </>
-                            ) : null}
+                <div className="w" style={{ paddingTop: 20, paddingBottom: 64 }}>
+                    <nav className="bc" aria-label="Đường dẫn">
+                        <Link href="/products">Sản phẩm</Link>
+
+                        {product.category?.code ? (
+                            <>
+                                <BcSep />
+                                {/*
+                                  Dạng dấu phẩy (`?category=led`), không
+                                  `category[]=led` như bản Blade — hợp đồng
+                                  `style: form, explode: false`, và cùng dạng
+                                  sidebar `/products` sinh ra từ lát 3.
+                                */}
+                                <Link href={`/products?category=${encodeURIComponent(product.category.code)}`}>
+                                    {product.category.label ?? product.category.code}
+                                </Link>
+                            </>
+                        ) : null}
+
+                        {product.location?.city ? (
+                            <>
+                                <BcSep />
+                                <Link href={`/products?city=${encodeURIComponent(product.location.city)}`}>
+                                    {product.location.city}
+                                </Link>
+                            </>
+                        ) : null}
+
+                        <BcSep />
+                        <span style={{ color: 'var(--t2)' }}>{product.name}</span>
+                    </nav>
+
+                    <KhoiGoi
+                        product={product}
+                        tuongTu={
+                            similar.length ? (
+                                <div style={{ marginTop: 32 }}>
+                                    <h3
+                                        style={{
+                                            fontSize: 16,
+                                            fontWeight: 700,
+                                            color: 'var(--t1)',
+                                            marginBottom: 12,
+                                        }}
+                                    >
+                                        Sản phẩm tương tự
+                                    </h3>
+                                    <div className="inv-grid">
+                                        {similar.map((s) => (
+                                            <ProductCard key={s.slug} product={s} />
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : null
+                        }
+                        owner={product.owner?.slug ? <KhoiOwner product={product} /> : null}
+                    >
+                        <ThuVienAnhGoi anh={anh} ten={product.name ?? ''} />
+
+                        <div style={{ marginTop: 20 }}>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    gap: 6,
+                                    marginBottom: 8,
+                                    flexWrap: 'wrap',
+                                }}
+                            >
+                                {product.type ? (
+                                    <span className="badge b-bl">
+                                        {NHAN_KIEU[product.type] ?? product.type}
+                                    </span>
+                                ) : null}
+
+                                {product.category?.label ? (
+                                    <span className="badge b-gray">{product.category.label}</span>
+                                ) : null}
+
+                                {product.listing_mode?.label ? (
+                                    <span
+                                        className="badge"
+                                        style={{ background: 'rgba(255,149,0,.1)', color: '#C93400' }}
+                                    >
+                                        {product.listing_mode.label}
+                                    </span>
+                                ) : null}
+                            </div>
+
+                            <h1
+                                style={{
+                                    fontSize: 24,
+                                    fontWeight: 800,
+                                    color: 'var(--t1)',
+                                    letterSpacing: '-.4px',
+                                    marginBottom: 8,
+                                }}
+                            >
+                                {product.name}
+                            </h1>
+
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 12,
+                                    fontSize: 13,
+                                    color: 'var(--t3)',
+                                    flexWrap: 'wrap',
+                                }}
+                            >
+                                {product.owner?.slug ? (
+                                    <Link
+                                        href={`/owners/${product.owner.slug}`}
+                                        style={{ color: 'var(--bl)', fontWeight: 600 }}
+                                    >
+                                        {product.owner.name}
+                                    </Link>
+                                ) : null}
+
+                                {product.network?.name ? <span>{product.network.name}</span> : null}
+                                {product.location?.city ? <span>{product.location.city}</span> : null}
+                                <span>{product.quantity?.total_units ?? 0} vị trí</span>
+                            </div>
                         </div>
-                        <h1>{product.name}</h1>
-                        {product.short_description ? <p>{product.short_description}</p> : null}
-                    </div>
-                </div>
 
-                <div className="w">
-                    {product.cover_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                            src={product.cover_url}
-                            alt={product.name ?? ''}
-                            style={{ width: '100%', borderRadius: 12 }}
-                        />
-                    ) : null}
-
-                    <div className="sc-foot" style={{ padding: '20px 0' }}>
-                        {formatProductPrice(product) ? (
-                            <div className="sc-price">
-                                {formatProductPrice(product)}
-                                <span className="sc-price-sub">chưa gồm VAT</span>
+                        {product.description ? (
+                            <div
+                                style={{
+                                    marginTop: 20,
+                                    fontSize: 14,
+                                    color: 'var(--t2)',
+                                    lineHeight: 1.7,
+                                    whiteSpace: 'pre-line',
+                                }}
+                            >
+                                {product.description}
                             </div>
-                        ) : (
-                            <div className="sc-price-quote">Liên hệ báo giá</div>
-                        )}
-                    </div>
+                        ) : null}
 
-                    {product.description ? (
-                        <section style={{ maxWidth: 760, padding: '8px 0 24px' }}>
-                            <p>{product.description}</p>
-                        </section>
-                    ) : null}
-
-                    <Specs specs={product.specs} />
-
-                    {product.package_options && product.package_options.length > 0 ? (
-                        <section style={{ padding: '24px 0' }}>
-                            <h2 className="section-hed">Các mức gói</h2>
-                            <ul className="ft-ls">
-                                {product.package_options.map((option, i) => (
-                                    <li key={option.name ?? i}>
-                                        {option.name}
-                                        {option.quantity ? ` — ${option.quantity} màn hình` : ''}
-                                    </li>
-                                ))}
-                            </ul>
-                        </section>
-                    ) : null}
-
-                    {product.screens && product.screens.length > 0 ? (
-                        <section style={{ padding: '24px 0' }}>
-                            <h2 className="section-hed">Màn hình trong gói</h2>
-                            <div className="inv-grid">
-                                {product.screens.map((screen) => (
-                                    <ScreenCard key={screen.slug} screen={screen} />
-                                ))}
-                            </div>
-                        </section>
-                    ) : null}
+                        <Specs specs={product.specs} />
+                    </KhoiGoi>
                 </div>
             </main>
         </>
+    );
+}
+
+function BcSep() {
+    return (
+        <span className="bc-sep">
+            <svg viewBox="0 0 24 24" fill="var(--t4)" aria-hidden="true" style={{ width: 14, height: 14 }}>
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+            </svg>
+        </span>
+    );
+}
+
+/** Khối owner ở cột phải, dưới panel giá. */
+function KhoiOwner({ product }: { product: ProductDetail }) {
+    return (
+        <div
+            style={{
+                marginTop: 16,
+                padding: 18,
+                background: 'var(--bg2)',
+                borderRadius: 16,
+                border: '1px solid var(--ln2)',
+            }}
+        >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>
+                        {product.owner?.name}
+                    </div>
+                    {/*
+                      Bản Blade in "Verified Owner" ngay dưới tên, **không
+                      kiểm gì** — một nhãn in vô điều kiện cho mọi owner.
+                      `ProductSummary.owner` chỉ có `slug` + `name`, nên ở đây
+                      in đúng vai trò thay vì một khẳng định chưa ai xác minh.
+                    */}
+                    <div style={{ fontSize: 11, color: 'var(--t4)' }}>Media owner của gói này</div>
+                </div>
+            </div>
+
+            <Link
+                href={`/owners/${product.owner?.slug}`}
+                className="btn btn-s btn-sm"
+                style={{
+                    width: '100%',
+                    justifyContent: 'center',
+                    borderRadius: 8,
+                    textDecoration: 'none',
+                }}
+            >
+                Xem hồ sơ
+            </Link>
+        </div>
     );
 }
 
@@ -187,14 +339,20 @@ function Specs({ specs }: { specs: ProductDetail['specs'] }) {
     if (pairs.length === 0) return null;
 
     return (
-        <dl className="sc-specs">
-            {pairs.map(([key, value]) => (
-                <div className="sc-spec" key={key}>
-                    <dt className="sc-spec-l">{key}</dt>
-                    <dd className="sc-spec-v">{String(value)}</dd>
-                </div>
-            ))}
-        </dl>
+        <div style={{ marginTop: 24 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)', marginBottom: 12 }}>
+                Thông số kỹ thuật
+            </h3>
+
+            <div className="specs-grid">
+                {pairs.map(([key, value]) => (
+                    <div className="sc" key={key}>
+                        <div className="sc-l">{key}</div>
+                        <div className="sc-v">{String(value)}</div>
+                    </div>
+                ))}
+            </div>
+        </div>
     );
 }
 
