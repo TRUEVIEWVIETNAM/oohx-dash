@@ -257,12 +257,25 @@ const PRODUCT = {
     // phơi ra.
     type: 'package',
     category: { code: 'retail', label: 'Bán lẻ' },
-    listing_mode: 'package',
+    // `listing_mode` là một **đối tượng** trong hợp đồng
+    // (`{code, label, allows_package, allows_individual}`), không phải chuỗi.
+    // Bản trước viết `listing_mode: 'package'` — nên
+    // `product.listing_mode?.allows_package` là `undefined` và panel giá của
+    // trang gói không render nhánh nào. Lần thứ ba stub nói sai hợp đồng:
+    // lát 3 là `type: 'bundle'` ngoài enum, lát 5 là `stats.screens`.
+    //
+    // `both` để fixture đi qua **cả hai** tab của panel (mua cả gói / chọn lẻ).
+    listing_mode: {
+        code: 'both',
+        label: 'Gói hoặc lẻ',
+        allows_package: true,
+        allows_individual: true,
+    },
     owner: { slug: 'owner-mot', name: 'Công Ty Một' },
     location: { city: 'Hà Nội', region: 'north', site: null },
     network: { code: 'NET1', name: 'Mạng Một' },
     quantity: { total_units: 10, min: 1, max: 10, screen_count: 2 },
-    pricing: { currency: 'VND', unit: 'month', package: 5000000, per_screen: null, package_discount_pct: 10 },
+    pricing: { currency: 'VND', unit: 'month', package: 5000000, per_screen: 800000, package_discount_pct: 10 },
     short_description: 'Mô tả ngắn của Gói Một.',
     cover_url: 'https://oohx.net/storage/products/a.jpg',
     featured: true,
@@ -538,6 +551,10 @@ function chiTiet(pathname, searchParams = new URLSearchParams()) {
                 screens: [SCREEN_CO_GIA],
                 seo: { meta_title: null, meta_description: null },
             },
+
+            // Gói tương tự (lát 7). Một phần tử là đủ để khối render; rỗng
+            // là một nhánh khác, và trang phải không in tiêu đề khi rỗng.
+            similar: [{ ...PRODUCT, slug: 'goi-hai', name: 'Gói Hai' }],
         };
     }
 

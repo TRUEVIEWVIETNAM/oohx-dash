@@ -491,9 +491,19 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [data]
+                required: [data, similar]
                 properties:
                   data: { $ref: '#/components/schemas/ProductDetail' }
+                  similar:
+                    type: array
+                    description: |
+                      Gói tương tự — cùng danh mục hoặc cùng thành phố, tối đa 4.
+
+                      Nằm NGOÀI `data` như `reviews` của owner: `data` là một
+                      `ProductDetail` dùng ở nhiều nơi, và nhét một mảng gói
+                      khác vào đó là đổi hình dạng DTO dùng chung cho một khối
+                      chỉ trang chi tiết cần.
+                    items: { $ref: '#/components/schemas/ProductSummary' }
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 

@@ -492,6 +492,71 @@ const TRANG = [
             'application/ld+json',
         ],
     },
+    {
+        path: '/products/goi-mot',
+        ten: 'chi tiết gói',
+        co: [
+            // Lát 7 — breadcrumb và bố cục hai cột
+            'class="bc"',
+            'class="bc-sep"',
+            'class="pd-detail-layout"',
+            'class="pd-detail-main"',
+            'class="pd-detail-sidebar"',
+
+            // Lát 7 — thư viện ảnh bộ `pd-detail-*` (KHÔNG phải bộ `gal-*`
+            // của trang màn hình: trang gói ở bản Blade không có lightbox)
+            'class="pd-detail-gallery"',
+            'class="pd-detail-hero-img"',
+
+            // Lát 7 — ba badge
+            'class="badge b-bl"',
+            'class="badge b-gray"',
+
+            // Lát 7 — bảng thông số dùng bộ ô `sc` như trang màn hình
+            'class="specs-grid"',
+            'class="sc-l"',
+            'class="sc-v"',
+
+            // Lát 7 — panel giá có TAB (fixture là `listing_mode: both`)
+            'class="bp"',
+            'class="bp-tabs"',
+            'class="bp-tab active"',
+            'class="bp-tab-content active"',
+            'class="bp-price"',
+            'class="bp-lbl"', // nhãn "Chọn gói" của package_options
+            'class="bp-foot"',
+
+            // Lát 7 — danh sách màn hình CHỌN ĐƯỢC
+            'class="pd-screen-list"',
+            'class="pd-screen-item"',
+            'class="pd-screen-check"',
+
+            // Lát 7 — gói tương tự
+            'Sản phẩm tương tự',
+            'class="pd-card"',
+        ],
+        khong: [
+            // Bố cục cũ của bản Next: `pg-hero` + một ảnh + một dòng giá.
+            'class="pg-hero"',
+
+            // Thẻ màn hình KHÔNG dùng ở trang này nữa — danh sách là
+            // `pd-screen-item` có checkbox, không phải lưới thẻ.
+            'class="sc-card"',
+
+            // "Verified Owner" của bản Blade in vô điều kiện cho mọi owner.
+            'Verified Owner',
+
+            // "Thanh toán bảo mật bởi OOHX": sàn KHÔNG thu hộ.
+            'Thanh toán bảo mật',
+
+            // Badge tình trạng in theo `status === active`, mà endpoint chỉ
+            // trả gói công khai — tức in vô điều kiện (audit F-15).
+            'class="bp-avail"',
+
+            // Mã loại gói lọt ra thay vì nhãn.
+            '>package</span>',
+        ],
+    },
 ];
 
 const loi = [];
