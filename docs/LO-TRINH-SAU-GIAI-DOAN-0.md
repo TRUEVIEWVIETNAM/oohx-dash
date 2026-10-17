@@ -725,6 +725,12 @@ Việc này có lịch riêng vì nó phục vụ đợt Sở Thông tin vào ch
 **`docs/PLAN-DUNG-LAI-GIAO-DIEN-CU.md`** — bảy lát, bảng đối chiếu từng trang,
 và danh sách những thứ **không** được dựng lại (số liệu F-15 đã dọn).
 
+**XONG 17/10/2026 — cả bảy lát, tất cả đã lên production.** Sáu PR: #86 (lát
+0+1+2) · #87 (lát 3) · #88 (lát 4) · #89 (lát 5) · #90 (lát 6) · #92 (lát 7).
+Chi tiết, cùng năm lỗi thật tìm được trên đường và ba thứ còn chờ chủ dự án
+quyết, ở mục cập nhật 17/10 phía dưới ("Đề xuất làm gì ngay") và ở cuối
+`PLAN-DUNG-LAI-GIAO-DIEN-CU.md`.
+
 ---
 
 ## Việc quản trị
@@ -847,7 +853,7 @@ Phương án khác, tránh hẳn chuyện tỷ giá: yêu cầu media owner niê
 
    ~~**Nhưng còn bốn trang nữa mà mục này chưa từng kể**~~ — **cả bốn XONG 10/10/2026** (PR #73): `create`, `creative`, `review`, `payment-success`. Xem "ĐÃ LÀM 10/10/2026" ở giai đoạn 5. Khu người mua nay **không còn trang nào** render dữ liệu nghiệp vụ ở máy chủ, và lượt chuyển đó bắt thêm ba lỗi thật — trong đó một thẻ trạng thái viết cứng trên trang xác nhận thanh toán.
 2. ~~**Ban hành ba trang chính sách.**~~ **XONG 09/10/2026** (PR #56): `quy-che-hoat-dong`, `chinh-sach-bao-mat`, `giai-quyet-tranh-chap` đều `effective_from = 09/10/2026`, phiên bản `1.0`. `bang-phi` giữ `22/09/2026`.
-3. **Cho Codex review khối từ R41 tới nay** (~~151~~ ~~163~~ ~~173~~ **176** commit, `git rev-list --count 4887b0a..main`, đếm lại trên `main` ở `0aed199` cuối ngày 13/10 — xem mục C bên dưới về việc hai con số trước đo sai): API v2, giỏ hàng, hoàn tiền, đường tiền, và nay thêm **mười một** trang khu người mua đọc API, mười cái chốt tự tìm phạm vi, cả nhóm B, cùng bốn lượt gom định nghĩa (phân quyền thành viên hai bên, "dòng nào mang nghĩa vụ tiền", và danh sách vai trò bị giới hạn mạng lưới) — cộng **hàng rào theo mạng lưới ba tầng**, thứ đáng có người thứ hai đọc nhất trong khối này vì nó là một chốt bảo mật vừa đổi hành vi trên dữ liệu production. Đúng loại code nên có người thứ hai đọc. **Đây là mục duy nhất trong ba mục này còn mở.**
+3. **Cho Codex review khối từ R41 tới nay** (~~151~~ ~~163~~ ~~173~~ ~~176~~ **183** commit, `git rev-list --count 4887b0a..main`, đếm lại trên `main` ở `8065f6f` ngày 17/10 sau bảy lát giao diện — xem mục C bên dưới về việc hai con số trước đo sai): API v2, giỏ hàng, hoàn tiền, đường tiền, và nay thêm **mười một** trang khu người mua đọc API, mười cái chốt tự tìm phạm vi, cả nhóm B, cùng bốn lượt gom định nghĩa (phân quyền thành viên hai bên, "dòng nào mang nghĩa vụ tiền", và danh sách vai trò bị giới hạn mạng lưới) — cộng **hàng rào theo mạng lưới ba tầng**, thứ đáng có người thứ hai đọc nhất trong khối này vì nó là một chốt bảo mật vừa đổi hành vi trên dữ liệu production. Đúng loại code nên có người thứ hai đọc. **Đây là mục duy nhất trong ba mục này còn mở.**
 
 ### ~~Mục mới 10/10/2026 — bốn trang luồng đặt chỗ~~ **XONG 10/10/2026**
 
@@ -875,6 +881,126 @@ thứ tự tôi đã làm thật:
 Giai đoạn 5 đã đóng thật và không còn PR nào mở. Dưới đây là **mọi thứ còn mở
 mà tôi biết**, chia theo thứ chặn nó — mục đích là để lần sau không phải đếm lại
 bằng ký ức.
+
+> **Cập nhật 17/10/2026 — bảy lát đã xong, tất cả đã lên production.** `main` ở
+> `8065f6f`, CI **1.000 ca / 3.804 khẳng định**, mọi lượt deploy thành công,
+> không còn PR nào mở.
+>
+> **Sáu PR cho bảy lát:** #86 (lát 0+1+2) · #87 (lát 3) · #88 (lát 4) · #89
+> (lát 5) · #90 (lát 6) · #92 (lát 7). Tổng **56 tệp, +11.904 / −724 dòng**,
+> **15 component Next mới**, **+263 dòng** vào `frontpage.css`.
+>
+> CI đi từ 960 lên **1.000 ca** (3.565 → 3.804 khẳng định). Chốt mới
+> `webapp/test/khoi-giao-dien.mjs` đi từ 0 lên **10 trang / 273 khẳng định** —
+> nó đọc HTML **đã render** và trả lời câu mà hai chốt cũ không trả lời được:
+> *khối này còn trên trang không*. `class-css.test.mjs` hỏi "tên class có người
+> định nghĩa không" (`.sc` **có**, nên nó không thấy gì sai), `test:seo` chỉ đo
+> thẻ `<meta>`.
+>
+> **#91 bị GitHub tự đóng** và đó là hệ quả của cách tôi merge: lát 7 mở với
+> base là nhánh của lát 6; khi merge #90 kèm `--delete-branch`, nhánh base biến
+> mất và PR con đóng theo — một PR đã đóng thì không đổi base và không mở lại
+> được. Đã rebase nhánh lên `main` rồi mở lại ở #92. Lần sau với PR xếp chồng:
+> merge PR nền **không kèm** `--delete-branch`, hoặc đổi base của PR con trước.
+
+### Kế hoạch đoán sai về API ở bốn trong bảy lát
+
+Bảng bảy lát trong `docs/PLAN-DUNG-LAI-GIAO-DIEN-CU.md` ghi lát nào cần endpoint
+mới. **Bốn lát đoán sai**, và cả bốn sai cùng một kiểu:
+
+| Lát | Kế hoạch nói | Thực tế |
+|---|---|---|
+| 0 | không cần API | `cover_url`/`logo_url` của owner trả **đường dẫn trong disk** → mọi ảnh bìa owner là ảnh hỏng; cộng 4 trường thẻ owner mà DTO không mang ra |
+| 3 | `filters` ✔ | `/filters` đếm trên bảng **màn hình**; sidebar gói cần `categories`/`types`/`cities` **của gói** → thêm `GET /api/v2/products/filters` |
+| 6 | `filters` ✔ `map` ✔ | `MapPinResource` thiếu `site.name` (gom pin theo toà nhà), `network.name`, `venue_type` (màu pin) |
+| 7 | `products/{slug}` ✔ | thiếu `similar` — `getSimilarProducts()` có từ giai đoạn 4, chưa endpoint nào mang ra |
+
+Lát 5 đoán đúng là "đã có", nhưng bỏ sót việc đánh giá công khai cần **DTO
+riêng**: `OwnerReviewResource` viết cho tác giả nhận xét (mang `status`, `id`,
+`owner.id`) nên không dùng được trên trang công khai.
+
+**Mẫu chung:** trang Blade đọc thẳng model nên không ai thấy nó cần trường gì.
+Chỉ khi dựng lại trên API mới lộ ra. Lần sau lập kế hoạch kiểu này, bước *"đối
+chiếu từng trường view dùng với DTO đang có"* phải nằm trong khảo sát, không để
+tới lúc làm.
+
+### Ba lần CSS sống trong view đã bị gỡ
+
+| Lát | Dòng | Nằm ở đâu | Nếu không chuyển |
+|---|---|---|---|
+| 4 | 70 | `@push('head')` của `detail.blade.php` | lightbox mở ra là một ảnh trần giữa trang, không nền đen; khối POI không có bố cục |
+| 5 | 96 | `@push('head')` của `owner-detail.blade.php` | avatar không tròn và không chồng lên bìa, hai cột thành một, **cả hai tab hiện cùng lúc** |
+| 6 | 35 | partial `map-styles` | bản đồ vẽ marker mặc định của Leaflet thay vì pin có tên site và vòng tròn cụm |
+
+Lát 7 là lát **duy nhất** không phải chuyển dòng nào — trang gói viết CSS vào
+tệp chung ngay từ đầu.
+
+`tests/js/class-css.test.mjs` bắt được cả ba lần. Nó cũng bắt bốn tên class là
+**móc JS của bản Blade** không có định nghĩa nào (`ms-drop-close`, `ms-compact`,
+`has-children`, `sft-chips-wrap`) — ở React sự kiện gắn trực tiếp nên chúng
+không còn việc gì.
+
+### Ba lần stub nói sai hợp đồng, và cả ba che một lỗi
+
+| Lát | Fixture sai | Hệ quả trong mọi lượt build thử |
+|---|---|---|
+| 3 | `type: 'bundle'` (ngoài enum `[single, package, custom]`) | thẻ gói in **mã thô** "bundle" ra trang |
+| 5 | `stats: { screens, cities }` (hợp đồng là `screen_count`, `city_count`, `venue_types`) | trang hồ sơ in "**0 màn hình · 0 tỉnh/thành**" |
+| 7 | `listing_mode: 'package'` (chuỗi, hợp đồng là object) | panel giá **không render nhánh nào** |
+
+Ba lần liên tiếp lỗi nằm ở **dữ liệu giả**, không ở mã — và không chốt nào đỏ,
+vì chốt đọc HTML do chính fixture đó sinh ra. Đó là lý do mỗi lát đều phải mở
+fixture ra đọc, không chỉ chạy test.
+
+### Năm lỗi thật tìm được khi dựng lại
+
+1. **Mọi ảnh bìa owner là ảnh hỏng** (lát 0) — DTO trả đường dẫn trong disk,
+   trình duyệt giải nó tương đối với trang đang mở.
+2. **Thẻ owner dùng sáu tên class không ai định nghĩa** (lát 0) — ra DOM không
+   có một kiểu nào, kể cả khung.
+3. **`.listing-layout` được dùng mà chưa bao giờ được định nghĩa** (lát 3) — bố
+   cục hai cột của `/products` thiếu cột trên desktop.
+4. **Lịch trống sơn xanh ngày người khác đang thanh toán** (lát 4) — view cũ
+   cộng `BookingLine` lấy và **không biết gì về `InventoryHold`**.
+5. **Bốn id toàn cục trùng nhau ở trang gói** (lát 7) — khi `listing_mode` là
+   `individual_only`, hai khối cùng khai ba id và `getElementById` chỉ trả cái
+   đầu tiên, nên khối thứ hai không bao giờ cập nhật.
+
+Thêm một cái bẫy PHP suýt lọt: `parent::toArray() + [...]` giữ giá trị **bên
+trái** khi khóa trùng, nên `owner` của resource cha thắng và `phone`/`email`
+không bao giờ ra ngoài — một khối "Liên hệ media owner" trống, không lỗi, không
+cảnh báo. Một ca test bắt được (lát 4).
+
+### Một quyết định đã đảo, và nó chạm ba chỗ
+
+Trang `/owners/{slug}` của bản Next ghi *"tôi không in `contact`, vì một trang
+công khai in email và số điện thoại là một trang cho máy thu thập địa chỉ"*,
+kèm *"bản Blade cũng không in"*. **Câu thứ hai sai** — bản Blade in cả bốn
+trường trong thẻ "Giới thiệu" cộng hai nút liên hệ. Và sàn **không thu hộ**,
+nên không thấy đường liên hệ owner thì không ai đặt được gì.
+
+Nay liên hệ owner hiện trên **cả** `/owners/{slug}` và `/explore/{slug}`, và
+luật trong `webapp/test/seo.mjs` canh đúng thứ phải chặn (danh sách cấm của
+CLAUDE.md mục 2). Muốn ẩn lại thì đó là một quyết định mới và phải sửa ba chỗ:
+DTO, hai trang.
+
+### Còn thiếu so với bản Blade — đều chờ chủ dự án quyết
+
+| Khối | Trang | Vì sao chưa dựng |
+|---|---|---|
+| Thanh `trust` 5 mục | trang chủ | "Traffic real-time" (`impression_logs` chưa có bản ghi nào) · "AI-powered search" (không có AI trong mã) · "Secure payment" (sàn không thu hộ) |
+| Mục "Marketplace OOH đầu tiên có AI" | trang chủ | in **3.2×** không nguồn, ảnh hotlink `images.unsplash.com` |
+| Bốn thẻ "Điểm nổi bật" | `/explore/{slug}` | "AI Traffic Data" · "Proof of Play" · "Verified Location 2024" · "Fast Booking 48h" — không câu nào kiểm được |
+
+Và ba việc kỹ thuật nhỏ còn mở:
+
+- **Kiểu xem danh sách ở `/explore` chỉ thu lưới về một cột.**
+  `.inv-grid.list-view` nhắm vào `.ic-*` của `.inv-card` — bộ class **chết**,
+  không view nào trong repo dùng, kể cả bản Blade trước khi gỡ.
+- **`/owners/{slug}` chưa nhận `venue_type`**, nên chip loại hình trong tab kho
+  của trang hồ sơ là một bộ lọc máy chủ bỏ qua.
+- **Chưa ai xem bảy trang bằng mắt.** Mọi khẳng định của 273 chốt là về HTML và
+  tên class; không chốt nào chạy layout.
 
 > **Cập nhật cuối ngày 13/10/2026.** `main` ở `0aed199`, CI **960 ca / 3.565
 > khẳng định** (run `38412388041`), mọi lượt deploy thành công, không còn PR nào
@@ -985,7 +1111,7 @@ không phải "đã xong" mà là **mỗi món hóa ra là gì khi mở ra**.
    ai bị chặn bởi việc chưa quyết.
 
 **C. Cần người thứ hai đọc.** Mục 3 của "Đề xuất làm gì ngay" vẫn mở: cho Codex
-review khối từ R41 tới nay — ~~173~~ **176** commit (đo lại trên `main` ở `0aed199`, cuối ngày 13/10 sau #81–#83):
+review khối từ R41 tới nay — ~~173~~ ~~176~~ **183** commit (đo lại trên `main` ở `8065f6f`, ngày 17/10 sau #86–#92):
 
 ```
 git rev-list --count 4887b0a..main
