@@ -16,3 +16,17 @@
  * chủ ý — trong giai đoạn chuyển đổi, một chỗ sửa thì cả hai nơi khớp nhau.
  */
 @import '../../resources/css/frontpage.css';
+
+/*
+ * Trỏ `--font` sang font tự host của `next/font`.
+ *
+ * Đặt ở ĐÂY chứ không sửa `frontpage.css`, vì tệp kia dùng chung với bản
+ * Blade và `--font-open-sans` chỉ tồn tại trên trang do Next phục vụ. Sửa
+ * bên đó là làm mọi trang Blade mất font.
+ *
+ * Giữ nguyên dãy dự phòng của bản gốc: nếu font tự host chưa về, chữ vẫn rơi
+ * về đúng những font mà bản Blade rơi về.
+ */
+:root {
+    --font: var(--font-open-sans), 'Open Sans', -apple-system, 'Helvetica Neue', sans-serif;
+}
