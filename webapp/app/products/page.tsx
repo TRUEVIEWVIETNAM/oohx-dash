@@ -100,7 +100,7 @@ export default async function ProductsPage({
 
     return (
         <>
-            <SiteHeader active="explore" />
+            <SiteHeader active="products" />
             <OgType type="website" />
 
             <main>
