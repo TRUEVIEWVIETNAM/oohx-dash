@@ -86,6 +86,51 @@ const nextConfig: NextConfig = {
             // này có thể trả tệp do người dùng tải lên mà không qua kiểm.
             pathname: '/storage/**',
         })),
+
+        // ══ Vì sao phải bật một cờ tên là "dangerously" ══
+        //
+        // Máy chủ có dòng `127.0.0.1  oohx.net` trong `/etc/hosts` (dòng 8,
+        // đọc ngày 18/10/2026). Nên khi trình tối ưu đi lấy
+        // `https://oohx.net/storage/…`, Node phân giải tên đó về **chính
+        // máy**, và Next 16 chặn mọi địa chỉ nội bộ theo mặc định.
+        //
+        // Nó chặn bằng **đúng thông điệp** dùng cho trường hợp không khớp
+        // `remotePatterns`: `"url" parameter is not allowed`. Hai nguyên nhân
+        // khác hẳn nhau, một câu trả lời.
+        //
+        // Lý do thật chỉ nằm trong log của service, không có trong phản hồi
+        // HTTP:
+        //
+        //     ⨯ upstream image https://oohx.net/storage/… hostname resolved
+        //       to private IP ["127.0.0.1"]. If this is expected and you
+        //       understand SSRF risk, use images.dangerouslyAllowLocalIP =
+        //       true to continue.
+        //
+        // Ghi nguyên văn ở đây vì nó là thứ đáng tra cứu trước tiên lần sau:
+        // `journalctl -u oohx-webapp`. Tôi đã loại trừ ba nguyên nhân khác
+        // bằng cách đọc phản hồi HTTP, và cả ba lần đều sai — câu trả lời
+        // nằm ở phía máy chủ suốt thời gian đó.
+        //
+        // Vì sao chạy đúng trên máy lập trình: ở đó `oohx.net` phân giải ra
+        // Cloudflare như mọi nơi khác, không có dòng hosts kia.
+        //
+        // ══ Rủi ro, và vì sao nó hẹp ══
+        //
+        // Cờ này mở đường cho SSRF: trình tối ưu ảnh trở thành thứ đi lấy URL
+        // hộ người khác, kể cả địa chỉ trong mạng nội bộ. Thứ giữ nó hẹp là
+        // `remotePatterns` ngay trên: chỉ `https`, chỉ host của sàn, và chỉ
+        // đường `/storage/**` — tức đúng thư mục ảnh công khai mà Laravel
+        // vẫn phục vụ cho mọi khách. Một yêu cầu không khớp cả ba điều kiện
+        // đó bị từ chối trước khi tới bước này.
+        //
+        // Cụ thể: không với tới được `169.254.169.254` (metadata máy ảo),
+        // không với tới cổng nội bộ nào khác, không đọc được tệp ngoài
+        // `/storage`.
+        //
+        // Lối sạch hơn là gỡ dòng `/etc/hosts` ấy — nhưng đó là cấu hình hệ
+        // thống do aaPanel dựng, và không rõ còn gì khác đang dựa vào nó. Nếu
+        // sau này gỡ được thì xoá luôn cờ này.
+        dangerouslyAllowLocalIP: true,
     },
 
     // Không để Next phát `X-Powered-By`.

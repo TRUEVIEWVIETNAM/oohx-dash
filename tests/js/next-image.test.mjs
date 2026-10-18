@@ -115,3 +115,43 @@ test('danh sách host chịu được cả ba trạng thái biến môi trườn
         'Biến đặt host khác thì THÊM, không thay thế',
     );
 });
+
+test('cờ cho IP nội bộ phải đi kèm remotePatterns hẹp', () => {
+    // Máy chủ có `127.0.0.1  oohx.net` trong `/etc/hosts`, nên Next thấy ảnh
+    // của chính sàn nằm ở một địa chỉ nội bộ và từ chối. Log của service nói
+    // đích danh — và đó là chỗ duy nhất nói, phản hồi HTTP thì không:
+    //
+    //     upstream image https://oohx.net/storage/… hostname resolved to
+    //     private IP ["127.0.0.1"]. If this is expected and you understand
+    //     SSRF risk, use images.dangerouslyAllowLocalIP = true to continue.
+    //
+    // Cờ ấy mở đường SSRF nếu đứng một mình: trình tối ưu thành thứ đi lấy
+    // URL hộ người khác, kể cả địa chỉ trong mạng nội bộ. Thứ giữ nó hẹp là
+    // ba điều kiện của `remotePatterns` — chỉ `https`, chỉ host của sàn, chỉ
+    // `/storage/**`.
+    //
+    // Phép kiểm buộc hai thứ đi cùng nhau: ai bật cờ mà nới pattern thì đỏ.
+    const s = nguon();
+
+    if (! /dangerouslyAllowLocalIP:\s*true/.test(s)) {
+        return; // Cờ không bật thì không có gì để ràng buộc.
+    }
+
+    assert.match(
+        s,
+        /pathname:\s*'\/storage\/\*\*'/,
+        'Bật `dangerouslyAllowLocalIP` thì `remotePatterns` phải giới hạn `/storage/**`.',
+    );
+
+    assert.doesNotMatch(
+        s,
+        /hostname:\s*['"`]\*\*['"`]/,
+        'Không được dùng hostname bao trùm khi đã bật cờ IP nội bộ.',
+    );
+
+    assert.match(
+        s,
+        /protocol:\s*'https'/,
+        'Chỉ `https` khi đã bật cờ IP nội bộ.',
+    );
+});
