@@ -3,6 +3,12 @@ import type { components, paths } from '@api-types';
 /**
  * Dữ liệu cho trang chủ, lấy song song từ bảy endpoint.
  *
+ * Từng là tám. Lời gọi thứ tám — `/screens/featured?limit=4`, nuôi lưới "Vị
+ * trí nổi bật" — gỡ ở lát 3 (18/10/2026) cùng với lưới đó: truy vấn đòi màn
+ * hình có ảnh RIÊNG và có giá, và đo trên production 05/10/2026 thì chỉ 1
+ * trên 104 màn hình thoả cả hai. Một lưới một thẻ không nói được gì về kho,
+ * nên cả mục lẫn lời gọi nuôi nó đều đi.
+ *
  * ══ Bảy lời gọi, không một endpoint `/home` ══
  *
  * Cân nhắc đã bỏ: gộp tất cả vào `GET /api/v2/home`. Nó gọn hơn một lần, rồi
@@ -16,7 +22,7 @@ import type { components, paths } from '@api-types';
  *
  * ══ Một endpoint hỏng không làm trắng cả trang ══
  *
- * `Promise.allSettled`, không `Promise.all`. Trang chủ có bảy mục độc lập; để
+ * `Promise.allSettled`, không `Promise.all`. Trang chủ có nhiều mục độc lập; để
  * mục "tỉnh thành" hỏng làm mất cả trang là biến một lỗi nhỏ thành một lỗi
  * toàn phần. Mục nào không có dữ liệu thì không render — và vì không mục nào
  * bịa số, thiếu dữ liệu là thiếu một khối, không phải một con số sai.
@@ -28,9 +34,6 @@ const BASE = (process.env.OOHX_API_BASE ?? 'https://oohx.net/api/v2').replace(/\
 
 export type HeroStats =
     paths['/api/v2/stats']['get']['responses'][200]['content']['application/json']['data'];
-
-export type FeaturedScreen =
-    paths['/api/v2/screens/featured']['get']['responses'][200]['content']['application/json']['data'][number];
 
 export type Region = components['schemas']['Region'];
 export type MapPin = components['schemas']['MapPin'];
@@ -64,7 +67,6 @@ export type ProductSummary = components['schemas']['ProductSummary'];
 
 export type HomeData = {
     stats: HeroStats | null;
-    featuredScreens: FeaturedScreen[];
     featuredOwners: OwnerSummary[];
     regions: Region[];
     pins: MapPin[];
@@ -77,13 +79,9 @@ export type HomeData = {
 export const DEFAULT_CITY = 'hanoi';
 
 export async function getHomeData(city: string = DEFAULT_CITY): Promise<HomeData> {
-    const [stats, screens, owners, regions, pins, filters, products, browse] = await Promise.allSettled([
+    const [stats, owners, regions, pins, filters, products, browse] = await Promise.allSettled([
         // Số liệu tổng quan: đổi khi có màn hình mới được duyệt, nên 5 phút.
         get<{ data: HeroStats }>('/stats', 300),
-
-        // Màn hình nổi bật: truy vấn có `inRandomOrder()` và cache 15 phút ở
-        // tầng service, nên `revalidate` ngắn hơn không cho dữ liệu mới hơn.
-        get<{ data: FeaturedScreen[] }>('/screens/featured?limit=4', 900),
 
         get<{ data: OwnerSummary[] }>('/owners/featured?limit=6', 900),
 
@@ -107,7 +105,6 @@ export async function getHomeData(city: string = DEFAULT_CITY): Promise<HomeData
 
     return {
         stats: stats.status === 'fulfilled' ? stats.value.data : null,
-        featuredScreens: screens.status === 'fulfilled' ? screens.value.data : [],
         featuredOwners: owners.status === 'fulfilled' ? owners.value.data : [],
         regions: regions.status === 'fulfilled' ? regions.value.data : [],
         pins: pins.status === 'fulfilled' ? pins.value.data : [],

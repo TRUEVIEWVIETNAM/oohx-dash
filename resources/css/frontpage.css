@@ -888,6 +888,65 @@ ul{list-style:none}
  * không phải một kiểu mới dựng riêng cho hero. */
 @media(min-width:900px){.hero-chu .ms-pill-txt{display:none}}
 
+
+/* ── Duyệt kho: hai tab cho một kho (18/10/2026) ───────────────────────────
+ *
+ * Trước lát này đây là hai mục rời: "Duyệt theo Địa điểm" và "17 Tỉnh
+ * thành", cách nhau một dải nền xám. Cả hai dẫn vào cùng `/explore`, chỉ
+ * khác chiều lọc — nên chúng thành hai tab của một khối.
+ *
+ * `.tab` cao 44px ở mọi bề ngang, không chỉ dưới 768px: nó là nút chính của
+ * khối này, và một nút 32px trên màn hình cảm ứng là nút bấm trượt.
+ */
+.dk-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+
+.dk-tab{font-family:var(--font);font-size:14px;font-weight:600;border:1.5px solid var(--ln2);background:transparent;color:var(--t2);border-radius:980px;padding:0 16px;min-height:44px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;transition:all 140ms;-webkit-tap-highlight-color:transparent}
+.dk-tab:hover{border-color:var(--bl);color:var(--bl)}
+.dk-tab[aria-selected="true"]{background:var(--bl);border-color:var(--bl);color:#fff}
+.dk-tab:focus-visible{outline:2px solid var(--bl);outline-offset:2px}
+
+.dk-tab-so{font-size:12px;font-weight:700;color:var(--t4);font-variant-numeric:tabular-nums}
+.dk-tab[aria-selected="true"] .dk-tab-so{color:rgba(255,255,255,.72)}
+
+/* ── Hai cách mua ──────────────────────────────────────────────────────────
+ *
+ * Bản trước để hai cách đặt cách nhau BỐN khối: lưới "Vị trí nổi bật" ở
+ * giữa trang, mục "Gói chiến dịch" gần cuối. Người mua không so được hai
+ * cách khi phải cuộn qua bốn mục khác để nhìn thấy cả hai.
+ */
+.mua{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:860px){.mua{grid-template-columns:1fr 1fr;gap:20px}}
+
+.lc{display:flex;flex-direction:column;background:var(--bg);border:1px solid var(--ln2);border-radius:var(--r4);padding:22px;box-shadow:var(--sh2)}
+@media(min-width:768px){.lc{padding:28px}}
+
+/* Thẻ "mua theo gói" nổi lên một bậc — nó là đường ít người biết hơn. */
+.lc--nb{border-color:var(--bl);box-shadow:0 0 0 1px var(--bl),var(--sh3)}
+
+.lc-dau{display:flex;align-items:flex-start;gap:13px;margin-bottom:18px}
+
+.lc-ic{width:42px;height:42px;border-radius:12px;background:var(--bl-lt);display:grid;place-items:center;flex-shrink:0}
+.lc-ic svg{width:21px;height:21px;fill:var(--bl)}
+
+.lc-ten{font-size:var(--fs-3);font-weight:700;color:var(--t1);line-height:1.25}
+.lc-mo{font-size:var(--fs-5);color:var(--t3);margin-top:3px}
+
+.lc-ds{list-style:none;margin:0 0 20px;padding:0;display:flex;flex-direction:column;gap:11px;flex:1}
+.lc-ds li{display:flex;align-items:flex-start;gap:9px;font-size:var(--fs-5);color:var(--t2);line-height:1.5}
+.lc-ds svg{width:17px;height:17px;fill:var(--grn);flex-shrink:0;margin-top:1px}
+
+.lc-chan{margin-top:auto}
+.lc-chan .btn{width:100%;justify-content:center}
+
+/* ── Ba bảo đảm dưới dải media owner ───────────────────────────────────── */
+.bao-dam{display:grid;grid-template-columns:1fr;gap:12px;margin-top:24px}
+@media(min-width:640px){.bao-dam{grid-template-columns:repeat(3,1fr);gap:16px}}
+
+.bd-o{display:flex;align-items:flex-start;gap:11px;background:var(--bg);border:1px solid var(--ln2);border-radius:var(--r3);padding:16px}
+.bd-o svg{width:20px;height:20px;fill:var(--bl);flex-shrink:0;margin-top:1px}
+.bd-o b{display:block;font-size:var(--fs-5);font-weight:700;color:var(--t1);margin-bottom:3px}
+.bd-o span{font-size:var(--fs-6);color:var(--t3);line-height:1.5}
+
 /* Map section (index) */
 .map-wrap{border-radius:var(--r4);overflow:hidden;box-shadow:var(--sh3);border:1px solid var(--ln2)}
 .map-mock{position:relative;background:#E4E6EB;height:300px;overflow:hidden}

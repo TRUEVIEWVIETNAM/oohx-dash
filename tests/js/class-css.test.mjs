@@ -1122,3 +1122,122 @@ test('không liên kết nào trong thanh đầu hay chân trang trỏ vào tran
 
     assert.deepEqual(sai, [], 'Liên kết trỏ vào đường Next không phục vụ:\n  ' + sai.join('\n  '));
 });
+// ── Hai khối CSS không được cùng đặt tên một class ────────────────────────
+//
+// Lỗi thật, 18/10/2026: lát 3 thêm `.tabs` / `.tab` cho thanh tab dạng viên
+// của khối "Duyệt kho" ở dòng ~901. `frontpage.css` ĐÃ có `.tabs` / `.tab`
+// ở dòng ~1533 — thanh tab gạch chân của trang chi tiết màn hình. Cùng độ
+// cụ thể, nên luật sau thắng: thanh mới nhận `border-bottom` và `padding`
+// của thanh cũ, giữ `border-radius` của mình, rồi vẽ ra một đường kẻ ngang
+// chạy hết bề ngang ngay dưới hai viên.
+//
+// Không lớp nào bắt được: `next build` xanh, `test:js` xanh, và
+// `khoi-giao-dien` xanh vì nó hỏi "class này có trong HTML không", không hỏi
+// "class này ra hình gì". Tôi chỉ thấy khi nhìn ảnh chụp.
+//
+// Luật này quét tên class ở ĐẦU selector của các luật cấp cao nhất và báo
+// khi một tên xuất hiện trong hai khối cách nhau xa. Vì sao "cách nhau xa"
+// chứ không "xuất hiện hai lần": một bộ class bình thường có nhiều luật kề
+// nhau (`.dk-tab`, `.dk-tab:hover`, `.dk-tab[aria-selected]`) và cả
+// `@media` ghi đè — chúng hợp lệ. Hai ĐỊNH NGHĨA GỐC nằm cách nhau hàng
+// trăm dòng thì gần như chắc chắn là hai người đặt trùng tên.
+test('không hai khối CSS nào cách xa nhau cùng đặt tên một class', () => {
+    const raw = readFileSync(resolve(GOC, TEP_CSS), 'utf8').replace(
+        /\/\*[\s\S]*?\*\//g,
+        (m) => m.replace(/[^\n]/g, ' '),
+    );
+
+    // Chỉ các luật CẤP CAO NHẤT: bỏ thân `@media`, vì ghi đè theo bề ngang
+    // màn hình là chuyện đúng và nó luôn lặp lại tên class.
+    const dong = raw.split('\n');
+    const sau = new Map();
+    let sauMedia = 0;
+
+    for (let i = 0; i < dong.length; i++) {
+        const l = dong[i];
+
+        if (/^\s*@(media|supports|container)/.test(l)) {
+            sauMedia += (l.match(/\{/g) ?? []).length - (l.match(/\}/g) ?? []).length;
+
+            continue;
+        }
+
+        if (sauMedia > 0) {
+            sauMedia += (l.match(/\{/g) ?? []).length - (l.match(/\}/g) ?? []).length;
+
+            continue;
+        }
+
+        // Selector = mọi thứ trước dấu `{` đầu tiên của dòng mở luật.
+        const mo = l.indexOf('{');
+
+        if (mo < 0) continue;
+
+        for (const sel of l.slice(0, mo).split(',')) {
+            // Chỉ ĐỊNH NGHĨA GỐC: selector đúng bằng `.ten`, không trạng
+            // thái, không con cháu, không tổ hợp. `.a:hover .b` và `.a.on`
+            // là luật PHỤ của cùng một bộ — chúng rải khắp tệp một cách hợp
+            // lệ và không chồng lên định nghĩa của ai.
+            //
+            // Đúng hai định nghĩa gốc của một tên mới là lỗi: cả hai nói
+            // "class này trông như thế này", và chỉ cái sau được nghe.
+            const m = sel.trim().match(/^\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)$/);
+
+            if (!m) continue;
+
+            const ten = m[1];
+
+            if (!sau.has(ten)) sau.set(ten, []);
+
+            sau.get(ten).push(i + 1);
+        }
+    }
+
+    // Khoảng cách tối đa giữa hai luật của CÙNG một bộ class. 120 dòng là
+    // rộng rãi: bộ dài nhất hiện có (`.ms-*`) trải trong khoảng đó.
+    const XA = 120;
+
+    /**
+     * Những chỗ ĐÃ trùng trước khi có luật này (đo 18/10/2026).
+     *
+     * Danh sách nợ, không phải danh sách miễn trừ. Nó khoá tình trạng hiện
+     * tại để luật bắt được cái TIẾP THEO, thay vì phải dọn năm chỗ cũ trong
+     * một PR về bố cục trang chủ.
+     *
+     * Khoá theo TÊN chứ không theo số dòng: số dòng đổi mỗi lần ai đó thêm
+     * một luật ở trên, và một danh sách nợ đỏ vì lý do đó là một danh sách
+     * người ta sẽ xoá.
+     *
+     *  · `hero-hed`, `dtitle`, `ag-sn` — cố ý. Khối thang chữ tám nấc (PR
+     *    #112) gom mọi quyết định về cỡ tiêu đề vào một chỗ ở cuối tệp, và
+     *    nó ghi đè định nghĩa gốc đúng như thiết kế.
+     *  · `loc-item` — HAI định nghĩa gốc thật, khác hẳn nhau (padding 7/10
+     *    và 10/14, một cái có `border-top`). Cái sau thắng ở mọi nơi.
+     *  · `mpop-price` — hai định nghĩa gốc thật: 16px/700 và 18px/800.
+     *    Popup bản đồ luôn dùng cái sau; cái trước chưa bao giờ có tác dụng.
+     *
+     * Hai mục cuối là lỗi nhỏ nhưng là lỗi. Dọn chúng là việc của một lần
+     * dọn CSS, không phải của lát này — gỡ tên khỏi đây khi dọn xong.
+     */
+    const NO_CU = new Set(['hero-hed', 'dtitle', 'ag-sn', 'loc-item', 'mpop-price']);
+
+    const sai = [];
+
+    for (const [ten, dongSo] of sau) {
+        if (NO_CU.has(ten)) continue;
+
+        for (let i = 1; i < dongSo.length; i++) {
+            if (dongSo[i] - dongSo[i - 1] > XA) {
+                sai.push(`.${ten}: dòng ${dongSo[i - 1]} và dòng ${dongSo[i]}`);
+                break;
+            }
+        }
+    }
+
+    assert.deepEqual(
+        sai,
+        [],
+        'Hai khối CSS cách xa nhau cùng đặt tên một class — luật sau sẽ thắng ' +
+            'luật trước ở chỗ chúng chồng thuộc tính:\n  ' + sai.join('\n  '),
+    );
+});
