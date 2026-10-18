@@ -110,6 +110,28 @@ jobs:
             echo "-- 7h. Log service --"
             journalctl -u oohx-webapp -n 30 --no-pager 2>&1 | sed 's/^/   /'
 
+            echo "-- 7i. TEP NAO tren dia con giu ban cu --"
+            grep -rl 'tiên có AI' "$APP/webapp/.next" 2>/dev/null | head -20 > /tmp/cd-cu.txt
+            if [ -s /tmp/cd-cu.txt ]; then
+              while read -r f; do
+                echo "   $(stat -c '%y %s' "$f" 2>/dev/null)  ${f#$APP/webapp/}"
+              done < /tmp/cd-cu.txt
+            else
+              echo "   (khong tep nao duoi .next mang ban cu)"
+            fi
+            rm -f /tmp/cd-cu.txt
+
+            echo "-- 7j. Thu muc .next co gi --"
+            ls -la --time-style=full-iso "$APP/webapp/.next" 2>&1 | sed 's/^/   /'
+
+            echo "-- 7k. Goi lai hai lan, co tu doi khong --"
+            curl -s http://127.0.0.1:3001/ -o /tmp/cd2.html
+            echo "   lan 2: $(wc -c < /tmp/cd2.html) byte, dk-tabs=$(grep -c dk-tabs /tmp/cd2.html)"
+            sleep 4
+            curl -s http://127.0.0.1:3001/ -o /tmp/cd3.html
+            echo "   lan 3: $(wc -c < /tmp/cd3.html) byte, dk-tabs=$(grep -c dk-tabs /tmp/cd3.html)"
+            rm -f /tmp/cd2.html /tmp/cd3.html
+
             echo "==== HET KHOI 7 ===="
             exit 0
 
