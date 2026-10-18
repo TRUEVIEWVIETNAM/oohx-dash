@@ -1,5 +1,35 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { Open_Sans } from 'next/font/google';
+
+/**
+ * Open Sans tự host, thay cho `<link>` tới fonts.googleapis.com.
+ *
+ * ══ Ba thứ đổi, và vì sao đáng ══
+ *
+ *  1. **Không còn một vòng mạng ra Google** trước khi chữ hiện. Từ mạng Việt
+ *     Nam đó là một chặng không đoán trước được — cùng loại phụ thuộc đã làm
+ *     mười hai bản đồ nền xám hôm nay khi tile.openstreetmap.org trả 503.
+ *  2. **Next tự chèn `<link rel="preload">`** cho đúng tệp font mà trang
+ *     dùng. Bản `<link>` stylesheet thì trình duyệt phải tải CSS trước, đọc
+ *     `@font-face`, rồi mới xin font — hai vòng nối tiếp, và chữ nhảy đúng
+ *     quãng đó.
+ *  3. Subset tự cắt theo `subsets`, nên tệp nhỏ hơn.
+ *
+ * Giữ nguyên khoảng độ đậm 300–800 và biến thể nghiêng: `frontpage.css` khai
+ * các độ đậm trong khoảng đó, và nạp hẹp hơn thì trình duyệt tự tổng hợp nét
+ * đậm thiếu — chữ trông khác bản Blade ở đúng những chỗ ấy.
+ *
+ * `vietnamese` không phải tuỳ chọn: thiếu nó thì dấu tiếng Việt rơi về font
+ * dự phòng và chữ có dấu trông khác chữ không dấu trong cùng một dòng.
+ */
+const openSans = Open_Sans({
+    subsets: ['latin', 'latin-ext', 'vietnamese'],
+    style: ['normal', 'italic'],
+    display: 'swap',
+    variable: '--font-open-sans',
+});
+
 import { SiteFooter } from '@/components/SiteFooter';
 import { TrialNotice } from '@/components/TrialNotice';
 import './globals.css';
@@ -40,24 +70,20 @@ const TRIAL_MODE = (process.env.OOHX_TRIAL_MODE ?? 'true') !== 'false';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
     return (
-        <html lang="vi">
+        <html lang="vi" className={openSans.variable}>
             <head>
                 {/*
-                  Hai font của Google, chép ĐÚNG URL bản Blade dùng
-                  (`layouts/app.blade.php` dòng 15–18), kể cả khoảng biến thiên
-                  trong tham số.
+                  Material Symbols vẫn đi qua `<link>`, khác với Open Sans ở
+                  trên.
 
-                  Không rút gọn tham số cho "gọn": `frontpage.css` đặt
-                  `font-family: 'Open Sans'` và khai các độ đậm trong khoảng
-                  300–800. Nạp một khoảng hẹp hơn thì trình duyệt tự tổng hợp
-                  nét đậm thiếu, và chữ trên bản Next trông khác bản Blade ở
-                  đúng những chỗ dùng độ đậm không có.
+                  Vì sao không chuyển nốt: trang dùng đúng BA icon, nên cái giá
+                  của một vòng mạng ở đây nhỏ. Còn cái giá của việc chuyển thì
+                  không nhỏ — font này có bốn trục biến thiên
+                  (`opsz,wght,FILL,GRAD`), và `next/font` phải khai cố định
+                  từng trục. Khai sai một trục là icon đổi hình, và không phép
+                  kiểm nào của dự án nhìn thấy hình icon.
                 */}
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link
-                    rel="stylesheet"
-                    href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,400&display=swap"
-                />
                 <link
                     rel="stylesheet"
                     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"

@@ -82,6 +82,14 @@ const TRANG = [
             'class="city-card"',
             'class="city-bg"',
 
+            // Ảnh hai lưới phải đi qua trình tối ưu của Next (18/10/2026).
+            // Đo trên production trước khi sửa: 10,68 MB ảnh cho hai lưới,
+            // mỗi ảnh tỉnh là PNG 800x600 nặng ~1,15 MB hiển thị ở 159px.
+            // Sau khi chuyển: 0,23 MB, giảm 97,9%. Một thẻ <img> thô lọt
+            // lại vào đây sẽ không làm trang vỡ — nó chỉ lặng lẽ kéo thêm
+            // vài MB, đúng kiểu hỏng mà không ai nhìn thấy.
+            '/_next/image',
+
             // Phụ đề và nút của bản Blade, nguyên văn.
             'Outdoor, indoor, digital hay static',
             'Chọn thị trường để bắt đầu lên plan.',

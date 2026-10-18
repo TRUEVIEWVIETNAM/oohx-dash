@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { getHomeData, DEFAULT_CITY, type HomeData } from '@/lib/home';
 import { ANH_HERO_DASHBOARD } from '@/lib/anh-hero';
@@ -273,8 +274,12 @@ export default async function HomePage() {
                                         {/* Ảnh là tuỳ chọn; icon bên dưới luôn có, nên
                                             một loại chưa có ảnh vẫn ra thẻ đọc được. */}
                                         {vt.thumb ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img src={vt.thumb} alt={vt.name ?? ''} loading="lazy" />
+                                            <Image
+                                                src={vt.thumb}
+                                                alt={vt.name ?? ''}
+                                                fill
+                                                sizes={SIZES_CAT}
+                                            />
                                         ) : null}
                                         <div className="cat-icon">
                                             <span className="material-symbols-outlined">
@@ -339,11 +344,11 @@ export default async function HomePage() {
                                             }}
                                         >
                                             {city.photo ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img
+                                                <Image
                                                     src={city.photo}
                                                     alt={city.name ?? ''}
-                                                    loading="lazy"
+                                                    fill
+                                                    sizes={SIZES_CITY}
                                                 />
                                             ) : null}
                                         </div>
@@ -643,6 +648,34 @@ export default async function HomePage() {
  * phải lớp trang trí: `vietnam_provinces.photo_url` cho phép null, và một
  * tỉnh chưa có ảnh vẫn phải ra một thẻ đọc được thay vì một ô xám.
  */
+/**
+ * `sizes` phải khớp với breakpoint của lưới trong `frontpage.css`, nếu không
+ * trình duyệt tải nhầm cỡ.
+ *
+ * ══ Vì sao lát này tồn tại ══
+ *
+ * Đo trên production 18/10/2026: ảnh trang chủ nặng **11,19 MB**, và 95% nằm
+ * ở hai lưới này — tỉnh thành 9,20 MB, loại địa điểm 1,47 MB. Mỗi ảnh tỉnh là
+ * một PNG 800×600 nặng ~1,15 MB, hiển thị ở 159×119 trên điện thoại.
+ *
+ * Đó là lỗi tôi vừa đưa vào khi dựng lại hai lưới (PR #109): bản Blade cũng
+ * tải đúng những ảnh ấy, nhưng điều đó không làm nó đúng — nó chỉ làm nó cũ.
+ *
+ * `next/image` chuyển sang WebP/AVIF và cắt theo đúng cỡ hiển thị lẫn
+ * `devicePixelRatio`.
+ *
+ * ══ Đọc bảng này cùng `frontpage.css` ══
+ *
+ *   .cat-grid   2 cột → 3 (≥480) → 4 (≥768) → 5 (≥1024)
+ *   .city-grid  2 cột → 3 (≥640) → 4 (≥1024)
+ *
+ * Sai một bậc ở đây không làm trang vỡ — nó chỉ lặng lẽ tải ảnh to gấp đôi,
+ * đúng kiểu hỏng mà lát này sinh ra để chữa.
+ */
+const SIZES_CAT = '(min-width:1024px) 20vw, (min-width:768px) 25vw, (min-width:480px) 33vw, 50vw';
+
+const SIZES_CITY = '(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw';
+
 const DAI_MAU: Array<[string, string]> = [
     ['#1C3A5E', '#2A4FF6'],
     ['#1A3A2A', '#34C759'],
