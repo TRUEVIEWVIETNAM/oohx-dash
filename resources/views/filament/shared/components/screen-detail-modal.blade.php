@@ -146,8 +146,8 @@
                             .setView([{{ (float) $site->lat }}, {{ (float) $site->lon }}], 16);
                         el._lmap = map;
 
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            attribution: '\u00a9 OpenStreetMap', maxZoom: 19,
+                        L.tileLayer('{{ config('map.tile_url') }}', {
+                            attribution: '{!! config('map.tile_attribution') !!}', maxZoom: 19,
                         }).addTo(map);
 
                         L.marker([{{ (float) $site->lat }}, {{ (float) $site->lon }}]).addTo(map)

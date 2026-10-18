@@ -28,9 +28,10 @@
                  });
 
                  const map = L.map(el).setView([{{ $lat }}, {{ $lon }}], 16);
-                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                     attribution: '&copy; OpenStreetMap contributors',
-                     maxZoom: 19,
+                 L.tileLayer('{{ config('map.tile_url') }}', {
+                     attribution: '{!! config('map.tile_attribution') !!}',
+                     maxZoom: {{ config('map.tile_max_zoom') }},
+                     subdomains: '{{ config('map.tile_subdomains') }}',
                  }).addTo(map);
                  L.marker([{{ $lat }}, {{ $lon }}])
                      .addTo(map)

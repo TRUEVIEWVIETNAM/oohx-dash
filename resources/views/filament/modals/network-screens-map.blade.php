@@ -125,9 +125,10 @@
             shadowUrl:     '/vendor/leaflet/images/marker-shadow.png',
         });
         var map = L.map(mapEl).setView([16.0, 106.0], 6);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '\u00a9 OpenStreetMap contributors',
-            maxZoom: 19,
+        L.tileLayer('{{ config('map.tile_url') }}', {
+            attribution: '{!! config('map.tile_attribution') !!}',
+            maxZoom: {{ config('map.tile_max_zoom') }},
+            subdomains: '{{ config('map.tile_subdomains') }}',
         }).addTo(map);
         mapInst        = map;
         mapEl._mapInstance = map;   // persist for cross-IIFE cleanup on next open

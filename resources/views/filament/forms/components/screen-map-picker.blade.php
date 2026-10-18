@@ -74,9 +74,10 @@
 
             this.map = L.map(this.$refs.mapEl, { zoomControl: true }).setView([lat, lon], zoom);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap',
-                maxZoom: 19,
+            L.tileLayer('{{ config('map.tile_url') }}', {
+                attribution: '{!! config('map.tile_attribution') !!}',
+                maxZoom: {{ config('map.tile_max_zoom') }},
+                subdomains: '{{ config('map.tile_subdomains') }}',
             }).addTo(this.map);
 
             if (this.hasCoords) {

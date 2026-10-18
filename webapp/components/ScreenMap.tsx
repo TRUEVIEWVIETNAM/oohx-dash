@@ -12,6 +12,7 @@ import {
     type MapPin,
 } from '@/lib/ban-do';
 import type { Filters, Region } from '@/lib/api';
+import { themLopNen } from '@/lib/ban-do';
 import { BoLocThongMinh } from '@/components/BoLocThongMinh';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -231,14 +232,9 @@ export function ScreenMap({
                 attributionControl: false,
             });
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 18,
-            }).addTo(map);
+            themLopNen(L, map);
 
-            L.control
-                .attribution({ position: 'bottomleft', prefix: false })
-                .addAttribution('© <a href="https://openstreetmap.org">OSM</a>')
-                .addTo(map);
+            L.control.attribution({ position: 'bottomleft', prefix: true }).addTo(map);
 
             /*
              * `L` ở đây PHẢI là `.default`, không phải namespace của

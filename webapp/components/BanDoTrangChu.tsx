@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Map as LeafletMap, MarkerClusterGroup } from 'leaflet';
-import { mauPin, popupHtml, type MapPin } from '@/lib/ban-do';
+import { mauPin, popupHtml, themLopNen, type MapPin } from '@/lib/ban-do';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -97,10 +97,7 @@ export function BanDoTrangChu({
                 scrollWheelZoom: false,
             });
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap',
-                maxZoom: 19,
-            }).addTo(map);
+            themLopNen(L, map);
 
             const cum = (
                 L as unknown as { markerClusterGroup: () => MarkerClusterGroup }
