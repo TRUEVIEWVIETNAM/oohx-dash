@@ -390,6 +390,25 @@ const ROUTES = {
 
     '/api/v2/products': { data: [PRODUCT], meta: PAGE_META },
 
+    // Hai lưới thẻ "duyệt" của trang chủ.
+    //
+    // Fixture cố ý **thiếu ảnh một nửa**: `thumb` và `photo` đều cho phép
+    // null trong CSDL, và thiết kế thẻ phải chịu được điều đó — thẻ loại địa
+    // điểm có icon làm lớp nền, thẻ tỉnh thành có dải gradient. Một fixture
+    // chỉ có ảnh đầy đủ sẽ không bao giờ chứng minh được chuyện đó.
+    '/api/v2/browse': {
+        data: {
+            venue_types: [
+                { code: 'ngoai-troi', name: 'Ngoài trời', count: 103, icon: 'landscape', thumb: 'https://oohx.net/storage/venue/ngoai-troi.jpg' },
+                { code: 'ban-le', name: 'Bán lẻ', count: 1, icon: 'storefront', thumb: null },
+            ],
+            cities: [
+                { code: 'hanoi', name: 'Hà Nội', count: 13, photo: 'https://oohx.net/storage/provinces/hanoi.jpg' },
+                { code: 'son-la', name: 'Sơn La', count: 6, photo: null },
+            ],
+        },
+    },
+
     '/api/v2/locations': {
         data: [{ code: 'north', name: 'Miền Bắc', provinces: [{ code: 'hanoi', name: 'Hà Nội', count: 104 }] }],
     },

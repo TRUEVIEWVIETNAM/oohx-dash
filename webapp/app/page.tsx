@@ -57,7 +57,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-    const { stats, featuredScreens, featuredOwners, regions, filters, pins, products } =
+    const { stats, featuredScreens, featuredOwners, regions, filters, pins, products, browse } =
         await getHomeData(DEFAULT_CITY);
 
     return (
@@ -235,64 +235,131 @@ export default async function HomePage() {
                 */}
                 <ThanhTrust />
 
-                {/* ── Loại điểm đặt ──────────────────────────────────────── */}
-                {filters?.venue_types && filters.venue_types.length > 0 ? (
+                {/* ── Duyệt theo loại địa điểm ───────────────────────────── */}
+                {browse && browse.venue_types.length > 0 ? (
                     <section className="w" style={{ paddingTop: 48, paddingBottom: 48 }}>
                         <div className="sec-head">
-                            <span className="eyebrow">LOẠI ĐỊA ĐIỂM</span>
-                            <h2 className="section-hed">Duyệt theo địa điểm</h2>
+                            <div className="sec-head-row">
+                                <div>
+                                    <span className="eyebrow">LOẠI ĐỊA ĐIỂM</span>
+                                    <h2 className="section-hed">Duyệt theo Địa điểm</h2>
+                                    <p
+                                        className="section-sub"
+                                        style={{ marginTop: 10, fontSize: 16 }}
+                                    >
+                                        Outdoor, indoor, digital hay static — tất cả trên một nền
+                                        tảng.
+                                    </p>
+                                </div>
+                                <Link
+                                    href="/explore"
+                                    className="btn btn-s btn-sm"
+                                    style={{ marginTop: 6, flexShrink: 0 }}
+                                >
+                                    Tất cả
+                                    <MuiTen />
+                                </Link>
+                            </div>
                         </div>
 
-                        <div className="cat-chips">
-                            {filters.venue_types.map((facet) => (
+                        <div className="cat-grid">
+                            {browse.venue_types.map((vt) => (
                                 <Link
-                                    key={facet.code ?? facet.name}
-                                    className="cat-chip"
-                                    href={`/explore?venue_type=${encodeURIComponent(facet.code ?? '')}`}
+                                    key={vt.code ?? vt.name}
+                                    href={`/explore?venue_type=${encodeURIComponent(vt.code ?? '')}`}
+                                    className="cat-card"
                                 >
-                                    {facet.name}
-                                    {facet.count ? (
-                                        <> ({new Intl.NumberFormat('vi-VN').format(facet.count)})</>
-                                    ) : null}
+                                    <div className="cat-img">
+                                        {/* Ảnh là tuỳ chọn; icon bên dưới luôn có, nên
+                                            một loại chưa có ảnh vẫn ra thẻ đọc được. */}
+                                        {vt.thumb ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={vt.thumb} alt={vt.name ?? ''} loading="lazy" />
+                                        ) : null}
+                                        <div className="cat-icon">
+                                            <span className="material-symbols-outlined">
+                                                {vt.icon}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="cat-body">
+                                        <div className="cat-name">{vt.name}</div>
+                                        <div className="cat-meta">
+                                            {new Intl.NumberFormat('vi-VN').format(vt.count)} vị trí
+                                            <MuiTen />
+                                        </div>
+                                    </div>
                                 </Link>
                             ))}
                         </div>
                     </section>
                 ) : null}
-
-                {/* ── Tỉnh thành theo vùng ───────────────────────────────── */}
-                {regions.length > 0 ? (
-                    <section className="w" style={{ paddingTop: 48, paddingBottom: 64 }}>
-                        <div className="sec-head">
-                            <span className="eyebrow">MARKET COVERAGE</span>
-                            <h2 className="section-hed">
-                                {stats
-                                    ? `${new Intl.NumberFormat('vi-VN').format(stats.total_cities)} tỉnh thành`
-                                    : 'Tỉnh thành có inventory'}
-                            </h2>
-                        </div>
-
-                        <div className="ft-g">
-                            {regions.map((region) => (
-                                <div className="ft-col" key={region.code ?? region.name}>
-                                    <h4>{region.name}</h4>
-                                    <ul className="ft-ls">
-                                        {region.provinces.map((province) => (
-                                            <li key={province.code}>
-                                                <Link
-                                                    href={`/explore?city=${encodeURIComponent(province.code)}`}
-                                                >
-                                                    {province.name} (
-                                                    {new Intl.NumberFormat('vi-VN').format(
-                                                        province.count,
-                                                    )}
-                                                    )
-                                                </Link>
-                                            </li>
-                                        ))}
-                                    </ul>
+                {/* ── Tỉnh thành ─────────────────────────────────────────── */}
+                {browse && browse.cities.length > 0 ? (
+                    <section className="sec sec-gray">
+                        <div className="w">
+                            <div className="sec-head">
+                                <div className="sec-head-row">
+                                    <div>
+                                        <span className="eyebrow">MARKET COVERAGE</span>
+                                        <h2 className="section-hed">
+                                            {stats
+                                                ? `${new Intl.NumberFormat('vi-VN').format(stats.total_cities)} Tỉnh thành`
+                                                : 'Tỉnh thành có inventory'}
+                                        </h2>
+                                        <p
+                                            className="section-sub"
+                                            style={{ marginTop: 10, fontSize: 16 }}
+                                        >
+                                            Chọn thị trường để bắt đầu lên plan.
+                                        </p>
+                                    </div>
+                                    <Link
+                                        href="/explore"
+                                        className="btn btn-s btn-sm"
+                                        style={{ marginTop: 6, flexShrink: 0 }}
+                                    >
+                                        All markets
+                                        <MuiTen />
+                                    </Link>
                                 </div>
-                            ))}
+                            </div>
+
+                            <div className="city-grid">
+                                {browse.cities.map((city, i) => (
+                                    <Link
+                                        key={city.code ?? city.name}
+                                        href={`/explore?city=${encodeURIComponent(city.code ?? '')}`}
+                                        className="city-card"
+                                    >
+                                        <div
+                                            className="city-bg"
+                                            style={{
+                                                background: `linear-gradient(135deg,${DAI_MAU[i % DAI_MAU.length][0]},${DAI_MAU[i % DAI_MAU.length][1]})`,
+                                            }}
+                                        >
+                                            {city.photo ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img
+                                                    src={city.photo}
+                                                    alt={city.name ?? ''}
+                                                    loading="lazy"
+                                                />
+                                            ) : null}
+                                        </div>
+                                        <div className="city-info">
+                                            <div className="city-name">{city.name}</div>
+                                            <div className="city-count">
+                                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                                                </svg>
+                                                {new Intl.NumberFormat('vi-VN').format(city.count)}{' '}
+                                                vị trí
+                                            </div>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
                         </div>
                     </section>
                 ) : null}
@@ -569,6 +636,38 @@ export default async function HomePage() {
  * Màu lấy đúng bản Blade (xanh · lục · cam · tím) — nó là thứ tự màu người đọc
  * thấy.
  */
+/**
+ * Tám dải màu cho thẻ tỉnh thành, luân phiên theo thứ tự.
+ *
+ * Chép đúng bảng của bản Blade (`$cityGradients`). Nó là **lớp nền**, không
+ * phải lớp trang trí: `vietnam_provinces.photo_url` cho phép null, và một
+ * tỉnh chưa có ảnh vẫn phải ra một thẻ đọc được thay vì một ô xám.
+ */
+const DAI_MAU: Array<[string, string]> = [
+    ['#1C3A5E', '#2A4FF6'],
+    ['#1A3A2A', '#34C759'],
+    ['#3A1A3A', '#AF52DE'],
+    ['#3A1C1A', '#FF3B30'],
+    ['#1A2A3A', '#0071E3'],
+    ['#1D1D1F', '#3A3A3C'],
+    ['#2D1B4E', '#7C3AED'],
+    ['#1A3A3A', '#06B6D4'],
+];
+
+/** Mũi tên ">" của bản Blade, dùng ở nút "Tất cả" và dòng đếm vị trí. */
+function MuiTen() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            style={{ width: 14, height: 14, flexShrink: 0 }}
+            aria-hidden="true"
+        >
+            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+        </svg>
+    );
+}
+
 const BON_BUOC = [
     {
         so: '01',

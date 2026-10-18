@@ -38,6 +38,15 @@ export type OwnerSummary = components['schemas']['OwnerSummary'];
 export type Filters =
     paths['/api/v2/filters']['get']['responses'][200]['content']['application/json']['data'];
 
+/**
+ * Hai lưới thẻ 'duyệt': loại địa điểm và tỉnh thành, kèm ảnh.
+ *
+ * Dẫn xuất từ `paths` chứ không viết tay — hai khóa có hình dạng khác nhau,
+ * và khai lại bằng tay là bản thứ hai của một hợp đồng đã có.
+ */
+export type Browse =
+    paths['/api/v2/browse']['get']['responses'][200]['content']['application/json']['data'];
+
 async function get<T>(path: string, revalidate: number): Promise<T> {
     const response = await fetch(BASE + path, {
         headers: { Accept: 'application/json' },
@@ -61,13 +70,14 @@ export type HomeData = {
     pins: MapPin[];
     filters: Filters | null;
     products: ProductSummary[];
+    browse: Browse | null;
 };
 
 /** Thành phố mặc định cho bản đồ nhỏ. Cùng mặc định với bản Blade. */
 export const DEFAULT_CITY = 'hanoi';
 
 export async function getHomeData(city: string = DEFAULT_CITY): Promise<HomeData> {
-    const [stats, screens, owners, regions, pins, filters, products] = await Promise.allSettled([
+    const [stats, screens, owners, regions, pins, filters, products, browse] = await Promise.allSettled([
         // Số liệu tổng quan: đổi khi có màn hình mới được duyệt, nên 5 phút.
         get<{ data: HeroStats }>('/stats', 300),
 
@@ -89,6 +99,10 @@ export async function getHomeData(city: string = DEFAULT_CITY): Promise<HomeData
         // tên gói ấy ứng với bản ghi nào. Nên mục này đọc **gói thật** —
         // cùng dữ liệu `/products` đang phục vụ, nên bấm vào là tới đúng trang.
         get<{ data: ProductSummary[] }>('/products?per_page=3', 900),
+
+        // Hai lưới thẻ "duyệt". Đổi khi có loại địa điểm hoặc tỉnh thành mới
+        // có màn hình — tức rất ít, nên 30 phút.
+        get<{ data: Browse }>('/browse', 1800),
     ]);
 
     return {
@@ -99,6 +113,7 @@ export async function getHomeData(city: string = DEFAULT_CITY): Promise<HomeData
         pins: pins.status === 'fulfilled' ? pins.value.data : [],
         filters: filters.status === 'fulfilled' ? filters.value.data : null,
         products: products.status === 'fulfilled' ? products.value.data : [],
+        browse: browse.status === 'fulfilled' ? browse.value.data : null,
     };
 }
 

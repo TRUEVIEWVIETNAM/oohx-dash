@@ -862,6 +862,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/browse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Hai lưới thẻ "duyệt" của trang chủ — loại địa điểm và tỉnh thành
+         * @description Tách khỏi `/filters` vì hai thứ khác nhau: bộ lọc trả **từ vựng để lọc**, endpoint này trả **thẻ để nhìn** — kèm ảnh và icon, thứ mà `/filters` cố ý không mang.
+         *     `thumb` và `photo` có thể null. Thiết kế thẻ đã lường trước: thẻ loại địa điểm luôn có icon làm lớp nền, thẻ tỉnh thành luôn có dải gradient.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                venue_types: {
+                                    code: string | null;
+                                    name: string | null;
+                                    count: number;
+                                    icon: string;
+                                    thumb: string | null;
+                                }[];
+                                cities: {
+                                    code: string | null;
+                                    name: string | null;
+                                    count: number;
+                                    photo: string | null;
+                                }[];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/locations": {
         parameters: {
             query?: never;

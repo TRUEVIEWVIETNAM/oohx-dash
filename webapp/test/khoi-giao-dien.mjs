@@ -70,7 +70,24 @@ const TRANG = [
             'class="oc-feat"',
             'class="inv-grid"', // lưới màn hình, không phải lưới thẻ owner
             'class="oc-card', // thẻ owner (biến thể compact thêm hậu tố)
-            'class="ft-g"', // lưới liên kết tỉnh thành
+            // Hai lưới thẻ 'duyệt' (18/10/2026). Bản Blade có ảnh + icon +
+            // tên + số vị trí; bản Next đầu tiên rút xuống một hàng chip chữ
+            // và một danh sách liên kết kiểu chân trang, vì '/filters' và
+            // '/locations' là hai endpoint duy nhất có sẵn và cả hai đều
+            // không mang ảnh.
+            'class="cat-grid"',
+            'class="cat-card"',
+            'class="cat-icon"',
+            'class="city-grid"',
+            'class="city-card"',
+            'class="city-bg"',
+
+            // Phụ đề và nút của bản Blade, nguyên văn.
+            'Outdoor, indoor, digital hay static',
+            'Chọn thị trường để bắt đầu lên plan.',
+            'All markets',
+
+            'class="ft-g"', // lưới liên kết tỉnh thành ở chân trang
 
             // Hai khối lời hứa, chủ dự án chốt dựng nguyên văn 18/10/2026.
             // Chúng từng nằm trong danh sách `khong` của chính tệp này —
