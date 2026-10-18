@@ -214,14 +214,14 @@ const TRANG = [
             // đã chặn nó một lần ở PR #115; luật này chặn nó ở trang chủ.
             '/ban-cung-oohx',
 
-            // Ảnh SVG mô phỏng bảng điều khiển, gỡ 18/10/2026 khi bản đồ
-            // thật lên hero. Nó không mang một con số nào nên không thuộc
-            // nhóm F-15 — lý do gỡ là chỗ: nó chiếm vị trí đầu trang để vẽ
-            // một màn hình không có thật, trước khi người xem thấy một màn
-            // hình có thật.
-            'class="hero-browser"',
-            'class="hb-screen"',
-
+            // Dấu "Đã xác minh" trên thẻ owner, gỡ 18/10/2026 — xem docblock
+            // của `OwnerCard.tsx`. Trang chủ là chỗ nó gây hại nhất: nó đứng
+            // ngay dưới tiêu đề "Bạn đặt trực tiếp với chủ màn hình", cạnh
+            // ba dòng bảo đảm mà từng dòng đều chỉ ra được một điều có thật
+            // của sàn. Một câu không có nguồn đứng giữa ba câu có nguồn thì
+            // nó mượn được uy tín của cả ba.
+            'class="oc-card-ver"',
+            'Đã xác minh',
         ],
     },
     {
@@ -394,6 +394,12 @@ const TRANG = [
 
             // Câu "Thanh toán bảo mật bởi OOHX": sàn KHÔNG thu hộ.
             'Thanh toán bảo mật',
+
+            // Dấu "Đã xác minh" trên thẻ owner thu nhỏ, gỡ 18/10/2026 cùng
+            // với dấu trên `OwnerCard`. Trang này là chỗ THỨ HAI in nó, và
+            // một lệnh cấm chỉ ở một chỗ thì chỗ kia sẽ sống tiếp.
+            'class="oc-mini-ver"',
+            'Đã xác minh',
         ],
     },
     {
@@ -442,7 +448,20 @@ const TRANG = [
             'class="oc-card-cover"',
             'class="oc-card-stats"',
         ],
-        khong: ['class="oc"', 'class="oc-body"', 'class="oc-stats"'],
+        khong: [
+            'class="oc"',
+            'class="oc-body"',
+            'class="oc-stats"',
+
+            // Dấu "Đã xác minh" gỡ 18/10/2026. Cột `owners.verified` có
+            // thật nhưng là cờ quản trị bật tay — không quy trình kiểm định
+            // nào đứng sau. Chữ đó nói với người mua rằng SÀN đã kiểm.
+            //
+            // Fixture của stub đặt `verified: true` cho cả hai owner, nên
+            // nếu dấu quay lại thì nó quay lại Ở ĐÂY trước tiên.
+            'class="oc-card-ver"',
+            'Đã xác minh',
+        ],
     },
     {
         path: '/owners/owner-mot',
