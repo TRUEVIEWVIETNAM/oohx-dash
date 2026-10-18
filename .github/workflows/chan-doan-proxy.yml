@@ -43,8 +43,21 @@ name: Chẩn đoán proxy OpenLiteSpeed
 # mỗi cái đó là một KẾT QUẢ, không phải một sự cố. Nên tắt `set -e` cho phần
 # thân.
 #
-# Giữ `script_stop: true` vì nó vẫn còn tác dụng ở tầng ngoài: lỗi kết nối SSH
-# hay lỗi xác thực vẫn làm job đỏ, và đó mới là thứ đáng đỏ.
+# ══ `set +e` trong thân KHÔNG đủ — đo được 18/10/2026 ══
+#
+# Đoạn chú thích cũ ở đây kết luận: giữ `script_stop: true` vì `set +e` trong
+# thân đã lo phần còn lại. **Sai.** Lần chạy 39133117681 chết ở khối 2 với
+# `Process exited with status 2`, ngay sau dòng `echo "-- Những context từng
+# file đó khai --"`, tức ở `FILES=$(grep -rl … )` khi `grep` trả 2 vì
+# `Permission denied`. Khối 3, 4, 5, 6 chưa bao giờ in ra — đúng loại hỏng mà
+# khối chú thích ngay trên vừa mô tả, và nó đã sống ở đây từ lần sửa trước.
+#
+# Nên bài học cũ đúng mà cách sửa cũ sai: nay `script_stop: false`, và mỗi
+# script kết thúc bằng `exit 0` cho rõ ý.
+#
+# Mất gì: không mất gì đáng kể. Lỗi kết nối hay lỗi xác thực SSH xảy ra TRƯỚC
+# khi script chạy, nên action vẫn báo đỏ — `script_stop` chỉ quyết định việc
+# dừng giữa chừng một script đã bắt đầu.
 
 on:
   workflow_dispatch:
@@ -142,7 +155,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
-          script_stop: true
+          script_stop: false
           script: |
             # Xem khối ghi chú đầu file: mọi lệnh dưới đây có thể trả khác 0
             # một cách hợp lệ, và mỗi cái là một kết quả cần in ra.
@@ -234,43 +247,5 @@ jobs:
 
 
             echo
-            echo "════ 7. Vì sao trang chủ vẫn là bản cũ (18/10/2026) ════"
-            echo "   Đo từ ngoài: /products in '₫/tuần' (mã lát 3) nhưng / vẫn"
-            echo "   còn khối AI (mã lát 2). Hai đường, hai thế hệ mã."
-            echo
-            APP=/www/wwwroot/dash.oohx.net
-            echo "-- 7a. Checkout đang ở commit nào --"
-            git -C "$APP" log --oneline -3 2>&1 | sed 's/^/   /'
-            echo
-            echo "-- 7b. Service: thư mục làm việc, lệnh chạy, khởi động lúc nào --"
-            systemctl show oohx-webapp \
-                -p WorkingDirectory -p ExecStart -p ActiveEnterTimestamp -p MainPID 2>&1 \
-                | sed 's/^/   /'
-            echo
-            echo "-- 7c. Bản build trên đĩa: BUILD_ID và tệp prerender của / --"
-            ls -la --time-style=full-iso \
-                "$APP/webapp/.next/BUILD_ID" \
-                "$APP/webapp/.next/server/app/index.html" 2>&1 | sed 's/^/   /'
-            echo "   BUILD_ID = $(cat "$APP/webapp/.next/BUILD_ID" 2>&1)"
-            echo
-            echo "-- 7d. TỆP PRERENDER mang mã nào --"
-            echo "   khối AI (chỉ có ở lát 2) : $(grep -c 'đầu tiên có AI' "$APP/webapp/.next/server/app/index.html" 2>&1)"
-            echo "   dk-tabs (chỉ có ở lát 3) : $(grep -c 'dk-tabs' "$APP/webapp/.next/server/app/index.html" 2>&1)"
-            echo
-            echo "-- 7e. TIẾN TRÌNH đang chạy trả về mã nào (bỏ qua OLS và Cloudflare) --"
-            curl -s http://127.0.0.1:3001/ -o /tmp/chan-doan-home.html \
-                -w "   / cuc bo -> %{http_code}, %{size_download} byte\n" 2>&1
-            echo "   khối AI : $(grep -c 'đầu tiên có AI' /tmp/chan-doan-home.html 2>&1)"
-            echo "   dk-tabs : $(grep -c 'dk-tabs' /tmp/chan-doan-home.html 2>&1)"
-            rm -f /tmp/chan-doan-home.html
-            echo
-            echo "-- 7f. Cache ISR còn sót lại từ lần build trước? --"
-            ls -la --time-style=full-iso "$APP/webapp/.next/cache" 2>&1 | head -12 | sed 's/^/   /'
-            echo
-            echo "-- 7g. Có tiến trình next nào khác đang sống không --"
-            ps -eo pid,etime,cmd 2>/dev/null | grep -iE "next|node .*webapp" | grep -v grep | sed 's/^/   /'
-            echo
-            echo "-- 7h. Log service --"
-            journalctl -u oohx-webapp -n 30 --no-pager 2>&1 | sed 's/^/   /'
-            echo
             echo "════ HẾT ════"
+            exit 0
