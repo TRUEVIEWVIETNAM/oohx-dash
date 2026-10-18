@@ -31,7 +31,8 @@ jobs:
         run: |
           for f in deploy.sh rollback.sh \
                    docs/deploy/nextjs-proxy/oohx-sync-proxy.sh \
-                   tests/shell/thu-kiem-conf.sh; do
+                   tests/shell/thu-kiem-conf.sh \
+                   tests/shell/thu-dat-env.sh; do
             bash -n "$f" && echo "OK  $f"
           done
 
@@ -68,6 +69,14 @@ jobs:
       # OpenLiteSpeed khớp theo tiền tố nên nó nuốt `/api/v1`.
       - name: Phép kiểm cho script root
         run: bash tests/shell/thu-kiem-conf.sh
+
+      # `deploy.sh` là chỗ DUY NHẤT trong dự án ghi đè `.env` của production,
+      # và cùng tệp đó giữ `APP_KEY` với `DB_PASSWORD` — hai thứ không lấy lại
+      # được từ repo. Bộ thử trích đúng hàm `dat_env()` ra khỏi script thật rồi
+      # chạy mười trường hợp, trong đó nhánh đáng sợ nhất: secret chưa đặt thì
+      # biến rỗng, và một khóa đang chạy KHÔNG được biến mất vì chuyện đó.
+      - name: Phép kiểm cho hàm ghi .env
+        run: bash tests/shell/thu-dat-env.sh
 
   # Trang công khai trên Next.js (giai đoạn 6).
   #

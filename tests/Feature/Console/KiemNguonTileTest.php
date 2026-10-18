@@ -62,6 +62,29 @@ class KiemNguonTileTest extends TestCase
             ->assertFailed();
     }
 
+    public function test_gui_referer_vi_maptiler_chan_yeu_cau_khong_co_origin(): void
+    {
+        // MapTiler từ chối mọi yêu cầu không có `Origin` hay `Referer` ngay
+        // khi khóa có một dòng giới hạn origin. Trình duyệt tự gửi header đó
+        // cho mỗi ô ảnh; một lệnh chạy từ dòng lệnh thì không.
+        //
+        // Thiếu nó nghĩa là `map:kiem-tile` báo HỎNG cho một nguồn đang phục
+        // vụ khách bình thường — và một phép kiểm báo oan là một phép kiểm
+        // sẽ bị tắt.
+        Http::fake(['*' => Http::response($this->anh(27_862), 200, ['Content-Type' => 'image/jpeg'])]);
+
+        $this->artisan('map:kiem-tile')->assertSuccessful();
+
+        Http::assertSent(function (Request $r) {
+            $this->assertNotEmpty(
+                $r->header('Referer'),
+                'Không gửi `Referer` — MapTiler sẽ từ chối khi khóa có giới hạn origin.',
+            );
+
+            return true;
+        });
+    }
+
     public function test_url_mau_thay_du_bon_cho(): void
     {
         Http::fake(['*' => Http::response($this->anh(27_862), 200, ['Content-Type' => 'image/jpeg'])]);

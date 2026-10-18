@@ -117,7 +117,16 @@ class KiemNguonTile extends Command
     {
         try {
             $r = Http::timeout(20)
-                ->withHeaders(['User-Agent' => 'oohx.net map:kiem-tile'])
+                ->withHeaders([
+                    'User-Agent' => 'oohx.net map:kiem-tile',
+
+                    // Bắt buộc từ khi MapTiler bật giới hạn origin: một yêu
+                    // cầu KHÔNG có `Origin` hay `Referer` bị họ từ chối ngay
+                    // khi danh sách origin có một dòng. Trình duyệt tự gửi
+                    // header này cho mỗi ô ảnh; `curl` và lệnh này thì không,
+                    // nên không gửi là tự báo "HỎNG" cho một nguồn đang sống.
+                    'Referer' => rtrim((string) config('app.url'), '/') . '/',
+                ])
                 ->get($url);
         } catch (ConnectionException $e) {
             return [false, 'không nối được — ' . $e->getMessage()];

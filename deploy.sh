@@ -243,6 +243,45 @@ echo "[3/11] Update source"
 git fetch origin
 git reset --hard origin/$BRANCH
 
+# ── Khóa MapTiler: GitHub Secrets là nguồn, `.env` là bản sao ────────────────
+#
+# Vì sao không đặt tay một lần vào `.env` rồi quên đi: một khóa chỉ sống trên
+# đĩa máy chủ là một khóa không ai xoay được. Lần xoay sau phải SSH, và người
+# xoay phải nhớ rằng nó cũng nằm trong bản build Next. Để khóa ở GitHub
+# Secrets thì xoay = đổi secret + chạy lại deploy.
+#
+# Chỉ ghi khi biến được truyền xuống và khác rỗng. Không truyền thì `.env`
+# giữ nguyên — nên chạy `deploy.sh` bằng tay trên máy chủ không xóa mất gì.
+#
+# Phải chạy TRƯỚC bước 8 (`config:cache`): cache đọc `.env` một lần rồi đóng
+# băng, nên ghi sau đó là ghi cho lần deploy kế tiếp.
+dat_env() {
+    ten="$1"
+    gia_tri="$2"
+
+    [ -z "$gia_tri" ] && return 0
+    [ -f .env ] || { echo "   bỏ qua $ten: không có .env"; return 0; }
+
+    if [ "$(sed -n "s/^${ten}=//p" .env | head -1 | tr -d "\"' ")" = "$gia_tri" ]; then
+        echo "   $ten: đã đúng, không ghi lại"
+        return 0
+    fi
+
+    # Xóa dòng cũ rồi thêm lại, thay vì `sed -i` thay chỗ: giá trị có thể
+    # chứa ký tự mà sed coi là cú pháp. Ghi qua tệp tạm rồi đổ ngược vào
+    # `.env` để giữ nguyên quyền và chủ sở hữu của tệp.
+    grep -v "^${ten}=" .env > .env.dang-ghi
+    printf '%s=%s\n' "$ten" "$gia_tri" >> .env.dang-ghi
+    cat .env.dang-ghi > .env
+    rm -f .env.dang-ghi
+
+    echo "   $ten: đã cập nhật"
+}
+
+echo "[3b/11] Đồng bộ khóa MapTiler từ GitHub Secrets"
+dat_env MAPTILER_KEY "${MAPTILER_KEY:-}"
+dat_env MAPTILER_STYLE "${MAPTILER_STYLE:-}"
+
 echo ""
 echo "[4/11] Install composer dependencies"
 $COMPOSER_BIN install --no-interaction --prefer-dist --optimize-autoloader --no-dev
