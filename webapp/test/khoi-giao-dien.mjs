@@ -82,9 +82,10 @@ const TRANG = [
             'class="value-visual"',
             'class="vv-number"',
 
-            // Ảnh của mục AI là tệp trong `public/` của chính sàn, không phải
-            // hotlink — xem luật cấm `images.unsplash.com` ở `khong` bên dưới.
-            '/images/frontpage/ai-platform.jpg',
+            // Ảnh của mục AI hotlink nguyên văn bản Blade (chốt 18/10/2026).
+            // Luật này từng là một lệnh CẤM ở `khong`; nó đảo chiều cùng
+            // quyết định, không theo ý người viết test.
+            'images.unsplash.com/photo-1551836022-deb4988cc6c0',
             '3.2×',
             'Marketplace OOH đầu tiên có AI',
         ],
@@ -93,11 +94,6 @@ const TRANG = [
             'class="oc"',
             'class="oc-name"',
 
-            // Ảnh của mục AI phục vụ từ domain của mình, KHÔNG hotlink: một
-            // trang công khai phụ thuộc `images.unsplash.com` lúc chạy là
-            // thêm một điểm hỏng, và gửi referrer người đọc sang máy chủ khác.
-            // Cùng tấm ảnh, khác chỗ phục vụ.
-            'images.unsplash.com',
         ],
     },
     {

@@ -30,26 +30,25 @@
  * sót đợt đó vì nó dọn theo *con số*; đây là *lời khẳng định năng lực*. Chủ dự
  * án đã đọc danh sách trên và chốt dựng lại nguyên văn.
  *
- * ══ Ảnh: đúng tấm của bản Blade, nhưng phục vụ từ domain của mình ══
+ * ══ Ảnh: hotlink nguyên văn bản Blade ══
  *
- * Chủ dự án chốt dùng đúng ảnh cũ (18/10/2026). Tệp đã tải về
- * `public/images/frontpage/ai-platform.jpg` (JPEG 800×1200, 155 KB) thay vì
- * hotlink `images.unsplash.com`.
+ * Chủ dự án chốt ba lần về tấm ảnh này (18/10/2026), và lần chốt cuối là
+ * **hotlink như cũ** — URL `images.unsplash.com` nằm thẳng trong HTML, đúng
+ * như `frontpage/index.blade.php` từng làm.
  *
- * Cùng một tấm ảnh, nhưng bỏ được hai thứ đi kèm hotlink: trang công khai
- * không còn phụ thuộc một CDN bên thứ ba lúc chạy (Unsplash chậm, đổi URL hay
- * chặn hotlink thì ô ảnh trống), và không còn gửi referrer của người đọc sang
- * máy chủ khác mỗi lần mở trang chủ.
+ * Hai thứ đi kèm lựa chọn đó, ghi lại để không ai phải tìm lại khi nó xảy ra:
  *
- * Đường `/images/*` do Laravel phục vụ trên production — OpenLiteSpeed định
- * tuyến các đường tĩnh về đó, và `webapp/` không có thư mục `public` riêng
- * (xem ghi chú ở `lib/logo.ts` và `lib/anh-hero.ts`). Nên ở môi trường test
- * chỉ chạy `next start`, ảnh này 404 — chốt khối giao diện kiểm chuỗi HTML
- * nên điều đó không ảnh hưởng, nhưng đừng ngạc nhiên khi xem thử cục bộ.
+ *  - Trang chủ phụ thuộc một CDN bên thứ ba **lúc chạy**. Unsplash chậm, đổi
+ *    URL hay chặn hotlink thì ô ảnh trống, và không có gì ở phía mình để sửa.
+ *  - Mỗi lượt mở trang chủ gửi referrer `oohx.net` sang máy chủ của Unsplash.
+ *
+ * Tệp tự host đã từng có ở `public/images/frontpage/ai-platform.jpg` (PR #95)
+ * và đã gỡ cùng lần đổi này. Muốn quay lại thì nó còn trong lịch sử git.
  */
 
-/** Ảnh nền ô "3.2×" — đúng tấm của bản Blade, phục vụ từ domain của mình. */
-const ANH_AI = '/images/frontpage/ai-platform.jpg';
+/** Ảnh nền ô "3.2×" — hotlink nguyên văn bản Blade. */
+const ANH_AI =
+    'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=800&q=80&auto=format&fit=crop';
 
 const TRUST: { nhan: string; path: string }[] = [
     {
