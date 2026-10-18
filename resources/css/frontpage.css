@@ -1416,7 +1416,6 @@ input[type=range]{width:100%;accent-color:var(--bl);cursor:pointer}
 .rh-count{font-size:13px;font-weight:600;color:var(--t2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rh-count strong{color:var(--bl)}
 .view-btn{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--t3);border:1.5px solid var(--ln2);cursor:pointer;transition:all 140ms;background:#fff}
-@media(max-width:767px){.view-btn{display:none}}
 .view-btn svg{width:18px;height:18px}
 .view-btn.on{background:var(--bl-lt);border-color:var(--bl);color:var(--bl)}
 .inv-grid{display:grid;grid-template-columns:1fr;gap:12px}
@@ -2221,11 +2220,6 @@ body.page-map{overflow:hidden}
 .inv-grid.list-view .sc-photo{width:200px;height:auto;min-height:160px}
 .inv-grid.list-view .sc-body{display:flex;flex-direction:column}
 .inv-grid.list-view .sc-foot{border-top:0;margin-top:auto;border-left:1px solid var(--ln2);flex-direction:column;align-items:flex-end;padding:14px}
-@media(max-width:640px){
-    .inv-grid.list-view .sc-card{flex-direction:column}
-    .inv-grid.list-view .sc-photo{width:100%;min-height:140px}
-    .inv-grid.list-view .sc-foot{border-left:0;border-top:1px solid var(--ln2);flex-direction:row}
-}
 @media(min-width:768px){.sc-photo{height:190px}}
 
 /* ── Phase 1 — Inventory Intelligence (detail page tab) ──────────────── */
@@ -2773,6 +2767,179 @@ body.page-map{overflow:hidden}
     .sec{padding:48px 0}
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * /explore trên điện thoại và máy tính bảng (18/10/2026)
+ *
+ * ── Đo trước khi sửa, 9 bề ngang ──────────────────────────────────────────
+ *
+ *   360 / 390 / 480    1 cột   thẻ 345–465 × 418   24 thẻ ≈ 10.368px ≈ 12 màn
+ *   640 / 768 / 834    2 cột   thẻ 306–402 × 421   24 thẻ ≈  5.220px
+ *   1024               3 cột   thẻ 324 × 421       24 thẻ ≈  3.480px
+ *   1280 / 1440        4 cột   thẻ 303–307 × 421   24 thẻ ≈  2.610px
+ *
+ * KHÔNG bề ngang nào tràn ngang — khác hẳn trang chủ. Vấn đề của trang này
+ * không phải vỡ bố cục mà là một cột thẻ DỌC cao 418px, hai mươi bốn lần.
+ *
+ * ── Bộ thẻ ngang đã có sẵn, và bị tắt đúng chỗ cần nó ────────────────────
+ *
+ * `frontpage.css` đã mang một biến thể `list-view` xếp thẻ nằm ngang. Hai
+ * luật làm nó vô dụng trên điện thoại:
+ *
+ *   .view-btn{display:none} dưới 767px  → nút đổi kiểu xem ẩn trên
+ *                                        điện thoại (đã gỡ hẳn)
+ *   list-view .sc-card{flex-direction:column} dưới 640px  → kể cả bật
+ *                                        được, thẻ vẫn lật về dọc (đã gỡ hẳn)
+ *
+ * Nên trên điện thoại chỉ có một cách xem, và đó là cách tốn chỗ nhất.
+ * Người dùng không chọn thế — không ai cho họ chọn.
+ *
+ * Khối này không dựng bộ thẻ ngang thứ hai. Nó làm dạng ngang thành MẶC
+ * ĐỊNH dưới 768px, và trả nút đổi kiểu xem về cho người dùng.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Lát 1 — thẻ nằm ngang, mặc định dưới 768px ───────────────────────────
+ *
+ * Dùng `grid` chứ không `flex-direction:row`: thẻ có BA con ruột
+ * (`.sc-photo`, `.sc-body`, `.sc-foot`), nên `row` cho ba cột cạnh nhau.
+ * Lưới cho phép ảnh chiếm cả hai hàng bên trái còn thân và chân xếp chồng
+ * bên phải, mà không phải thêm một thẻ bọc nào trong TSX.
+ */
+@media(max-width:767px){
+    /* MỘT cột chừng nào thẻ còn nằm ngang.
+     *
+     * `.inv-grid` chuyển 2 cột từ 520px. Đo khi chưa có dòng này: ở 520px
+     * ra hai cột thẻ NGANG rộng 246px, ảnh ăn 104px nên chữ còn 142px —
+     * thẻ cao 210px và 24 thẻ thành 5.328px, DÀI HƠN cả ở 479px (4.128px).
+     * Thẻ ngang cần bề ngang; chia đôi nó là bỏ hết cái lợi. */
+    .inv-grid{grid-template-columns:1fr}
+
+    .inv-grid .sc-card{
+        display:grid;
+        grid-template-columns:104px 1fr;
+        grid-template-rows:auto auto;
+        align-items:stretch;
+    }
+
+    .inv-grid .sc-photo{
+        grid-column:1;
+        grid-row:1 / span 2;
+        width:104px;
+        height:100%;
+        min-height:104px;
+    }
+
+    /* Ảnh to dần khi còn chỗ. Ở 767px thẻ rộng 752px, nên một ô ảnh 104px
+       để lại 648px chữ cho ba dòng thông số — thừa chỗ mà ảnh thì bé. */
+
+    .inv-grid .sc-body{grid-column:2;grid-row:1;padding:11px 12px 0}
+    .inv-grid .sc-foot{grid-column:2;grid-row:2;padding:9px 12px;margin-top:8px}
+
+    /* Nhãn "Còn trống" tràn ra ngoài ô ảnh 104px khi nó ở góc trên trái.
+       Đưa xuống đáy và thu nhỏ. */
+    .inv-grid .sc-badge{top:auto;bottom:6px;left:6px;right:6px;padding:2px 6px;font-size:9.5px;text-align:center}
+
+    /* Tiêu đề một dòng: hai dòng trong một cột hẹp đẩy mọi thứ xuống, và
+       phần lớn tên màn hình production là mã nội bộ dài
+       (`OOHX_LED_YBI_YEN_BAI_NGUYEN_TAT_THANH_1`) — cắt ở một dòng không
+       mất thông tin nào người đọc dùng được. */
+    .inv-grid .sc-title{font-size:14px;-webkit-line-clamp:1}
+    .inv-grid .sc-breadcrumb{font-size:10.5px;margin-bottom:2px}
+    .inv-grid .sc-loc{font-size:11.5px;margin-top:3px}
+
+    /* Thông số: từ bảng nhãn–giá trị xếp dọc thành chip chạy ngang.
+       Ba hàng × 20px thành một đến hai dòng. */
+    .inv-grid .sc-specs{flex-direction:row;flex-wrap:wrap;gap:3px 10px;margin-top:7px}
+    .inv-grid .sc-spec{justify-content:flex-start;gap:4px;font-size:11px}
+    .inv-grid .sc-spec-v{text-align:left}
+
+    /* Nút "Chi tiết" là một <span> trang trí — cả thẻ ĐÃ là một <Link>.
+       Luật vùng chạm 44px (#111) kéo nó lên 44px, nên một nhãn không bấm
+       riêng được đang chiếm 44 trong 188px chiều cao thẻ. Vùng chạm thật
+       là cả thẻ, rộng hơn 44px rất nhiều. */
+    .inv-grid .sc-btn{display:none}
+    .inv-grid .sc-foot{justify-content:flex-start}
+
+    .inv-grid .sc-price{font-size:15px}
+    .inv-grid .sc-price-quote{font-size:11.5px;padding:4px 8px}
+
+    /* `:hover` trên màn hình cảm ứng kẹt lại sau khi chạm: thẻ nhấc lên 4px
+       rồi ở nguyên đó cho tới lần chạm sau. */
+    .inv-grid .sc-card:hover{transform:none;box-shadow:var(--sh1);border-color:var(--ln2)}
+
+    /* `list-view` dưới 768px nay trùng với mặc định, nên luật lật-về-dọc cũ
+       (dòng 2225) không còn chỗ đứng — nó bị gỡ khỏi chỗ cũ. */
+}
+
+@media(min-width:560px) and (max-width:767px){
+    .inv-grid .sc-card{grid-template-columns:168px 1fr}
+    .inv-grid .sc-photo{width:168px}
+    .inv-grid .sc-title{font-size:15px}
+}
+
+/* ── Lát 2 — thanh công cụ kết quả dùng được bằng ngón tay ────────────────
+ *
+ * `.view-btn` 36px và ẩn hẳn dưới 768px; `.sort-sel` 36px. Luật vùng chạm
+ * 44px của PR #111 phủ `.btn-sm`, `.btn-xs`, `.hmc-btn`, `.ms-pill` — không
+ * phủ hai cái này, vì lúc đó `/explore` chưa được soát.
+ *
+ * Trả nút đổi kiểu xem về: giờ nó có việc thật để làm, là đổi giữa thẻ ngang
+ * (mặc định mới) và lưới ảnh lớn.
+ */
+@media(max-width:767px){
+    .view-btn{display:flex;width:44px;height:44px}
+    .sort-sel{min-height:44px;font-size:13px}
+
+    /* `.rh-count` đang `white-space:nowrap` + `text-overflow:ellipsis`: ở
+       360px nó cắt mất chữ. Cho xuống dòng thay vì cắt. */
+    .results-header{flex-wrap:wrap;gap:8px}
+    .rh-count{white-space:normal;flex-basis:100%;order:-1}
+}
+
+/* ── Lát 3 — dải đầu trang ────────────────────────────────────────────────
+ *
+ * `<h1>` ở 390px là 28px và vỡ hai dòng ("Khám phá / Inventory"), đẩy ô tìm
+ * kiếm xuống. Lùi một nấc trong thang tám nấc (PR #112) chứ không đặt một cỡ
+ * mới. Chữ "Khám phá Inventory" giữ nguyên — nó là chữ của chủ dự án.
+ */
+@media(max-width:559px){
+    .ex-hero{padding:14px 0 12px}
+    .ex-top{gap:10px}
+}
+
+/* Nút "Bản đồ" còn icon ở màn hình hẹp.
+ *
+ * Đo ở 390px: nút rộng 97px, nên tiêu đề chỉ còn 224px và "Khám phá
+ * Inventory" vỡ hai dòng — dải đầu cao 70px thay vì 35px. Bỏ chữ thì nút
+ * còn ~44px và tiêu đề đủ một dòng.
+ *
+ * Cùng cách `.ms-submit-txt` của ô tìm kiếm lớn đã làm, nên đây không phải
+ * một kiểu mới. Liên kết mang `aria-label` để khi chữ ẩn đi nó vẫn còn tên
+ * đọc được — một nút chỉ có icon mà không có tên là một nút câm. */
+@media(max-width:479px){
+    .ph-map-btn-txt{display:none}
+    .ph-map-btn{padding:0;width:44px;height:44px;justify-content:center}
+}
+
+/* Cỡ chữ của `.ex-title` KHÔNG đặt ở đây: khối thang chữ cuối tệp đứng sau
+   và thắng ở cùng độ cụ thể. Nó nằm trong chính khối đó — xem mục
+   "Những chỗ thang bị ghi đè ở cấp media query". */
+
+/* ── Lát 4 đã BỎ, và ghi lại vì sao ──────────────────────────────────────
+ *
+ * Kế hoạch có một lát thứ tư: thay `height:180px/190px` cố định của
+ * `.sc-photo` bằng `aspect-ratio`, để khung cắt ảnh không đổi theo bề rộng
+ * cột (306px ở 640, 402px ở 834).
+ *
+ * Đo sau khi làm: ở 768px ảnh từ 190px thành **229px**, thẻ từ 421 thành
+ * **460px**, và 24 thẻ từ 5.220 thành **11.328px**. Nó chữa một chuyện nhỏ
+ * — phần ảnh bị cắt đổi theo cột, mà `object-fit:cover` vốn đã không làm
+ * méo ảnh — rồi trả giá bằng hơn gấp đôi chiều dài trang.
+ *
+ * Giữ `height` cố định. Ghi lại ở đây để lần sau không ai đề xuất lại nó mà
+ * không biết cái giá.
+ */
+
 /* ══════════════════════════════════════════════════════════════════════════
  * THANG CHỮ — một bậc thang, bảy nấc (18/10/2026)
  *
@@ -2989,6 +3156,17 @@ h3{font-size:var(--fs-3)}
     /* Luật cũ đặt 20px ở đây, thấp hơn cả nấc nhỏ nhất của `--fs-1` (28px).
        Trả nó về thang; `clamp()` đã lo phần thu nhỏ trên màn hình hẹp. */
     .fp-name{font-size:var(--fs-1)}
+}
+
+@media(max-width:559px){
+    /* `<h1>` của `/explore` — "Khám phá Inventory" — ở 390px là 28px và vỡ
+       thành hai dòng, chiếm 90px rồi đẩy ô tìm kiếm xuống. Lùi một nấc:
+       `--fs-2` cho 22px ở bề ngang đó, đủ cho một dòng.
+
+       Luật này nằm Ở ĐÂY chứ không trong khối `/explore` phía trên tệp, vì
+       khối thang chữ đứng sau và thắng ở cùng độ cụ thể — đặt ở đó thì nó
+       không có tác dụng, và tôi đã viết hỏng đúng một lần như thế. */
+    .ex-title{font-size:var(--fs-2)}
 }
 
 @media(min-width:768px){
