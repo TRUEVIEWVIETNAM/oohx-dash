@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 use App\Filament\Resources\OwnerResource;
 use App\Filament\Resources\ScreenResource;
 use App\Filament\Resources\SiteResource;
+use App\Filament\Widgets\NguonBanDoWidget;
 use App\Filament\Widgets\OohxHealthSummaryWidget;
 use App\Filament\Widgets\RegistryStatsWidget;
 use Filament\Http\Middleware\Authenticate;
@@ -50,7 +51,11 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->discoverWidgets(in: app_path('Filament/Shared/Widgets'), for: 'App\\Filament\\Shared\\Widgets')
             ->pages([Dashboard::class])
-            ->widgets([RegistryStatsWidget::class, OohxHealthSummaryWidget::class])
+            ->widgets([
+                RegistryStatsWidget::class,
+                OohxHealthSummaryWidget::class,
+                NguonBanDoWidget::class,
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

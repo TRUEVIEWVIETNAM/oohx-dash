@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Map\TrangThaiNguonTile;
 use Illuminate\Console\Command;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -54,6 +55,7 @@ class KiemNguonTile extends Command
             ];
 
         $hong = 0;
+        $ketQua = [];
 
         foreach ($nguon as $ten => $mauUrl) {
             $url = $this->dungUrl($mauUrl, $mau);
@@ -63,9 +65,21 @@ class KiemNguonTile extends Command
                 . " {$ten}: {$noiDung}");
             $this->line('       ' . $this->giauKhoa($url));
 
+            $ketQua[] = ['ten' => $ten, 'ok' => $ok, 'mo_ta' => $noiDung];
+
             if (! $ok) {
                 $hong++;
             }
+        }
+
+        // Ghi cả khi xanh, không chỉ khi đỏ. Widget trên `/admin` cần biết
+        // "lần soát gần nhất lúc nào" để nói được một chuyện mà bản thân kết
+        // quả không nói: lịch có còn chạy không.
+        //
+        // Bỏ qua khi soát một `--url` lẻ: đó là người đang thử tay một nguồn
+        // nào đó, không phải trạng thái của hệ thống.
+        if (! $this->option('url')) {
+            app(TrangThaiNguonTile::class)->ghi($ketQua);
         }
 
         if ($hong > 0) {
