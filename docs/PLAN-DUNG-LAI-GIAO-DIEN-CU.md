@@ -613,18 +613,20 @@ và để nếu có người hỏi thì không ai phải đi tìm:
 Bốn thẻ "Điểm nổi bật" in **vô điều kiện cho mọi màn hình** — chúng không
 đọc trường nào của `screen`.
 
-### Một chỗ KHÔNG nguyên văn, và vì sao
+### Ảnh: đúng tấm cũ, phục vụ từ domain của mình (chốt 18/10/2026)
 
-Ảnh nền ô "3.2×". Bản Blade hotlink
-`images.unsplash.com/photo-1551836022-…`. Giữ nguyên là thêm một điểm hỏng
-trên trang công khai — Unsplash chậm, đổi URL hay chặn hotlink thì ô ảnh
-trống — cộng một câu hỏi bản quyền cho ảnh nền thương mại. Thay bằng SVG
-dựng tại chỗ (`ANH_AI_MINH_HOA` trong `webapp/lib/anh-hero.ts`), cùng cách
-`lib/logo.ts` và ảnh mô phỏng bảng điều khiển ở lát 2 đã làm. Ảnh không
-mang số liệu nào.
+Lần đầu tôi thay ảnh nền ô "3.2×" bằng một SVG dựng tại chỗ, vì bản Blade
+hotlink `images.unsplash.com`. Chủ dự án chốt **dùng đúng ảnh cũ**.
 
-Muốn ảnh chụp thật thì tải tệp về `public/` và trỏ tới nó — một lần thêm
-tệp, không phải một lần sửa mã.
+Đã tải tệp về `public/images/frontpage/ai-platform.jpg` (JPEG 800×1200,
+155 KB) thay vì hotlink. Cùng một tấm ảnh, nhưng bỏ được hai thứ đi kèm
+hotlink: trang công khai không còn phụ thuộc một CDN bên thứ ba **lúc chạy**
+(Unsplash chậm, đổi URL hay chặn hotlink thì ô ảnh trống), và không còn gửi
+referrer của người đọc sang máy chủ khác mỗi lần mở trang chủ.
+
+Đường `/images/*` do Laravel phục vụ trên production. Ở môi trường test chỉ
+chạy `next start` thì ảnh này 404 — chốt kiểm chuỗi HTML nên không ảnh
+hưởng, nhưng đừng ngạc nhiên khi xem thử cục bộ.
 
 ### Chốt đổi chiều
 
