@@ -44,12 +44,48 @@ const nextConfig: NextConfig = {
         // Ảnh màn hình do media owner tải lên, phục vụ từ chính tên miền này
         // qua Laravel. Không khai `remotePatterns` rộng: cho phép tối ưu ảnh từ
         // host bất kỳ là biến trình tối ưu thành một proxy tải ảnh hộ người lạ.
+        //
+        // ══ Vì sao danh sách chứ không một giá trị ══
+        //
+        // Bản trước viết `process.env.OOHX_PUBLIC_HOST ?? 'oohx.net'` — một
+        // host duy nhất, do biến môi trường quyết định. Trên production biến
+        // đó **không phải `oohx.net`**, nên danh sách cho phép không chứa
+        // chính tên miền đang phục vụ ảnh.
+        //
+        // Hậu quả, đo ngay sau khi deploy #110 (18/10/2026): mười ảnh của hai
+        // lưới đều đi qua `/_next/image` và **cả mười trả HTTP 400** kèm
+        // `"url" parameter is not allowed`.
+        //
+        // Đã tái hiện tại chỗ để chắc nguyên nhân, không dừng ở suy luận:
+        // chạy bản cấu hình cũ với `OOHX_PUBLIC_HOST=dash.oohx.net` cho ra
+        // **đúng thông điệp ấy**; chạy bản này với cùng biến cho 200 WebP.
+        // (Giả thuyết đầu của tôi là biến bị đặt rỗng — thử ra "Internal
+        // Server Error", thông điệp khác, nên giả thuyết đó sai.)
+        //
+        // Trang vẫn trông bình thường suốt thời gian đó: thẻ loại địa điểm có
+        // icon, thẻ tỉnh thành có dải gradient. Không có gì để thấy ngoài
+        // việc ảnh không bao giờ về.
+        //
+        // Nên `oohx.net` nằm **cố định** trong danh sách, và biến môi trường
+        // chỉ *thêm* một host nữa. Một biến đặt sai không còn gỡ được tên
+        // miền chính ra khỏi cấu hình. Lọc chuỗi rỗng là phần phụ — `??` giữ
+        // nguyên chuỗi rỗng, và cùng cái bẫy đó đã làm hỏng `MAPTILER_STYLE`
+        // sáng cùng ngày.
         remotePatterns: [
-            {
-                protocol: 'https',
-                hostname: process.env.OOHX_PUBLIC_HOST ?? 'oohx.net',
-            },
-        ],
+            ...new Set(
+                [process.env.OOHX_PUBLIC_HOST, 'oohx.net']
+                    .map((h) => (h ?? '').trim())
+                    .filter(Boolean),
+            ),
+        ].map((hostname) => ({
+            protocol: 'https' as const,
+            hostname,
+
+            // Chỉ thư mục ảnh công khai của Laravel. Thiếu dòng này thì trình
+            // tối ưu nhận mọi đường dẫn trên tên miền, kể cả những đường sau
+            // này có thể trả tệp do người dùng tải lên mà không qua kiểm.
+            pathname: '/storage/**',
+        })),
     },
 
     // Không để Next phát `X-Powered-By`.
