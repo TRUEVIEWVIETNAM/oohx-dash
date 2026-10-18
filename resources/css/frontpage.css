@@ -2746,19 +2746,27 @@ body.page-map{overflow:hidden}
  * mục, trên một màn hình cao 731px. Sáu mục dùng nó, nên chỉ riêng khoảng
  * trắng đã chiếm hơn một màn hình rưỡi.
  *
- * Nói rõ giới hạn của luật này: nó cắt khoảng trắng, không cắt nội dung. Hai
- * mục dài nhất ("Marketplace OOH đầu tiên có AI" 1.317px và "4 bước đặt
- * booking" 1.148px) dài vì chúng CÓ nhiều nội dung — bốn thẻ mô tả mỗi mục.
- * Rút chúng ngắn thật sự là bỏ bớt thẻ hoặc cho cuộn ngang, và đó là một
- * quyết định về nội dung, không phải về CSS.
+ * ── Giới hạn đã nêu ở đây, và nó sai một nửa (sửa 18/10/2026) ─────────────
+ *
+ * Bản trước viết: hai mục dài nhất ("Marketplace OOH đầu tiên có AI"
+ * 1.317px và "4 bước đặt booking" 1.148px) *"dài vì chúng CÓ nhiều nội
+ * dung… rút ngắn thật sự là bỏ bớt thẻ hoặc cho cuộn ngang, và đó là một
+ * quyết định về nội dung, không phải về CSS."*
+ *
+ * Đúng với mục AI, và nó đã được giải quyết đúng như thế: chủ dự án chốt
+ * **bỏ cả mục** ở lát 3 (#117). Hai luật `.ai-cards` / `.ai-card` từng ở
+ * khối này đi theo nó.
+ *
+ * Sai với "4 bước". Mục đó dài không vì lượng chữ mà vì CÁCH XẾP: số thứ
+ * tự là một ô vuông 48px nằm TRÊN tiêu đề, nên mỗi thẻ có ba tầng dọc cho
+ * một ý. Xếp số sang bên trái thì thẻ còn 103px thay vì 185px, và không
+ * mất một chữ nào — xem khối "Nén hai khối dài nhất" phía trên.
+ *
+ * `.step-card{padding}` của khối này cũng đã chuyển lên đó, vì padding và
+ * cách xếp phải đổi cùng nhau.
  */
 @media(max-width:767px){
     .sec{padding:48px 0}
-
-    .step-card{padding:20px 18px}
-
-    .ai-cards{gap:10px}
-    .ai-card{padding:14px}
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -2830,6 +2838,96 @@ body.page-map{overflow:hidden}
  * `!important` ở đây sẽ chặn mọi lần ghi đè hợp lệ về sau, kể cả của chính
  * tệp này.
  */
+
+
+/* ── Nén hai khối dài nhất trên điện thoại (18/10/2026) ───────────────────
+ *
+ * Đo ở 390×844 (iPhone 14 Pro), sau khi bố cục mới xong:
+ *
+ *   trang chủ         4.931px = 5,8 màn hình
+ *   ④ bốn bước          997px = 1,18 màn   ← dài nhất
+ *   ① hero              978px = 1,16 màn
+ *   ⑤ niềm tin          935px = 1,11 màn   ← nhì
+ *   ③ hai cách mua      822px
+ *   ⑥ mời lên sàn       587px
+ *   ② duyệt kho         556px
+ *
+ * Hero thì đã nén ở #116 và phần còn lại của nó là ô tìm kiếm, ba ô số liệu
+ * và bản đồ — cắt nữa là cắt vào thứ người ta tới để dùng. Hai khối kia thì
+ * dài vì CÁCH XẾP, không vì lượng thông tin.
+ *
+ * Không đụng khối ③: hai ô "cách mua" là nút bấm chính của trang.
+ * Không đụng thẻ owner: chúng mang thông tin thật và dùng chung với
+ * `/owners`.
+ */
+
+/* ── ④ Bốn bước: xếp NGANG trên điện thoại ────────────────────────────────
+ *
+ * Mỗi thẻ đang cao 185px vì số thứ tự là một ô vuông 48px nằm TRÊN tiêu đề,
+ * rồi mới tới mô tả — ba tầng dọc cho một ý. Bốn thẻ thành 744px.
+ *
+ * Xếp ngang thì số đứng cạnh chữ và chiều cao chỉ còn bằng chính khối chữ.
+ * Giữ nguyên câu chữ — bốn câu đó là nguyên văn bản Blade, chủ dự án đã
+ * chốt hai lần (#97, và lần nữa khi duyệt bố cục mới).
+ *
+ * Chỉ dưới 768px: từ 768px lên, `.steps-grid` đã là lưới 2 rồi 4 cột, và ở
+ * đó xếp dọc là đúng — mỗi thẻ là một cột hẹp.
+ */
+@media(max-width:767px){
+    .steps-grid{gap:0}
+
+    .step-card{
+        display:grid;
+        grid-template-columns:auto 1fr;
+        column-gap:14px;
+        align-items:start;
+        padding:16px 18px;
+        border-radius:0;
+    }
+
+    /* Đường kẻ giữa các thẻ thay cho khoảng trống: bốn thẻ liền nhau cần
+       một ranh giới, và một đường 1px rẻ hơn 24px khoảng cách. */
+    .step-card + .step-card{border-top:1px solid var(--ln2)}
+
+    .step-num{
+        width:34px;height:34px;border-radius:10px;
+        font-size:15px;
+        margin-bottom:0;
+        grid-row:1 / span 2;
+    }
+
+    .step-title{margin-bottom:3px;font-size:var(--fs-4)}
+    .step-desc{font-size:var(--fs-6)}
+
+    /* `cursor:pointer` và hover trên một thẻ KHÔNG bấm được là nói dối với
+       con trỏ. Trên điện thoại không có hover, nhưng `:hover` của bản gốc
+       vẫn kẹt lại sau khi chạm (sticky hover) và để lại một thẻ sáng màu
+       mà người dùng không hiểu vì sao. */
+    .step-card{cursor:default}
+    .step-card:hover{background:transparent;box-shadow:none}
+}
+
+/* ── ⑤ Ba bảo đảm: hai cột từ 420px, và gọn hơn ở mọi cỡ nhỏ ──────────────
+ *
+ * Ba ô đang xếp dọc, mỗi ô 109px, tổng 351px cho ba câu ngắn.
+ *
+ * Mốc 420px chứ không 640px: ở 390px cột đơn còn ~346px, chia đôi là 167px
+ * — đủ cho hai dòng tiêu đề nhưng mô tả sẽ vỡ thành bốn dòng, tức không
+ * tiết kiệm gì. Từ 420px trở lên thì chia đôi mới có lãi.
+ */
+@media(max-width:639px){
+    .bao-dam{gap:8px;margin-top:18px}
+    .bd-o{padding:12px 14px;gap:9px}
+    .bd-o svg{width:18px;height:18px}
+}
+
+@media(min-width:420px) and (max-width:639px){
+    .bao-dam{grid-template-columns:1fr 1fr}
+
+    /* Ô thứ ba đứng một mình ở hàng hai thì cho nó trải hết hàng, thay vì
+       để một nửa hàng trống. */
+    .bd-o:last-child{grid-column:1 / -1}
+}
 
 /* Mức nền cho thẻ tiêu đề không mang class.
  *

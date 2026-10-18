@@ -1241,3 +1241,92 @@ test('không hai khối CSS nào cách xa nhau cùng đặt tên một class', (
             'luật trước ở chỗ chúng chồng thuộc tính:\n  ' + sai.join('\n  '),
     );
 });
+// ── Hai khối dài nhất phải giữ dạng nén trên điện thoại ───────────────────
+//
+// Đo ở 390×844 trước khi nén: trang chủ 4.931px = 5,8 màn hình, và khối
+// "4 bước" một mình chiếm 997px (1,18 màn) vì mỗi thẻ xếp số thứ tự THÀNH
+// MỘT TẦNG RIÊNG trên tiêu đề — ba tầng dọc cho một ý.
+//
+// Sau khi nén: lưới bốn bước 744 → 440px, trang chủ 4.931 → 4.590px.
+//
+// Luật này canh CÁCH XẾP chứ không canh con số: một lần "dọn CSS" gỡ khối
+// `@media` đi sẽ trả bốn thẻ về dạng dọc mà không test nào khác đỏ —
+// `test:khoi` hỏi "khối có trong HTML không", và không có gì đo chiều cao
+// trên một bề ngang cụ thể trong CI.
+test('hai khối dài nhất giữ dạng nén dưới 768px', () => {
+    const css = readFileSync(resolve(GOC, TEP_CSS), 'utf8');
+
+    const khoiMobile = [...css.matchAll(/@media\s*\(\s*max-width\s*:\s*767px\s*\)\s*\{/g)]
+        .map((m) => {
+            let sau = 1;
+            let i = m.index + m[0].length;
+
+            while (i < css.length && sau > 0) {
+                if (css[i] === '{') sau++;
+                if (css[i] === '}') sau--;
+                i++;
+            }
+
+            return css.slice(m.index, i);
+        })
+        .join('\n');
+
+    assert.ok(
+        khoiMobile.length > 200,
+        'Không tìm thấy khối @media(max-width:767px) nào — bộ trích đã vỡ.',
+    );
+
+    // `.step-card` phải là lưới hai cột: số bên trái, chữ bên phải.
+    //
+    // Gom MỌI luật `.step-card` trong các khối mobile rồi mới xét, không lấy
+    // cái đầu tiên: bộ này có nhiều luật cho cùng selector (`.step-card`,
+    // `.step-card + .step-card`, `.step-card:hover`), và lấy `match()` đơn
+    // thì nó trả về cái nào đứng trước trong tệp — một chi tiết không liên
+    // quan gì tới điều đang kiểm.
+    const theBuoc = [...khoiMobile.matchAll(/\.step-card[^{]*\{[^}]*\}/g)].map((m) => m[0]);
+
+    assert.ok(theBuoc.length > 0, 'Khối @media mobile không còn luật nào cho `.step-card`.');
+    assert.ok(
+        theBuoc.some((r) => /grid-template-columns/.test(r)),
+        'Thẻ "4 bước" đã rơi về dạng xếp dọc trên điện thoại. Mỗi thẻ cao ' +
+            '185px thay vì 103px, và khối dài thêm ~300px.',
+    );
+
+    // Ô số phải nhỏ lại cùng lúc: 48px là cỡ của dạng dọc.
+    const oSo = [...khoiMobile.matchAll(/\.step-num[^{]*\{[^}]*\}/g)].map((m) => m[0]);
+
+    assert.ok(oSo.length > 0, 'Khối @media mobile không còn luật nào cho `.step-num`.');
+    assert.ok(
+        oSo.every((r) => !/width\s*:\s*48px/.test(r)),
+        'Ô số thứ tự vẫn 48px — đó là cỡ của dạng xếp dọc.',
+    );
+
+    // Ba ô bảo đảm phải gọn hơn ở cỡ nhỏ. Mốc riêng (639px) vì chúng đổi
+    // sang hai cột ở 640px, không phải 768px.
+    //
+    // Hỏi "có luật cho `.bao-dam` dưới 639px không", KHÔNG hỏi "có khối
+    // `@media(max-width:639px)` nào không": bản đầu của luật này hỏi câu
+    // thứ hai và nó **vô dụng** — stylesheet đã có sẵn ba khối 639px cho
+    // việc khác, nên nó xanh kể cả khi khối cần canh biến mất. Bắt được
+    // bằng chính phép đột biến dùng để thử nó.
+    const duoi639 = [...css.matchAll(/@media\s*\(\s*max-width\s*:\s*639px\s*\)\s*\{/g)]
+        .map((m) => {
+            let sau = 1;
+            let i = m.index + m[0].length;
+
+            while (i < css.length && sau > 0) {
+                if (css[i] === '{') sau++;
+                if (css[i] === '}') sau--;
+                i++;
+            }
+
+            return css.slice(m.index, i);
+        })
+        .join('\n');
+
+    assert.match(
+        duoi639,
+        /\.bd-o\s*\{[^}]*padding/,
+        'Ba ô bảo đảm trở lại padding 16px dưới 640px — khối dài thêm ~32px.',
+    );
+});
