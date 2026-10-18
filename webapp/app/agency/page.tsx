@@ -190,7 +190,7 @@ function TheAgency({ a, i }: { a: AgencySummary; i: number }) {
                 <div className="oc-card-name-wrap">
                     <div className="oc-card-name">{a.name}</div>
                     {a.website_host ? (
-                        <div className="oc-card-ver" style={{ color: 'var(--t4)' }}>
+                        <div className="oc-card-host">
                             {a.website_host}
                         </div>
                     ) : null}

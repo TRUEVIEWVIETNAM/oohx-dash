@@ -16,10 +16,26 @@ import { OwnerCard } from '@/components/OwnerCard';
  * động rồi gọi chúng là đã xác minh. Đã sửa ở bản Blade ngày 03/10 (audit
  * F-15), và trang này không mang câu đó sang.
  *
+ * ══ Dấu "Đã xác minh" trên thẻ owner cũng đã gỡ (18/10/2026) ══
+ *
  * Từ 14/10/2026 thẻ owner có dấu "Đã xác minh" **cho từng owner**, đọc cột
- * `owners.verified` do quản trị đặt (`OwnerSummary.verified`). Đó là một câu
- * khác: nó nói về một owner cụ thể và nó có nguồn. Cái bị dọn là con số tổng
- * suy ra từ một bộ lọc không liên quan.
+ * `owners.verified`. Lập luận lúc đó: đó là một câu khác với "N+ đối tác
+ * verified", vì nó nói về một owner cụ thể và nó có nguồn.
+ *
+ * Lập luận ấy đúng một nửa. Cột có thật, nhưng nó là **một cờ quản trị bật
+ * tay** — không có quy trình kiểm định nào đứng sau, không có hồ sơ, không
+ * có bước đối chiếu. `KhoiLoiHua.tsx` đã ghi đúng điều đó từ đầu: *"cột
+ * `owners.verified` có thật nhưng là cờ thủ công, không phải một quy trình
+ * kiểm định"*. Hai chỗ trong cùng một repo nói ngược nhau về cùng một cột.
+ *
+ * Chữ "đã xác minh" nói với người mua rằng **sàn** đã kiểm, và sàn thì
+ * chưa. Lát 3 làm nó lộ ra: dấu đó đứng ngay dưới tiêu đề mới của trang chủ
+ * — "Bạn đặt trực tiếp với chủ màn hình" — bên cạnh ba dòng bảo đảm mà từng
+ * dòng đều chỉ ra được một điều có thật của sàn.
+ *
+ * Cột `owners.verified` **vẫn còn** trong CSDL và trong `OwnerSummary`; chỉ
+ * có chỗ hiển thị đi. Khi nào có một quy trình kiểm định thật thì dấu này
+ * quay lại cùng với nó, và lúc đó nó sẽ nói đúng.
  *
  * Cũng không có dấu "+" sau con số: `meta.total` là số đúng, không phải "hơn".
  */

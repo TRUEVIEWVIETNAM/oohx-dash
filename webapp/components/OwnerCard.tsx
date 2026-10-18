@@ -4,6 +4,22 @@ import type { OwnerSummary } from '@/lib/home';
 /**
  * Thẻ một media owner.
  *
+ * ══ KHÔNG in dấu "Đã xác minh" (gỡ 18/10/2026) ══
+ *
+ * Thẻ này từng in dấu đó khi `owner.verified` bật. Cột có thật, nhưng nó là
+ * **một cờ quản trị bật tay** — không quy trình kiểm định, không hồ sơ,
+ * không bước đối chiếu. Chữ "đã xác minh" nói với người mua rằng SÀN đã
+ * kiểm, và sàn thì chưa.
+ *
+ * Cùng repo đã ghi đúng điều đó ở `KhoiLoiHua.tsx` ngay từ đầu, trong khi
+ * docblock của `/owners` lại dùng chính cột ấy để biện minh cho dấu này.
+ * Hai chỗ nói ngược nhau về một cột, và chỗ sai là chỗ hiển thị ra cho
+ * khách.
+ *
+ * Cột vẫn còn trong CSDL và trong `OwnerSummary`. Khi có một quy trình kiểm
+ * định thật thì dấu này quay lại cùng với nó. Chi tiết ở docblock của
+ * `app/owners/page.tsx`.
+ *
  * ══ Vì sao tệp này tồn tại ══
  *
  * Bản trước vẽ thẻ owner ngay trong `/owners` và trong trang chủ, bằng sáu tên
@@ -116,19 +132,6 @@ export function OwnerCard({
 
                 <div className="oc-card-name-wrap">
                     <div className="oc-card-name">{ten}</div>
-                    {owner.verified ? (
-                        <div className="oc-card-ver">
-                            <svg
-                                viewBox="0 0 24 24"
-                                fill="var(--bl)"
-                                style={{ width: 12, height: 12, flexShrink: 0 }}
-                                aria-hidden="true"
-                            >
-                                <path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.7L1 12l2.44 2.79-.34 3.7 3.61.82 1.89 3.2L12 21.04l3.4 1.46 1.89-3.19 3.61-.82-.34-3.69L23 12zm-12.91 4.72l-3.8-3.81 1.48-1.48 2.32 2.33 5.85-5.87 1.48 1.48-7.33 7.35z" />
-                            </svg>
-                            Đã xác minh
-                        </div>
-                    ) : null}
                 </div>
             </div>
 
