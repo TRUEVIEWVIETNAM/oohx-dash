@@ -638,6 +638,24 @@ từ cấm `images.unsplash.com`, sang đòi đường tệp tự host, sang đ�
 URL Unsplash. Chiều của luật đi theo quyết định, không theo ý người viết
 test.
 
+### Bốn thẻ WORKFLOW cũng trả lại nguyên văn (chốt 18/10/2026)
+
+Lát 2 giữ bốn **bước** nhưng viết lại bốn **câu mô tả**. Chủ dự án chốt trả
+lại nguyên văn, cùng đợt với ba khối trên. Bốn chỗ không kiểm được:
+
+| Câu trên thẻ | Thực tế |
+|---|---|
+| "AI search theo khu vực, loại biển, budget và availability" | `MegaSearch` lọc theo thuộc tính; không có AI |
+| "traffic data" | số liệu lưu lượng là cột do media owner khai; `impression_logs` chưa có bản ghi nào |
+| "So sánh tối đa 5 vị trí" | **không có chức năng so sánh nào** — không phải "có nhưng giới hạn 5" |
+| "proof-of-play report tự động" | đường ghi bằng chứng phát sóng đã dựng từ giai đoạn 2, nhưng chưa thiết bị nào gửi dữ liệu |
+
+Bốn **bước** thì có thật và đã dựng; bốn **câu** thì chưa.
+
+Chốt `khoi-giao-dien.mjs` nay đòi ba trong bốn câu đó có mặt trong HTML, nên
+lần sau ai viết lại chúng thì phải đi qua một quyết định, không phải một lần
+sửa chữ.
+
 ### Chốt đổi chiều
 
 `webapp/test/khoi-giao-dien.mjs`: ba khối chuyển từ danh sách **`khong`**
