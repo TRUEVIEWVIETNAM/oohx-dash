@@ -43,8 +43,21 @@ name: Chẩn đoán proxy OpenLiteSpeed
 # mỗi cái đó là một KẾT QUẢ, không phải một sự cố. Nên tắt `set -e` cho phần
 # thân.
 #
-# Giữ `script_stop: true` vì nó vẫn còn tác dụng ở tầng ngoài: lỗi kết nối SSH
-# hay lỗi xác thực vẫn làm job đỏ, và đó mới là thứ đáng đỏ.
+# ══ `set +e` trong thân KHÔNG đủ — đo được 18/10/2026 ══
+#
+# Đoạn chú thích cũ ở đây kết luận: giữ `script_stop: true` vì `set +e` trong
+# thân đã lo phần còn lại. **Sai.** Lần chạy 39133117681 chết ở khối 2 với
+# `Process exited with status 2`, ngay sau dòng `echo "-- Những context từng
+# file đó khai --"`, tức ở `FILES=$(grep -rl … )` khi `grep` trả 2 vì
+# `Permission denied`. Khối 3, 4, 5, 6 chưa bao giờ in ra — đúng loại hỏng mà
+# khối chú thích ngay trên vừa mô tả, và nó đã sống ở đây từ lần sửa trước.
+#
+# Nên bài học cũ đúng mà cách sửa cũ sai: nay `script_stop: false`, và mỗi
+# script kết thúc bằng `exit 0` cho rõ ý.
+#
+# Mất gì: không mất gì đáng kể. Lỗi kết nối hay lỗi xác thực SSH xảy ra TRƯỚC
+# khi script chạy, nên action vẫn báo đỏ — `script_stop` chỉ quyết định việc
+# dừng giữa chừng một script đã bắt đầu.
 
 on:
   workflow_dispatch:
@@ -54,6 +67,87 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Bước RIÊNG, chạy TRƯỚC, và `script_stop: false`.
+      #
+      # Lần chạy 39133117681: khối 7 nhét vào cuối script cũ không bao giờ in
+      # ra, vì script đó chết ở khối 2 với "Process exited with status 2"
+      # (`grep: Permission denied` trả 2). `set +e` trong thân KHÔNG cứu được —
+      # `script_stop: true` của action dừng ở tầng ngoài.
+      #
+      # Một phép chẩn đoán phụ thuộc vào việc phép chẩn đoán khác không chết
+      # thì không phải một phép chẩn đoán.
+      #
+      # Không dấu tiếng Việt trong thân script: nó đi qua SSH, qua Docker, qua
+      # log của Actions, và mỗi tầng là một cơ hội hỏng mã ký tự. Phép chẩn
+      # đoán thì cần đọc được, không cần đẹp.
+      - name: Vì sao trang chủ vẫn là bản cũ
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script_stop: false
+          script: |
+            set +e
+            APP=/www/wwwroot/dash.oohx.net
+            HTML="$APP/webapp/.next/server/app/index.html"
+
+            echo "-- 7a. Checkout dang o commit nao --"
+            git -C "$APP" log --oneline -3 2>&1 | sed 's/^/   /'
+
+            echo "-- 7b. Service --"
+            systemctl show oohx-webapp -p WorkingDirectory -p ExecStart -p ActiveEnterTimestamp -p MainPID 2>&1 | sed 's/^/   /'
+
+            echo "-- 7c. Ban build tren dia --"
+            ls -la --time-style=full-iso "$APP/webapp/.next/BUILD_ID" "$HTML" 2>&1 | sed 's/^/   /'
+            echo "   BUILD_ID = $(cat "$APP/webapp/.next/BUILD_ID" 2>&1)"
+
+            echo "-- 7d. TEP PRERENDER mang ma nao --"
+            echo "   khoi AI  (chi co o lat 2) : $(grep -c 'dau tien co AI\|tiên có AI' "$HTML" 2>&1)"
+            echo "   dk-tabs  (chi co o lat 3) : $(grep -c 'dk-tabs' "$HTML" 2>&1)"
+            echo "   hero--split (co tu lat 2) : $(grep -c 'hero--split' "$HTML" 2>&1)"
+
+            echo "-- 7e. TIEN TRINH tra ve ma nao (bo qua OLS va Cloudflare) --"
+            curl -s http://127.0.0.1:3001/ -o /tmp/cd-home.html -w "   / cuc bo -> %{http_code}, %{size_download} byte\n" 2>&1
+            echo "   khoi AI : $(grep -c 'tiên có AI' /tmp/cd-home.html 2>&1)"
+            echo "   dk-tabs : $(grep -c 'dk-tabs' /tmp/cd-home.html 2>&1)"
+            rm -f /tmp/cd-home.html
+
+            echo "-- 7f. Cache ISR --"
+            ls -la --time-style=full-iso "$APP/webapp/.next/cache" 2>&1 | head -12 | sed 's/^/   /'
+
+            echo "-- 7g. Tien trinh next dang song --"
+            ps -eo pid,etime,cmd 2>/dev/null | grep -iE 'next|node' | grep -v grep | sed 's/^/   /'
+
+            echo "-- 7h. Log service --"
+            journalctl -u oohx-webapp -n 30 --no-pager 2>&1 | sed 's/^/   /'
+
+            echo "-- 7i. TEP NAO tren dia con giu ban cu --"
+            grep -rl 'tiên có AI' "$APP/webapp/.next" 2>/dev/null | head -20 > /tmp/cd-cu.txt
+            if [ -s /tmp/cd-cu.txt ]; then
+              while read -r f; do
+                echo "   $(stat -c '%y %s' "$f" 2>/dev/null)  ${f#$APP/webapp/}"
+              done < /tmp/cd-cu.txt
+            else
+              echo "   (khong tep nao duoi .next mang ban cu)"
+            fi
+            rm -f /tmp/cd-cu.txt
+
+            echo "-- 7j. Thu muc .next co gi --"
+            ls -la --time-style=full-iso "$APP/webapp/.next" 2>&1 | sed 's/^/   /'
+
+            echo "-- 7k. Goi lai hai lan, co tu doi khong --"
+            curl -s http://127.0.0.1:3001/ -o /tmp/cd2.html
+            echo "   lan 2: $(wc -c < /tmp/cd2.html) byte, dk-tabs=$(grep -c dk-tabs /tmp/cd2.html)"
+            sleep 4
+            curl -s http://127.0.0.1:3001/ -o /tmp/cd3.html
+            echo "   lan 3: $(wc -c < /tmp/cd3.html) byte, dk-tabs=$(grep -c dk-tabs /tmp/cd3.html)"
+            rm -f /tmp/cd2.html /tmp/cd3.html
+
+            echo "==== HET KHOI 7 ===="
+            exit 0
+
       - name: Đọc trạng thái proxy trên VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -61,7 +155,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
-          script_stop: true
+          script_stop: false
           script: |
             # Xem khối ghi chú đầu file: mọi lệnh dưới đây có thể trả khác 0
             # một cách hợp lệ, và mỗi cái là một kết quả cần in ra.
@@ -125,15 +219,28 @@ jobs:
             echo
             echo "════ 4. Quyền đọc/ghi của những thư mục liên quan ════"
             echo "   Nếu mục 2 và 3 trống, rất có thể là do quyền, không phải do không tồn tại."
+            echo
+            # `[ -e ]` trả SAI cho cả hai trường hợp: đường dẫn không tồn tại,
+            # VÀ đường dẫn tồn tại nhưng thiếu quyền `x` trên thư mục cha để
+            # đi tới nó. Bản trước in "(chưa tồn tại)" cho cả hai.
+            #
+            # Lần chạy 39133753601 in "(chưa tồn tại)" cho
+            # `/www/server/panel/vhost/openlitespeed` ngay bên dưới khối 3 vừa
+            # báo `Permission denied` trên một FILE nằm trong đúng thư mục đó.
+            # Hai dòng mâu thuẫn nhau, và dòng sai là dòng dễ tin hơn.
+            #
+            # `stat` phân biệt được: nó nói rõ "No such file" hay "Permission
+            # denied". In thẳng thông điệp của nó thay vì diễn giải lại.
             for d in /www/server/panel/vhost/openlitespeed \
                      /www/server/panel/vhost/openlitespeed/detail \
                      /www/server/panel/vhost/openlitespeed/proxy \
                      /www/server/panel/vhost/openlitespeed/proxy/oohx.net; do
-                if [ -e "$d" ]; then
-                    echo "   $(stat -c '%A %U:%G' "$d" 2>/dev/null)  $d"
-                else
-                    echo "   (chưa tồn tại)            $d"
-                fi
+                ra=$(stat -c '%A %U:%G' "$d" 2>&1)
+                case "$ra" in
+                    *"No such file"*)      echo "   KHONG TON TAI        $d" ;;
+                    *"Permission denied"*) echo "   KHONG VAO DUOC       $d  (thieu quyen x tren thu muc cha)" ;;
+                    *)                     echo "   $ra  $d" ;;
+                esac
             done
 
             echo
@@ -151,5 +258,7 @@ jobs:
                 /www/wwwroot/dash.oohx.net/docs/deploy/nextjs-proxy/nextjs.conf \
                 | sed 's/^/   /' || true
 
+
             echo
             echo "════ HẾT ════"
+            exit 0
