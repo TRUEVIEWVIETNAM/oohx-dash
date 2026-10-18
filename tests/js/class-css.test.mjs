@@ -1330,3 +1330,105 @@ test('hai khối dài nhất giữ dạng nén dưới 768px', () => {
         'Ba ô bảo đảm trở lại padding 16px dưới 640px — khối dài thêm ~32px.',
     );
 });
+/**
+ * Mọi khối `@media (max-width: <px>)` của stylesheet, nối lại thành một chuỗi.
+ *
+ * Hai phép kiểm phía trên tự trích khối `max-width:767px` bằng đúng đoạn mã
+ * này. Hàm ở đây là bản thứ ba, viết một lần — hai chỗ kia giữ nguyên vì
+ * chúng đang xanh và đổi chúng là một việc dọn khác.
+ */
+function khoiMediaMax(css, px) {
+    const mo = new RegExp(`@media\\s*\\(\\s*max-width\\s*:\\s*${px}px\\s*\\)\\s*\\{`, 'g');
+
+    return [...css.matchAll(mo)]
+        .map((m) => {
+            let sau = 1;
+            let i = m.index + m[0].length;
+
+            while (i < css.length && sau > 0) {
+                if (css[i] === '{') sau++;
+                if (css[i] === '}') sau--;
+                i++;
+            }
+
+            return css.slice(m.index, i);
+        })
+        .join('\n');
+}
+
+// ── /explore trên điện thoại: thẻ nằm NGANG, một cột ──────────────────────
+//
+// Đo trước khi sửa (18/10/2026), 24 thẻ một trang:
+//
+//   360–519   1 cột, thẻ 418px   ≈ 10.368px ≈ 12 màn hình
+//   520–767   2 cột, thẻ 418px   ≈  5.160px
+//
+// Sau khi sửa: 4.608px ở 390px (−56%), 4.128px ở 520–767px (−20%).
+//
+// Bộ thẻ ngang ĐÃ có sẵn trong stylesheet dưới tên `list-view`, và hai luật
+// làm nó vô dụng đúng chỗ cần nó: `.view-btn{display:none}` dưới 768px, và
+// `list-view .sc-card{flex-direction:column}` dưới 640px. Luật này canh để
+// không ai vô tình dựng lại tình trạng đó.
+test('/explore dưới 768px: thẻ nằm ngang, một cột, nút đổi kiểu xem còn đó', () => {
+    const css = readFileSync(resolve(GOC, TEP_CSS), 'utf8');
+    const mobile = khoiMediaMax(css, 767);
+
+    assert.ok(mobile.length > 200, 'Không tìm thấy khối @media(max-width:767px) nào — bộ trích đã vỡ.');
+
+    // 1. Thẻ phải là lưới hai cột (ảnh trái, chữ phải), không phải cột dọc.
+    const the = [...mobile.matchAll(/\.inv-grid\s+\.sc-card[^{]*\{[^}]*\}/g)].map((m) => m[0]);
+
+    assert.ok(the.length > 0, 'Mất luật `.inv-grid .sc-card` trong khối mobile.');
+    assert.ok(
+        the.some((r) => /grid-template-columns/.test(r)),
+        'Thẻ `/explore` đã rơi về dạng xếp dọc trên điện thoại: 418px mỗi thẻ ' +
+            'thay vì 180px, và 24 thẻ thành hơn 10.000px.',
+    );
+
+    // 2. Lưới phải MỘT cột chừng nào thẻ còn nằm ngang. `.inv-grid` chuyển
+    //    2 cột từ 520px; để nguyên thì ở 520px ra hai thẻ ngang rộng 246px,
+    //    còn DÀI HƠN một cột (5.328 so với 4.128).
+    const luoi = [...mobile.matchAll(/\.inv-grid\s*\{[^}]*\}/g)].map((m) => m[0]);
+
+    assert.ok(
+        luoi.some((r) => /grid-template-columns\s*:\s*1fr/.test(r)),
+        'Lưới `/explore` không còn ép một cột dưới 768px — thẻ ngang bị chia ' +
+            'đôi và trang dài ra.',
+    );
+
+    // 3. Nút đổi kiểu xem phải hiện. Nó từng `display:none` dưới 768px, tức
+    //    người dùng điện thoại chỉ có một cách xem và không ai cho họ chọn.
+    const nutXem = [...mobile.matchAll(/\.view-btn[^{]*\{[^}]*\}/g)].map((m) => m[0]);
+
+    assert.ok(
+        nutXem.length > 0 && !nutXem.some((r) => /display\s*:\s*none/.test(r)),
+        'Nút đổi kiểu xem lại bị ẩn trên điện thoại.',
+    );
+
+    // 4. Hai vùng chạm mà luật 44px của PR #111 không phủ, vì lúc đó
+    //    `/explore` chưa được soát.
+    for (const [sel, cu] of [['.view-btn', '36×36'], ['.sort-sel', 'cao 36']]) {
+        const r = [...mobile.matchAll(new RegExp(`\\${sel}[^{]*\\{[^}]*\\}`, 'g'))].map((m) => m[0]);
+
+        assert.ok(
+            r.some((x) => /44px/.test(x)),
+            `\`${sel}\` không còn luật 44px trên điện thoại (đo được ${cu}).`,
+        );
+    }
+});
+
+// Luật cũ đã gỡ, và không được quay lại: nó lật thẻ `list-view` về dạng dọc
+// dưới 640px — tức tắt dạng ngang đúng ở nơi nó có ích nhất.
+test('không còn luật lật thẻ list-view về dạng dọc trên màn hình nhỏ', () => {
+    const css = readFileSync(resolve(GOC, TEP_CSS), 'utf8');
+
+    for (const px of [480, 559, 639, 640, 767]) {
+        const khoi = khoiMediaMax(css, px);
+
+        assert.doesNotMatch(
+            khoi,
+            /\.inv-grid\.list-view\s+\.sc-card\s*\{[^}]*flex-direction\s*:\s*column/,
+            `Luật lật thẻ về dạng dọc đã quay lại trong @media(max-width:${px}px).`,
+        );
+    }
+});
