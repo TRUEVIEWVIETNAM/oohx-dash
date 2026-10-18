@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Map as LeafletMap, MarkerClusterGroup } from 'leaflet';
-import { popupHtml, type MapPin } from '@/lib/ban-do';
+import { mauPin, popupHtml, type MapPin } from '@/lib/ban-do';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -148,7 +148,22 @@ export function BanDoTrangChu({
         for (const p of danhSach) {
             if (typeof p.lat !== 'number' || typeof p.lng !== 'number') continue;
 
-            cum.addLayer(L.marker([p.lat, p.lng]).bindPopup(popupHtml(p)));
+            /*
+             * `icon` phải khai rõ: `L.marker()` không có icon dùng
+             * `marker-icon.png` của Leaflet, và bundler không giải đường ảnh
+             * đó — trên production nó ra **ảnh vỡ** kèm chữ "Mark".
+             *
+             * `.oohx-dot` là chấm màu của bản Blade, CSS đã có trong
+             * `frontpage.css` (chuyển vào ở lát 6).
+             */
+            const icon = L.divIcon({
+                className: 'oohx-pin',
+                html: `<div class="oohx-dot oohx-dot--${mauPin(p.venue_type)}"></div>`,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6],
+            });
+
+            cum.addLayer(L.marker([p.lat, p.lng], { icon }).bindPopup(popupHtml(p)));
             toaDo.push([p.lat, p.lng]);
         }
 
