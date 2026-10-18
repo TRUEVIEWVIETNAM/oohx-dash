@@ -50,6 +50,18 @@ const TRANG = [
         path: '/',
         ten: 'trang chủ',
         co: [
+            // Thanh đầu phải mang điều hướng cho MỌI bề ngang. Dưới 768px
+            // `.hdr-nav`, `.hdr-login` và `.hdr-register` đều ẩn, nên nếu
+            // thiếu hamburger thì thanh đầu chỉ còn một cái logo — đó đúng
+            // là tình trạng chủ dự án báo ngày 18/10/2026.
+            //
+            // Canh ở HTML máy chủ trả về chứ không chỉ ở mã nguồn: menu này
+            // là client component, và một lỗi hydrate làm nó biến mất khỏi
+            // trang mà mã nguồn vẫn nguyên.
+            'class="hdr-hamburger"',
+            'class="slide-menu"',
+            'class="slide-menu-backdrop"',
+
             'class="hero-badge"',
             'class="hstat"',
             'class="hero-hint"',

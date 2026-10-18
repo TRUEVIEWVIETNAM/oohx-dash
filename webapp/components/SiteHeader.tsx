@@ -1,4 +1,5 @@
 import { AuthState } from './AuthState';
+import { MenuTruot } from './MenuTruot';
 import { AppLink } from './AppLink';
 import { LOGO_DATA_URI } from '@/lib/logo';
 
@@ -111,6 +112,14 @@ export function SiteHeader({ active = '' }: { active?: NavKey }) {
 
                 <div className="hdr-acts">
                     <AuthState cartHref="/cart" loginHref="/login" registerHref="/register" />
+
+                    {/*
+                      Hamburger + menu trượt — điều hướng cho mọi bề ngang
+                      dưới 1024px. Trước 18/10/2026 không có gì ở đây, nên
+                      dưới 768px thanh đầu chỉ còn một cái logo. Xem
+                      docblock của `MenuTruot`.
+                    */}
+                    <MenuTruot active={active} />
                 </div>
             </div>
         </header>

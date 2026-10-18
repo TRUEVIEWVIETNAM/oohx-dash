@@ -1097,12 +1097,19 @@ test('không liên kết nào trong thanh đầu hay chân trang trỏ vào tran
     const COY = new Set([
         '/', '/explore', '/map', '/products', '/owners', '/agency',
         '/login', '/register', '/cart',
+        // Khu người mua, do Laravel phục vụ (không nằm trong context Next của
+        // `nextjs.conf`). Menu trượt dẫn tới `/my` cho người đã đăng nhập.
+        '/my',
         '/phan-anh-to-chuc-xa-hoi', '/phan-anh-to-chuc-xa-hoi/danh-sach',
     ]);
 
     const sai = [];
 
-    for (const tep of ['webapp/components/SiteHeader.tsx', 'webapp/components/SiteFooter.tsx']) {
+    for (const tep of [
+        'webapp/components/SiteHeader.tsx',
+        'webapp/components/SiteFooter.tsx',
+        'webapp/components/MenuTruot.tsx',
+    ]) {
         const s = readFileSync(resolve(GOC, tep), 'utf8');
 
         for (const m of s.matchAll(/href="(\/[a-z0-9/-]*)"/g)) {
@@ -1431,4 +1438,174 @@ test('không còn luật lật thẻ list-view về dạng dọc trên màn hìn
             `Luật lật thẻ về dạng dọc đã quay lại trong @media(max-width:${px}px).`,
         );
     }
+});
+/**
+ * Bỏ chú thích khỏi mã nguồn trước khi quét.
+ *
+ * Một phép kiểm tìm chuỗi trong cả tệp sẽ khớp phải chính câu giải thích về
+ * điều nó đang canh, nên nó xanh ngay cả khi mã đã bị gỡ. Đã mắc đúng lỗi
+ * này hai lần: `next-image.test.mjs` sáng 18/10/2026, và luật `Escape` dưới
+ * đây.
+ *
+ * Giữ dấu xuống dòng của chú thích khối để số dòng không lệch khi báo lỗi.
+ */
+function boChuThich(ma) {
+    return ma
+        .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+        .replace(/\/\/[^\n]*/g, '');
+}
+
+// ── Thanh đầu phải có điều hướng ở MỌI bề ngang ───────────────────────────
+//
+// Lỗi thật, báo từ chủ dự án 18/10/2026: "Header menu đang bị mất". Đo lại
+// thì không phải mất — nó chưa bao giờ được dựng ở bản Next. Ba luật quyết
+// định thanh đầu trông ra sao:
+//
+//     .hdr-nav{display:none}                           → hiện từ 1024px
+//     .hdr-login,.hdr-register{display:none}           → hiện từ 768px
+//     .hdr-hamburger / .slide-menu*                    → CSS có, KHÔNG ai dùng
+//
+// Nên dưới 768px thanh đầu của mọi trang công khai chỉ còn một cái logo:
+// không điều hướng, không đăng nhập, không đăng ký. Từ 768 đến 1023px có hai
+// nút đăng nhập nhưng vẫn không có điều hướng.
+//
+// `frontpage/partials/header.blade.php` đã có hamburger và menu trượt từ
+// lâu; bản Next chép `<nav>` sang rồi dừng. Docblock của `SiteHeader` thậm
+// chí liệt kê "nút hamburger" trong những thứ nó render.
+//
+// Luật này canh cái KẾT CẤU, không canh CSS: một thanh đầu mà cả ba lớp ẩn
+// cùng lúc là một trang không đi đâu được, và không phép kiểm nào khác thấy
+// điều đó — HTML vẫn đủ thẻ, `test:khoi` vẫn xanh.
+test('thanh đầu có điều hướng ở mọi bề ngang, kể cả dưới 1024px', () => {
+    const hdr = readFileSync(resolve(GOC, 'webapp/components/SiteHeader.tsx'), 'utf8');
+    const menu = readFileSync(resolve(GOC, 'webapp/components/MenuTruot.tsx'), 'utf8');
+
+    assert.match(
+        hdr,
+        /<MenuTruot\b/,
+        '`SiteHeader` không còn gắn `MenuTruot`. Dưới 1024px `.hdr-nav` là ' +
+            '`display:none`, nên thanh đầu không còn đường đi nào.',
+    );
+
+    // Hamburger và lớp phủ: thiếu một trong hai thì nút mở ra chỗ trống, hoặc
+    // menu có mà không ai mở được.
+    for (const [cls, viSao] of [
+        ['hdr-hamburger', 'nút mở menu'],
+        ['slide-menu', 'lớp phủ chứa điều hướng'],
+        ['slide-menu-backdrop', 'nền mờ — cũng là cách đóng bằng một chạm'],
+        ['slide-menu-close', 'nút đóng'],
+    ]) {
+        assert.ok(
+            new RegExp(`['\"]${cls}[ '\"]`).test(menu),
+            `\`MenuTruot\` thiếu \`${cls}\` (${viSao}).`,
+        );
+    }
+
+    // Menu trượt phải dẫn tới đủ NĂM khu vực công khai như thanh đầu, cộng
+    // trang chủ. Thiếu một mục ở đây nghĩa là người dùng điện thoại không tới
+    // được khu đó bằng bất kỳ đường nào.
+    for (const [duong, viSao] of [
+        ['/', 'trang chủ'],
+        ['/explore', 'kho màn hình'],
+        ['/map', 'bản đồ vị trí'],
+        ['/products', 'gói chiến dịch'],
+        ['/owners', 'danh sách media owner'],
+        ['/agency', 'khu đại lý'],
+    ]) {
+        assert.ok(
+            menu.includes(`duong: '${duong}'`),
+            `Menu trượt không còn dẫn tới \`${duong}\` (${viSao}) — trên điện ` +
+                'thoại đó là đường DUY NHẤT tới khu này.',
+        );
+    }
+
+    // Chân menu mang nút đăng nhập/đăng ký, vì `.hdr-login` và `.hdr-register`
+    // ẩn dưới 768px — đúng dải menu này phục vụ.
+    assert.ok(
+        menu.includes('/login') && menu.includes('/register'),
+        'Chân menu trượt mất lối đăng nhập. Dưới 768px `.hdr-login` và ' +
+            '`.hdr-register` là `display:none`, nên không còn chỗ nào khác.',
+    );
+
+    // Đóng được bằng bàn phím. Một lớp phủ toàn màn hình không đóng được bằng
+    // `Escape` là một cái bẫy.
+    //
+    // Quét MÃ, không quét cả tệp: docblock của `MenuTruot` có chữ "Escape"
+    // trong một câu giải thích, nên một phép kiểm tìm chữ đó sẽ xanh kể cả
+    // khi mã đã bị gỡ. Bắt được bằng chính phép đột biến dùng để thử nó —
+    // cùng loại lỗi đã mắc ở `next-image.test.mjs` sáng 18/10/2026.
+    const maNguon = boChuThich(menu);
+
+    assert.match(
+        maNguon,
+        /key\s*===\s*'Escape'/,
+        'Menu trượt không còn đóng được bằng phím Escape.',
+    );
+
+    // Nền mờ phải ĐÓNG được, không chỉ có mặt. Bản đầu của luật này chỉ hỏi
+    // "có class `slide-menu-backdrop` không" — gỡ `onClick` của nó vẫn xanh,
+    // và người dùng còn một lớp phủ tối không bấm đi đâu được.
+    // Cắt ĐÚNG thẻ nền mờ, không dùng một regex chạy từ đầu tệp.
+    //
+    // Hai bản trước đều hỏng theo hai kiểu, và cả hai đều xanh oan:
+    //   `<div[^>]*…[^>]*\/>`      — `onClick={() => …}` có dấu `>` trong mũi
+    //                               tên, nên lớp phủ định dừng sớm.
+    //   `<div[\s\S]*?…[\s\S]*?\/>` — bắt đầu từ `<div` ĐẦU TIÊN của tệp, nên
+    //                               đoạn khớp nuốt cả nút đóng và `onClick`
+    //                               của nó.
+    const viTri = maNguon.indexOf('slide-menu-backdrop');
+
+    assert.ok(viTri > 0, 'Không tìm thấy phần tử nền mờ trong `MenuTruot`.');
+
+    const moThe = maNguon.lastIndexOf('<div', viTri);
+    const dongThe = maNguon.indexOf('/>', viTri);
+
+    assert.ok(moThe > 0 && dongThe > moThe, 'Không cắt được thẻ nền mờ.');
+    assert.match(
+        maNguon.slice(moThe, dongThe),
+        /onClick/,
+        'Nền mờ của menu trượt không còn đóng menu khi bấm vào.',
+    );
+});
+
+// CSS của hamburger và menu trượt phải còn, và phải ẩn từ 1024px trở lên —
+// ở đó `.hdr-nav` đã hiện, nên hai thứ cùng lúc là hai bộ điều hướng chồng
+// nhau.
+test('CSS menu trượt còn đủ và nhường chỗ cho thanh nav từ 1024px', () => {
+    const css = readFileSync(resolve(GOC, TEP_CSS), 'utf8');
+
+    for (const sel of ['.hdr-hamburger', '.slide-menu', '.slide-menu-backdrop']) {
+        assert.ok(
+            new RegExp(`\\${sel}\\s*\\{`).test(css),
+            `Mất định nghĩa CSS cho \`${sel}\`.`,
+        );
+    }
+
+    const tu1024 = [...css.matchAll(/@media\s*\(\s*min-width\s*:\s*1024px\s*\)\s*\{/g)]
+        .map((m) => {
+            let sau = 1;
+            let i = m.index + m[0].length;
+
+            while (i < css.length && sau > 0) {
+                if (css[i] === '{') sau++;
+                if (css[i] === '}') sau--;
+                i++;
+            }
+
+            return css.slice(m.index, i);
+        })
+        .join('\n');
+
+    for (const sel of ['.hdr-hamburger', '.slide-menu']) {
+        assert.ok(
+            new RegExp(`\\${sel}\\s*\\{[^}]*display\\s*:\\s*none`).test(tu1024),
+            `\`${sel}\` không còn ẩn từ 1024px — nó sẽ chồng lên thanh nav.`,
+        );
+    }
+
+    assert.match(
+        tu1024,
+        /\.hdr-nav\s*\{[^}]*display\s*:\s*flex/,
+        'Thanh nav không còn hiện từ 1024px.',
+    );
 });
