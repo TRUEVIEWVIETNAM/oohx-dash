@@ -33,7 +33,8 @@ jobs:
                    docs/deploy/nextjs-proxy/oohx-sync-proxy.sh \
                    tests/shell/thu-kiem-conf.sh \
                    tests/shell/thu-dat-env.sh \
-                   tests/shell/thu-nap-lai.sh; do
+                   tests/shell/thu-nap-lai.sh \
+                   tests/shell/thu-don-cache.sh; do
             bash -n "$f" && echo "OK  $f"
           done
 
@@ -89,6 +90,13 @@ jobs:
       # git thật rồi kiểm cả hai chiều.
       - name: Phép kiểm cho khối tự-nạp-lại của deploy.sh
         run: bash tests/shell/thu-nap-lai.sh
+
+      # `don_cache_next()` chạy `rm -rf` trong cây ứng dụng production, mỗi
+      # lần deploy. Một `find` lệch một ký tự là xoá cả bản build vừa dựng,
+      # rồi service khởi động lại trên một thư mục rỗng — site chết, và không
+      # có gì trong repo để dựng lại ngay.
+      - name: Phép kiểm cho hàm dọn cache Next
+        run: bash tests/shell/thu-don-cache.sh
 
   # Trang công khai trên Next.js (giai đoạn 6).
   #
