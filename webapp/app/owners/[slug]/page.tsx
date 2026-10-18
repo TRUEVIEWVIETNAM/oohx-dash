@@ -227,7 +227,7 @@ export default async function OwnerDetailPage({
                     <div className="fp-header-spacer" />
 
                     <div className="fp-header-info">
-                        <div className="fp-name">{owner.name}</div>
+                        <h1 className="fp-name">{owner.name}</h1>
                         {owner.tagline ? <div className="fp-tagline">{owner.tagline}</div> : null}
 
                         <div className="fp-meta">
