@@ -32,8 +32,10 @@
                 zoomControl: true,
             });
             L.tileLayer('{{ config('map.tile_url') }}', {
-                attribution: '&copy; OSM',
-                maxZoom: 19,
+                attribution: '{!! config('map.tile_attribution') !!}',
+                maxZoom: {{ config('map.tile_max_zoom') }},
+                subdomains: '{{ config('map.tile_subdomains') }}',
+                key: '{{ config('map.tile_key') }}',
             }).addTo(this.map);
 
             this.marker = L.marker([this.lat, this.lng], { draggable: true }).addTo(this.map);

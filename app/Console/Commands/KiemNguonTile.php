@@ -61,7 +61,7 @@ class KiemNguonTile extends Command
 
             $this->line(($ok ? '<info>  ok  </info>' : '<error> HỎNG </error>')
                 . " {$ten}: {$noiDung}");
-            $this->line("       {$url}");
+            $this->line('       ' . $this->giauKhoa($url));
 
             if (! $ok) {
                 $hong++;
@@ -81,20 +81,35 @@ class KiemNguonTile extends Command
         return self::SUCCESS;
     }
 
-    /** Thay các chỗ `{z}` `{x}` `{y}` `{s}` `{r}` bằng tile mẫu. */
+    /** Thay các chỗ `{z}` `{x}` `{y}` `{s}` `{r}` `{key}` bằng tile mẫu. */
     private function dungUrl(string $mauUrl, array $mau): string
     {
         return str_replace(
-            ['{z}', '{x}', '{y}', '{s}', '{r}'],
+            ['{z}', '{x}', '{y}', '{s}', '{r}', '{key}'],
             [
                 (string) $mau['z'],
                 (string) $mau['x'],
                 (string) $mau['y'],
                 substr((string) config('map.tile_subdomains'), 0, 1),
                 '',
+                (string) config('map.tile_key'),
             ],
             $mauUrl,
         );
+    }
+
+    /**
+     * Che khóa trước khi in.
+     *
+     * Khóa MapTiler hiện ra trong trình duyệt của khách dù muốn hay không,
+     * nhưng đó không phải lý do để nó rơi vào log CI, ảnh chụp màn hình hay
+     * một issue ai đó dán lên. In chỗ nào thì che chỗ đó.
+     */
+    private function giauKhoa(string $url): string
+    {
+        $khoa = (string) config('map.tile_key');
+
+        return $khoa === '' ? $url : str_replace($khoa, '***', $url);
     }
 
     /** @return array{0: bool, 1: string} */

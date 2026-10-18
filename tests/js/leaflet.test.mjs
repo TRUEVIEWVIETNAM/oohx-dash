@@ -127,48 +127,114 @@ test('bộ trích không rỗng — một regex vỡ phải đỏ, không xanh v
 
 // ── Nguồn tile: hai bản sao phải khớp, và không chỗ nào hardcode ───────────
 
-/** Đọc một khoá chuỗi của `config/map.php` mà không cần chạy PHP. */
-function configMap(khoa) {
-    const php = readFileSync('config/map.php', 'utf8');
-
-    // `'khoa' => env('X', 'giá trị')` hoặc `'khoa' => 'giá trị'`,
-    // và giá trị có thể nằm trên dòng riêng.
-    const re = new RegExp(
-        `'${khoa}'\\s*=>\\s*(?:\\(int\\)\\s*)?(?:env\\(\\s*'[^']*'\\s*,\\s*)?'([^']*)'`,
-        's',
-    );
-
-    const m = php.match(re);
-    assert.ok(m, `Không đọc được \`${khoa}\` trong config/map.php`);
-
-    return m[1];
+/**
+ * Giá trị của một biến/hằng, đã gỡ mọi cách viết để còn lại chuỗi cuối cùng.
+ *
+ * Hai tệp viết cùng một URL theo hai cú pháp khác hẳn nhau:
+ *
+ *   PHP  $maptiler = 'https://…/maps/' . env('MAPTILER_STYLE', 'streets-v2')
+ *                    . '/{z}/{x}/{y}.png?key={key}';
+ *   TS   const MAPTILER_URL =
+ *            `https://…/maps/${process.env.NEXT_PUBLIC_MAPTILER_STYLE
+ *             ?? 'streets-v2'}/{z}/{x}/{y}.png?key={key}`;
+ *
+ * Nên so chuỗi thô là so hai thứ không bao giờ bằng nhau. Hàm này quy cả hai
+ * về cùng một dạng: thay `env()` và `process.env … ??` bằng giá trị mặc định,
+ * mở `${…}`, rồi nối các mảnh chuỗi lại.
+ */
+function giaTri(bt) {
+    return bt
+        .replace(/env\(\s*'[^']*'\s*,\s*'([^']*)'\s*\)/g, '$1')
+        .replace(/process\.env\.[A-Z_0-9]+\s*\?\?\s*'([^']*)'/g, '$1')
+        .replace(/\$\{\s*([^}]*?)\s*\}/g, '$1')
+        .replace(/'\s*\.\s*/g, '')
+        .replace(/\s*\.\s*'/g, '')
+        .replace(/['`]/g, '')
+        .trim();
 }
 
-/** Đọc một hằng chuỗi export của `webapp/lib/ban-do.ts`. */
+/**
+ * Phần nằm giữa `<moc>` và dấu `;` cuối dòng, đã quy về chuỗi cuối cùng.
+ *
+ * Cắt chuỗi chứ không dựng `new RegExp(...)` từ mảnh: một regex viết trong
+ * chuỗi cần `\\s` chứ không phải `\s`, và khi viết nhầm thì nó **vẫn chạy**,
+ * chỉ khớp sai — một chốt hỏng mà xanh. Phép cắt này không có chỗ cho kiểu
+ * nhầm đó.
+ */
+function catSauMoc(s, moc, ten, tep) {
+    const i = s.indexOf(moc);
+    assert.ok(i >= 0, 'Không đọc được `' + ten + '` trong ' + tep);
+
+    // Giá trị kết thúc ở dấu `;` cuối dòng. Không URL hay chuỗi ghi công nào
+    // của dự án chứa `;` (ghi công dùng ký tự `©`, không dùng `&copy;`), nên
+    // dấu `;` đầu tiên theo sau một xuống dòng là dấu kết thúc thật.
+    const j = s.indexOf(';\n', i + moc.length);
+    assert.ok(j > 0, '`' + ten + '` trong ' + tep + ' không kết thúc bằng `;`');
+
+    return giaTri(s.slice(i + moc.length, j));
+}
+
+/** Giá trị gán cho một biến PHP trong `config/map.php`. */
+function bienPhp(ten) {
+    const php = readFileSync('config/map.php', 'utf8').replace(/\r\n/g, '\n');
+
+    return catSauMoc(php, '$' + ten + ' =', '$' + ten, 'config/map.php');
+}
+
+/** Giá trị gán cho một hằng trong `webapp/lib/ban-do.ts`. */
 function hangNext(ten) {
-    const ts = readFileSync('webapp/lib/ban-do.ts', 'utf8');
-    const m = ts.match(new RegExp(`export const ${ten} =\\s*'([^']*)'`, 's'));
-    assert.ok(m, `Không đọc được \`${ten}\` trong webapp/lib/ban-do.ts`);
+    const ts = readFileSync('webapp/lib/ban-do.ts', 'utf8').replace(/\r\n/g, '\n');
 
-    return m[1];
+    return catSauMoc(ts, 'const ' + ten + ' =', ten, 'webapp/lib/ban-do.ts');
 }
 
-test('nguồn tile của Next và của Filament phải là cùng một giá trị', () => {
+test('nguồn tile và ghi công của Next và của Filament phải khớp', () => {
     // Hai bản sao là đánh đổi có ý thức — Next không đọc được config PHP, và
     // kéo URL tile qua một lời gọi API là thêm một vòng mạng cho một chuỗi
     // hằng. Chốt này là thứ bịt chỗ trôi: quên sửa một bên thì đỏ.
-    for (const [khoaPhp, tenTs] of [
-        ['tile_url', 'TILE_URL'],
-        ['tile_subdomains', 'TILE_SUBDOMAINS'],
-        ['tile_attribution', 'TILE_ATTRIBUTION'],
-        ['tile_fallback_url', 'TILE_FALLBACK_URL'],
-        ['tile_fallback_attribution', 'TILE_FALLBACK_ATTRIBUTION'],
+    for (const [tenPhp, tenTs] of [
+        ['maptiler', 'MAPTILER_URL'],
+        ['esri', 'ESRI_URL'],
+        ['ghiCongMaptiler', 'GHI_CONG_MAPTILER'],
+        ['ghiCongEsri', 'GHI_CONG_ESRI'],
     ]) {
         assert.equal(
             hangNext(tenTs),
-            configMap(khoaPhp),
-            `\`${tenTs}\` (Next) khác \`${khoaPhp}\` (config/map.php) — ` +
+            bienPhp(tenPhp),
+            '`' + tenTs + '` (Next) khác `$' + tenPhp + '` (config/map.php) — ' +
                 'đổi nhà cung cấp tile phải sửa cả hai nơi.',
+        );
+    }
+});
+
+test('hai bên chọn nguồn theo cùng một luật: có khóa thì MapTiler', () => {
+    // Luật chọn cũng là một bản sao, và nó lặng lẽ hơn URL: nếu một bên đổi
+    // thành "luôn dùng MapTiler" thì trang công khai và khu quản trị hiện hai
+    // tấm bản đồ khác nhau mà không chốt nào khác thấy.
+    assert.match(
+        readFileSync('config/map.php', 'utf8'),
+        /'tile_url'\s*=>\s*env\('MAP_TILE_URL'\)\s*\?:\s*\(\$maptilerKey !== ''\s*\?\s*\$maptiler\s*:\s*\$esri\)/,
+        'config/map.php không còn chọn MapTiler-khi-có-khóa, Esri-khi-không.',
+    );
+
+    assert.match(
+        readFileSync('webapp/lib/ban-do.ts', 'utf8'),
+        /export const TILE_URL =\s*MAPTILER_KEY === ''\s*\?\s*ESRI_URL\s*:\s*MAPTILER_URL;/,
+        'webapp/lib/ban-do.ts không còn chọn MapTiler-khi-có-khóa, Esri-khi-không.',
+    );
+});
+
+test('khóa MapTiler không được nằm trong repo', () => {
+    // Khóa hiện ra trong trình duyệt của khách dù muốn hay không, nhưng một
+    // khóa trong git là một khóa không xoay được: nó ở lại trong lịch sử.
+    for (const p of ['config/map.php', 'webapp/lib/ban-do.ts', '.env.docker.example']) {
+        // Khóa MapTiler là 20 ký tự chữ-và-số. Bắt theo hình dạng VÀ ngữ cảnh
+        // (`key=…` hoặc `MAPTILER_KEY = …`), nên nó không báo oan vì một chuỗi
+        // hai mươi ký tự ngẫu nhiên nào đó trong chú thích.
+        assert.doesNotMatch(
+            readFileSync(p, 'utf8'),
+            /key=['"]?[A-Za-z0-9]{20}\b|MAPTILER_KEY['"]?\s*[,=:]\s*['"][A-Za-z0-9]{20}/,
+            p + ' có thứ trông như một khóa MapTiler thật. Khóa sống ở `.env`.',
         );
     }
 });

@@ -147,7 +147,10 @@
                         el._lmap = map;
 
                         L.tileLayer('{{ config('map.tile_url') }}', {
-                            attribution: '{!! config('map.tile_attribution') !!}', maxZoom: 19,
+                            attribution: '{!! config('map.tile_attribution') !!}',
+                            maxZoom: {{ config('map.tile_max_zoom') }},
+                            subdomains: '{{ config('map.tile_subdomains') }}',
+                            key: '{{ config('map.tile_key') }}',
                         }).addTo(map);
 
                         L.marker([{{ (float) $site->lat }}, {{ (float) $site->lon }}]).addTo(map)

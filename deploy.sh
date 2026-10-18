@@ -389,6 +389,30 @@ if [ -f /etc/systemd/system/oohx-webapp.service ]; then
         exit 1
     fi
 
+    # Khóa MapTiler: MỘT chỗ đặt, là `.env` của Laravel.
+    #
+    # Next không đọc `.env` của Laravel, và một khóa chép tay sang
+    # `webapp/.env.production` là một khóa sẽ lệch — lần xoay khóa sau sẽ sửa
+    # một chỗ rồi để bản đồ của trang công khai dùng khóa cũ. Nên đọc từ
+    # nguồn duy nhất và truyền vào lúc build.
+    #
+    # `NEXT_PUBLIC_*` được nhúng vào JS gửi cho khách, nên nó phải có mặt lúc
+    # `npm run build`, không phải lúc `next start`. Đặt sau khi build là
+    # không đặt gì cả.
+    #
+    # Không có khóa thì không sao: `webapp/lib/ban-do.ts` lùi về Esri.
+    if [ -f .env ]; then
+        NEXT_PUBLIC_MAPTILER_KEY=$(sed -n 's/^MAPTILER_KEY=//p' .env | head -1 | tr -d "\"' ")
+        NEXT_PUBLIC_MAPTILER_STYLE=$(sed -n 's/^MAPTILER_STYLE=//p' .env | head -1 | tr -d "\"' ")
+        export NEXT_PUBLIC_MAPTILER_KEY NEXT_PUBLIC_MAPTILER_STYLE
+
+        if [ -n "$NEXT_PUBLIC_MAPTILER_KEY" ]; then
+            echo "   nền bản đồ: MapTiler (khóa ***, style ${NEXT_PUBLIC_MAPTILER_STYLE:-streets-v2})"
+        else
+            echo "   nền bản đồ: Esri — không có MAPTILER_KEY trong .env"
+        fi
+    fi
+
     ( cd webapp && npm ci && npm run build )
 
     # Restart SAU khi build xong, không trước: `next start` nạp `.next` lúc khởi
