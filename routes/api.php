@@ -118,6 +118,11 @@ Route::prefix('v2')->group(function () {
 
     Route::get('locations',        [V2CatalogController::class, 'locations']);
 
+    // Hai lưới thẻ 'duyệt' của trang chủ. Tách khỏi 'filters' vì bộ lọc trả
+    // từ vựng để lọc, còn đây trả thẻ để nhìn — kèm ảnh, mà 'filters' cố ý
+    // không mang.
+    Route::get('browse',           [V2CatalogController::class, 'browse']);
+
     // Agency/brand — bên MUA, khác hẳn /owners là bên bán. DTO hẹp hơn vì
     // nguồn là bảng Organization; xem AgencySummaryResource.
     Route::get('agencies',         [V2CatalogController::class, 'agencies']);

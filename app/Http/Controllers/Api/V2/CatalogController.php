@@ -777,6 +777,67 @@ class CatalogController extends Controller
      * Nên ở đây mỗi vùng là một phần tử có `code` ổn định và `name` để hiển
      * thị.
      */
+    /**
+     * Hai lưới "duyệt" của trang chủ: loại địa điểm và tỉnh thành.
+     *
+     * ══ Vì sao một endpoint riêng, không thêm khóa vào `/filters` ══
+     *
+     * `/filters` cố ý không mang `thumb` — chú thích ở đó nói thẳng: *"nhóm
+     * loại hình còn mang `thumb`, một đường ảnh, và nó không thuộc về một
+     * endpoint bộ lọc"*. Lý do đó vẫn đúng: bộ lọc trả **từ vựng để lọc**,
+     * còn đây trả **thẻ để nhìn**. Hai thứ đổi vì lý do khác nhau và có thể
+     * phải phân trang khác nhau.
+     *
+     * ══ Vì sao nó tồn tại ══
+     *
+     * Bản Blade có hai lưới thẻ: `cat-card` (ảnh + icon + tên + số vị trí) và
+     * `city-card` (ảnh trên nền gradient + tên + số vị trí). Khi chuyển sang
+     * Next, chúng thành một hàng chip chữ và một danh sách liên kết kiểu chân
+     * trang — vì `/filters` và `/locations` là hai endpoint duy nhất có sẵn,
+     * và cả hai đều không mang ảnh.
+     *
+     * CSS của hai lưới (`cat-grid`, `city-grid` và mười một class con) chưa
+     * bao giờ bị xoá khỏi `frontpage.css`. Thiếu đúng một đường dữ liệu.
+     *
+     * ══ Ảnh có thể thiếu, và thiết kế cũ đã lường trước ══
+     *
+     * `venue_categories.thumb` và `vietnam_provinces.photo_url` đều cho phép
+     * null. Thẻ loại địa điểm luôn có icon Material Symbols làm lớp nền; thẻ
+     * tỉnh thành luôn có dải màu gradient. Nên một kho chưa có ảnh nào vẫn ra
+     * hai lưới đọc được — đó là lý do dựng lại được ngay mà không phải chờ
+     * ai nhập ảnh.
+     */
+    public function browse(): JsonResponse
+    {
+        $aggregates = $this->catalog->getFilterAggregates();
+
+        return response()->json([
+            'data' => [
+                // Năm thẻ, đúng `take(5)` của bản Blade: lưới `cat-grid` là
+                // một hàng trên desktop, và thẻ thứ sáu rơi xuống hàng hai
+                // một mình.
+                'venue_types' => collect($aggregates['formats'] ?? [])
+                    ->take(5)
+                    ->map(fn ($format) => [
+                        'code'  => $format['type'] ?? null,
+                        'name'  => $format['label'] ?? null,
+                        'count' => (int) ($format['count'] ?? 0),
+                        'icon'  => $format['icon'] ?? 'tv',
+                        'thumb' => $format['thumb'] ?? null,
+                    ])->values()->all(),
+
+                'cities' => collect($aggregates['cities'] ?? [])
+                    ->take(8)
+                    ->map(fn ($city) => [
+                        'code'  => $city['code'] ?? null,
+                        'name'  => $city['name'] ?? null,
+                        'count' => (int) ($city['count'] ?? 0),
+                        'photo' => $city['photo'] ?? null,
+                    ])->values()->all(),
+            ],
+        ]);
+    }
+
     public function locations(): JsonResponse
     {
         $grouped = $this->catalog->getLocationsByRegion();

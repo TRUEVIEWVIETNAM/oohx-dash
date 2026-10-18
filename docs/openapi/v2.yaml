@@ -624,6 +624,55 @@ paths:
                   meta: { $ref: '#/components/schemas/LimitMeta' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /api/v2/browse:
+    get:
+      tags: [catalog]
+      summary: Hai lưới thẻ "duyệt" của trang chủ — loại địa điểm và tỉnh thành
+      description: >
+        Tách khỏi `/filters` vì hai thứ khác nhau: bộ lọc trả **từ vựng để
+        lọc**, endpoint này trả **thẻ để nhìn** — kèm ảnh và icon, thứ mà
+        `/filters` cố ý không mang.
+
+        `thumb` và `photo` có thể null. Thiết kế thẻ đã lường trước: thẻ loại
+        địa điểm luôn có icon làm lớp nền, thẻ tỉnh thành luôn có dải gradient.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [venue_types, cities]
+                    properties:
+                      venue_types:
+                        type: array
+                        maxItems: 5
+                        items:
+                          type: object
+                          required: [code, name, count, icon, thumb]
+                          properties:
+                            code:  { type: [string, 'null'] }
+                            name:  { type: [string, 'null'] }
+                            count: { type: integer }
+                            # Tên icon Material Symbols; mặc định `tv`.
+                            icon:  { type: string }
+                            thumb: { type: [string, 'null'] }
+                      cities:
+                        type: array
+                        maxItems: 8
+                        items:
+                          type: object
+                          required: [code, name, count, photo]
+                          properties:
+                            code:  { type: [string, 'null'] }
+                            name:  { type: [string, 'null'] }
+                            count: { type: integer }
+                            photo: { type: [string, 'null'] }
+
   /api/v2/locations:
     get:
       tags: [catalog]
