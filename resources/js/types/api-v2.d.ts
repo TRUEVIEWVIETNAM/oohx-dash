@@ -2690,6 +2690,7 @@ export interface components {
             name: string;
             /** @enum {string} */
             screen_type: "billboard" | "led" | "lcd";
+            screen_type_label: string;
             owner: {
                 slug?: string | null;
                 name?: string | null;

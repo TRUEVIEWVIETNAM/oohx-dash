@@ -71,6 +71,7 @@ export function ScreenCard({
     compact?: boolean;
 }) {
     const price = formatPrice(screen);
+    const thongSo = dungThongSo(screen);
     const href = `/explore/${screen.slug}`;
     const networkName = screen.network?.name;
     const siteName = screen.location?.site;
@@ -128,20 +129,14 @@ export function ScreenCard({
                     </div>
                 ) : null}
 
-                {!compact ? (
+                {!compact && thongSo.length > 0 ? (
                     <div className="sc-specs">
-                        <div className="sc-spec">
-                            <span className="sc-spec-l">Chủ sở hữu</span>
-                            <span className="sc-spec-v">{screen.owner?.name ?? '—'}</span>
-                        </div>
-                        <div className="sc-spec">
-                            <span className="sc-spec-l">Loại hình</span>
-                            <span className="sc-spec-v">{screen.screen_type ?? '—'}</span>
-                        </div>
-                        <div className="sc-spec">
-                            <span className="sc-spec-l">Kích thước</span>
-                            <span className="sc-spec-v">{sizeLabel(screen)}</span>
-                        </div>
+                        {thongSo.map(({ nhan, giaTri }) => (
+                            <div className="sc-spec" key={nhan}>
+                                <span className="sc-spec-l">{nhan}</span>
+                                <span className="sc-spec-v">{giaTri}</span>
+                            </div>
+                        ))}
                     </div>
                 ) : null}
             </div>
@@ -175,11 +170,45 @@ export function ScreenCard({
     );
 }
 
-function sizeLabel(screen: ScreenSummary): string {
+/**
+ * Ba hàng thông số, đã bỏ những hàng không có dữ liệu.
+ *
+ * ══ Vì sao bỏ hẳn hàng thay vì in "—" ══
+ *
+ * Soát production 18/10/2026: trên 50 màn hình lấy qua API công khai,
+ * **0** cái có kích thước và **0** cái có giá. Thẻ nào cũng in
+ * "Kích thước —", và ba hàng thông số thành hai hàng thật cộng một hàng
+ * nói rằng chúng tôi không biết.
+ *
+ * Một dấu gạch không nói gì cho người mua mà vẫn chiếm chỗ, vẫn kéo thẻ
+ * dài ra, và trên màn hình điện thoại thì chỗ là thứ đắt nhất. Hàng nào
+ * không có số thì không hiện.
+ *
+ * Giữ `—` ở đâu thì hợp lý: bảng so sánh, nơi các cột phải thẳng hàng với
+ * nhau. Thẻ thì không.
+ */
+function dungThongSo(screen: ScreenSummary): Array<{ nhan: string; giaTri: string }> {
+    const ra: Array<{ nhan: string; giaTri: string }> = [];
+
+    if (screen.owner?.name) {
+        ra.push({ nhan: 'Chủ sở hữu', giaTri: screen.owner.name });
+    }
+
+    // `screen_type_label` do API trả, không hoa hoá mã ở đây: bảng chữ sống
+    // ở `ScreenSummaryResource::SCREEN_TYPE_LABELS`. Trước 18/10/2026 thẻ in
+    // thẳng `screen.screen_type` nên người dùng thấy chữ `lcd`.
+    if (screen.screen_type_label) {
+        ra.push({ nhan: 'Loại hình', giaTri: screen.screen_type_label });
+    }
+
     const w = screen.size?.width_m;
     const h = screen.size?.height_m;
 
-    return w && h ? `${w}x${h}m` : '—';
+    if (w && h) {
+        ra.push({ nhan: 'Kích thước', giaTri: `${w}x${h}m` });
+    }
+
+    return ra;
 }
 
 /**

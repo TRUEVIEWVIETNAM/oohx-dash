@@ -29,6 +29,13 @@ const SCREEN_CO_GIA = {
     slug: 'man-hinh-co-gia',
     name: 'Màn Hình Có Giá <test>',
     screen_type: 'billboard',
+
+    // Bắt buộc theo `ScreenSummary` trong `docs/openapi/v2.yaml` từ
+    // 18/10/2026. Thiếu nó ở fixture là lặp lại đúng lỗi đã xảy ra ba lần
+    // trong giai đoạn 6: stub nói sai hợp đồng, trang hiện sai, và không
+    // chốt nào đỏ vì chốt đọc HTML do chính fixture đó sinh ra.
+    screen_type_label: 'Billboard',
+
     owner: { slug: 'owner-mot', name: 'Công Ty Một' },
     location: { site: 'Toà Nhà A', city: 'Hà Nội', district: 'Ba Đình' },
     network: { code: 'NET1', name: 'Mạng Một' },
@@ -45,6 +52,29 @@ const SCREEN_KHONG_GIA = {
     ...SCREEN_CO_GIA,
     slug: 'man-hinh-khong-gia',
     name: 'Màn Hình Không Giá',
+    pricing: {
+        model: 'io',
+        floor_cpm: { amount: null, currency: 'VND' },
+        io_rate: { amount: null, currency: 'VND', unit: null },
+    },
+};
+
+/**
+ * Màn hình **thiếu thông tin**, và đây là trường hợp PHỔ BIẾN chứ không phải
+ * ngoại lệ.
+ *
+ * Đo trên production 18/10/2026, 50 màn hình lấy qua API công khai: **0** cái
+ * có kích thước, **0** cái có giá. Fixture cũ chỉ có màn hình đầy đủ, nên mọi
+ * chốt chạy trên một thế giới không tồn tại — và thẻ in "Kích thước —" suốt
+ * nhiều ngày mà không ca nào đỏ.
+ */
+const SCREEN_THIEU_THONG_TIN = {
+    ...SCREEN_CO_GIA,
+    slug: 'man-hinh-thieu-thong-tin',
+    name: 'Màn Hình Thiếu Thông Tin',
+    screen_type: 'lcd',
+    screen_type_label: 'LCD',
+    size: { width_m: null, height_m: null },
     pricing: {
         model: 'io',
         floor_cpm: { amount: null, currency: 'VND' },
@@ -318,7 +348,11 @@ const LIMIT_META = { returned: 1, limit: 4, max_limit: 12 };
 const ROUTES = {
     '/api/v2/stats': { data: { total_screens: 104, total_cities: 17, total_owners: 2 } },
 
-    '/api/v2/screens': { data: [SCREEN_CO_GIA, SCREEN_KHONG_GIA], meta: PAGE_META },
+    '/api/v2/screens': {
+        // Ba trạng thái dữ liệu mà kho thật có: đủ, thiếu giá, thiếu gần hết.
+        data: [SCREEN_CO_GIA, SCREEN_KHONG_GIA, SCREEN_THIEU_THONG_TIN],
+        meta: PAGE_META,
+    },
 
     '/api/v2/screens/featured': {
         data: [{ ...SCREEN_CO_GIA, availability: AVAILABILITY }],

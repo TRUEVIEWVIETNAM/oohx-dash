@@ -125,6 +125,11 @@ const TRANG = [
             'class="ms-box"',
             'class="ms-pill"',
             'class="mega-drop"',
+
+            // Nhãn loại hình, không phải mã (lát 3 responsive, 18/10/2026).
+            // Fixture có một màn hình `screen_type: 'lcd'`; trang phải in
+            // "LCD". Bảng chữ sống ở `ScreenSummaryResource`.
+            '>LCD<',
         ],
         khong: [
             'class="sc"',
@@ -138,6 +143,15 @@ const TRANG = [
             // là móc `querySelectorAll` và một biến thể rỗng, và ở React thì
             // sự kiện gắn trực tiếp.
             'ms-compact',
+
+            // Hàng thông số rỗng (lát 3 responsive, 18/10/2026). Fixture có
+            // một màn hình không kích thước; thẻ phải BỎ hàng đó chứ không in
+            // "Kích thước —". Trên kho thật 0/50 màn hình có kích thước, nên
+            // dấu gạch này từng xuất hiện ở gần như mọi thẻ.
+            'sc-spec-v">—<',
+
+            // Mã thô ra mặt người dùng — chuyện đã xảy ra với `lcd`.
+            'sc-spec-v">lcd<',
         ],
     },
     {
