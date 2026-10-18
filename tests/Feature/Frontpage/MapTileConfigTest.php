@@ -125,4 +125,90 @@ class MapTileConfigTest extends TestCase
             }
         }
     }
+    /**
+     * Nạp lại `config/map.php` với một môi trường khác.
+     *
+     * `require` thẳng tệp config thay vì đọc `config('map.*')`: lời gọi kia
+     * trả về giá trị đã chốt lúc framework khởi động, nên nó không nói được
+     * gì về **luật chọn** — thứ duy nhất đáng kiểm ở đây.
+     */
+    private function nap(array $moiTruong): array
+    {
+        $cu = [];
+
+        foreach ($moiTruong as $k => $v) {
+            $cu[$k] = $_ENV[$k] ?? null;
+            $_ENV[$k] = $v;
+        }
+
+        try {
+            return require config_path('map.php');
+        } finally {
+            foreach ($cu as $k => $v) {
+                if ($v === null) {
+                    unset($_ENV[$k]);
+                } else {
+                    $_ENV[$k] = $v;
+                }
+            }
+        }
+    }
+
+    public function test_co_khoa_thi_dung_maptiler(): void
+    {
+        $cfg = $this->nap(['MAPTILER_KEY' => 'khoa-gia-de-test']);
+
+        $this->assertStringContainsString('api.maptiler.com', $cfg['tile_url']);
+        $this->assertStringContainsString('streets-v2', $cfg['tile_url']);
+
+        // `{key}` phải còn nguyên trong URL: Leaflet là bên thay nó, bằng
+        // option `key` mà chín view truyền vào. Nhúng thẳng khóa vào URL ở
+        // đây sẽ đem khóa vào `config:cache` trên đĩa máy chủ.
+        $this->assertStringContainsString('{key}', $cfg['tile_url']);
+        $this->assertSame('khoa-gia-de-test', $cfg['tile_key']);
+
+        $this->assertStringContainsString('MapTiler', $cfg['tile_attribution']);
+    }
+
+    public function test_khong_khoa_thi_lui_ve_esri(): void
+    {
+        $cfg = $this->nap(['MAPTILER_KEY' => '']);
+
+        // Đây là thứ giữ cho máy lập trình, CI và một khóa gõ sai ở
+        // production đều có bản đồ thay vì nền xám.
+        $this->assertStringContainsString('arcgisonline.com', $cfg['tile_url']);
+        $this->assertStringNotContainsString('{key}', $cfg['tile_url']);
+        $this->assertSame('', $cfg['tile_key']);
+
+        $this->assertStringContainsString('Esri', $cfg['tile_attribution']);
+        $this->assertStringNotContainsString('MapTiler', $cfg['tile_attribution']);
+    }
+
+    public function test_du_phong_luon_la_nguon_khong_can_khoa(): void
+    {
+        // Dự phòng mà cũng cần khóa thì nó vô dụng đúng vào lúc cần nhất:
+        // khi hạn mức MapTiler cạn giữa tháng.
+        foreach ([['MAPTILER_KEY' => 'co-khoa'], ['MAPTILER_KEY' => '']] as $mt) {
+            $cfg = $this->nap($mt);
+
+            $this->assertStringContainsString('arcgisonline.com', $cfg['tile_fallback_url']);
+            $this->assertStringNotContainsString('{key}', $cfg['tile_fallback_url']);
+        }
+    }
+
+    public function test_chin_view_deu_truyen_key_cho_leaflet(): void
+    {
+        foreach (self::VIEW_BAN_DO as $view) {
+            $noiDung = file_get_contents(view()->getFinder()->find($view));
+
+            // Thiếu dòng này thì Leaflet gửi nguyên chữ `{key}` cho MapTiler
+            // và nhận về 403 — bản đồ trắng, không một dòng log.
+            $this->assertStringContainsString(
+                "key: '{{ config('map.tile_key') }}'",
+                $noiDung,
+                "View `{$view}` không truyền `key` cho Leaflet, nên `{key}` "
+                . 'trong URL tile sẽ không được thay.',
+            );
+        }
+    }
 }

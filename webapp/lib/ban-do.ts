@@ -217,25 +217,60 @@ export function cumHtml(soLuong: number): { html: string; px: number } {
 // chết, không chống được nguồn trả rác — lớp chống rác là
 // `php artisan map:kiem-tile`, nó so kích thước một tile đã biết.
 //
-// Esri đo lại từ cùng mạng: 27.862 byte ảnh đường phố **nhãn tiếng Việt** ở
-// z13 trung tâm Hà Nội, và vẫn là ảnh thật tới z19.
+// **Chiều: sang MapTiler**, theo quyết định của chủ dự án — một tài khoản có
+// hạn mức rõ ràng thay cho hai nguồn dùng theo lệ. Esri ở lại làm nguồn không
+// khóa và làm dự phòng.
+//
+// ══ Khóa MapTiler nằm trong bundle của trình duyệt, và không tránh được ══
+//
+// `NEXT_PUBLIC_*` nghĩa là giá trị được nhúng thẳng vào JS gửi cho khách, vì
+// chính trình duyệt gọi URL tile. Mọi khóa tile client-side đều vậy, kể cả
+// khóa của Google hay Mapbox. Thứ bảo vệ hạn mức không phải sự bí mật mà là
+// **giới hạn origin** đặt trong MapTiler Cloud: chỉ cho phép `oohx.net` và
+// `dash.oohx.net`.
+//
+// Không có khóa thì mọi thứ lùi về Esri, nên máy lập trình và CI chạy được
+// mà không cần khóa, và một khóa gõ sai ở production cho bản đồ Esri chứ
+// không cho nền xám.
+//
+// ══ Nhãn tiếng Anh: đánh đổi đã biết ══
+//
+// Raster tile của MapTiler render sẵn nhãn **tiếng Anh** — "West Lake",
+// "Red River", "Tu Lien Bridge". Đã thử `?language=vi` và `?lang=vi`: cùng
+// trả đúng 82.078 byte, tức không tác dụng. Muốn tiếng Việt thì tạo style
+// riêng trong MapTiler Cloud với ngôn ngữ nhãn Vietnamese rồi đặt tên style
+// vào `NEXT_PUBLIC_MAPTILER_STYLE` — không phải sửa mã.
 
-export const TILE_URL =
+const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY ?? '';
+
+const MAPTILER_URL =
+    `https://api.maptiler.com/maps/${process.env.NEXT_PUBLIC_MAPTILER_STYLE ?? 'streets-v2'}/{z}/{x}/{y}.png?key={key}`;
+
+const ESRI_URL =
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+
+export const TILE_KEY = MAPTILER_KEY;
+
+export const TILE_URL = MAPTILER_KEY === '' ? ESRI_URL : MAPTILER_URL;
 
 // Esri không dùng `{s}`; hằng này chỉ có tác dụng nếu đổi sang nguồn có nó.
 export const TILE_SUBDOMAINS = 'abc';
 
+const GHI_CONG_MAPTILER =
+    '© <a href="https://www.maptiler.com/copyright/">MapTiler</a> · © <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>';
+
+const GHI_CONG_ESRI =
+    '© <a href="https://www.esri.com">Esri</a> · nguồn: Esri, HERE, Garmin, © <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>';
+
 export const TILE_ATTRIBUTION =
-    '© <a href="https://www.esri.com">Esri</a> · nguồn: Esri, HERE, Garmin, © <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>';
+    MAPTILER_KEY === '' ? GHI_CONG_ESRI : GHI_CONG_MAPTILER;
 
-// Cùng nhà Esri, khác service: đỡ được một service hỏng, không đỡ được cả
-// Esri hỏng. Một nguồn thật sự khác nhà cần tài khoản có API key.
-export const TILE_FALLBACK_URL =
-    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}';
+// Khác nhà với MapTiler và không cần khóa, nên nó đỡ được cả hai kiểu hỏng
+// của nguồn chính: nhà cung cấp sập, hoặc hạn mức 100.000 tile/tháng cạn
+// giữa tháng.
+export const TILE_FALLBACK_URL = ESRI_URL;
 
-export const TILE_FALLBACK_ATTRIBUTION =
-    '© <a href="https://www.esri.com">Esri</a> · nguồn: Esri, HERE, Garmin, © <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>';
+export const TILE_FALLBACK_ATTRIBUTION = GHI_CONG_ESRI;
 
 export const TILE_MAX_ZOOM = 19;
 
@@ -276,7 +311,11 @@ export function themLopNen(
         attribution: TILE_ATTRIBUTION,
         subdomains: TILE_SUBDOMAINS,
         maxZoom: TILE_MAX_ZOOM,
-    });
+        // Leaflet thay mọi `{tên}` trong URL bằng option cùng tên, nên
+        // `{key}` của MapTiler chỉ cần dòng này. Esri không có chỗ thay đó
+        // và bỏ qua option thừa.
+        key: TILE_KEY,
+    } as L.TileLayerOptions);
 
     chinh.on('tileerror', () => {
         loi += 1;
