@@ -198,29 +198,44 @@ export function cumHtml(soLuong: number): { html: string; px: number } {
 // tệp và đỏ nếu chúng khác nhau. Nên đổi nhà cung cấp vẫn là sửa hai chỗ,
 // nhưng quên một chỗ thì không lọt.
 //
-// ══ Vì sao đổi khỏi tile.openstreetmap.org (18/10/2026) ══
+// ══ Hai lần đổi trong một ngày, và vì sao (18/10/2026) ══
 //
-// Mọi yêu cầu tới `{a,b,c}.tile.openstreetmap.org` trả **HTTP 503** từ mạng
+// **Sáng: bỏ `tile.openstreetmap.org`.** Mọi yêu cầu trả HTTP 503 từ mạng
 // Việt Nam — đo bằng Chrome trên production, 20/20 tile. Bản đồ vẫn có pin,
-// có nút, chỉ thiếu ảnh nền, nên sự cố này **trông như đang chạy**.
+// có nút, chỉ thiếu ảnh nền, nên sự cố này **trông như đang chạy**. Thêm nữa
+// tile server của OSM là hạ tầng cộng đồng, không dành cho ứng dụng thương
+// mại có lưu lượng.
 //
-// Tile server của OSM là hạ tầng cộng đồng và chính sách của họ nói rõ nó
-// không dành cho ứng dụng thương mại có lưu lượng. Carto dựng từ chính dữ
-// liệu OpenStreetMap nên nhãn địa danh tiếng Việt giữ nguyên.
+// **Trưa: bỏ Carto**, và đây là lỗi đáng ghi lại. `basemaps.cartocdn.com`
+// nay bắt buộc API key, nhưng nó **không trả 403** — nó trả **HTTP 200** kèm
+// một PNG 2.049 byte in chữ "API KEY REQUIRED" chéo mặt tile. Phép đo lúc
+// chọn nguồn chỉ nhìn mã trạng thái và thời gian phản hồi, nên Carto trông
+// như nguồn nhanh nhất; mười hai bản đồ lên production với chữ đó trên nền.
+//
+// Và `themLopNen()` dưới đây **không cứu được**: nó nghe `tileerror`, mà một
+// phản hồi 200 kèm ảnh hợp lệ thì không phải lỗi. Dự phòng chống được nguồn
+// chết, không chống được nguồn trả rác — lớp chống rác là
+// `php artisan map:kiem-tile`, nó so kích thước một tile đã biết.
+//
+// Esri đo lại từ cùng mạng: 27.862 byte ảnh đường phố **nhãn tiếng Việt** ở
+// z13 trung tâm Hà Nội, và vẫn là ảnh thật tới z19.
 
 export const TILE_URL =
-    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-
-export const TILE_SUBDOMAINS = 'abcd';
-
-export const TILE_ATTRIBUTION =
-    '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>';
-
-export const TILE_FALLBACK_URL =
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
 
+// Esri không dùng `{s}`; hằng này chỉ có tác dụng nếu đổi sang nguồn có nó.
+export const TILE_SUBDOMAINS = 'abc';
+
+export const TILE_ATTRIBUTION =
+    '© <a href="https://www.esri.com">Esri</a> · nguồn: Esri, HERE, Garmin, © <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>';
+
+// Cùng nhà Esri, khác service: đỡ được một service hỏng, không đỡ được cả
+// Esri hỏng. Một nguồn thật sự khác nhà cần tài khoản có API key.
+export const TILE_FALLBACK_URL =
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}';
+
 export const TILE_FALLBACK_ATTRIBUTION =
-    '© Esri · © <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>';
+    '© <a href="https://www.esri.com">Esri</a> · nguồn: Esri, HERE, Garmin, © <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>';
 
 export const TILE_MAX_ZOOM = 19;
 
@@ -235,6 +250,17 @@ export const TILE_MAX_ZOOM = 19;
  * Chỉ chuyển **một lần**, và chỉ khi đủ `NGUONG_LOI` ô ảnh hỏng: một tile lỗi
  * lẻ là chuyện thường (ô biển, ô ngoài vùng phủ), và đổi cả lớp nền vì một ô
  * là một bản đồ nhấp nháy.
+ *
+ * ══ Hàm này KHÔNG cứu được gì, nói thẳng ══
+ *
+ * Nó nghe `tileerror`. Một nguồn đòi API key mà trả **HTTP 200 kèm ảnh
+ * watermark** — đúng chuyện Carto làm trưa 18/10 — không bắn `tileerror` lần
+ * nào, nên lớp này đứng yên trong khi mười hai bản đồ hiện chữ "API KEY
+ * REQUIRED". Đừng tin nó là lớp canh chất lượng ảnh nền.
+ *
+ * Lớp bắt được kiểu đó là `php artisan map:kiem-tile`: nó tải một tile đã
+ * biết và so **kích thước**, vì rác và bản đồ khác nhau ở số byte chứ không
+ * khác ở mã trạng thái.
  *
  * @param L  Module leaflet đã lấy `.default`
  */

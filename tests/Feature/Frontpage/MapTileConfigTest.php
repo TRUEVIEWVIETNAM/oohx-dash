@@ -96,4 +96,33 @@ class MapTileConfigTest extends TestCase
             );
         }
     }
+
+    /**
+     * Hai nguồn đã thử và loại, không được quay lại bằng một lần sửa config.
+     *
+     * Cả hai đều hỏng theo kiểu khó thấy, nên cả hai đều đáng một dòng ở đây:
+     *
+     *  - `tile.openstreetmap.org`: hạ tầng cộng đồng, trả 503 từ mạng Việt
+     *    Nam, và chính sách của OSM không cho dùng cho ứng dụng thương mại.
+     *  - `basemaps.cartocdn.com`: không có API key thì trả HTTP 200 kèm ảnh
+     *    "API KEY REQUIRED" — xanh với mọi phép kiểm trừ con mắt.
+     *
+     * Chốt này chỉ canh tên miền. Thứ canh được "nguồn có trả bản đồ thật
+     * không" là `php artisan map:kiem-tile`, vì phép đó cần gọi mạng.
+     */
+    public function test_khong_quay_lai_hai_nguon_da_loai(): void
+    {
+        foreach (['tile_url', 'tile_fallback_url'] as $khoa) {
+            foreach ([
+                'tile.openstreetmap.org' => 'hạ tầng cộng đồng, 503 từ Việt Nam',
+                'cartocdn.com' => 'trả watermark "API KEY REQUIRED" kèm HTTP 200',
+            ] as $mien => $lyDo) {
+                $this->assertStringNotContainsString(
+                    $mien,
+                    (string) config("map.{$khoa}"),
+                    "`map.{$khoa}` quay lại `{$mien}` — đã loại 18/10/2026 vì {$lyDo}.",
+                );
+            }
+        }
+    }
 }
