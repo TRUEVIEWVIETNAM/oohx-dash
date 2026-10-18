@@ -613,20 +613,30 @@ và để nếu có người hỏi thì không ai phải đi tìm:
 Bốn thẻ "Điểm nổi bật" in **vô điều kiện cho mọi màn hình** — chúng không
 đọc trường nào của `screen`.
 
-### Ảnh: đúng tấm cũ, phục vụ từ domain của mình (chốt 18/10/2026)
+### Ảnh ô "3.2×": ba lần chốt, kết quả là hotlink nguyên văn (18/10/2026)
 
-Lần đầu tôi thay ảnh nền ô "3.2×" bằng một SVG dựng tại chỗ, vì bản Blade
-hotlink `images.unsplash.com`. Chủ dự án chốt **dùng đúng ảnh cũ**.
+Ghi cả ba bước vì chúng cho thấy ranh giới giữa *"dựng lại nguyên văn"* và
+*"dựng lại cho đúng"* nằm ở đâu — và ai là người vẽ nó.
 
-Đã tải tệp về `public/images/frontpage/ai-platform.jpg` (JPEG 800×1200,
-155 KB) thay vì hotlink. Cùng một tấm ảnh, nhưng bỏ được hai thứ đi kèm
-hotlink: trang công khai không còn phụ thuộc một CDN bên thứ ba **lúc chạy**
-(Unsplash chậm, đổi URL hay chặn hotlink thì ô ảnh trống), và không còn gửi
-referrer của người đọc sang máy chủ khác mỗi lần mở trang chủ.
+1. Tôi thay ảnh bằng một SVG dựng tại chỗ, vì bản Blade hotlink
+   `images.unsplash.com` và hotlink là một điểm hỏng cộng một câu hỏi bản
+   quyền.
+2. Chủ dự án chốt **dùng đúng ảnh cũ**. Tôi tải tệp về
+   `public/images/frontpage/ai-platform.jpg` — cùng tấm ảnh, phục vụ từ
+   domain của mình.
+3. Chủ dự án chốt **hotlink như cũ**. URL Unsplash nay nằm thẳng trong
+   HTML, đúng bản Blade. Tệp tự host đã gỡ.
 
-Đường `/images/*` do Laravel phục vụ trên production. Ở môi trường test chỉ
-chạy `next start` thì ảnh này 404 — chốt kiểm chuỗi HTML nên không ảnh
-hưởng, nhưng đừng ngạc nhiên khi xem thử cục bộ.
+Hai thứ đi kèm lựa chọn cuối, ghi lại để không ai phải tìm lại khi nó xảy
+ra: trang chủ phụ thuộc một CDN bên thứ ba **lúc chạy** (Unsplash chậm,
+đổi URL hay chặn hotlink thì ô ảnh trống, và không có gì ở phía mình để
+sửa), và mỗi lượt mở trang chủ gửi referrer `oohx.net` sang máy chủ của
+Unsplash.
+
+Chốt trong `khoi-giao-dien.mjs` đã **đảo hai lần** theo đúng ba bước trên:
+từ cấm `images.unsplash.com`, sang đòi đường tệp tự host, sang đòi chính
+URL Unsplash. Chiều của luật đi theo quyết định, không theo ý người viết
+test.
 
 ### Chốt đổi chiều
 
