@@ -117,7 +117,26 @@ export function ProductCard({ product }: { product: ProductSummary }) {
  * không phải VND; tự quy đổi ở tầng hiển thị là đặt ra một chính sách tỷ giá
  * mà không ai duyệt — cùng lý do `CartService` chặn đặt trực tuyến với giá
  * ngoài VND.
+ *
+ * ══ Đơn vị dịch sang tiếng Việt (18/10/2026) ══
+ *
+ * Hàm này in thẳng mã enum của API: `250.000.000 ₫/week` trên một trang mà
+ * CLAUDE.md quy định tiếng Việt là mặc định. Không ai thấy vì nó chỉ xuất
+ * hiện ở `/products`, và kho hôm nay có một gói; lát 3 đưa nó lên trang chủ
+ * nên nó thành chữ người đọc đầu tiên gặp.
+ *
+ * Bảng tra chứ không `switch`: thiếu một khoá thì in lại chính mã, không ném
+ * lỗi và không nuốt mất đơn vị. Bốn mã lấy từ enum `pricing.unit` trong
+ * OpenAPI; thêm mã thứ năm ở đó mà quên ở đây thì người đọc thấy mã tiếng
+ * Anh — xấu, nhưng không sai.
  */
+const DON_VI: Record<string, string> = {
+    day: 'ngày',
+    week: 'tuần',
+    month: 'tháng',
+    campaign: 'chiến dịch',
+};
+
 export function formatProductPrice(product: ProductSummary): string | null {
     const pricing = product.pricing;
     const amount = pricing?.package ?? pricing?.per_screen;
@@ -129,7 +148,9 @@ export function formatProductPrice(product: ProductSummary): string | null {
     const formatted = new Intl.NumberFormat('vi-VN').format(amount);
 
     const price = currency === 'VND' ? formatted + ' ₫' : formatted + ' ' + currency;
-    const withUnit = pricing?.unit ? price + '/' + pricing.unit : price;
+    const withUnit = pricing?.unit
+        ? price + '/' + (DON_VI[pricing.unit] ?? pricing.unit)
+        : price;
 
     return laGiaLe ? withUnit + ' mỗi màn hình' : withUnit;
 }

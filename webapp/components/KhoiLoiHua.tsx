@@ -1,54 +1,51 @@
 /**
- * Hai khối của trang chủ bản Blade mà lát 2 **cố ý không dựng**, nay dựng lại
- * **nguyên văn** theo quyết định của chủ dự án (18/10/2026).
+ * Thanh năm mục "trust" của trang chủ bản Blade — một khối chữ mà lát 2 **cố
+ * ý không dựng**, nay dựng lại **nguyên văn** theo quyết định của chủ dự án
+ * (18/10/2026).
  *
  * ══ Vì sao có tệp riêng, không nhét vào `app/page.tsx` ══
  *
- * Để một ngày nào đó gỡ chúng ra là xoá hai lời gọi, không phải đi tìm giữa
- * 500 dòng. Nội dung ở đây là **lời hứa sản phẩm**, không phải dữ liệu — nên
- * nó nên sống ở một chỗ đọc được trong một lần nhìn.
+ * Để một ngày nào đó gỡ nó ra là xoá một lời gọi, không phải đi tìm giữa 500
+ * dòng. Nội dung ở đây là **lời hứa sản phẩm**, không phải dữ liệu — nên nó
+ * nên sống ở một chỗ đọc được trong một lần nhìn.
  *
  * ══ Chữ ở đây nói những điều hệ thống chưa làm được ══
  *
  * Ghi lại một lần, ở đúng chỗ người sửa sau sẽ đọc:
  *
  *  - **"Traffic real-time"** — `impression_logs` chưa có bản ghi nào.
- *  - **"AI-powered search"**, **"AI Campaign Match / GPT-powered"**,
- *    **"AI Audience Estimation / Data-driven ±8%"** — không có tính năng AI
- *    nào trong mã; `MegaSearch` là lọc theo thuộc tính.
+ *  - **"AI-powered search"** — không có tính năng AI nào trong mã;
+ *    `MegaSearch` là lọc theo thuộc tính.
  *  - **"Secure payment"** — sàn **không thu hộ**; người mua chuyển khoản
  *    trực tiếp cho từng media owner (hồ sơ Bộ Công Thương).
- *  - **"Real-time Availability / Live sync <5min"** — không có đồng bộ nào
- *    với owner; suất trống tính từ `BookingLine` + `InventoryHold` trong CSDL
- *    của chính sàn.
- *  - **"3.2× nhanh hơn cách đặt truyền thống"** — không có nguồn.
- *  - **"100% verified"** — cột `owners.verified` có thật nhưng là cờ thủ
- *    công, không phải một quy trình kiểm định.
+ *  - **"Verified inventory"** — cột `owners.verified` có thật nhưng là cờ
+ *    thủ công, không phải một quy trình kiểm định.
  *
  * Audit F-15 đã gỡ khỏi trang này "30M+ impressions", bộ đếm chạy bằng
- * `Math.random()`, "AI Match 94%" và "tăng fill rate 40%". Hai khối dưới sống
- * sót đợt đó vì nó dọn theo *con số*; đây là *lời khẳng định năng lực*. Chủ dự
- * án đã đọc danh sách trên và chốt dựng lại nguyên văn.
+ * `Math.random()`, "AI Match 94%" và "tăng fill rate 40%". Thanh này sống sót
+ * đợt đó vì nó dọn theo *con số*; đây là *lời khẳng định năng lực*. Chủ dự án
+ * đã đọc danh sách trên và chốt dựng lại nguyên văn.
  *
- * ══ Ảnh: hotlink nguyên văn bản Blade ══
+ * ══ Mục "Marketplace OOH đầu tiên có AI" đã gỡ (lát 3, 18/10/2026) ══
  *
- * Chủ dự án chốt ba lần về tấm ảnh này (18/10/2026), và lần chốt cuối là
- * **hotlink như cũ** — URL `images.unsplash.com` nằm thẳng trong HTML, đúng
- * như `frontpage/index.blade.php` từng làm.
+ * Tệp này từng có khối thứ hai, `MucAI` — hai cột, bốn thẻ "AI Campaign Match
+ * / GPT-powered", "Real-time Availability / Live sync <5min", "AI Audience
+ * Estimation / Data-driven ±8%", "Verified Data Network / 100% verified", và
+ * một ô ảnh ghi "3.2× nhanh hơn cách đặt truyền thống". Không thẻ nào trong
+ * số đó có một dòng mã đứng sau, và "3.2×" không có nguồn.
  *
- * Hai thứ đi kèm lựa chọn đó, ghi lại để không ai phải tìm lại khi nó xảy ra:
+ * Nó cũng mang tấm ảnh hotlink `images.unsplash.com/photo-1551836022-…` —
+ * thứ chủ dự án chốt **ba lần** trong một ngày (tự host ở PR #95, rồi quay về
+ * hotlink nguyên văn ở PR #96). Gỡ `MucAI` là gỡ luôn phụ thuộc CDN bên thứ
+ * ba lúc chạy, và cái referrer `oohx.net` gửi sang Unsplash mỗi lượt mở trang.
  *
- *  - Trang chủ phụ thuộc một CDN bên thứ ba **lúc chạy**. Unsplash chậm, đổi
- *    URL hay chặn hotlink thì ô ảnh trống, và không có gì ở phía mình để sửa.
- *  - Mỗi lượt mở trang chủ gửi referrer `oohx.net` sang máy chủ của Unsplash.
+ * Quyết định cùng đợt với bố cục mới: chủ dự án duyệt bản mock không có khối
+ * AI, rồi xác nhận lại bằng chữ ("bỏ khối AI"). Nó **đảo** quyết định dựng
+ * nguyên văn của chính hôm đó — ghi lại ở đây vì ba PR liên tiếp (#94, #95,
+ * #96) đã đổ vào một khối mà PR này xoá.
  *
- * Tệp tự host đã từng có ở `public/images/frontpage/ai-platform.jpg` (PR #95)
- * và đã gỡ cùng lần đổi này. Muốn quay lại thì nó còn trong lịch sử git.
+ * Muốn quay lại thì cả khối lẫn tệp ảnh tự host còn trong lịch sử git.
  */
-
-/** Ảnh nền ô "3.2×" — hotlink nguyên văn bản Blade. */
-const ANH_AI =
-    'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=800&q=80&auto=format&fit=crop';
 
 const TRUST: { nhan: string; path: string }[] = [
     {
@@ -96,95 +93,5 @@ export function ThanhTrust() {
                 ))}
             </div>
         </div>
-    );
-}
-
-const AI_CARDS: { tieuDe: string; moTa: string; the: string; path: string }[] = [
-    {
-        tieuDe: 'AI Campaign Match',
-        moTa: 'Mô tả campaign bằng ngôn ngữ tự nhiên — AI đề xuất inventory phù hợp nhất trong giây.',
-        the: 'GPT-powered',
-        path: 'M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25z',
-    },
-    {
-        tieuDe: 'Real-time Availability',
-        moTa: 'Kiểm tra slot trống trước khi brief AdOps. Sync với owner trong 5 phút.',
-        the: 'Live sync <5min',
-        path: 'M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z',
-    },
-    {
-        tieuDe: 'AI Audience Estimation',
-        moTa: 'Ước tính reach từ traffic data thực tế, thời điểm trong ngày và demographic khu vực.',
-        the: 'Data-driven ±8%',
-        path: 'M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zm-9.79 6.84a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z',
-    },
-    {
-        tieuDe: 'Verified Data Network',
-        moTa: 'Ảnh thực địa, location verified, traffic data nguồn đáng tin. Không có inventory ảo.',
-        the: '100% verified',
-        path: 'M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.7L1 12l2.44 2.79-.34 3.7 3.61.82 1.89 3.2L12 21.04l3.4 1.46 1.89-3.19 3.61-.82-.34-3.69L23 12z',
-    },
-];
-
-/** Mục "Marketplace OOH đầu tiên có AI" — hai cột, bốn thẻ và ô 3.2×. */
-export function MucAI() {
-    return (
-        <section className="sec">
-            <div className="w">
-                <div className="value-grid">
-                    <div>
-                        <span className="eyebrow">AI-POWERED PLATFORM</span>
-                        <h2
-                            className="section-hed"
-                            style={{ marginTop: 8, marginBottom: 12 }}
-                        >
-                            Marketplace OOH đầu tiên có AI
-                        </h2>
-                        <p
-                            className="section-sub"
-                            style={{ marginBottom: 32 }}
-                        >
-                            Kết nối agency, brand và media owner — nhanh hơn, minh bạch hơn, đo
-                            được kết quả.
-                        </p>
-
-                        <div className="ai-cards">
-                            {AI_CARDS.map((the) => (
-                                <div className="ai-card" key={the.tieuDe}>
-                                    <div className="ai-icon">
-                                        <svg
-                                            viewBox="0 0 24 24"
-                                            fill="var(--bl)"
-                                            aria-hidden="true"
-                                            style={{ width: 20, height: 20, flexShrink: 0 }}
-                                        >
-                                            <path d={the.path} />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <div className="ai-card-title">{the.tieuDe}</div>
-                                        <div className="ai-card-desc">{the.moTa}</div>
-                                        <div className="ai-card-tag">
-                                            <span className="badge badge-bl">{the.the}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div>
-                        <div className="value-visual">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={ANH_AI} alt="" loading="lazy" />
-                            <div className="value-visual-ov">
-                                <div className="vv-number">3.2×</div>
-                                <div className="vv-label">Nhanh hơn cách đặt truyền thống</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
     );
 }

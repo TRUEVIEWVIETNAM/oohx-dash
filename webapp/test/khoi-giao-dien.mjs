@@ -41,6 +41,9 @@ const ORIGIN = 'https://oohx.net';
  *
  * `khong` — chuỗi KHÔNG được có. Dùng cho đúng những lỗi đã xảy ra: một thẻ
  * mở bằng `class="sc"` là lỗi cũ quay lại.
+ *
+ * `thuTu` — chuỗi phải xuất hiện theo ĐÚNG thứ tự liệt kê. Tuỳ chọn; xem
+ * `kiemThuTu()` về việc vì sao sự có mặt là chưa đủ.
  */
 const TRANG = [
     {
@@ -64,24 +67,53 @@ const TRANG = [
             'class="map-mock"', // bản đồ nhúng
             'class="hp-map-city-bar"',
             'class="map-count"',
-            'class="steps-grid"', // bốn bước đặt booking
-            'class="step-card"',
 
-            // Bốn câu mô tả, nguyên văn bản Blade (chốt 18/10/2026). Lát 2
-            // từng viết lại chúng; luật này canh để lần sau không ai viết lại
-            // mà không đi qua một quyết định.
+            // ── Thứ tự sáu khối của thân trang (lát 3, 18/10/2026) ────────
+            //
+            // Bố cục cũ xếp mười khối theo thứ tự chúng được viết ra, không
+            // theo thứ tự người đọc cần: ba lối vào kho nằm rời nhau, hai
+            // cách mua cách nhau BỐN khối, và mục mời media owner chen vào
+            // giữa luồng của người mua.
+            //
+            // Thứ tự mới trả lời bốn câu theo đúng trình tự người mua hỏi:
+            // kho có gì (② duyệt) → mua kiểu nào (③) → đặt ra sao (④) →
+            // đặt với ai (⑤) — rồi mới tới lời mời dành cho người bán (⑥).
+            //
+            // `thuTu` canh chính THỨ TỰ đó, không chỉ canh sự có mặt: đổi
+            // chỗ hai khối không làm hỏng một khẳng định `co` nào, và đó
+            // đúng là kiểu hỏng mà lát này sinh ra để chữa.
+            'class="dk-tabs"', // ② hai tab của khối duyệt kho
+            'role="tablist"',
+            'class="dk-tab"',
+            'class="mua"', // ③ hai ô cách mua
+            'class="lc"',
+            'class="lc lc--nb"', // ô "mua theo gói", viền nổi
+            'class="lc-ds"',
+            'class="steps-grid"', // ④ bốn bước đặt booking
+            'class="step-card"',
+            'class="bao-dam"', // ⑤ ba bảo đảm dưới dải owner
+            'class="bd-o"',
+            'class="owner-cta"', // ⑥ khối mời media owner
+            'class="oc-feat"',
+            'class="oc-card', // thẻ owner (biến thể compact thêm hậu tố)
+
+            // Bốn câu mô tả, nguyên văn bản Blade (chốt 18/10/2026, xác nhận
+            // lại khi duyệt bố cục mới). Bản mock của lát 3 có bốn câu VIẾT
+            // LẠI; luật này canh để không ai lấy nhầm từ đó.
             'AI search theo khu vực',
             'So sánh tối đa 5 vị trí',
             'proof-of-play report tự động',
-            'class="owner-cta"', // khối mời media owner
-            'class="oc-feat"',
-            'class="inv-grid"', // lưới màn hình, không phải lưới thẻ owner
-            'class="oc-card', // thẻ owner (biến thể compact thêm hậu tố)
+
             // Hai lưới thẻ 'duyệt' (18/10/2026). Bản Blade có ảnh + icon +
             // tên + số vị trí; bản Next đầu tiên rút xuống một hàng chip chữ
             // và một danh sách liên kết kiểu chân trang, vì '/filters' và
             // '/locations' là hai endpoint duy nhất có sẵn và cả hai đều
             // không mang ảnh.
+            //
+            // Từ lát 3 chúng là hai TAB của một khối, nhưng cả hai vẫn phải
+            // nằm trong HTML máy chủ trả về: tab không hoạt động ẩn bằng
+            // `hidden`, không bằng việc không render — nếu không, công cụ
+            // tìm kiếm mất một nửa số liên kết vào kho.
             'class="cat-grid"',
             'class="cat-card"',
             'class="cat-icon"',
@@ -97,16 +129,11 @@ const TRANG = [
             // vài MB, đúng kiểu hỏng mà không ai nhìn thấy.
             '/_next/image',
 
-            // Phụ đề và nút của bản Blade, nguyên văn.
-            'Outdoor, indoor, digital hay static',
-            'Chọn thị trường để bắt đầu lên plan.',
-            'All markets',
-
             'class="ft-g"', // lưới liên kết tỉnh thành ở chân trang
 
-            // Hai khối lời hứa, chủ dự án chốt dựng nguyên văn 18/10/2026.
-            // Chúng từng nằm trong danh sách `khong` của chính tệp này —
-            // xem `KhoiLoiHua.tsx` về những câu không kiểm được.
+            // Thanh "trust", chủ dự án chốt dựng nguyên văn 18/10/2026. Nó
+            // từng nằm trong danh sách `khong` của chính tệp này — xem
+            // `KhoiLoiHua.tsx` về những câu không kiểm được.
             'class="trust"',
             'class="trust-in"',
             'class="trust-item"',
@@ -114,24 +141,78 @@ const TRANG = [
             'Traffic real-time',
             'AI-powered search',
             'Secure payment',
-            'class="value-grid"',
-            'class="ai-cards"',
-            'class="ai-card"',
-            'class="ai-card-tag"',
-            'class="value-visual"',
-            'class="vv-number"',
 
-            // Ảnh của mục AI hotlink nguyên văn bản Blade (chốt 18/10/2026).
-            // Luật này từng là một lệnh CẤM ở `khong`; nó đảo chiều cùng
-            // quyết định, không theo ý người viết test.
-            'images.unsplash.com/photo-1551836022-deb4988cc6c0',
-            '3.2×',
-            'Marketplace OOH đầu tiên có AI',
+            // Ba bảo đảm của khối ⑤ nói những điều CLAUDE.md ghi là sự thật
+            // của sàn, không phải lời hứa năng lực. Canh nguyên văn để một
+            // lần "làm mạnh câu chữ" phải đi qua một quyết định.
+            'Sàn không thu hộ',
+            'Giá do chủ màn hình đặt',
+            'Booking đã xác nhận không đổi',
+        ],
+        // Thứ tự xuất hiện trong HTML, không chỉ sự có mặt. Xem chú thích ở
+        // khối ② trên.
+        thuTu: [
+            'class="hero hero--split"',
+            'class="dk-tabs"',
+            'class="mua"',
+            'class="steps-grid"',
+            'class="bao-dam"',
+            'class="owner-cta"',
         ],
         khong: [
             'class="sc"',
             'class="oc"',
             'class="oc-name"',
+
+            // Ảnh SVG mô phỏng bảng điều khiển, gỡ 18/10/2026 khi bản đồ
+            // thật lên hero. Nó không mang một con số nào nên không thuộc
+            // nhóm F-15 — lý do gỡ là chỗ: nó chiếm vị trí đầu trang để vẽ
+            // một màn hình không có thật, trước khi người xem thấy một màn
+            // hình có thật.
+            'class="hero-browser"',
+            'class="hb-screen"',
+
+            // ── Mục "Marketplace OOH đầu tiên có AI", gỡ ở lát 3 ──────────
+            //
+            // Bốn thẻ "GPT-powered", "Live sync <5min", "Data-driven ±8%",
+            // "100% verified" và ô ảnh "3.2×" — không thẻ nào có một dòng mã
+            // đứng sau, và "3.2×" không có nguồn.
+            //
+            // Sáu luật dưới đây TỪNG nằm ở `co`: chủ dự án chốt dựng nguyên
+            // văn sáng 18/10 (#94), rồi chốt bỏ chiều 18/10 cùng bố cục mới.
+            // Chúng đảo chiều theo quyết định, không theo ý người viết test —
+            // nên lần đảo tiếp theo cũng phải là một quyết định, không phải
+            // một lần sửa test cho xanh.
+            'class="value-grid"',
+            'class="ai-cards"',
+            'class="ai-card"',
+            'class="vv-number"',
+            '3.2×',
+            'Marketplace OOH đầu tiên có AI',
+
+            // Ảnh hotlink Unsplash nằm TRONG mục AI, nên nó đi theo. Chủ dự
+            // án chốt ba lần về tấm ảnh này trong một ngày (tự host #95 →
+            // hotlink #96); gỡ cả mục thì không còn gì để chốt. Luật này
+            // canh việc nó không lặng lẽ quay lại ở một mục khác — trang chủ
+            // không còn phụ thuộc CDN bên thứ ba lúc chạy.
+            'images.unsplash.com',
+
+            // Lưới "Vị trí nổi bật", gỡ ở lát 3. `getFeaturedScreens()` đòi
+            // ảnh RIÊNG + có giá; đo trên production 05/10/2026 thì 1 trên
+            // 104 màn hình thoả cả hai, nên mục này luôn ra đúng một thẻ.
+            // `inv-grid` là lưới thẻ màn hình — nó không còn chỗ nào trên
+            // trang chủ.
+            'class="inv-grid"',
+
+            // Mục "Gói chiến dịch" cũ: một lưới `pd-card` cho một gói. Tên
+            // gói và giá của nó nay nằm trong ô "mua theo gói" của khối ③.
+            'class="pd-card"',
+
+            // Nút "Bán cùng OOHX" của bản mock lát 3 trỏ vào
+            // `/ban-cung-oohx` — một đường KHÔNG tồn tại. Chốt "không liên
+            // kết nào trỏ vào trang chưa có" ở `tests/js/class-css.test.mjs`
+            // đã chặn nó một lần ở PR #115; luật này chặn nó ở trang chủ.
+            '/ban-cung-oohx',
 
             // Ảnh SVG mô phỏng bảng điều khiển, gỡ 18/10/2026 khi bản đồ
             // thật lên hero. Nó không mang một con số nào nên không thuộc
@@ -219,6 +300,12 @@ const TRANG = [
 
             // Lát 4 — bốn tab, và nội dung CỦA CẢ BỐN phải có trong HTML máy
             // chủ render (bản Blade cũng in hết rồi ẩn bằng CSS)
+            //
+            // `tabs`, KHÔNG `dk-tabs`: đây là thanh tab gạch chân của trang
+            // chi tiết (`TabChiTiet`), một bộ class khác với thanh tab dạng
+            // viên của khối "Duyệt kho" trên trang chủ. Hai bộ từng cùng tên
+            // `.tabs`/`.tab` trong `frontpage.css`, và luật sau thắng luật
+            // trước — khối duyệt kho đổi sang tiền tố `dk-` ở lát 3.
             'class="tabs"',
             'id="tp-info"',
             'id="tp-insights"',
@@ -680,6 +767,48 @@ async function kiemTrang(base, trang) {
             );
         }
     }
+
+    kiemThuTu(trang, html);
+}
+
+/**
+ * `thuTu` — các khối phải xuất hiện theo ĐÚNG thứ tự này trong HTML.
+ *
+ * Vì sao cần, bên cạnh `co`: `co` chỉ hỏi "khối này có mặt không". Đảo chỗ
+ * hai mục của trang chủ thì mọi khẳng định `co` vẫn xanh, trong khi thứ tự
+ * mới là toàn bộ nội dung của lát 3 — người mua đọc trang theo chiều từ trên
+ * xuống, nên thứ tự LÀ bố cục.
+ *
+ * So bằng `indexOf` trên HTML thô: mỗi chuỗi trong `thuTu` phải là một chuỗi
+ * xuất hiện đúng một lần và đã nằm trong `co`, nên không cần phân tích DOM.
+ */
+function kiemThuTu(trang, html) {
+    if (!trang.thuTu) return;
+
+    let truoc = -1;
+    let tenTruoc = null;
+
+    for (const moc of trang.thuTu) {
+        const i = html.indexOf(moc);
+
+        if (i < 0) {
+            loi.push(`${trang.path} (${trang.ten}) thiếu mốc thứ tự \`${moc}\``);
+
+            return;
+        }
+
+        if (i < truoc) {
+            loi.push(
+                `${trang.path} (${trang.ten}) sai thứ tự khối: ` +
+                    `\`${moc}\` đứng TRƯỚC \`${tenTruoc}\`, phải đứng sau`,
+            );
+
+            return;
+        }
+
+        truoc = i;
+        tenTruoc = moc;
+    }
 }
 
 /**
@@ -690,7 +819,10 @@ async function kiemTrang(base, trang) {
  * danh sách `TRANG` rỗng sẽ cho ra "xanh vì không kiểm gì".
  */
 function kiemKhongRong() {
-    const tong = TRANG.reduce((n, t) => n + t.co.length + t.khong.length, 0);
+    const tong = TRANG.reduce(
+        (n, t) => n + t.co.length + t.khong.length + (t.thuTu?.length ?? 0),
+        0,
+    );
 
     if (TRANG.length < 4 || tong < 40) {
         loi.push(`Danh sách khối đã co lại: ${TRANG.length} trang, ${tong} khẳng định`);
@@ -751,7 +883,10 @@ async function chay() {
     }
 
     if (loi.length === 0) {
-        const tong = TRANG.reduce((n, t) => n + t.co.length + t.khong.length, 0);
+        const tong = TRANG.reduce(
+        (n, t) => n + t.co.length + t.khong.length + (t.thuTu?.length ?? 0),
+        0,
+    );
 
         console.log(`Khối giao diện: ${TRANG.length} trang, ${tong} khẳng định, tất cả khớp.`);
         process.exit(0);

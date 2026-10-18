@@ -1,15 +1,22 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
-import { getHomeData, DEFAULT_CITY, type HomeData } from '@/lib/home';
+import {
+    getHomeData,
+    DEFAULT_CITY,
+    type HomeData,
+    type HeroStats,
+    type ProductSummary,
+} from '@/lib/home';
 import { buildMetadata, jsonLd, OgType } from '@/lib/seo';
 import { SiteHeader } from '@/components/SiteHeader';
-import { ScreenCard } from '@/components/ScreenCard';
 import { OwnerCard } from '@/components/OwnerCard';
 import { MegaSearch } from '@/components/MegaSearch';
 import { BanDoTrangChu } from '@/components/BanDoTrangChu';
-import { ProductCard } from '@/components/ProductCard';
-import { ThanhTrust, MucAI } from '@/components/KhoiLoiHua';
+import { DuyetKho } from '@/components/DuyetKho';
+// `formatProductPrice` dùng chung với `ProductCard`: trang chủ và trang gói
+// không được in hai con số khác nhau cho cùng một gói.
+import { formatProductPrice } from '@/components/ProductCard';
+import { ThanhTrust } from '@/components/KhoiLoiHua';
 
 /**
  * Trang chủ — đường dẫn cuối của giai đoạn 6 trước nhóm trang chính sách.
@@ -26,15 +33,32 @@ import { ThanhTrust, MucAI } from '@/components/KhoiLoiHua';
  * Thiếu một khối thì người đọc thấy ít hơn; một con số sai thì họ tin vào thứ
  * không có.
  *
- * ══ Mục "vị trí nổi bật" hôm nay chỉ có 1 thẻ ══
+ * ══ Sáu khối, theo thứ tự người mua hỏi (lát 3, 18/10/2026) ══
  *
- * Không phải lỗi render. `getFeaturedScreens()` đòi màn hình có **ảnh riêng**
- * (`screen_specs.photo_url` hoặc `photos`) và **có giá**. Đo trên production
- * ngày 05/10/2026: cả 50 màn hình trong mẫu đều lùi về cover của owner, tức
- * không ai có ảnh riêng — chỉ 1 trên 104 màn hình thoả cả hai điều kiện.
+ *   ① hero — kho có bao nhiêu, nằm ở đâu, tìm ở đâu
+ *   ② duyệt kho — xem kho, theo loại hình hoặc theo tỉnh thành
+ *   ③ hai cách mua — lẻ hay gói
+ *   ④ bốn bước — đặt thế nào
+ *   ⑤ media owner + ba bảo đảm — đặt với ai
+ *   ⑥ mời lên sàn — khối duy nhất dành cho NGƯỜI BÁN, và nó đứng cuối
  *
- * Đó là chuyện dữ liệu, không phải chuyện code, nên trang hiện đúng những gì
- * có.
+ * Bố cục cũ có mười khối xếp theo thứ tự chúng được viết ra: ba lối vào kho
+ * rời nhau, hai cách mua cách nhau bốn khối, mục mời media owner chen giữa
+ * luồng của người mua. `thuTu` trong `webapp/test/khoi-giao-dien.mjs` canh
+ * chính thứ tự trên — đảo chỗ hai khối không làm hỏng một khẳng định "có mặt"
+ * nào.
+ *
+ * Ba khối bị gỡ ở lát này, mỗi cái một lý do khác nhau:
+ *
+ *  - **"Vị trí nổi bật"** — `getFeaturedScreens()` đòi màn hình có **ảnh
+ *    riêng** (`screen_specs.photo_url` hoặc `photos`) VÀ **có giá**. Đo trên
+ *    production 05/10/2026: cả 50 màn hình trong mẫu đều lùi về cover của
+ *    owner, tức chỉ 1 trên 104 thoả cả hai. Một lưới một thẻ không nói được
+ *    gì về kho. Lời gọi `/screens/featured` nuôi nó cũng đi — xem `lib/home.ts`.
+ *  - **"Gói chiến dịch"** — cùng hình dạng: một lưới cho một gói. Tên gói và
+ *    giá của nó chuyển vào ô "mua theo gói" của khối ③.
+ *  - **"Marketplace OOH đầu tiên có AI"** — chủ dự án chốt bỏ, đảo quyết định
+ *    dựng nguyên văn của chính hôm đó. Xem `KhoiLoiHua.tsx`.
  */
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -57,7 +81,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-    const { stats, featuredScreens, featuredOwners, regions, filters, pins, products, browse } =
+    const { stats, featuredOwners, regions, filters, pins, products, browse } =
         await getHomeData(DEFAULT_CITY);
 
     return (
@@ -215,87 +239,30 @@ export default async function HomePage() {
                 */}
                 <ThanhTrust />
 
-                {/* ── Duyệt theo loại địa điểm ───────────────────────────── */}
-                {browse && browse.venue_types.length > 0 ? (
-                    <section className="w" style={{ paddingTop: 48, paddingBottom: 48 }}>
-                        <div className="sec-head">
-                            <div className="sec-head-row">
-                                <div>
-                                    <span className="eyebrow">LOẠI ĐỊA ĐIỂM</span>
-                                    <h2 className="section-hed">Duyệt theo Địa điểm</h2>
-                                    <p
-                                        className="section-sub"
-                                        style={{ marginTop: 10 }}
-                                    >
-                                        Outdoor, indoor, digital hay static — tất cả trên một nền
-                                        tảng.
-                                    </p>
-                                </div>
-                                <Link
-                                    href="/explore"
-                                    className="btn btn-s btn-sm"
-                                    style={{ marginTop: 6, flexShrink: 0 }}
-                                >
-                                    Tất cả
-                                    <MuiTen />
-                                </Link>
-                            </div>
-                        </div>
+                {/* ── ② Duyệt kho ────────────────────────────────────────── */}
+                {/*
+                  Một kho, hai cách nhìn.
 
-                        <div className="cat-grid">
-                            {browse.venue_types.map((vt) => (
-                                <Link
-                                    key={vt.code ?? vt.name}
-                                    href={`/explore?venue_type=${encodeURIComponent(vt.code ?? '')}`}
-                                    className="cat-card"
-                                >
-                                    <div className="cat-img">
-                                        {/* Ảnh là tuỳ chọn; icon bên dưới luôn có, nên
-                                            một loại chưa có ảnh vẫn ra thẻ đọc được. */}
-                                        {vt.thumb ? (
-                                            <Image
-                                                src={vt.thumb}
-                                                alt={vt.name ?? ''}
-                                                fill
-                                                sizes={SIZES_CAT}
-                                            />
-                                        ) : null}
-                                        <div className="cat-icon">
-                                            <span className="material-symbols-outlined">
-                                                {vt.icon}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="cat-body">
-                                        <div className="cat-name">{vt.name}</div>
-                                        <div className="cat-meta">
-                                            {new Intl.NumberFormat('vi-VN').format(vt.count)} vị trí
-                                            <MuiTen />
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </section>
-                ) : null}
-                {/* ── Tỉnh thành ─────────────────────────────────────────── */}
-                {browse && browse.cities.length > 0 ? (
-                    <section className="sec sec-gray">
+                  Trước lát này đây là HAI mục rời: "Duyệt theo Địa điểm" và
+                  "17 Tỉnh thành", cách nhau một dải nền xám, mỗi cái một tiêu
+                  đề và một nút "Tất cả" riêng. Cả hai dẫn vào cùng `/explore`,
+                  chỉ khác chiều lọc — xem docblock của `DuyetKho`.
+                */}
+                {browse && (browse.venue_types.length > 0 || browse.cities.length > 0) ? (
+                    <section className="sec">
                         <div className="w">
                             <div className="sec-head">
                                 <div className="sec-head-row">
                                     <div>
-                                        <span className="eyebrow">MARKET COVERAGE</span>
+                                        <span className="eyebrow">DUYỆT KHO</span>
                                         <h2 className="section-hed">
                                             {stats
-                                                ? `${new Intl.NumberFormat('vi-VN').format(stats.total_cities)} Tỉnh thành`
-                                                : 'Tỉnh thành có inventory'}
+                                                ? `${new Intl.NumberFormat('vi-VN').format(stats.total_screens)} vị trí, chọn cách nhìn`
+                                                : 'Chọn cách nhìn kho'}
                                         </h2>
-                                        <p
-                                            className="section-sub"
-                                            style={{ marginTop: 10 }}
-                                        >
-                                            Chọn thị trường để bắt đầu lên plan.
+                                        <p className="section-sub" style={{ marginTop: 10 }}>
+                                            Cùng một kho. Lọc theo loại hình hoặc theo tỉnh
+                                            thành, tuỳ việc bạn đang làm.
                                         </p>
                                     </div>
                                     <Link
@@ -303,117 +270,80 @@ export default async function HomePage() {
                                         className="btn btn-s btn-sm"
                                         style={{ marginTop: 6, flexShrink: 0 }}
                                     >
-                                        All markets
+                                        Xem tất cả
                                         <MuiTen />
                                     </Link>
                                 </div>
                             </div>
 
-                            <div className="city-grid">
-                                {browse.cities.map((city, i) => (
-                                    <Link
-                                        key={city.code ?? city.name}
-                                        href={`/explore?city=${encodeURIComponent(city.code ?? '')}`}
-                                        className="city-card"
-                                    >
-                                        <div
-                                            className="city-bg"
-                                            style={{
-                                                background: `linear-gradient(135deg,${DAI_MAU[i % DAI_MAU.length][0]},${DAI_MAU[i % DAI_MAU.length][1]})`,
-                                            }}
-                                        >
-                                            {city.photo ? (
-                                                <Image
-                                                    src={city.photo}
-                                                    alt={city.name ?? ''}
-                                                    fill
-                                                    sizes={SIZES_CITY}
-                                                />
-                                            ) : null}
-                                        </div>
-                                        <div className="city-info">
-                                            <div className="city-name">{city.name}</div>
-                                            <div className="city-count">
-                                                <svg viewBox="0 0 24 24" fill="currentColor">
-                                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-                                                </svg>
-                                                {new Intl.NumberFormat('vi-VN').format(city.count)}{' '}
-                                                vị trí
-                                            </div>
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-                    </section>
-                ) : null}
-                {/* ── Vị trí nổi bật ─────────────────────────────────────── */}
-                {featuredScreens.length > 0 ? (
-                    <section className="w" style={{ paddingTop: 48, paddingBottom: 48 }}>
-                        <div className="sec-head">
-                            <span className="eyebrow">PREMIUM POSITIONS</span>
-                            {/*
-                              "Vị trí nổi bật", KHÔNG phải "Đang còn trống".
-                              Tiêu đề cũ hứa điều truy vấn không bảo đảm —
-                              `getFeaturedScreens()` lọc có ảnh + có giá, không
-                              lọc còn suất (audit F-15, đã sửa ở bản Blade).
-                            */}
-                            <h2 className="section-hed">Vị trí nổi bật</h2>
-                        </div>
-
-                        <div className="inv-grid">
-                            {featuredScreens.map((screen) => (
-                                <ScreenCard
-                                    key={screen.slug}
-                                    screen={screen}
-                                    availability={screen.availability}
-                                />
-                            ))}
-                        </div>
-
-                        <p style={{ paddingTop: 20 }}>
-                            <Link href="/explore" className="btn btn-s btn-sm">
-                                Xem tất cả
-                            </Link>
-                        </p>
-                    </section>
-                ) : null}
-
-                {/* ── Media owner ────────────────────────────────────────── */}
-                {featuredOwners.length > 0 ? (
-                    <section className="w" style={{ paddingTop: 48, paddingBottom: 48 }}>
-                        <div className="sec-head">
-                            {/*
-                              "ĐỐI TÁC", không "VERIFIED PARTNERS": truy vấn lọc
-                              `status = 'active'`, không đọc cột `verified`
-                              (audit F-15, đã sửa ở bản Blade).
-                            */}
-                            <span className="eyebrow">ĐỐI TÁC</span>
-                            <h2 className="section-hed">Media owner trên sàn</h2>
-                        </div>
-
-                        {/*
-                          `oc-grid` KHÔNG kèm `oc-grid--full`: biến thể `full`
-                          là lưới 4 cột cho thẻ owner đầy đủ ở `/owners`, còn
-                          trang chủ dùng thẻ `compact` trong lưới gốc — đúng
-                          cặp mà bản Blade dùng.
-                        */}
-                        <div className="oc-grid">
-                            {featuredOwners.map((owner, i) => (
-                                <OwnerCard
-                                    key={owner.slug}
-                                    owner={owner}
-                                    index={i}
-                                    variant="compact"
-                                />
-                            ))}
+                            <DuyetKho browse={browse} />
                         </div>
                     </section>
                 ) : null}
 
+                {/* ── ③ Hai cách mua ─────────────────────────────────────── */}
+                {/*
+                  Trước lát này hai cách đặt cách nhau BỐN khối: lưới "Vị trí
+                  nổi bật" ở giữa trang, mục "Gói chiến dịch" gần cuối. Người
+                  mua không so được hai cách khi phải cuộn qua bốn mục khác để
+                  nhìn thấy cả hai.
 
-                {/* ── 4 bước đặt booking ─────────────────────────────────── */}
+                  Hai lưới thẻ cũ không dựng lại ở đây:
+
+                   · "Vị trí nổi bật" cho ra ĐÚNG MỘT thẻ trên 104 màn hình —
+                     `getFeaturedScreens()` đòi ảnh riêng + có giá, và đo trên
+                     production 05/10/2026 thì cả 50 màn hình trong mẫu đều
+                     lùi về cover của owner. Một lưới một thẻ không nói được
+                     gì về kho.
+                   · Lưới `ProductCard` cho ra một thẻ, vì kho có một gói.
+                     Tên gói và giá của nó vào thẳng ô bên phải dưới đây.
+                */}
                 <section className="sec sec-gray">
+                    <div className="w">
+                        <div style={{ textAlign: 'center', maxWidth: 560, margin: '0 auto 32px' }}>
+                            <span className="eyebrow">CHỌN CÁCH PHÙ HỢP</span>
+                            <h2 className="section-hed">Mua lẻ hay mua theo gói</h2>
+                            <p className="section-sub" style={{ margin: '12px auto 0' }}>
+                                Hai cách đặt cùng một kho. Chọn theo quy mô chiến dịch.
+                            </p>
+                        </div>
+
+                        <div className="mua">
+                            <OMua
+                                icon="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"
+                                ten="Mua lẻ từng vị trí"
+                                moTa="Chọn đúng màn hình bạn cần"
+                                y={yMuaLe(stats)}
+                                nut={{ href: '/explore', chu: chuNutDuyet(stats), kieu: 'btn-s' }}
+                            />
+
+                            <OMua
+                                noiBat
+                                icon="M20 6h-4V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2H4a2 2 0 00-2 2v11a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2zm-10-2h4v2h-4V4z"
+                                ten="Mua theo gói"
+                                moTa="Nhiều vị trí đã ghép sẵn"
+                                y={yMuaGoi(products)}
+                                nut={{ href: '/products', chu: 'Xem gói chiến dịch', kieu: 'btn-p' }}
+                            />
+                        </div>
+                    </div>
+                </section>
+
+                {/* ── ④ Quy trình ────────────────────────────────────────── */}
+                {/*
+                  Bốn thẻ, đúng bố cục VÀ đúng câu chữ bản Blade.
+
+                  Đợt trước lát 2 viết lại bốn câu mô tả; chủ dự án chốt trả
+                  lại nguyên văn ngày 18/10/2026, và chốt lại lần nữa khi
+                  duyệt bố cục mới. Bản mock của lát này có bốn câu viết lại —
+                  KHÔNG dùng. Danh sách bốn chỗ không kiểm được nằm ở docblock
+                  của `BON_BUOC` dưới cuối tệp.
+
+                  Mục này tụt xuống sau "cách mua": nó trả lời "đặt thế nào",
+                  một câu hỏi chỉ có nghĩa sau khi người đọc đã biết đặt cái
+                  gì.
+                */}
+                <section className="sec">
                     <div className="w">
                         <div style={{ textAlign: 'center', maxWidth: 560, margin: '0 auto 40px' }}>
                             <span className="eyebrow">WORKFLOW</span>
@@ -423,15 +353,6 @@ export default async function HomePage() {
                             </p>
                         </div>
 
-                        {/*
-                          Bốn thẻ, đúng bố cục VÀ đúng câu chữ bản Blade.
-
-                          Lát 2 viết lại bốn câu mô tả; chủ dự án chốt trả lại
-                          nguyên văn ngày 18/10/2026. Danh sách bốn chỗ không
-                          kiểm được nằm ở docblock của `BON_BUOC` dưới cuối
-                          tệp — "AI search", "traffic data", "so sánh tối đa 5
-                          vị trí" và "proof-of-play report tự động".
-                        */}
                         <div
                             className="steps-grid"
                             style={{
@@ -455,49 +376,94 @@ export default async function HomePage() {
                     </div>
                 </section>
 
-                {/* ── Marketplace OOH đầu tiên có AI ─────────────────────── */}
-                <MucAI />
+                {/* ── ⑤ Bạn đặt trực tiếp với chủ màn hình ───────────────── */}
+                {/*
+                  Dải media owner + ba bảo đảm, gộp làm một.
 
-                {/* ── Gói chiến dịch ─────────────────────────────────────── */}
-                {products.length > 0 ? (
-                    <section className="sec">
+                  Trước lát này lưới owner đứng một mình dưới tiêu đề "Media
+                  owner trên sàn" — một danh sách không nói vì sao người mua
+                  cần biết. Ba dòng dưới nó trả lời đúng câu đó, và cả ba đều
+                  là điều CLAUDE.md ghi là sự thật của sàn, không phải lời hứa
+                  năng lực:
+
+                   · sàn không thu hộ, người mua chuyển khoản trực tiếp cho
+                     từng owner (hồ sơ Bộ Công Thương);
+                   · giá do owner đặt, sàn không chèn phí vào giữa;
+                   · booking đã xác nhận giữ nguyên giá và điều khoản
+                     (CLAUDE.md mục 6).
+
+                  Ba dòng này KHÔNG dựng lại "Vị trí đã xác minh" của bản mock.
+                  Toạ độ và ảnh là do owner khai, không qua kiểm định nào —
+                  đúng lý do audit F-15 gỡ "VERIFIED PARTNERS" khỏi chính mục
+                  này.
+                */}
+                {featuredOwners.length > 0 ? (
+                    <section className="sec sec-gray">
                         <div className="w">
-                            <div style={{ textAlign: 'center', maxWidth: 560, margin: '0 auto 40px' }}>
-                                <span className="eyebrow">GÓI DỊCH VỤ</span>
-                                <h2 className="section-hed">Gói chiến dịch</h2>
-                                <p className="section-sub" style={{ margin: '12px auto 0' }}>
-                                    Chưa biết bắt đầu từ đâu? Xem các gói đang mở trên sàn.
-                                </p>
+                            <div className="sec-head">
+                                <div className="sec-head-row">
+                                    <div>
+                                        {/*
+                                          "ĐỐI TÁC", không "VERIFIED PARTNERS":
+                                          truy vấn lọc `status = 'active'`,
+                                          không đọc cột `verified` (audit
+                                          F-15, đã sửa ở bản Blade).
+                                        */}
+                                        <span className="eyebrow">ĐỐI TÁC</span>
+                                        <h2 className="section-hed">
+                                            Bạn đặt trực tiếp với chủ màn hình
+                                        </h2>
+                                        <p className="section-sub" style={{ marginTop: 10 }}>
+                                            Sàn không thu hộ và không môi giới. Tiền chuyển
+                                            thẳng cho media owner.
+                                        </p>
+                                    </div>
+                                    <Link
+                                        href="/owners"
+                                        className="btn btn-s btn-sm"
+                                        style={{ marginTop: 6, flexShrink: 0 }}
+                                    >
+                                        Tất cả media owner
+                                        <MuiTen />
+                                    </Link>
+                                </div>
                             </div>
 
                             {/*
-                              Bản Blade vẽ ba thẻ gói **viết cứng trong
-                              template** ("City Launch", "Retail Activation",
-                              "Event Blitz"), và chú thích ở đó đã nêu nghi vấn:
-                              không xác nhận được ba tên ấy ứng với bản ghi nào,
-                              nên ba nút của chúng bị gỡ vì không có đích.
-
-                              Mục này đọc **gói thật** từ `/api/v2/products` —
-                              cùng dữ liệu `/products` đang phục vụ. Nên bấm vào
-                              là tới đúng trang gói đó, và không còn một tên gói
-                              nào trên trang mà hệ thống không biết.
+                              `oc-grid` KHÔNG kèm `oc-grid--full`: biến thể
+                              `full` là lưới 4 cột cho thẻ owner đầy đủ ở
+                              `/owners`, còn trang chủ dùng thẻ `compact` trong
+                              lưới gốc — đúng cặp mà bản Blade dùng.
                             */}
-                            <div className="inv-grid">
-                                {products.map((product) => (
-                                    <ProductCard key={product.slug} product={product} />
+                            <div className="oc-grid">
+                                {featuredOwners.map((owner, i) => (
+                                    <OwnerCard
+                                        key={owner.slug}
+                                        owner={owner}
+                                        index={i}
+                                        variant="compact"
+                                    />
                                 ))}
                             </div>
 
-                            <p style={{ paddingTop: 20, textAlign: 'center' }}>
-                                <Link href="/products" className="btn btn-s btn-sm">
-                                    Xem tất cả gói
-                                </Link>
-                            </p>
+                            <div className="bao-dam">
+                                {BA_BAO_DAM.map((bd) => (
+                                    <div className="bd-o" key={bd.tieuDe}>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d={bd.icon} />
+                                        </svg>
+                                        <div>
+                                            <b>{bd.tieuDe}</b>
+                                            <span>{bd.moTa}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </section>
                 ) : null}
 
-                {/* ── Mời media owner lên sàn ────────────────────────────── */}
+                {/* ── ⑥ Mời media owner lên sàn ──────────────────────────── */}
                 <section className="sec">
                     <div className="w">
                         <div className="owner-cta">
@@ -515,8 +481,11 @@ export default async function HomePage() {
                                       hai là `<button>` trần không hành vi, và
                                       `/register` hôm nay chỉ dành cho NGƯỜI MUA
                                       — không có đường đăng ký nào cho media
-                                      owner. Thêm một route mới là thêm tính
-                                      năng, không phải dựng lại giao diện.
+                                      owner. Nút "Bán cùng OOHX" của bản mock
+                                      lát này cũng không dựng, cùng lý do:
+                                      `/ban-cung-oohx` không tồn tại, và chốt
+                                      "không liên kết nào trỏ vào trang chưa
+                                      có" (PR #115) sẽ chặn nó.
                                     */}
                                 </div>
 
@@ -557,6 +526,156 @@ export default async function HomePage() {
 }
 
 /**
+ * Một trong hai ô "cách mua".
+ *
+ * Danh sách `y` do chỗ gọi dựng từ dữ liệu thật và có thể RỖNG — khi sàn chưa
+ * có gói nào thì ô bên phải chỉ còn tiêu đề và nút. Thà ít dòng hơn là một
+ * dòng bịa: cả trang chủ này không mục nào in một con số không có nguồn.
+ */
+function OMua({
+    icon,
+    ten,
+    moTa,
+    y,
+    nut,
+    noiBat = false,
+}: {
+    icon: string;
+    ten: string;
+    moTa: string;
+    y: string[];
+    nut: { href: string; chu: string; kieu: 'btn-s' | 'btn-p' };
+    noiBat?: boolean;
+}) {
+    return (
+        <div className={noiBat ? 'lc lc--nb' : 'lc'}>
+            <div className="lc-dau">
+                <span className="lc-ic">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d={icon} />
+                    </svg>
+                </span>
+                <div>
+                    <div className="lc-ten">{ten}</div>
+                    <div className="lc-mo">{moTa}</div>
+                </div>
+            </div>
+
+            {y.length > 0 ? (
+                <ul className="lc-ds">
+                    {y.map((dong) => (
+                        <li key={dong}>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" />
+                            </svg>
+                            {dong}
+                        </li>
+                    ))}
+                </ul>
+            ) : null}
+
+            <div className="lc-chan">
+                <Link href={nut.href} className={`btn ${nut.kieu}`}>
+                    {nut.chu}
+                </Link>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Ba dòng của ô "mua lẻ".
+ *
+ * Dòng đầu là số thật từ `/stats`; hai dòng sau mô tả hai chức năng ĐANG
+ * CHẠY — `LichTrong` trên trang chi tiết màn hình, và luồng yêu cầu báo giá
+ * gửi tới owner. Không dòng nào hứa một thứ chưa dựng.
+ */
+function yMuaLe(stats: HeroStats | null): string[] {
+    const so = new Intl.NumberFormat('vi-VN');
+    const ra: string[] = [];
+
+    if (stats) {
+        ra.push(
+            `${so.format(stats.total_screens)} vị trí trên ${so.format(stats.total_cities)} tỉnh thành`,
+        );
+    }
+
+    ra.push('Xem lịch trống trước khi gửi yêu cầu');
+    ra.push('Media owner báo giá trực tiếp cho bạn');
+
+    return ra;
+}
+
+/**
+ * Ba dòng của ô "mua theo gói", dựng từ gói THẬT.
+ *
+ * Bản Blade vẽ ba thẻ gói **viết cứng trong template** ("City Launch",
+ * "Retail Activation", "Event Blitz"), và chú thích ở đó đã nêu nghi vấn:
+ * không xác nhận được ba tên ấy ứng với bản ghi nào. Ở đây tên gói, số vị trí
+ * và giá đều đọc từ `/api/v2/products` — cùng dữ liệu `/products` phục vụ.
+ *
+ * Giá đi qua `formatProductPrice()` dùng chung với `ProductCard`, nên trang
+ * chủ và trang gói không thể in hai con số khác nhau cho cùng một gói.
+ */
+function yMuaGoi(products: ProductSummary[]): string[] {
+    const so = new Intl.NumberFormat('vi-VN');
+    const ra: string[] = [];
+    const dau = products[0];
+
+    if (products.length > 0 && dau) {
+        const viTri = dau.quantity?.total_units ?? dau.quantity?.screen_count ?? null;
+
+        ra.push(
+            products.length === 1
+                ? `1 gói đang mở — ${dau.name}${viTri ? `, ${so.format(viTri)} vị trí` : ''}`
+                : `${so.format(products.length)} gói đang mở trên sàn`,
+        );
+    }
+
+    ra.push('Một yêu cầu cho cả chùm vị trí');
+
+    const gia = dau ? formatProductPrice(dau) : null;
+
+    if (gia) ra.push(`Giá trọn gói từ ${gia}`);
+
+    return ra;
+}
+
+/** Chữ trên nút của ô "mua lẻ" — có số khi lấy được số, không thì không. */
+function chuNutDuyet(stats: HeroStats | null): string {
+    return stats
+        ? `Duyệt ${new Intl.NumberFormat('vi-VN').format(stats.total_screens)} vị trí`
+        : 'Duyệt kho màn hình';
+}
+
+/**
+ * Ba bảo đảm dưới dải media owner.
+ *
+ * Mỗi dòng là một điều CLAUDE.md ghi là sự thật của sàn, không phải một lời
+ * hứa năng lực. Đây là chỗ dễ trượt nhất của cả trang: ba ô ngắn cạnh nhau
+ * mời người viết điền những câu nghe hay — "đã xác minh", "bảo đảm", "cam
+ * kết" — mà không có gì đứng sau. Thêm dòng thứ tư thì phải chỉ ra được nó
+ * đứng trên cái gì.
+ */
+const BA_BAO_DAM = [
+    {
+        tieuDe: 'Không qua trung gian',
+        moTa: 'Sàn không thu hộ. Bạn chuyển khoản thẳng cho từng media owner.',
+        icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z',
+    },
+    {
+        tieuDe: 'Giá do chủ màn hình đặt',
+        moTa: 'Sàn không chèn phí vào giữa và không thu phí môi giới.',
+        icon: 'M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z',
+    },
+    {
+        tieuDe: 'Booking đã xác nhận không đổi',
+        moTa: 'Giá và điều khoản chốt lúc xác nhận được giữ nguyên trên sàn.',
+        icon: 'M20 6h-4V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2H4a2 2 0 00-2 2v11a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2zM10 4h4v2h-4V4zm9 15H5V8h14v11z',
+    },
+];
+
+/**
  * Bốn bước của mục WORKFLOW — **nguyên văn bản Blade**.
  *
  * Lát 2 viết lại bốn câu mô tả vì chúng hứa những điều không kiểm được; chủ
@@ -578,52 +697,6 @@ export default async function HomePage() {
  * Màu lấy đúng bản Blade (xanh · lục · cam · tím) — nó là thứ tự màu người đọc
  * thấy.
  */
-/**
- * Tám dải màu cho thẻ tỉnh thành, luân phiên theo thứ tự.
- *
- * Chép đúng bảng của bản Blade (`$cityGradients`). Nó là **lớp nền**, không
- * phải lớp trang trí: `vietnam_provinces.photo_url` cho phép null, và một
- * tỉnh chưa có ảnh vẫn phải ra một thẻ đọc được thay vì một ô xám.
- */
-/**
- * `sizes` phải khớp với breakpoint của lưới trong `frontpage.css`, nếu không
- * trình duyệt tải nhầm cỡ.
- *
- * ══ Vì sao lát này tồn tại ══
- *
- * Đo trên production 18/10/2026: ảnh trang chủ nặng **11,19 MB**, và 95% nằm
- * ở hai lưới này — tỉnh thành 9,20 MB, loại địa điểm 1,47 MB. Mỗi ảnh tỉnh là
- * một PNG 800×600 nặng ~1,15 MB, hiển thị ở 159×119 trên điện thoại.
- *
- * Đó là lỗi tôi vừa đưa vào khi dựng lại hai lưới (PR #109): bản Blade cũng
- * tải đúng những ảnh ấy, nhưng điều đó không làm nó đúng — nó chỉ làm nó cũ.
- *
- * `next/image` chuyển sang WebP/AVIF và cắt theo đúng cỡ hiển thị lẫn
- * `devicePixelRatio`.
- *
- * ══ Đọc bảng này cùng `frontpage.css` ══
- *
- *   .cat-grid   2 cột → 3 (≥480) → 4 (≥768) → 5 (≥1024)
- *   .city-grid  2 cột → 3 (≥640) → 4 (≥1024)
- *
- * Sai một bậc ở đây không làm trang vỡ — nó chỉ lặng lẽ tải ảnh to gấp đôi,
- * đúng kiểu hỏng mà lát này sinh ra để chữa.
- */
-const SIZES_CAT = '(min-width:1024px) 20vw, (min-width:768px) 25vw, (min-width:480px) 33vw, 50vw';
-
-const SIZES_CITY = '(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw';
-
-const DAI_MAU: Array<[string, string]> = [
-    ['#1C3A5E', '#2A4FF6'],
-    ['#1A3A2A', '#34C759'],
-    ['#3A1A3A', '#AF52DE'],
-    ['#3A1C1A', '#FF3B30'],
-    ['#1A2A3A', '#0071E3'],
-    ['#1D1D1F', '#3A3A3C'],
-    ['#2D1B4E', '#7C3AED'],
-    ['#1A3A3A', '#06B6D4'],
-];
-
 /** Mũi tên ">" của bản Blade, dùng ở nút "Tất cả" và dòng đếm vị trí. */
 function MuiTen() {
     return (
