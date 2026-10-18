@@ -1,5 +1,3 @@
-import { ANH_AI_MINH_HOA } from '@/lib/anh-hero';
-
 /**
  * Hai khối của trang chủ bản Blade mà lát 2 **cố ý không dựng**, nay dựng lại
  * **nguyên văn** theo quyết định của chủ dự án (18/10/2026).
@@ -32,15 +30,26 @@ import { ANH_AI_MINH_HOA } from '@/lib/anh-hero';
  * sót đợt đó vì nó dọn theo *con số*; đây là *lời khẳng định năng lực*. Chủ dự
  * án đã đọc danh sách trên và chốt dựng lại nguyên văn.
  *
- * ══ Một chỗ KHÔNG nguyên văn: ảnh ══
+ * ══ Ảnh: đúng tấm của bản Blade, nhưng phục vụ từ domain của mình ══
  *
- * Bản Blade hotlink `images.unsplash.com/photo-1551836022-…`. Giữ nguyên là
- * thêm một điểm hỏng trên trang công khai (Unsplash chậm hoặc đổi URL thì ô
- * ảnh trống) và một câu hỏi bản quyền cho ảnh nền thương mại. Dùng ảnh nền
- * dựng tại chỗ, cùng cách `lib/anh-hero.ts` làm cho ảnh mô phỏng bảng điều
- * khiển ở lát 2. Muốn ảnh thật thì tải về `public/` — đó là một lần thêm tệp,
- * không phải một lần đổi mã.
+ * Chủ dự án chốt dùng đúng ảnh cũ (18/10/2026). Tệp đã tải về
+ * `public/images/frontpage/ai-platform.jpg` (JPEG 800×1200, 155 KB) thay vì
+ * hotlink `images.unsplash.com`.
+ *
+ * Cùng một tấm ảnh, nhưng bỏ được hai thứ đi kèm hotlink: trang công khai
+ * không còn phụ thuộc một CDN bên thứ ba lúc chạy (Unsplash chậm, đổi URL hay
+ * chặn hotlink thì ô ảnh trống), và không còn gửi referrer của người đọc sang
+ * máy chủ khác mỗi lần mở trang chủ.
+ *
+ * Đường `/images/*` do Laravel phục vụ trên production — OpenLiteSpeed định
+ * tuyến các đường tĩnh về đó, và `webapp/` không có thư mục `public` riêng
+ * (xem ghi chú ở `lib/logo.ts` và `lib/anh-hero.ts`). Nên ở môi trường test
+ * chỉ chạy `next start`, ảnh này 404 — chốt khối giao diện kiểm chuỗi HTML
+ * nên điều đó không ảnh hưởng, nhưng đừng ngạc nhiên khi xem thử cục bộ.
  */
+
+/** Ảnh nền ô "3.2×" — đúng tấm của bản Blade, phục vụ từ domain của mình. */
+const ANH_AI = '/images/frontpage/ai-platform.jpg';
 
 const TRUST: { nhan: string; path: string }[] = [
     {
@@ -168,7 +177,7 @@ export function MucAI() {
                     <div>
                         <div className="value-visual">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={ANH_AI_MINH_HOA} alt="" loading="lazy" />
+                            <img src={ANH_AI} alt="" loading="lazy" />
                             <div className="value-visual-ov">
                                 <div className="vv-number">3.2×</div>
                                 <div className="vv-label">Nhanh hơn cách đặt truyền thống</div>

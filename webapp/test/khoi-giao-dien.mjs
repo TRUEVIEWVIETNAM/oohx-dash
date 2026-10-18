@@ -81,6 +81,10 @@ const TRANG = [
             'class="ai-card-tag"',
             'class="value-visual"',
             'class="vv-number"',
+
+            // Ảnh của mục AI là tệp trong `public/` của chính sàn, không phải
+            // hotlink — xem luật cấm `images.unsplash.com` ở `khong` bên dưới.
+            '/images/frontpage/ai-platform.jpg',
             '3.2×',
             'Marketplace OOH đầu tiên có AI',
         ],
@@ -89,9 +93,10 @@ const TRANG = [
             'class="oc"',
             'class="oc-name"',
 
-            // Ảnh của mục AI dựng tại chỗ, KHÔNG hotlink dịch vụ ngoài: một
-            // trang công khai phụ thuộc `images.unsplash.com` là thêm một
-            // điểm hỏng, cộng một câu hỏi bản quyền.
+            // Ảnh của mục AI phục vụ từ domain của mình, KHÔNG hotlink: một
+            // trang công khai phụ thuộc `images.unsplash.com` lúc chạy là
+            // thêm một điểm hỏng, và gửi referrer người đọc sang máy chủ khác.
+            // Cùng tấm ảnh, khác chỗ phục vụ.
             'images.unsplash.com',
         ],
     },
