@@ -237,7 +237,7 @@ export default async function HomePage() {
 
                 {/* ── Loại điểm đặt ──────────────────────────────────────── */}
                 {filters?.venue_types && filters.venue_types.length > 0 ? (
-                    <section className="w" style={{ padding: '48px 0' }}>
+                    <section className="w" style={{ paddingTop: 48, paddingBottom: 48 }}>
                         <div className="sec-head">
                             <span className="eyebrow">LOẠI ĐỊA ĐIỂM</span>
                             <h2 className="section-hed">Duyệt theo địa điểm</h2>
@@ -262,7 +262,7 @@ export default async function HomePage() {
 
                 {/* ── Tỉnh thành theo vùng ───────────────────────────────── */}
                 {regions.length > 0 ? (
-                    <section className="w" style={{ padding: '48px 0 64px' }}>
+                    <section className="w" style={{ paddingTop: 48, paddingBottom: 64 }}>
                         <div className="sec-head">
                             <span className="eyebrow">MARKET COVERAGE</span>
                             <h2 className="section-hed">
@@ -298,7 +298,7 @@ export default async function HomePage() {
                 ) : null}
                 {/* ── Vị trí nổi bật ─────────────────────────────────────── */}
                 {featuredScreens.length > 0 ? (
-                    <section className="w" style={{ padding: '48px 0' }}>
+                    <section className="w" style={{ paddingTop: 48, paddingBottom: 48 }}>
                         <div className="sec-head">
                             <span className="eyebrow">PREMIUM POSITIONS</span>
                             {/*
@@ -372,7 +372,7 @@ export default async function HomePage() {
 
                 {/* ── Media owner ────────────────────────────────────────── */}
                 {featuredOwners.length > 0 ? (
-                    <section className="w" style={{ padding: '48px 0' }}>
+                    <section className="w" style={{ paddingTop: 48, paddingBottom: 48 }}>
                         <div className="sec-head">
                             {/*
                               "ĐỐI TÁC", không "VERIFIED PARTNERS": truy vấn lọc
