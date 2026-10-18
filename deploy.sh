@@ -285,6 +285,65 @@ fi
 #
 # Phải chạy TRƯỚC bước 8 (`config:cache`): cache đọc `.env` một lần rồi đóng
 # băng, nên ghi sau đó là ghi cho lần deploy kế tiếp.
+# Xoá cache build của Next, GIỮ LẠI cache ảnh đã tối ưu.
+#
+# ══ Vì sao cần ══
+#
+# Đo ngày 18/10/2026, ngay sau khi #117 deploy xong: tệp prerender trên đĩa
+# đã là bản mới (`dk-tabs=1`, ghi lúc 20:15:25), service đã khởi động lại
+# (PID mới, 20:15:25) — nhưng gọi thẳng `127.0.0.1:3001/` vẫn trả về **bản
+# cũ** 126.490 byte trong vài phút, rồi mới tự đổi sang 112.177 byte.
+#
+# Thủ phạm chung một chỗ: `.next/cache` **không bị build xoá**. Thư mục đó
+# mang dấu thời gian 06/10 trong khi mọi thứ khác dưới `.next` là 18/10.
+# Trong đó có `cache/turbopack/*.sst`, và `grep` tìm thấy chuỗi của khối AI
+# đã gỡ nằm bên trong một tệp `.sst` ghi lúc 20:15:18 — tức trong lúc build.
+#
+# ══ Điều này KHÔNG chứng minh được, và nói thẳng ra ══
+#
+# Chuỗi cũ nằm trong cache turbopack là một dấu hiệu, không phải bằng chứng
+# nhân quả: tôi không tái hiện được, và không đọc được bên trong `.sst`.
+# Vẫn làm, vì (a) chủ dự án chốt làm, (b) xoá một cache là thao tác an toàn
+# nhất có thể trong nhóm các cách sửa, và (c) cái giá đã đo được và nhỏ.
+#
+# Nếu sau vài lần deploy mà trang chủ VẪN cũ vài phút thì giả thuyết này
+# sai, và chỗ tiếp theo để nhìn là khối 7 của `chan-doan-proxy.yml` — cặp
+# 7d/7e tách "build ghi sai" khỏi "build đúng nhưng phục vụ sai".
+#
+# ══ Vì sao TRƯỚC build, không phải sau ══
+#
+# `cache/turbopack` là cache của **trình biên dịch**, nên nó chỉ có tác dụng
+# lúc build. Xoá sau build là xoá một thứ đã kịp ảnh hưởng tới kết quả.
+#
+# ══ Vì sao giữ `images` ══
+#
+# `cache/images` là ảnh đã qua `next/image` — mỗi tệp là một lần chuyển sang
+# WebP/AVIF và cắt theo cỡ. Đo 18/10: 24 thư mục. Xoá nó thì mỗi lần deploy
+# là một đợt CPU tối ưu lại đúng những ảnh cũ, và người xem đầu tiên của mỗi
+# ảnh phải chờ. Nó cũng không liên quan gì tới mã nguồn, nên không có đường
+# nào để nó giữ một bản cũ của trang.
+#
+# `find … -mindepth 1 -maxdepth 1` chứ không `rm -rf cache/*`: dạng sau bỏ
+# sót tệp ẩn (`.rscinfo`, `.previewinfo`, `.tsbuildinfo` — cả ba đang có
+# thật ở đó, hai cái mang dấu 17/10).
+don_cache_next() {
+    local goc="${1:-webapp}"
+    local cache="$goc/.next/cache"
+
+    if [ ! -d "$cache" ]; then
+        echo "   cache Next: chưa có, không phải dọn"
+
+        return 0
+    fi
+
+    local truoc
+    truoc=$(du -sh "$cache" 2>/dev/null | cut -f1)
+
+    find "$cache" -mindepth 1 -maxdepth 1 ! -name images -exec rm -rf {} + 2>/dev/null
+
+    echo "   cache Next: đã dọn ($truoc), giữ lại cache ảnh"
+}
+
 dat_env() {
     ten="$1"
     gia_tri="$2"
@@ -492,6 +551,8 @@ if [ -f /etc/systemd/system/oohx-webapp.service ]; then
             echo "   nền bản đồ: Esri — không có MAPTILER_KEY trong .env"
         fi
     fi
+
+    don_cache_next webapp
 
     ( cd webapp && npm ci && npm run build )
 
