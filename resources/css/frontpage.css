@@ -2472,3 +2472,87 @@ body.page-map{overflow:hidden}
 .oohx-cluster--xl{width:80px;height:80px;font-size:16px;background:#0f28c7;border:4px solid rgba(255,255,255,.9)}
 .oohx-cluster::after{content:'';position:absolute;inset:-6px;border-radius:50%;background:rgba(42,79,246,.15);z-index:-1;animation:cluster-pulse 2s ease-in-out infinite}
 @keyframes cluster-pulse{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.15);opacity:.2}}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * Vùng chạm và mật độ trên điện thoại (18/10/2026)
+ *
+ * Hai nhóm luật, cùng một lý do: trang này được dựng lại từ bản Blade bằng
+ * cách chép sang Next, nên nó mang theo cả những chỗ bản Blade chưa bao giờ
+ * đo trên điện thoại.
+ *
+ * ── Đo được gì ────────────────────────────────────────────────────────────
+ *
+ * Trang chủ ở viewport 390px: **37 phần tử bấm được cao dưới 44px**, và toàn
+ * trang cao **9.095px — 12,4 màn hình**.
+ *
+ * 44px là ngưỡng của Apple HIG và WCAG 2.5.5 (AAA). Nó không phải con số làm
+ * đẹp: ngón tay người lớn chạm một vùng khoảng 9mm, và dưới ngưỡng đó thì tỉ
+ * lệ bấm nhầm sang phần tử bên cạnh tăng rõ.
+ *
+ * ── Ba thứ CỐ Ý không nâng ────────────────────────────────────────────────
+ *
+ *  1. **Ghi công Leaflet / MapTiler / OpenStreetMap** (ba link, cao 14px).
+ *     Chúng phải có mặt theo giấy phép, và phải nhỏ — phóng to là lấy chỗ
+ *     của bản đồ để phục vụ một yêu cầu pháp lý, không phải một thao tác.
+ *  2. **Marker và cụm trên bản đồ.** Kích thước của chúng là dữ liệu, không
+ *     phải nút bấm; đổi là đổi cách đọc bản đồ.
+ *  3. **Logo trên thanh đầu.** Nó là link, nhưng không ai bấm nhầm vào logo
+ *     — và nâng nó lên 44px đẩy cả thanh đầu cao thêm trên màn hình nhỏ.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Nút điều khiển: tối thiểu 44×44 trên màn hình cảm ứng ─────────────────
+ *
+ * Dùng `min-height` chứ không `height`, và chỉ dưới 768px: trên desktop con
+ * trỏ chuột chính xác hơn ngón tay, nên giữ nguyên tỉ lệ thiết kế cũ.
+ */
+@media(max-width:767px){
+    /* Nút phụ và nút chính cỡ nhỏ — 36px và 30px, thiếu 8–14px. */
+    .btn-sm,.btn-xs{min-height:44px}
+
+    /* Thanh thành phố trên bản đồ trang chủ — 25px, thiếu 19px: nhóm tệ nhất. */
+    .hmc-btn{min-height:44px;padding-top:0;padding-bottom:0}
+
+    /* Nút phóng to / thu nhỏ bản đồ — 32px. */
+    .hm-zoom-btn{width:44px;height:44px}
+
+    /* Pill của ô tìm kiếm lớn — 24px. */
+    .ms-pill{min-height:44px}
+
+    /* Nút đóng dải thông báo chạy thử — 22px, và nó nằm sát mép phải nên
+       bấm trượt là chạm vào nền trang. */
+    .trial-notice-x{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;right:6px}
+
+    /* Liên kết trong danh sách chân trang: chữ cao 17–18px. `inline-flex`
+       để `min-height` có tác dụng — một thẻ `a` inline bỏ qua nó. */
+    .footer-ls a,.ft-ls a{display:inline-flex;align-items:center;min-height:44px}
+
+    /* ── Hai nhóm link CỐ Ý giữ nguyên ─────────────────────────────────
+     *
+     * Số điện thoại và địa chỉ thư trong đoạn liên hệ, và dòng link chính
+     * sách ngăn bằng dấu chấm ở đáy trang (`.ft-bls`): chúng là link NẰM
+     * TRONG CÂU VĂN. WCAG 2.5.8 miễn trừ đúng trường hợp này, và lý do
+     * thực tế thì rõ hơn điều khoản — nâng chúng lên 44px là xô giãn
+     * chính câu đang chứa chúng, đổi một vấn đề lấy một vấn đề khác.
+     */
+}
+
+/* ── Mật độ dọc trên điện thoại ────────────────────────────────────────────
+ *
+ * `.sec` là `padding: 80px 0` ở mọi bề rộng — tức 160px khoảng trắng cho mỗi
+ * mục, trên một màn hình cao 731px. Sáu mục dùng nó, nên chỉ riêng khoảng
+ * trắng đã chiếm hơn một màn hình rưỡi.
+ *
+ * Nói rõ giới hạn của luật này: nó cắt khoảng trắng, không cắt nội dung. Hai
+ * mục dài nhất ("Marketplace OOH đầu tiên có AI" 1.317px và "4 bước đặt
+ * booking" 1.148px) dài vì chúng CÓ nhiều nội dung — bốn thẻ mô tả mỗi mục.
+ * Rút chúng ngắn thật sự là bỏ bớt thẻ hoặc cho cuộn ngang, và đó là một
+ * quyết định về nội dung, không phải về CSS.
+ */
+@media(max-width:767px){
+    .sec{padding:48px 0}
+
+    .step-card{padding:20px 18px}
+
+    .ai-cards{gap:10px}
+    .ai-card{padding:14px}
+}
