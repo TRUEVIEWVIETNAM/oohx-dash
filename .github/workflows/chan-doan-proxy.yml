@@ -219,15 +219,28 @@ jobs:
             echo
             echo "════ 4. Quyền đọc/ghi của những thư mục liên quan ════"
             echo "   Nếu mục 2 và 3 trống, rất có thể là do quyền, không phải do không tồn tại."
+            echo
+            # `[ -e ]` trả SAI cho cả hai trường hợp: đường dẫn không tồn tại,
+            # VÀ đường dẫn tồn tại nhưng thiếu quyền `x` trên thư mục cha để
+            # đi tới nó. Bản trước in "(chưa tồn tại)" cho cả hai.
+            #
+            # Lần chạy 39133753601 in "(chưa tồn tại)" cho
+            # `/www/server/panel/vhost/openlitespeed` ngay bên dưới khối 3 vừa
+            # báo `Permission denied` trên một FILE nằm trong đúng thư mục đó.
+            # Hai dòng mâu thuẫn nhau, và dòng sai là dòng dễ tin hơn.
+            #
+            # `stat` phân biệt được: nó nói rõ "No such file" hay "Permission
+            # denied". In thẳng thông điệp của nó thay vì diễn giải lại.
             for d in /www/server/panel/vhost/openlitespeed \
                      /www/server/panel/vhost/openlitespeed/detail \
                      /www/server/panel/vhost/openlitespeed/proxy \
                      /www/server/panel/vhost/openlitespeed/proxy/oohx.net; do
-                if [ -e "$d" ]; then
-                    echo "   $(stat -c '%A %U:%G' "$d" 2>/dev/null)  $d"
-                else
-                    echo "   (chưa tồn tại)            $d"
-                fi
+                ra=$(stat -c '%A %U:%G' "$d" 2>&1)
+                case "$ra" in
+                    *"No such file"*)      echo "   KHONG TON TAI        $d" ;;
+                    *"Permission denied"*) echo "   KHONG VAO DUOC       $d  (thieu quyen x tren thu muc cha)" ;;
+                    *)                     echo "   $ra  $d" ;;
+                esac
             done
 
             echo
