@@ -32,11 +32,23 @@ jobs:
     steps:
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          # Khóa nền bản đồ. Nguồn là GitHub Secrets; `deploy.sh` đồng bộ nó
+          # vào `.env` trên máy chủ ở bước 3b, trước `config:cache`.
+          #
+          # Secret chưa đặt thì biến rỗng, `deploy.sh` bỏ qua, và mười hai bản
+          # đồ chạy Esri — không khóa, nhãn tiếng Việt, vẫn là một bản đồ.
+          MAPTILER_KEY: ${{ secrets.MAPTILER_KEY }}
+          MAPTILER_STYLE: ${{ secrets.MAPTILER_STYLE }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
+          # `envs` là danh sách TÊN biến được mang sang phiên SSH. Thiếu dòng
+          # này thì `env:` ở trên chỉ sống trong runner của GitHub và máy chủ
+          # không thấy gì — deploy vẫn xanh, khóa vẫn không tới nơi.
+          envs: MAPTILER_KEY,MAPTILER_STYLE
           script_stop: true
           script: |
             set -e
