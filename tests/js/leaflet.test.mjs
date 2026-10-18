@@ -132,24 +132,28 @@ test('bộ trích không rỗng — một regex vỡ phải đỏ, không xanh v
  *
  * Hai tệp viết cùng một URL theo hai cú pháp khác hẳn nhau:
  *
- *   PHP  $maptiler = 'https://…/maps/' . env('MAPTILER_STYLE', 'streets-v2')
+ *   PHP  $maptiler = 'https://…/maps/' . (env('MAPTILER_STYLE') ?: 'streets-v2')
  *                    . '/{z}/{x}/{y}.png?key={key}';
- *   TS   const MAPTILER_URL =
- *            `https://…/maps/${process.env.NEXT_PUBLIC_MAPTILER_STYLE
- *             ?? 'streets-v2'}/{z}/{x}/{y}.png?key={key}`;
+ *   TS   const MAPTILER_URL = `https://…/maps/${MAPTILER_STYLE}/{z}/…`;
  *
  * Nên so chuỗi thô là so hai thứ không bao giờ bằng nhau. Hàm này quy cả hai
- * về cùng một dạng: thay `env()` và `process.env … ??` bằng giá trị mặc định,
- * mở `${…}`, rồi nối các mảnh chuỗi lại.
+ * về một dạng: bỏ chú thích, thay mọi lối lấy biến môi trường bằng giá trị
+ * mặc định của nó, mở `${…}`, rồi nối các mảnh chuỗi lại.
  */
 function giaTri(bt) {
     return bt
+        // Chỉ chú thích CHIẾM CẢ DÒNG. Một `//` giữa dòng là `https://`.
+        .replace(/^[ \t]*\/\/[^\n]*$/gm, '')
+        // PHP: env('X', 'mặc định')  và  (env('X') ?: 'mặc định')
         .replace(/env\(\s*'[^']*'\s*,\s*'([^']*)'\s*\)/g, '$1')
-        .replace(/process\.env\.[A-Z_0-9]+\s*\?\?\s*'([^']*)'/g, '$1')
+        .replace(/\(?\s*env\(\s*'[^']*'\s*\)\s*\?:\s*'([^']*)'\s*\)?/g, '$1')
+        // TS: process.env.X ?? 'mặc định'  và  process.env.X || 'mặc định'
+        .replace(/process\.env\.[A-Z_0-9]+\s*(?:\?\?|\|\|)\s*'([^']*)'/g, '$1')
         .replace(/\$\{\s*([^}]*?)\s*\}/g, '$1')
         .replace(/'\s*\.\s*/g, '')
         .replace(/\s*\.\s*'/g, '')
         .replace(/['`]/g, '')
+        .replace(/\s+/g, ' ')
         .trim();
 }
 
@@ -182,10 +186,29 @@ function bienPhp(ten) {
 }
 
 /** Giá trị gán cho một hằng trong `webapp/lib/ban-do.ts`. */
-function hangNext(ten) {
+function hangNext(ten, sau = 0) {
     const ts = readFileSync('webapp/lib/ban-do.ts', 'utf8').replace(/\r\n/g, '\n');
+    const v = catSauMoc(ts, 'const ' + ten + ' =', ten, 'webapp/lib/ban-do.ts');
 
-    return catSauMoc(ts, 'const ' + ten + ' =', ten, 'webapp/lib/ban-do.ts');
+    // Mở một tầng tham chiếu. Phía TS viết
+    //     const MAPTILER_URL = `…/maps/${MAPTILER_STYLE}/{z}/…`;
+    // nên sau khi mở `${…}` ta còn lại TÊN hằng, không phải giá trị. Phía
+    // PHP nối thẳng giá trị vào chuỗi, nên không so được nếu dừng ở đây.
+    //
+    // Giới hạn ba tầng: một chuỗi tham chiếu dài hơn thế là dấu hiệu có vòng,
+    // và một chốt treo thì không ai biết nó hỏng.
+    if (sau >= 3) return v;
+
+    return v.replace(/\b[A-Z][A-Z_0-9]{2,}\b/g, (ten2) =>
+        coHang(ten2) ? hangNext(ten2, sau + 1) : ten2,
+    );
+}
+
+/** Có hằng tên này trong `ban-do.ts` không. */
+function coHang(ten) {
+    const ts = readFileSync('webapp/lib/ban-do.ts', 'utf8');
+
+    return ts.includes('const ' + ten + ' =');
 }
 
 test('nguồn tile và ghi công của Next và của Filament phải khớp', () => {
@@ -274,5 +297,49 @@ test('không view nào hardcode một nguồn tile', () => {
             '`config/map.php` (Blade) và `webapp/lib/ban-do.ts` (Next) — ' +
             'mười hai bản đồ, một chỗ đổi:\n  ' +
             sai.join('\n  '),
+    );
+});
+
+test('style rỗng ở phía Next cũng phải lùi về mặc định', () => {
+    // `??` chỉ bắt `undefined`; chuỗi rỗng đi thẳng vào URL và cho
+    // `api.maptiler.com/maps//13/…` — MapTiler trả 503 mọi ô. Ngày
+    // 18/10/2026 lỗi này lên production và không ai thấy, vì dự phòng Esri
+    // nhảy vào nên bản đồ vẫn có nền.
+    //
+    // Chốt đọc mã thay vì chạy nó: hằng này được Next nướng vào bundle lúc
+    // build, nên không có cách nào nạp lại module với một env khác trong
+    // cùng tiến trình test.
+    const ts = readFileSync('webapp/lib/ban-do.ts', 'utf8');
+
+    assert.doesNotMatch(
+        ts,
+        /process\.env\.NEXT_PUBLIC_MAPTILER_STYLE\s*\?\?/,
+        '`??` không bắt chuỗi rỗng — dùng `||` cho biến style, nếu không một '
+            + 'secret chưa đặt sẽ cho URL `maps//{z}/…`.',
+    );
+
+    assert.match(
+        ts,
+        /process\.env\.NEXT_PUBLIC_MAPTILER_STYLE\s*\|\|\s*'streets-v2'/,
+        'Không còn chỗ nào lùi về style mặc định.',
+    );
+});
+
+test('deploy.sh không export biến style rỗng', () => {
+    // Nguồn của chuỗi rỗng là đây: `export X` với X rỗng vẫn đặt biến, và
+    // Next coi đó là một giá trị. Thêm nữa, `[ -n "$X" ] && export X` dưới
+    // `set -e` giết luôn script khi X rỗng — site kẹt ở maintenance mode.
+    const sh = readFileSync('deploy.sh', 'utf8');
+
+    assert.doesNotMatch(
+        sh,
+        /\[ -n "\$NEXT_PUBLIC_MAPTILER_\w+" \] && export/,
+        '`[ -n … ] && export` dưới `set -e` làm deploy chết khi biến rỗng — dùng `if`.',
+    );
+
+    assert.match(
+        sh,
+        /if \[ -n "\$NEXT_PUBLIC_MAPTILER_STYLE" \]; then\s+export NEXT_PUBLIC_MAPTILER_STYLE/,
+        'deploy.sh không còn chặn việc export một style rỗng.',
     );
 });

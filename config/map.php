@@ -14,7 +14,10 @@
 $maptilerKey = (string) env('MAPTILER_KEY', '');
 
 $maptiler = 'https://api.maptiler.com/maps/'
-    . env('MAPTILER_STYLE', 'streets-v2')
+    // `?:` chứ không dựa vào tham số mặc định của `env()`: một dòng
+    // `MAPTILER_STYLE=` rỗng trong `.env` vẫn là một giá trị, và nó cho
+    // URL `maps//{z}/…` — xem ghi chú cùng chuyện ở `webapp/lib/ban-do.ts`.
+    . (env('MAPTILER_STYLE') ?: 'streets-v2')
     . '/{z}/{x}/{y}.png?key={key}';
 
 $esri = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';

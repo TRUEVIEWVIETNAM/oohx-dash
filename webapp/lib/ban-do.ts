@@ -243,8 +243,16 @@ export function cumHtml(soLuong: number): { html: string; px: number } {
 
 const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY ?? '';
 
+// `||` chứ KHÔNG `??`, và đây là một lỗi đã xảy ra thật: `??` chỉ bắt
+// `undefined`, không bắt chuỗi rỗng. `deploy.sh` export biến này từ một
+// secret chưa được đặt, nên nó là `''`, và URL thành
+// `api.maptiler.com/maps//13/…` — hai dấu gạch chéo, style rỗng, 503 ở
+// mọi ô. Trang không trắng vì dự phòng Esri nhảy vào; chỉ ai đọc tab
+// Network mới thấy MapTiler chưa hề chạy.
+const MAPTILER_STYLE = process.env.NEXT_PUBLIC_MAPTILER_STYLE || 'streets-v2';
+
 const MAPTILER_URL =
-    `https://api.maptiler.com/maps/${process.env.NEXT_PUBLIC_MAPTILER_STYLE ?? 'streets-v2'}/{z}/{x}/{y}.png?key={key}`;
+    `https://api.maptiler.com/maps/${MAPTILER_STYLE}/{z}/{x}/{y}.png?key={key}`;
 
 const ESRI_URL =
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';

@@ -240,8 +240,38 @@ echo "Saved previous commit: $(cat .previous_deploy_commit || true)"
 
 echo ""
 echo "[3/11] Update source"
+# Ghi lại bản băm của chính tệp này TRƯỚC khi kéo mã mới về, để ngay dưới
+# biết được nó có bị thay hay không. Xem khối `--da-nap-lai`.
+SHA_TRUOC_KHI_KEO=$(git rev-parse HEAD:deploy.sh 2>/dev/null || echo khong-biet)
 git fetch origin
 git reset --hard origin/$BRANCH
+
+# ── Chạy lại chính mình nếu bước 3 vừa thay đổi script này ──────────────────
+#
+# Bash đọc script đang chạy **từ đĩa**, không nạp hết vào bộ nhớ. `git reset
+# --hard` ở ngay trên vừa ghi đè chính tệp này, nên mọi dòng từ đây trở xuống
+# là một canh bạc: bash đọc tiếp theo offset byte cũ, trong một tệp đã khác.
+#
+# Hậu quả thật, 18/10/2026. Lần deploy đưa khóa MapTiler lên production kết
+# thúc "success", in đủ mười một bước, và **bước 3b không chạy** — vì bản
+# đang chạy là bản trước khi merge. Khóa không tới nơi, không lỗi nào, và
+# mười hai bản đồ im lặng chạy nguồn dự phòng. Phải đọc log mới thấy.
+#
+# Đó là hình dạng lỗi thứ ba trong cùng một ngày: mọi thứ báo thành công,
+# nhưng thứ cần làm thì không xảy ra.
+#
+# `exec` thay tiến trình hiện tại bằng một bash mới đọc tệp từ đầu — bản vừa
+# kéo về. Cờ `--da-nap-lai` chặn vòng lặp vô hạn, và bước 3 chạy lần hai là
+# một `git reset --hard` trên cây đã đúng, tức không làm gì.
+if [ "${1:-}" != "--da-nap-lai" ]; then
+    MOI_SHA=$(git rev-parse HEAD:deploy.sh 2>/dev/null || echo khong-biet)
+
+    if [ "$MOI_SHA" != "$SHA_TRUOC_KHI_KEO" ]; then
+        echo ""
+        echo "   deploy.sh vừa đổi — nạp lại bản mới rồi chạy tiếp"
+        exec bash "$0" --da-nap-lai
+    fi
+fi
 
 # ── Khóa MapTiler: GitHub Secrets là nguồn, `.env` là bản sao ────────────────
 #
@@ -443,7 +473,18 @@ if [ -f /etc/systemd/system/oohx-webapp.service ]; then
     if [ -f .env ]; then
         NEXT_PUBLIC_MAPTILER_KEY=$(sed -n 's/^MAPTILER_KEY=//p' .env | head -1 | tr -d "\"' ")
         NEXT_PUBLIC_MAPTILER_STYLE=$(sed -n 's/^MAPTILER_STYLE=//p' .env | head -1 | tr -d "\"' ")
-        export NEXT_PUBLIC_MAPTILER_KEY NEXT_PUBLIC_MAPTILER_STYLE
+        # Chuỗi rỗng là một GIÁ TRỊ với Next: `process.env.X ?? mặc định` giữ
+        # nguyên nó và URL thành `maps//{z}/…`. Không có thì đừng export.
+        # `if` chứ KHÔNG `[ -n … ] && export`: với `set -e` ở đầu tệp, một
+        # `&&` có vế trái sai là một lệnh thất bại, và script chết ngay giữa
+        # lúc site đang ở maintenance mode.
+        if [ -n "$NEXT_PUBLIC_MAPTILER_KEY" ]; then
+            export NEXT_PUBLIC_MAPTILER_KEY
+        fi
+
+        if [ -n "$NEXT_PUBLIC_MAPTILER_STYLE" ]; then
+            export NEXT_PUBLIC_MAPTILER_STYLE
+        fi
 
         if [ -n "$NEXT_PUBLIC_MAPTILER_KEY" ]; then
             echo "   nền bản đồ: MapTiler (khóa ***, style ${NEXT_PUBLIC_MAPTILER_STYLE:-streets-v2})"
