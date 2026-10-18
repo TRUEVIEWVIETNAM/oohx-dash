@@ -1021,3 +1021,26 @@ test('thẻ tiêu đề trần có mức nền', () => {
         );
     }
 });
+
+test('stylesheet cân ngoặc và không sót dấu xung đột', () => {
+    // Chuyện thật, 18/10/2026: giải một xung đột rebase giữa hai PR cùng
+    // thêm vào cuối tệp đã nuốt mất một `}` và dòng mở `/*`. Mọi phép kiểm
+    // trong tệp này **vẫn xanh** — chúng đọc CSS bằng regex, và regex không
+    // biết khối nào chưa đóng. Chỉ `next build` đỏ, tức phải chờ tới bước
+    // dựng mới biết.
+    //
+    // Hai phép đếm dưới đây rẻ và bắt đúng loại hỏng đó.
+    const css = readFileSync(resolve(GOC, TEP_CSS), 'utf8');
+
+    const mo = (css.match(/\{/g) ?? []).length;
+    const dong = (css.match(/\}/g) ?? []).length;
+
+    assert.equal(mo, dong, `Lệch ngoặc: ${mo} dấu "{" và ${dong} dấu "}".`);
+
+    for (const dau of ['<<<<<<<', '=======', '>>>>>>>']) {
+        assert.ok(
+            ! css.includes('\n' + dau),
+            `Còn sót dấu xung đột \`${dau}\` trong stylesheet.`,
+        );
+    }
+});
