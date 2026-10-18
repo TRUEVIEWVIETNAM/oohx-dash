@@ -1247,3 +1247,140 @@ WHERE ou.allowed_network_ids IS NOT NULL
 Nếu có hàng nào là dữ liệu cũ bỏ sót chứ không phải chủ ý, bỏ tích hết ô đó là
 trả lại "tất cả" — biểu mẫu ghi `[]`, và `[]` nghĩa là tất cả, đúng như nhãn
 *"để trống = tất cả"* nói.
+
+---
+
+## Ngày 18/10/2026 — mười hai PR, và bốn lần cùng một hình dạng lỗi
+
+`main` ở `0f6617e`. CI **1.016 ca / 3.901 khẳng định** (sáng nay là 1.000 / 3.804),
+`test:js` **190/190**, ba bộ thử shell **102 + 10 + 7**. Không còn PR nào mở.
+
+Ngày bắt đầu bằng việc dựng nốt vài khối giao diện và kết thúc bằng một chuỗi
+sự cố nguồn ảnh nền bản đồ. Phần đáng ghi lại không phải từng sự cố, mà là
+chuyện **cả bốn đều cùng một hình dạng**.
+
+### Phần đầu ngày — giao diện (#93 → #98)
+
+| PR | Việc |
+|---|---|
+| #93 | Cập nhật lộ trình cho bảy lát |
+| #94 | Ba khối lời hứa dựng lại **nguyên văn** bản Blade, theo quyết định của chủ dự án |
+| #95 → #96 | Ô "3.2×": tải ảnh Unsplash về, rồi **đảo lại** thành hotlink đúng như bản cũ |
+| #97 | Bốn thẻ WORKFLOW trả lại nguyên văn |
+| #98 | Hai lỗi bản đồ thật: `/map` **không hiện pin nào**, và pin trang chủ là **ảnh vỡ** |
+
+#98 tìm ra bằng Chrome, không bằng test: `a.markerClusterGroup is not a function`
+vì `await import('leaflet')` trả về namespace ESM chứ không phải `L` — thiếu
+`.default` ở sáu chỗ. Pin trang chủ hỏng vì Leaflet đi tìm `marker-icon.png`
+theo đường dẫn tương đối; sửa bằng `divIcon`.
+
+Cùng lúc đó phát hiện tile OSM trả **HTTP 503**, 20/20 ô, từ mạng Việt Nam.
+
+### Bốn lần nguồn tile hỏng, và vì sao không lần nào có một dòng lỗi
+
+| # | Nguồn | Hỏng thế nào | Vì sao không ai thấy |
+|---|---|---|---|
+| 1 | `tile.openstreetmap.org` | HTTP 503 mọi ô | Nền xám; pin, cụm, nút vẫn đúng. Sống nhiều ngày |
+| 2 | `basemaps.cartocdn.com` | **HTTP 200** + PNG 2.049 byte "API KEY REQUIRED" | Mã trạng thái đúng, kiểu nội dung đúng, `tileerror` không bắn |
+| 3 | MapTiler, khóa chưa tới máy chủ | `deploy.sh` chạy **bản cũ của chính nó** | Deploy báo `success`, in đủ mười một bước |
+| 4 | MapTiler, style rỗng | URL `maps//{z}/…` → 503 mọi ô | **Dự phòng Esri nhảy vào**, trang trông hoàn hảo |
+
+Điểm chung: bản đồ **trông như đang chạy**. Không log nào đỏ, không ngoại lệ
+nào ném ra, không chốt nào vỡ. Lần 2 lên production và nằm đó cho tới khi có
+người mở trang ra nhìn; lần 4 thì ngay cả nhìn cũng không thấy, vì lớp dự
+phòng đã vá chỗ thủng — nó vừa cứu trang, vừa giấu lỗi cấu hình.
+
+### Số đo, cùng một ô ở trung tâm Hà Nội (z13), cùng một mạng
+
+| Nguồn | Kết quả | Nhãn địa danh |
+|---|---|---|
+| MapTiler `streets-v2` | 200, **82.078 byte** | **tiếng Anh** — "West Lake", "Red River" |
+| Esri `World_Street_Map` | 200, **27.862 byte** | **tiếng Việt** — "Hồ Tây", "Phường Tứ Liên" |
+| Carto `voyager` | 200, **2.049 byte** watermark | — |
+| Wikimedia | 403 | — |
+| OSM | không nối được | — |
+
+MapTiler **không đổi được ngôn ngữ nhãn** cho raster: `?language=vi` và
+`?lang=vi` đều trả đúng 82.078 byte như khi không có tham số. Chủ dự án chấp
+nhận nhãn tiếng Anh (18/10). Muốn tiếng Việt thì tạo style riêng trong MapTiler
+Cloud, đặt ngôn ngữ nhãn là Vietnamese, rồi `MAPTILER_STYLE=<tên style>` — một
+biến môi trường, không phải một lần sửa mã.
+
+### Nguồn tile sống ở đâu, và đường đi của khóa
+
+```
+GitHub Secret MAPTILER_KEY
+  → envs: của appleboy/ssh-action        (.github/workflows/deploy.yml)
+  → deploy.sh bước 3b ghi vào .env
+  → bước 8 config:cache                   → 9 view Filament
+  → bước 10 build Next (NEXT_PUBLIC_*)    → 3 bản đồ trang công khai
+```
+
+`config/map.php` (Blade) và `webapp/lib/ban-do.ts` (Next) giữ **hai bản sao**
+của cùng giá trị — đánh đổi có ý thức, vì Next không đọc được config PHP và
+kéo một chuỗi hằng qua một lời gọi API là thêm một vòng mạng. Chỗ trôi bịt
+bằng một chốt đọc **cả hai tệp** và quy chúng về cùng một dạng trước khi so.
+
+Có khóa thì dùng MapTiler, không khóa thì Esri. Nhờ vậy máy lập trình và CI
+chạy được mà không cần khóa, và một khóa gõ sai ở production cho bản đồ Esri
+chứ không cho nền xám.
+
+### Ba lớp canh mới, mỗi lớp sinh ra từ một lỗi cụ thể
+
+| Lớp | Sinh ra vì | Canh cái gì |
+|---|---|---|
+| `php artisan map:kiem-tile` | Carto trả 200 kèm rác | Tải một ô đã biết rồi **cân nó**, vì mã trạng thái nói dối được. Chạy mỗi 6 giờ qua scheduler |
+| `tests/shell/thu-nap-lai.sh` | `deploy.sh` chạy bản cũ của chính nó | Script phải `exec` lại khi vừa tự ghi đè — và **không** được exec khi không đổi (vòng lặp vô hạn trên máy chủ) |
+| `tests/shell/thu-dat-env.sh` | `dat_env()` là chỗ **duy nhất** ghi đè `.env` production | Cùng tệp đó giữ `APP_KEY` và `DB_PASSWORD` — hai thứ không lấy lại được từ repo |
+
+Cả ba đều trích hàm/khối **thật** ra khỏi script, không chép lại, và cả ba đều
+đã mutation-test.
+
+### Bốn cái bẫy ngôn ngữ, ghi lại để không đạp lại
+
+1. **`??` không bắt chuỗi rỗng.** `process.env.X ?? 'mặc định'` giữ nguyên
+   `''`, và URL thành `maps//{z}/…`. Dùng `||`. Phía PHP có đúng cái bẫy đó
+   với tham số mặc định của `env()` — dùng `?:`.
+2. **Bash đọc script đang chạy từ đĩa.** Một script tự cập nhật mình giữa
+   chừng là một canh bạc về offset byte.
+3. **`[ -n "$X" ] && export X` dưới `set -e` giết script** khi `X` rỗng. Viết
+   ra trong lúc sửa lỗi #4 và suýt thành lỗi #5 — deploy sẽ chết giữa lúc site
+   đang ở maintenance mode. `bash -n` không bắt được. Dùng `if`.
+4. **`replace()` của JS diễn giải `$'` và `$&` trong chuỗi thay thế**, và
+   trong một template literal thì `\s` là `s`. Hai lần viết hỏng chốt bằng
+   đúng hai chuyện này; chốt vẫn **chạy**, chỉ khớp sai.
+
+### Khóa MapTiler: công khai theo thiết kế
+
+Khóa nằm trong JS gửi cho mọi khách, vì chính trình duyệt gọi URL tile — mọi
+khóa tile client-side đều vậy. Thứ bảo vệ hạn mức không phải sự bí mật mà là
+**giới hạn origin** trong MapTiler Cloud, đã bật cho `oohx.net` và `*.oohx.net`
+(18/10). Đo lại sau khi bật:
+
+| Gửi gì | Kết quả |
+|---|---|
+| Không `Referer`/`Origin` | **403** kèm ảnh "Invalid key" 10.260 byte |
+| `Referer: https://oohx.net/` | 200 |
+| `Referer: https://dash.oohx.net/` | 200 |
+| `Referer` tên miền lạ | **403** |
+
+Hai hệ quả:
+
+- `map:kiem-tile` chạy từ dòng lệnh **không gửi header nào**, nên nó phải tự
+  gửi `Referer` lấy từ `config('app.url')` — nếu không, nó báo HỎNG cho một
+  nguồn đang phục vụ khách bình thường, và một phép kiểm báo oan sẽ bị tắt.
+- Ảnh 403 là một PNG **hợp lệ**, nên `<img>` vẫn vẽ nó và `tileerror` không
+  bắn. Khi hạn mức 100.000/tháng cạn giữa tháng, mười hai bản đồ sẽ hiện chữ
+  "Invalid key" mà lớp dự phòng **không** cứu. Đó chính là kịch bản
+  `map:kiem-tile` sinh ra để bắt.
+
+### Còn mở sau ngày 18/10
+
+| Việc | Chặn bởi |
+|---|---|
+| **Kênh cảnh báo cho `map:kiem-tile`** | Chủ dự án chọn. `onFailure` ghi mức `error`, nhưng dự án **không có Sentry, Slack hay bất kỳ kênh nào** — nên dòng đó chưa đánh thức ai. Hai lối rẻ: gửi mail khi đỏ, hoặc một widget trên `/admin` |
+| **Xác nhận `schedule:run` có trong crontab của VPS** | Cần người vào máy chủ. Không có thì mục lịch nằm im và không ai biết |
+| **Khối tự-nạp-lại chưa chạy thật lần nào** | Nó mới chỉ xanh trong 7 ca của bộ thử. Lần deploy đầu tiên sau một thay đổi `deploy.sh` nữa sẽ là lần nó chứng minh được mình |
+| **Chín view Filament không có dự phòng tile** | Có chủ ý: thêm logic vào chín chỗ là thêm chín chỗ có thể sai. Một nguồn chết = nền xám trong khu quản trị |
+| **Ngưỡng 8.000 byte của `map:kiem-tile` là số chọn tay** | Nằm giữa 27.862 và 2.049. Ảnh "Invalid key" của MapTiler **nặng 10.260 byte**, tức vượt ngưỡng — lệnh bắt được nó nhờ kiểm mã trạng thái 403 **trước**, không nhờ cân. Nếu MapTiler đổi sang trả 200 như Carto từng làm thì lệnh sẽ nói "ok" |
+| **`Referrer-Policy: no-referrer`** | Chưa host nào đặt. Nếu việc *"chặn referrer cho ảnh Unsplash"* được làm bằng cách đặt header đó cho **toàn site** thì bản đồ MapTiler chết. Khi tới việc đó: chỉ đặt trên thẻ `<img>` của Unsplash |
