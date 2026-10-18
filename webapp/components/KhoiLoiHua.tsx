@@ -142,7 +142,7 @@ export function MucAI() {
                         </h2>
                         <p
                             className="section-sub"
-                            style={{ marginBottom: 32, fontSize: 16 }}
+                            style={{ marginBottom: 32 }}
                         >
                             Kết nối agency, brand và media owner — nhanh hơn, minh bạch hơn, đo
                             được kết quả.

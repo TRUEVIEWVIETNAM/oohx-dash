@@ -246,7 +246,7 @@ export default async function HomePage() {
                                     <h2 className="section-hed">Duyệt theo Địa điểm</h2>
                                     <p
                                         className="section-sub"
-                                        style={{ marginTop: 10, fontSize: 16 }}
+                                        style={{ marginTop: 10 }}
                                     >
                                         Outdoor, indoor, digital hay static — tất cả trên một nền
                                         tảng.
@@ -314,7 +314,7 @@ export default async function HomePage() {
                                         </h2>
                                         <p
                                             className="section-sub"
-                                            style={{ marginTop: 10, fontSize: 16 }}
+                                            style={{ marginTop: 10 }}
                                         >
                                             Chọn thị trường để bắt đầu lên plan.
                                         </p>
@@ -410,7 +410,7 @@ export default async function HomePage() {
                                     <h2 className="section-hed">Live Map View</h2>
                                     <p
                                         className="section-sub"
-                                        style={{ marginTop: 10, fontSize: 16 }}
+                                        style={{ marginTop: 10 }}
                                     >
                                         OOH là business của vị trí — xem thực tế trên bản đồ.
                                     </p>
@@ -481,7 +481,7 @@ export default async function HomePage() {
                         <div style={{ textAlign: 'center', maxWidth: 560, margin: '0 auto 40px' }}>
                             <span className="eyebrow">WORKFLOW</span>
                             <h2 className="section-hed">4 bước đặt booking OOH</h2>
-                            <p className="section-sub" style={{ margin: '12px auto 0', fontSize: 16 }}>
+                            <p className="section-sub" style={{ margin: '12px auto 0' }}>
                                 Không email qua lại. Tìm, kiểm tra, đặt và theo dõi trực tiếp.
                             </p>
                         </div>
@@ -528,7 +528,7 @@ export default async function HomePage() {
                             <div style={{ textAlign: 'center', maxWidth: 560, margin: '0 auto 40px' }}>
                                 <span className="eyebrow">GÓI DỊCH VỤ</span>
                                 <h2 className="section-hed">Gói chiến dịch</h2>
-                                <p className="section-sub" style={{ margin: '12px auto 0', fontSize: 16 }}>
+                                <p className="section-sub" style={{ margin: '12px auto 0' }}>
                                     Chưa biết bắt đầu từ đâu? Xem các gói đang mở trên sàn.
                                 </p>
                             </div>

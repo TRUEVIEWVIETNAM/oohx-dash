@@ -920,3 +920,104 @@ test('luật vùng chạm 44px vẫn còn trong stylesheet', () => {
         `Chỉ thấy ${so44} lần "44px" trong khối mobile — luật vùng chạm đã bị rút ruột.`,
     );
 });
+// ── Thang chữ ─────────────────────────────────────────────────────────────
+//
+// Đo trên production 18/10/2026, trước khi có thang: `<h1>` của mỗi trang
+// một cỡ, và không cỡ nào suy ra được từ cỡ nào.
+//
+//     /  80px   ·  /owners 42px  ·  /explore/{slug} 36px  ·  /explore 28px
+//     /owners/{slug}: KHÔNG CÓ <h1> NÀO
+//
+// Trong stylesheet: 579 khai báo `font-size`, 24 cỡ cố định (gồm 9px,
+// 11.5px, 12.5px, 13.5px) và **12 công thức `clamp()` khác nhau** — mỗi khối
+// tự đặt thang riêng, nên ở 900px thang trông khác hẳn ở 1440px.
+//
+// Chủ dự án chốt dựng thang mới (18/10/2026), chấp nhận trang đổi diện mạo.
+
+const NAC_THANG = ['--fs-hero', '--fs-1', '--fs-2', '--fs-3', '--fs-4', '--fs-5', '--fs-6', '--fs-7'];
+
+/** Giá trị của một token thang, như khai trong `:root`. */
+function nac(ten) {
+    const css = readFileSync(resolve(GOC, TEP_CSS), 'utf8');
+    const m = css.match(new RegExp('\\' + ten + '\\s*:\\s*([^;]+);'));
+
+    return m ? m[1].trim() : null;
+}
+
+test('thang chữ có đủ tám nấc và khai một chỗ', () => {
+    for (const t of NAC_THANG) {
+        assert.ok(nac(t), `Thiếu nấc \`${t}\` trong \`:root\`.`);
+    }
+
+    // Khai hai lần là có hai thang, và chỗ thứ hai sẽ là chỗ không ai sửa.
+    const css = readFileSync(resolve(GOC, TEP_CSS), 'utf8');
+
+    for (const t of NAC_THANG) {
+        const so = (css.match(new RegExp('\\' + t + '\\s*:', 'g')) ?? []).length;
+
+        assert.equal(so, 1, `\`${t}\` được khai ${so} lần — thang phải có đúng một nguồn.`);
+    }
+});
+
+test('các nấc giảm dần, không nấc nào vượt nấc trên', () => {
+    // Một thang mà nấc dưới to hơn nấc trên thì không phải thang. Đây là
+    // kiểu sai dễ xảy ra nhất khi ai đó chỉnh một nấc cho vừa một khối.
+    const so = (v) => {
+        const m = v.match(/clamp\(\s*([0-9.]+)px\s*,[^,]+,\s*([0-9.]+)px\s*\)/);
+
+        return m ? { min: +m[1], max: +m[2] } : { min: parseFloat(v), max: parseFloat(v) };
+    };
+
+    for (let i = 1; i < NAC_THANG.length; i++) {
+        const tren = so(nac(NAC_THANG[i - 1]));
+        const duoi = so(nac(NAC_THANG[i]));
+
+        assert.ok(
+            duoi.min < tren.min && duoi.max < tren.max,
+            `\`${NAC_THANG[i]}\` (${duoi.min}–${duoi.max}) không nhỏ hơn `
+            + `\`${NAC_THANG[i - 1]}\` (${tren.min}–${tren.max}).`,
+        );
+    }
+});
+
+test('class tiêu đề dùng token, không tự đặt clamp riêng', () => {
+    const css = readFileSync(resolve(GOC, TEP_CSS), 'utf8');
+
+    // Mười ba class từng là mười ba thang. Mỗi cái phải xuất hiện trong một
+    // luật `font-size: var(--fs-…)`.
+    const PHAI_THEO_THANG = [
+        '.hero-hed', '.hero-sub-hed', '.oc-title', '.ag-hero h1', '.pg-hero h1',
+        '.pol-h1', '.ex-title', '.ph-title', '.fp-name', '.dtitle',
+        '.section-hed', '.sec-h', '.cta-title', '.pb-name', '.ag-sn',
+        '.section-sub', '.sec-sub', '.hero-desc',
+    ];
+
+    // Mọi khối luật có `font-size:var(--fs-…)`, gom selector của chúng lại.
+    const selectorTheoThang = [...css.matchAll(/([^{}]+)\{[^{}]*font-size:\s*var\(--fs-[^)]+\)[^{}]*\}/g)]
+        .map((m) => m[1])
+        .join(',');
+
+    const thieu = PHAI_THEO_THANG.filter((c) => ! selectorTheoThang.includes(c));
+
+    assert.deepEqual(
+        thieu,
+        [],
+        'Những class tiêu đề sau không dùng nấc nào của thang — chúng sẽ lại '
+        + 'trôi mỗi cái một cỡ:\n  ' + thieu.join('\n  '),
+    );
+});
+
+test('thẻ tiêu đề trần có mức nền', () => {
+    // Trang 404 từng ra `<h1>` 30px — không phải nấc nào, mà là `2em` mặc
+    // định của trình duyệt tính trên `font-size: 15px` của body. Chỗ quên gắn
+    // class là chỗ không ai nhớ tới, nên luật phải đón sẵn.
+    const css = readFileSync(resolve(GOC, TEP_CSS), 'utf8');
+
+    for (const t of ['h1', 'h2', 'h3']) {
+        assert.match(
+            css,
+            new RegExp('(^|[;}\\s])' + t + '\\{font-size:var\\(--fs-', 'm'),
+            `Thiếu mức nền cho \`<${t}>\` không mang class.`,
+        );
+    }
+});

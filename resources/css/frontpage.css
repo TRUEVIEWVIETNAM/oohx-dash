@@ -2555,4 +2555,141 @@ body.page-map{overflow:hidden}
 
     .ai-cards{gap:10px}
     .ai-card{padding:14px}
+ * THANG CHỮ — một bậc thang, bảy nấc (18/10/2026)
+ *
+ * ── Vì sao cần ────────────────────────────────────────────────────────────
+ *
+ * Đo trên production trước khi có tệp này: `<h1>` của mỗi trang một cỡ khác
+ * nhau, và không cỡ nào suy ra được từ cỡ nào.
+ *
+ *     /                      80px        /explore/{slug}    36px
+ *     /owners, /agency       42px        /explore, /products 28px
+ *     /owners/{slug}         KHÔNG CÓ <h1> NÀO
+ *
+ * Đoạn mô tả đi kèm cũng vậy: 19px ở trang chủ, 16px ở /owners, 14px ở trang
+ * chi tiết, 13px ở /explore.
+ *
+ * Trong stylesheet: **579 khai báo `font-size`**, **24 cỡ cố định** (gồm 9px,
+ * 11.5px, 12.5px, 13.5px) và **12 công thức `clamp()` khác nhau** — mỗi khối
+ * tự đặt thang riêng. Hai bộ class còn làm cùng một việc với hai thang khác
+ * nhau: `.section-hed` lên tới 48px, `.sec-h` lên tới 40px.
+ *
+ * ── Thang ─────────────────────────────────────────────────────────────────
+ *
+ * Bước giãn hẹp dần về phía cỡ nhỏ. Đó là cố ý, không phải thiếu nhất quán:
+ * ở 60px thì chênh 20% là một bậc nhìn thấy rõ, còn ở 13px thì 20% là hai
+ * pixel rưỡi — mắt không đọc ra bậc, chỉ thấy lệch.
+ *
+ *     --fs-hero  36 → 64    chỉ tiêu đề lớn trang chủ
+ *     --fs-1     28 → 44    tiêu đề trang (h1)
+ *     --fs-2     22 → 32    tiêu đề mục (h2)
+ *     --fs-3     18 → 22    tiêu đề con (h3)
+ *     --fs-4     16 → 18    đoạn dẫn, mô tả mục
+ *     --fs-5     15px       thân
+ *     --fs-6     13px       phụ, nhãn
+ *     --fs-7     11px       siêu nhỏ (chip, meta)
+ *
+ * Cùng một hệ số `vw` cho mọi nấc co giãn, nên khi kéo cửa sổ thì các nấc
+ * giữ nguyên tương quan với nhau — đó là thứ bản cũ không có: mỗi clamp một
+ * hệ số, nên ở 900px thang trông khác hẳn ở 1440px.
+ *
+ * ── Thang này KHÔNG phủ hết 579 khai báo ──────────────────────────────────
+ *
+ * Nó phủ tiêu đề và mô tả của **trang công khai**. Ba nhóm cố ý để ngoài:
+ *
+ *  1. **Số liệu** (`.hstat-n`, `.vv-number`, `.rpt-stat-n`, `.inv-price`…).
+ *     Chúng là con số để nhìn, không phải chữ để đọc; cỡ của chúng thuộc về
+ *     thiết kế của từng khối.
+ *  2. **Khu người mua** (`.auth-title`, `.cart-title`, `.wz-title`…). Không
+ *     phải trang công khai, và đang chờ chuyển sang Next ở giai đoạn 8.
+ *  3. **Nhãn và chip cỡ 10–13px.** Đổi chúng là đổi mật độ của mọi bảng và
+ *     mọi thẻ — rủi ro cao, lợi ích thấp, và không phải thứ chủ dự án nêu.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+:root{
+    --fs-hero: clamp(36px, 5.5vw, 64px);
+    --fs-1:    clamp(28px, 3.4vw, 44px);
+    --fs-2:    clamp(22px, 2.4vw, 32px);
+    --fs-3:    clamp(18px, 1.6vw, 22px);
+    --fs-4:    clamp(16px, 1.2vw, 18px);
+    --fs-5:    15px;
+    --fs-6:    13px;
+    --fs-7:    11px;
+}
+
+/* ── Quy các class tiêu đề về thang ────────────────────────────────────────
+ *
+ * Khai sau phần gốc nên thắng theo thứ tự, không phải theo `!important`:
+ * `!important` ở đây sẽ chặn mọi lần ghi đè hợp lệ về sau, kể cả của chính
+ * tệp này.
+ */
+
+/* Mức nền cho thẻ tiêu đề không mang class.
+ *
+ * Tìm ra khi đo bản đã sửa: `<h1>` của trang 404 ra **30px** — không phải
+ * một nấc nào của thang, mà là `2em` mặc định của trình duyệt tính trên
+ * `font-size: 15px` của body. Stylesheet chưa bao giờ có luật cho `h1`–`h3`
+ * trần, nên mọi tiêu đề quên gắn class đều rơi về đó.
+ *
+ * Đặt nền thay vì đi gắn class cho từng chỗ: chỗ quên gắn class là chỗ
+ * không ai nhớ tới, nên luật phải đón sẵn.
+ */
+h1{font-size:var(--fs-1)}
+h2{font-size:var(--fs-2)}
+h3{font-size:var(--fs-3)}
+
+/* Tiêu đề lớn trang chủ — nấc riêng, vì nó là mặt tiền chứ không phải một
+   cấp tiêu đề thông thường. */
+.hero-hed{font-size:var(--fs-hero)}
+
+/* Tiêu đề trang. Năm class dưới đây từng có năm thang: 38, 42, 42, 36, 28.
+   Chúng đứng cùng một chỗ trên năm trang khác nhau. */
+.hero-sub-hed,
+.oc-title,
+.ag-hero h1,
+.pg-hero h1,
+.pol-h1,
+.ex-title,
+.ph-title,
+.fp-name,
+.dtitle{font-size:var(--fs-1)}
+
+/* Tiêu đề mục trong trang. `.section-hed` và `.sec-h` là hai tên cho cùng
+   một vai trò — gộp ở đây thay vì xoá một cái, vì cả hai đang được dùng và
+   đổi tên class là việc của một lần dọn khác. */
+.section-hed,
+.sec-h,
+.cta-title,
+.pb-name,
+.ag-sn{font-size:var(--fs-2)}
+
+/* Đoạn dẫn dưới tiêu đề. Cùng lý do gộp như trên. */
+.section-sub,
+.sec-sub,
+.hero-desc,
+.ag-hero p{font-size:var(--fs-4)}
+
+/* ── Những chỗ thang bị ghi đè ở cấp media query ───────────────────────────
+ *
+ * `.ex-title`, `.ph-title` và `.dtitle` có luật riêng trong các khối
+ * `@media(min-width:…)` phía trên, và những luật đó cụ thể hơn nên thắng.
+ * Gỡ chúng ở đây thay vì sửa tại chỗ: sửa tại chỗ là rải thang ra bốn nơi,
+ * còn đây giữ mọi quyết định về cỡ chữ tiêu đề trong một khối đọc được.
+ */
+@media(max-width:480px){
+    /* Luật cũ đặt 20px ở đây, thấp hơn cả nấc nhỏ nhất của `--fs-1` (28px).
+       Trả nó về thang; `clamp()` đã lo phần thu nhỏ trên màn hình hẹp. */
+    .fp-name{font-size:var(--fs-1)}
+}
+
+@media(min-width:768px){
+    .ex-title,.ph-title,.dtitle,.pg-hero h1,.pol-h1{font-size:var(--fs-1)}
+}
+
+@media(min-width:1024px){
+    .ex-title,.dtitle{font-size:var(--fs-1)}
+}
+
+@media(min-width:1280px){
+    .dtitle{font-size:var(--fs-1)}
 }
