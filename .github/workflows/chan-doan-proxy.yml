@@ -54,6 +54,65 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Bước RIÊNG, chạy TRƯỚC, và `script_stop: false`.
+      #
+      # Lần chạy 39133117681: khối 7 nhét vào cuối script cũ không bao giờ in
+      # ra, vì script đó chết ở khối 2 với "Process exited with status 2"
+      # (`grep: Permission denied` trả 2). `set +e` trong thân KHÔNG cứu được —
+      # `script_stop: true` của action dừng ở tầng ngoài.
+      #
+      # Một phép chẩn đoán phụ thuộc vào việc phép chẩn đoán khác không chết
+      # thì không phải một phép chẩn đoán.
+      #
+      # Không dấu tiếng Việt trong thân script: nó đi qua SSH, qua Docker, qua
+      # log của Actions, và mỗi tầng là một cơ hội hỏng mã ký tự. Phép chẩn
+      # đoán thì cần đọc được, không cần đẹp.
+      - name: Vì sao trang chủ vẫn là bản cũ
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script_stop: false
+          script: |
+            set +e
+            APP=/www/wwwroot/dash.oohx.net
+            HTML="$APP/webapp/.next/server/app/index.html"
+
+            echo "-- 7a. Checkout dang o commit nao --"
+            git -C "$APP" log --oneline -3 2>&1 | sed 's/^/   /'
+
+            echo "-- 7b. Service --"
+            systemctl show oohx-webapp -p WorkingDirectory -p ExecStart -p ActiveEnterTimestamp -p MainPID 2>&1 | sed 's/^/   /'
+
+            echo "-- 7c. Ban build tren dia --"
+            ls -la --time-style=full-iso "$APP/webapp/.next/BUILD_ID" "$HTML" 2>&1 | sed 's/^/   /'
+            echo "   BUILD_ID = $(cat "$APP/webapp/.next/BUILD_ID" 2>&1)"
+
+            echo "-- 7d. TEP PRERENDER mang ma nao --"
+            echo "   khoi AI  (chi co o lat 2) : $(grep -c 'dau tien co AI\|tiên có AI' "$HTML" 2>&1)"
+            echo "   dk-tabs  (chi co o lat 3) : $(grep -c 'dk-tabs' "$HTML" 2>&1)"
+            echo "   hero--split (co tu lat 2) : $(grep -c 'hero--split' "$HTML" 2>&1)"
+
+            echo "-- 7e. TIEN TRINH tra ve ma nao (bo qua OLS va Cloudflare) --"
+            curl -s http://127.0.0.1:3001/ -o /tmp/cd-home.html -w "   / cuc bo -> %{http_code}, %{size_download} byte\n" 2>&1
+            echo "   khoi AI : $(grep -c 'tiên có AI' /tmp/cd-home.html 2>&1)"
+            echo "   dk-tabs : $(grep -c 'dk-tabs' /tmp/cd-home.html 2>&1)"
+            rm -f /tmp/cd-home.html
+
+            echo "-- 7f. Cache ISR --"
+            ls -la --time-style=full-iso "$APP/webapp/.next/cache" 2>&1 | head -12 | sed 's/^/   /'
+
+            echo "-- 7g. Tien trinh next dang song --"
+            ps -eo pid,etime,cmd 2>/dev/null | grep -iE 'next|node' | grep -v grep | sed 's/^/   /'
+
+            echo "-- 7h. Log service --"
+            journalctl -u oohx-webapp -n 30 --no-pager 2>&1 | sed 's/^/   /'
+
+            echo "==== HET KHOI 7 ===="
+            exit 0
+
       - name: Đọc trạng thái proxy trên VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -151,5 +210,45 @@ jobs:
                 /www/wwwroot/dash.oohx.net/docs/deploy/nextjs-proxy/nextjs.conf \
                 | sed 's/^/   /' || true
 
+
+            echo
+            echo "════ 7. Vì sao trang chủ vẫn là bản cũ (18/10/2026) ════"
+            echo "   Đo từ ngoài: /products in '₫/tuần' (mã lát 3) nhưng / vẫn"
+            echo "   còn khối AI (mã lát 2). Hai đường, hai thế hệ mã."
+            echo
+            APP=/www/wwwroot/dash.oohx.net
+            echo "-- 7a. Checkout đang ở commit nào --"
+            git -C "$APP" log --oneline -3 2>&1 | sed 's/^/   /'
+            echo
+            echo "-- 7b. Service: thư mục làm việc, lệnh chạy, khởi động lúc nào --"
+            systemctl show oohx-webapp \
+                -p WorkingDirectory -p ExecStart -p ActiveEnterTimestamp -p MainPID 2>&1 \
+                | sed 's/^/   /'
+            echo
+            echo "-- 7c. Bản build trên đĩa: BUILD_ID và tệp prerender của / --"
+            ls -la --time-style=full-iso \
+                "$APP/webapp/.next/BUILD_ID" \
+                "$APP/webapp/.next/server/app/index.html" 2>&1 | sed 's/^/   /'
+            echo "   BUILD_ID = $(cat "$APP/webapp/.next/BUILD_ID" 2>&1)"
+            echo
+            echo "-- 7d. TỆP PRERENDER mang mã nào --"
+            echo "   khối AI (chỉ có ở lát 2) : $(grep -c 'đầu tiên có AI' "$APP/webapp/.next/server/app/index.html" 2>&1)"
+            echo "   dk-tabs (chỉ có ở lát 3) : $(grep -c 'dk-tabs' "$APP/webapp/.next/server/app/index.html" 2>&1)"
+            echo
+            echo "-- 7e. TIẾN TRÌNH đang chạy trả về mã nào (bỏ qua OLS và Cloudflare) --"
+            curl -s http://127.0.0.1:3001/ -o /tmp/chan-doan-home.html \
+                -w "   / cuc bo -> %{http_code}, %{size_download} byte\n" 2>&1
+            echo "   khối AI : $(grep -c 'đầu tiên có AI' /tmp/chan-doan-home.html 2>&1)"
+            echo "   dk-tabs : $(grep -c 'dk-tabs' /tmp/chan-doan-home.html 2>&1)"
+            rm -f /tmp/chan-doan-home.html
+            echo
+            echo "-- 7f. Cache ISR còn sót lại từ lần build trước? --"
+            ls -la --time-style=full-iso "$APP/webapp/.next/cache" 2>&1 | head -12 | sed 's/^/   /'
+            echo
+            echo "-- 7g. Có tiến trình next nào khác đang sống không --"
+            ps -eo pid,etime,cmd 2>/dev/null | grep -iE "next|node .*webapp" | grep -v grep | sed 's/^/   /'
+            echo
+            echo "-- 7h. Log service --"
+            journalctl -u oohx-webapp -n 30 --no-pager 2>&1 | sed 's/^/   /'
             echo
             echo "════ HẾT ════"
