@@ -850,3 +850,73 @@ test('bộ dò padding ngang không rỗng và đọc đúng bốn dạng shorth
     assert.equal(ngangCuaPadding('paddingTop: 48'), null, 'longhand không phải shorthand');
     assert.equal(ngangCuaPadding("padding: '96px 20px'"), '20px');
 });
+
+// ── Vùng chạm trên điện thoại ─────────────────────────────────────────────
+//
+// Đo trên production 18/10/2026 ở viewport 390px: **37 phần tử bấm được cao
+// dưới 44px**, trong đó nhóm tệ nhất là thanh thành phố của bản đồ trang chủ
+// (25px) và nút đóng dải thông báo (22px).
+//
+// 44px là ngưỡng của Apple HIG và WCAG 2.5.5. Nó không phải con số thẩm mỹ:
+// ngón tay người lớn chạm một vùng khoảng 9mm, và dưới ngưỡng đó tỉ lệ bấm
+// nhầm sang phần tử bên cạnh tăng rõ.
+//
+// ══ Vì sao chốt đọc CSS chứ không đo thật ══
+//
+// Đo thật cần một trình duyệt chạy layout, mà CI không có. `test:khoi` dựng
+// `next start` và đọc HTML, nhưng HTML không nói phần tử cao bao nhiêu.
+//
+// Nên phép kiểm này hẹp hơn phép đo: nó chỉ canh rằng **luật vẫn còn trong
+// stylesheet**. Nó không chứng minh vùng chạm đủ — nó chống việc ai đó xoá
+// luật trong một lần dọn dẹp và không ai biết cho tới lần có người cầm điện
+// thoại lên.
+
+test('luật vùng chạm 44px vẫn còn trong stylesheet', () => {
+    const css = readFileSync(resolve(GOC, TEP_CSS), 'utf8');
+
+    // Lấy mọi khối `@media(max-width:767px){…}` — luật chỉ áp cho màn hình
+    // cảm ứng, vì trên desktop con trỏ chuột chính xác hơn ngón tay.
+    const khoiMobile = [...css.matchAll(/@media\s*\(\s*max-width\s*:\s*767px\s*\)\s*\{/g)]
+        .map((m) => {
+            let sau = 1;
+            let i = m.index + m[0].length;
+
+            while (i < css.length && sau > 0) {
+                if (css[i] === '{') sau++;
+                if (css[i] === '}') sau--;
+                i++;
+            }
+
+            return css.slice(m.index, i);
+        })
+        .join('\n');
+
+    assert.ok(
+        khoiMobile.length > 200,
+        'Không tìm thấy khối @media(max-width:767px) nào — bộ trích đã vỡ.',
+    );
+
+    // Mỗi dòng: selector, và cái cớ nó từng nhỏ hơn 44px.
+    for (const [sel, lyDo] of [
+        ['.btn-sm', 'nút phụ cỡ nhỏ — đo được 36px'],
+        ['.btn-xs', 'nút trong thanh bản đồ — đo được 30px'],
+        ['.hmc-btn', 'thanh thành phố trên bản đồ trang chủ — đo được 25px'],
+        ['.hm-zoom-btn', 'nút phóng to/thu nhỏ bản đồ — đo được 32px'],
+        ['.ms-pill', 'pill của ô tìm kiếm lớn — đo được 24px'],
+        ['.trial-notice-x', 'nút đóng dải thông báo — đo được 22px'],
+        ['.ft-ls a', 'liên kết danh sách chân trang — đo được 18px'],
+    ]) {
+        assert.ok(
+            khoiMobile.includes(sel),
+            `Luật vùng chạm cho \`${sel}\` đã biến mất (${lyDo}).`,
+        );
+    }
+
+    // Và chúng phải thật sự đặt 44px, không chỉ có tên trong một luật khác.
+    const so44 = (khoiMobile.match(/44px/g) ?? []).length;
+
+    assert.ok(
+        so44 >= 6,
+        `Chỉ thấy ${so44} lần "44px" trong khối mobile — luật vùng chạm đã bị rút ruột.`,
+    );
+});
