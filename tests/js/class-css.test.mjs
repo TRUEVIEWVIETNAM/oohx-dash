@@ -701,3 +701,152 @@ test('tiền tố động phải có ít nhất một class mang nó', () => {
     assert.ok(! coNguoiDinhNghia('rfl-bdge--'), 'Tiền tố viết sai phải bị báo');
     assert.ok(! coNguoiDinhNghia('khong-co-that'), 'Tên không có trong CSS phải bị báo');
 });
+
+// ── Inline style không được xoá padding ngang của class layout ─────────────
+//
+// Lỗi thật, tìm thấy 18/10/2026 khi soát giao diện production ở 390px.
+//
+//     <section className="w" style={{ padding: '48px 0' }}>
+//
+// `.w` là lớp bọc layout của cả trang: `padding: 0 22px`, lên 32px từ 768 và
+// 52px từ 1024. Nhưng `padding` trong `style` là **shorthand** — nó đặt lại
+// cả bốn chiều, nên padding ngang thành 0 và chữ dính sát mép màn hình ở MỌI
+// bề rộng. Bốn mục trang chủ và trang 404 đã ở production như vậy.
+//
+// Không chốt nào đỏ, và lý do đáng nhớ: chốt trên tệp này hỏi *"tên class có
+// người định nghĩa không"* — `.w` **có**. Không ai hỏi *"class đó còn tác
+// dụng không"*. Một class bị vô hiệu bởi chính phần tử mang nó thì vẫn là một
+// class hợp lệ với mọi phép kiểm văn bản.
+//
+// Phép kiểm này đóng đúng khoảng đó: nếu một phần tử mang class có padding
+// ngang trong CSS, thì `style` của nó không được chứa `padding` shorthand.
+// Dùng longhand (`paddingTop`, `paddingBottom`) thì không ảnh hưởng chiều
+// ngang, nên vẫn được phép — và đó cũng là cách năm chỗ kia đã sửa.
+
+/** Class nào trong CSS đặt padding NGANG khác 0. */
+function classCoPaddingNgang() {
+    const css = readFileSync(resolve(GOC, TEP_CSS), 'utf8');
+    const ra = new Set();
+
+    for (const m of css.matchAll(/\.([a-zA-Z0-9_-]+)\s*\{([^}]*)\}/g)) {
+        const than = m[2];
+
+        for (const p of than.matchAll(/(?:^|;)\s*padding\s*:\s*([^;]+)/g)) {
+            const phan = p[1].trim().split(/\s+/);
+
+            // `padding: A` → mọi chiều; `A B` → B là ngang; `A B C` → B;
+            // `A B C D` → B và D.
+            const ngang = phan.length === 1 ? [phan[0]]
+                : phan.length === 4 ? [phan[1], phan[3]]
+                : [phan[1]];
+
+            if (ngang.some((v) => v && v !== '0' && !/^0[a-z%]*$/.test(v))) {
+                ra.add(m[1]);
+            }
+        }
+    }
+
+    return ra;
+}
+
+/**
+ * Các thẻ mở JSX có CẢ `className="…"` lẫn `style={{…}}`.
+ *
+ * Cắt tới `>` đầu tiên. Một prop chứa arrow function (`onClick={() => …}`) sẽ
+ * làm thẻ bị cắt sớm, nên phép quét này có thể BỎ SÓT — nó là chốt chống thêm
+ * mới, không phải bằng chứng sạch tuyệt đối. Năm chỗ của ngày 18/10 đều nằm
+ * trong tầm, và ca mutation dưới canh đúng điều đó.
+ */
+function theCoClassVaStyle(ma) {
+    const ra = [];
+
+    for (const m of ma.matchAll(/<[A-Za-z][A-Za-z0-9.]*\s[^>]*?>/g)) {
+        const the = m[0];
+        const cls = the.match(/className="([^"]+)"/);
+        const sty = the.match(/style=\{\{([\s\S]*?)\}\}/);
+
+        if (cls && sty) ra.push({ the, cls: cls[1].split(/\s+/), style: sty[1] });
+    }
+
+    return ra;
+}
+
+/**
+ * Phần NGANG của một giá trị `padding` viết trong `style`, hoặc `null`
+ * nếu không phải shorthand.
+ *
+ * Phân biệt hai chuyện khác hẳn nhau, và đây là chỗ bản đầu của phép kiểm
+ * này báo oan: `padding: '8px 12px'` **đổi** padding ngang (12px) — hợp lệ,
+ * `.mega-body` cố ý làm vậy cho gọn. `padding: '48px 0'` **xoá** nó. Chỉ
+ * cái thứ hai mới là lỗi.
+ */
+function ngangCuaPadding(style) {
+    const m = style.match(/(?:^|[,{\s])padding\s*:\s*(?:'([^']*)'|"([^"]*)"|([0-9.]+))/);
+
+    if (! m) return null;
+
+    // `padding: 48` trong JSX là 48px mọi chiều — ngang khác 0.
+    if (m[3] !== undefined) return m[3];
+
+    const phan = (m[1] ?? m[2]).trim().split(/\s+/);
+
+    return phan.length === 1 ? phan[0] : phan[1];
+}
+
+const LA_KHONG = (v) => v === '0' || /^0[a-z%]*$/.test(v);
+
+test('inline style không được xoá padding ngang của class layout', () => {
+    const coNgang = classCoPaddingNgang();
+    const sai = [];
+
+    for (const d of TEP_TSX) {
+        for (const { cls, style } of theCoClassVaStyle(readFileSync(d, 'utf8'))) {
+            const ngang = ngangCuaPadding(style);
+
+            if (ngang === null || ! LA_KHONG(ngang)) continue;
+
+            for (const c of cls) {
+                if (coNgang.has(c)) {
+                    sai.push(`${d.slice(resolve(GOC).length + 1)}: .${c} + style padding ngang 0`);
+                }
+            }
+        }
+    }
+
+    assert.deepEqual(
+        sai,
+        [],
+        'Những chỗ sau dùng `padding` shorthand trong `style` trên một phần tử '
+        + 'mang class có padding ngang — shorthand đặt lại cả bốn chiều, nên '
+        + 'padding ngang của class bị xoá và chữ dính sát mép màn hình. Dùng '
+        + '`paddingTop`/`paddingBottom`:\n  ' + sai.join('\n  '),
+    );
+});
+
+test('bộ dò padding ngang không rỗng và đọc đúng bốn dạng shorthand', () => {
+    // Không có ca này thì một regex vỡ làm `classCoPaddingNgang()` trả tập
+    // rỗng, và phép kiểm trên xanh vì không có gì để so.
+    const coNgang = classCoPaddingNgang();
+
+    assert.ok(coNgang.has('w'), '`.w` có `padding: 0 22px` — phải nhận ra');
+    assert.ok(coNgang.size >= 20, `Chỉ thấy ${coNgang.size} class có padding ngang — bộ dò đã vỡ`);
+
+    // `.sec` là `padding: 80px 0` — dọc có, ngang KHÔNG. Nhận nhầm nó là
+    // nhận nhầm cả nhóm, và chốt sẽ báo oan cho mọi mục dùng `.sec`.
+    assert.ok(! coNgang.has('sec'), '`.sec` là `padding: 80px 0`, ngang bằng 0 — không được nhận');
+
+    // Bộ trích thẻ phải thấy được dạng đã gây lỗi.
+    const thu = theCoClassVaStyle(
+        `<section className="w" style={{ padding: '48px 0' }}>x</section>`,
+    );
+
+    assert.equal(thu.length, 1, 'Bộ trích thẻ không đọc được dạng đã gây lỗi ngày 18/10');
+    assert.ok(thu[0].cls.includes('w'));
+
+    // Ranh giới giữa "xoá" và "đổi" — chỗ bản đầu của phép kiểm báo oan.
+    assert.equal(ngangCuaPadding("padding: '48px 0'"), '0', 'phải thấy ngang = 0');
+    assert.equal(ngangCuaPadding("padding: '8px 12px'"), '12px', 'đổi giá trị thì không phải lỗi');
+    assert.equal(ngangCuaPadding('padding: 48'), '48', 'số trần là px mọi chiều');
+    assert.equal(ngangCuaPadding('paddingTop: 48'), null, 'longhand không phải shorthand');
+    assert.equal(ngangCuaPadding("padding: '96px 20px'"), '20px');
+});

@@ -8,7 +8,7 @@ import Link from 'next/link';
  */
 export default function NotFound() {
     return (
-        <main className="w" style={{ padding: '96px 20px', textAlign: 'center' }}>
+        <main className="w" style={{ paddingTop: 96, paddingBottom: 96, textAlign: 'center' }}>
             <h1>Không tìm thấy trang</h1>
             <p style={{ color: 'var(--t3)', marginTop: 12 }}>
                 Vị trí này có thể đã được gỡ khỏi sàn, hoặc đường dẫn không đúng.
