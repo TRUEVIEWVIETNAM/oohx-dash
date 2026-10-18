@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -41,3 +42,42 @@ Schedule::command('inventory:purge-holds')->everyFiveMinutes()->withoutOverlappi
 // Chạy mỗi giờ cho hôm nay + hôm qua: thiết bị mất mạng gửi bù sau nửa đêm là
 // chuyện thường, nên chỉ tổng hợp hôm nay sẽ bỏ sót phần gửi muộn của hôm trước.
 Schedule::command('impressions:rollup')->hourly()->withoutOverlapping();
+
+// ── Soát nguồn ảnh nền bản đồ, bốn lần một ngày ──────────────────────────
+//
+// Ngày 18/10/2026 nguồn tile hỏng bốn lần, và **không lần nào** có một dòng
+// lỗi nào được ghi ở đâu:
+//
+//  1. OSM trả 503 — bản đồ nền xám, sống nhiều ngày trước khi ai đó nhìn.
+//  2. Carto trả HTTP 200 kèm ảnh "API KEY REQUIRED" — mọi phép kiểm xanh.
+//  3. MapTiler chưa có khóa — `deploy.sh` chạy bản cũ của chính nó, deploy
+//     báo "success", khóa không tới nơi.
+//  4. MapTiler style rỗng → `maps//{z}/…` → 503 mọi ô — dự phòng Esri nhảy
+//     vào nên trang trông hoàn hảo.
+//
+// Điểm chung: bản đồ **trông như đang chạy**. Nên lớp canh không thể là mắt
+// người, và cũng không thể là mã trạng thái — phải là một lệnh định kỳ tải
+// một ô thật rồi cân nó.
+//
+// Bốn lần/ngày: đủ để một sự cố không sống qua đêm, và tốn 8 tile/ngày —
+// 240 trong tháng, so với hạn mức 100.000 của MapTiler thì không đáng kể.
+//
+// Hạn mức cạn giữa tháng là kịch bản lệnh này sinh ra để bắt: MapTiler sẽ
+// trả 403 kèm ảnh "Invalid key", trình duyệt vẫn vẽ ảnh đó, và `tileerror`
+// của Leaflet không bắn một lần nào.
+Schedule::command('map:kiem-tile')
+    ->everySixHours()
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/oohx-map-tile.log'))
+    ->onFailure(function () {
+        // Ghi ở mức `error` chứ không chỉ vào log riêng ở trên: log riêng là
+        // nơi tra cứu sau khi đã biết có chuyện, không phải nơi phát hiện ra
+        // chuyện. Mức `error` là thứ một kênh cảnh báo sẽ nhặt được khi dự
+        // án nối một kênh — hôm nay chưa có kênh nào, và đó là một lỗ hổng
+        // đã biết, không phải một chỗ bị quên.
+        Log::error(
+            'map:kiem-tile đỏ — nguồn ảnh nền bản đồ không trả về bản đồ. '
+            . 'Chi tiết ở storage/logs/oohx-map-tile.log. '
+            . 'Nguồn sống ở config/map.php và webapp/lib/ban-do.ts.',
+        );
+    });
