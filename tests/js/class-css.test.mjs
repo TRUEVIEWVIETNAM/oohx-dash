@@ -1044,3 +1044,81 @@ test('stylesheet cân ngoặc và không sót dấu xung đột', () => {
         );
     }
 });
+
+// ── Đường đi cho cả hai vai ───────────────────────────────────────────────
+//
+// Soát điều hướng 18/10/2026, trước lát này:
+//
+//  · `/products` KHÔNG có trong thanh đầu. Trang gói chỉ tới được từ đúng
+//    một liên kết trên trang chủ, nên phần lớn người xem không biết sàn bán
+//    theo gói.
+//  · Chân trang gom mọi liên kết vào một cột "Khám phá", trộn đường của
+//    người mua với đường của media owner.
+//
+// Sàn phục vụ hai nhóm muốn hai việc ngược nhau: người mua đi tìm chỗ đặt
+// quảng cáo, media owner đi tìm người mua. Khi cả hai dùng chung một danh
+// sách liên kết thì không nhóm nào tìm thấy đường của mình.
+
+test('thanh đầu dẫn tới đủ năm khu vực công khai', () => {
+    const s = readFileSync(resolve(GOC, 'webapp/components/SiteHeader.tsx'), 'utf8');
+
+    for (const [duong, viSao] of [
+        ['/explore', 'kho màn hình'],
+        ['/map', 'bản đồ vị trí'],
+        ['/products', 'gói chiến dịch — thiếu trong thanh đầu cho tới 18/10/2026'],
+        ['/owners', 'danh sách media owner'],
+        ['/agency', 'khu đại lý'],
+    ]) {
+        assert.ok(
+            s.includes(`href="${duong}"`),
+            `Thanh đầu không còn dẫn tới \`${duong}\` (${viSao}).`,
+        );
+    }
+});
+
+test('chân trang tách đường của người mua và của media owner', () => {
+    const s = readFileSync(resolve(GOC, 'webapp/components/SiteFooter.tsx'), 'utf8');
+
+    assert.match(s, /<h4>Người mua<\/h4>/, 'Chân trang thiếu cột cho người mua.');
+    assert.match(s, /<h4>Media owner<\/h4>/, 'Chân trang thiếu cột cho media owner.');
+
+    // Gộp lại thành một cột là quay về tình trạng trước lát này.
+    assert.doesNotMatch(
+        s,
+        /<h4>Khám phá<\/h4>/,
+        'Cột "Khám phá" gom chung hai vai đã được tách — đừng gộp lại.',
+    );
+});
+
+test('không liên kết nào trong thanh đầu hay chân trang trỏ vào trang chưa có', () => {
+    // Một mục menu dẫn tới 404 còn tệ hơn không có mục đó: người dùng mất
+    // niềm tin vào cả thanh điều hướng. Danh sách này là mọi đường Next đang
+    // phục vụ, lấy từ `webapp/app`.
+    const COY = new Set([
+        '/', '/explore', '/map', '/products', '/owners', '/agency',
+        '/login', '/register', '/cart',
+        '/phan-anh-to-chuc-xa-hoi', '/phan-anh-to-chuc-xa-hoi/danh-sach',
+    ]);
+
+    const sai = [];
+
+    for (const tep of ['webapp/components/SiteHeader.tsx', 'webapp/components/SiteFooter.tsx']) {
+        const s = readFileSync(resolve(GOC, tep), 'utf8');
+
+        for (const m of s.matchAll(/href="(\/[a-z0-9/-]*)"/g)) {
+            const d = m[1];
+
+            // Trang chính sách là slug động, phục vụ bởi `(chinh-sach)/[slug]`.
+            if (COY.has(d) || /^\/[a-z0-9-]+$/.test(d) === false) continue;
+            if (COY.has(d)) continue;
+
+            // Những slug chính sách đã biết.
+            if (['/quy-che-hoat-dong', '/chinh-sach-bao-mat', '/bang-phi-dich-vu',
+                 '/giai-quyet-tranh-chap', '/chinh-sach-bao-ve-du-lieu'].includes(d)) continue;
+
+            sai.push(`${tep.split('/').pop()}: ${d}`);
+        }
+    }
+
+    assert.deepEqual(sai, [], 'Liên kết trỏ vào đường Next không phục vụ:\n  ' + sai.join('\n  '));
+});

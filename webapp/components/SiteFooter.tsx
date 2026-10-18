@@ -77,20 +77,38 @@ export function SiteFooter() {
                         </div>
                     </div>
 
+                    {/*
+                      Hai cột theo VAI, không phải một cột "Khám phá".
+
+                      Sàn phục vụ hai nhóm muốn hai việc ngược nhau: người mua
+                      đi tìm chỗ đặt quảng cáo, media owner đi tìm người mua.
+                      Gộp họ vào một danh sách liên kết thì không nhóm nào tìm
+                      thấy đường của mình — và chân trang là nơi người ta tìm
+                      khi thanh đầu không có thứ họ cần.
+                    */}
                     <div className="ft-col">
-                        <h4>Khám phá</h4>
+                        <h4>Người mua</h4>
                         <ul className="ft-ls">
                             <li>
                                 <AppLink href="/explore">Toàn bộ màn hình</AppLink>
                             </li>
                             <li>
-                                <AppLink href="/owners">Chủ sở hữu màn hình</AppLink>
+                                <AppLink href="/products">Gói chiến dịch</AppLink>
                             </li>
                             <li>
-                                <AppLink href="/products">Gói sản phẩm</AppLink>
+                                <AppLink href="/map">Bản đồ vị trí</AppLink>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div className="ft-col">
+                        <h4>Media owner</h4>
+                        <ul className="ft-ls">
+                            <li>
+                                <AppLink href="/owners">Danh sách đối tác</AppLink>
                             </li>
                             <li>
-                                <AppLink href="/map">Bản đồ</AppLink>
+                                <AppLink href="/register">Đăng ký bán</AppLink>
                             </li>
                         </ul>
                     </div>

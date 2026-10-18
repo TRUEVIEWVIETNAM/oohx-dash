@@ -53,7 +53,7 @@ function NavLink({ href, active, children }: {
     );
 }
 
-export type NavKey = 'home' | 'explore' | 'map' | 'owners' | 'agency' | '';
+export type NavKey = 'home' | 'explore' | 'map' | 'products' | 'owners' | 'agency' | '';
 
 export function SiteHeader({ active = '' }: { active?: NavKey }) {
     return (
@@ -86,8 +86,23 @@ export function SiteHeader({ active = '' }: { active?: NavKey }) {
                     <NavLink href="/map" active={active === 'map'}>
                         Bản đồ
                     </NavLink>
+                    {/*
+                      `/products` chưa từng có trong thanh đầu: trang gói chỉ
+                      tới được từ đúng một liên kết trên trang chủ, nên phần
+                      lớn người xem không biết sàn bán theo gói.
+                    */}
+                    <NavLink href="/products" active={active === 'products'}>
+                        Gói chiến dịch
+                    </NavLink>
+                    {/*
+                      "Chủ sở hữu màn hình" mơ hồ: người đọc không biết đó là
+                      danh sách nhà cung cấp để mình xem, hay mục dành cho
+                      mình nếu mình có màn hình. "Media owner" là từ cả hai
+                      bên trong ngành đang dùng, và trang đích là danh sách
+                      đối tác.
+                    */}
                     <NavLink href="/owners" active={active === 'owners'}>
-                        Chủ sở hữu màn hình
+                        Media owner
                     </NavLink>
                     <NavLink href="/agency" active={active === 'agency'}>
                         Đại lý

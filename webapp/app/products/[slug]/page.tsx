@@ -89,7 +89,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<Pa
 
     return (
         <>
-            <SiteHeader active="explore" />
+            <SiteHeader active="products" />
             <OgType type="product" />
 
             <script
