@@ -20,17 +20,41 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class ScreenSummaryResource extends JsonResource
 {
+    /**
+     * Nhãn người đọc cho `screen_type`.
+     *
+     * Đặt ở đây chứ không trên model, vì `screen_type` **không phải một cột**
+     * — nó suy ra từ kích thước và `venue_type` ngay dưới, trong
+     * `resolveScreenType()`. Nhãn phải nằm cạnh chỗ sinh ra mã, nếu không thì
+     * thêm một nhánh ở đó mà quên thêm nhãn sẽ ra một mã thô trên trang.
+     *
+     * Vì sao API trả nhãn thay vì để Next tự map: nhãn là một bảng chữ, và
+     * bảng chữ chép sang client là bản thứ hai của cùng một enum — đúng thứ
+     * `NhanEnumMotNoiTest` tồn tại để chống. Ngày 18/10/2026 thẻ màn hình
+     * trên production in `lcd` ra mặt người dùng vì không ai có bảng này.
+     */
+    public const SCREEN_TYPE_LABELS = [
+        'billboard' => 'Billboard',
+        'led'       => 'LED',
+        'lcd'       => 'LCD',
+    ];
+
     public static $wrap = null;
 
     public function toArray(Request $request): array
     {
         $inventory = $this->inventory;
         $spec      = $this->spec;
+        $loai      = $this->resolveScreenType();
 
         return [
             'slug'        => $this->slug,
             'name'        => $this->name,
-            'screen_type' => $this->resolveScreenType(),
+            'screen_type' => $loai,
+
+            // Mã ở trên để lọc và so khớp; nhãn ở đây để hiển thị. Giao diện
+            // không được tự hoa hoá mã — xem `SCREEN_TYPE_LABELS`.
+            'screen_type_label' => self::SCREEN_TYPE_LABELS[$loai] ?? $loai,
 
             'owner' => [
                 'slug' => $this->owner?->slug,

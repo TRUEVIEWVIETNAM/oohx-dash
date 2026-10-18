@@ -1878,11 +1878,15 @@ components:
   schemas:
     ScreenSummary:
       type: object
-      required: [slug, name, screen_type, owner, location, size, pricing]
+      required: [slug, name, screen_type, screen_type_label, owner, location, size, pricing]
       properties:
         slug:        { type: string }
         name:        { type: string }
         screen_type: { type: string, enum: [billboard, led, lcd] }
+        # Nhãn người đọc của `screen_type`. Giao diện hiển thị trường này;
+        # mã ở trên chỉ để lọc và so khớp. Bảng chữ sống ở
+        # `ScreenSummaryResource::SCREEN_TYPE_LABELS` — một nơi duy nhất.
+        screen_type_label: { type: string }
         owner:
           type: object
           properties:
