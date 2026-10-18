@@ -81,7 +81,7 @@ export function KhoiViTri({
         let huy = false;
 
         async function dung() {
-            const L = await import('leaflet');
+            const L = (await import('leaflet')).default;
 
             if (huy || !hopRef.current || mapRef.current) return;
 
@@ -130,7 +130,7 @@ export function KhoiViTri({
         let huy = false;
 
         async function ve() {
-            const L = await import('leaflet');
+            const L = (await import('leaflet')).default;
             const map = mapRef.current;
 
             if (huy || !map) return;

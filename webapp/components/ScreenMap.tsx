@@ -140,7 +140,7 @@ export function ScreenMap({
 
     const napPin = useCallback(
         async (map: LeafletMap) => {
-            const L = await import('leaflet');
+            const L = (await import('leaflet')).default;
             const bounds = map.getBounds();
             const seq = ++seqRef.current;
 
@@ -219,7 +219,7 @@ export function ScreenMap({
         let hen: ReturnType<typeof setTimeout> | undefined;
 
         void (async () => {
-            const L = await import('leaflet');
+            const L = (await import('leaflet')).default;
             await import('leaflet.markercluster');
 
             if (huy || !containerRef.current || mapRef.current) return;
@@ -240,6 +240,17 @@ export function ScreenMap({
                 .addAttribution('© <a href="https://openstreetmap.org">OSM</a>')
                 .addTo(map);
 
+            /*
+             * `L` ở đây PHẢI là `.default`, không phải namespace của
+             * `await import('leaflet')`.
+             *
+             * `leaflet.markercluster` là plugin UMD: nó gắn
+             * `markerClusterGroup` lên **module.exports của leaflet**, tức
+             * `L.default` trong ESM. Namespace object không nhận thuộc tính
+             * thêm sau, nên gọi trên nó ném `markerClusterGroup is not a
+             * function` — và lỗi đó chỉ hiện ở trình duyệt, không ở
+             * `typecheck` hay ở chốt đọc HTML máy chủ render.
+             */
             const cluster = (
                 L as unknown as {
                     markerClusterGroup: (o: Record<string, unknown>) => MarkerClusterGroup;
@@ -263,6 +274,12 @@ export function ScreenMap({
 
             mapRef.current = map;
             clusterRef.current = cluster;
+
+            // Leaflet đo container ngay trong `L.map()`. Bản đồ này nằm trong
+            // một flex layout cao `100vh - hdr`, và nếu trình duyệt chưa xong
+            // layout tại thời điểm đó thì map có kích thước 0 — không xin tile
+            // nào và `getBounds()` trả một khung vô nghĩa. Đo lại ở frame sau.
+            requestAnimationFrame(() => map.invalidateSize());
 
             // Hoãn 300ms: kéo bản đồ sinh hàng chục sự kiện `moveend`, và gọi
             // API cho từng cái là tự làm cạn hạn mức tần suất của chính mình.
@@ -301,7 +318,7 @@ export function ScreenMap({
         const map = mapRef.current;
         if (!map || pins.length === 0) return;
 
-        const L = await import('leaflet');
+        const L = (await import('leaflet')).default;
         map.fitBounds(
             L.latLngBounds(pins.map((p) => [p.lat, p.lng] as [number, number])),
             { padding: [40, 40], maxZoom: 14 },
@@ -344,7 +361,7 @@ export function ScreenMap({
 
             if (!body.data.length) return;
 
-            const L = await import('leaflet');
+            const L = (await import('leaflet')).default;
             map.fitBounds(
                 L.latLngBounds(body.data.map((p) => [p.lat, p.lng] as [number, number])),
                 { padding: [40, 40], maxZoom: 13 },
