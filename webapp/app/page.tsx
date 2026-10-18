@@ -9,6 +9,7 @@ import { OwnerCard } from '@/components/OwnerCard';
 import { MegaSearch } from '@/components/MegaSearch';
 import { BanDoTrangChu } from '@/components/BanDoTrangChu';
 import { ProductCard } from '@/components/ProductCard';
+import { ThanhTrust, MucAI } from '@/components/KhoiLoiHua';
 
 /**
  * Trang chủ — đường dẫn cuối của giai đoạn 6 trước nhóm trang chính sách.
@@ -227,6 +228,13 @@ export default async function HomePage() {
                     </div>
                 </section>
 
+                {/*
+                  Thanh năm mục, nguyên văn bản Blade. Chủ dự án chốt dựng lại
+                  ngày 18/10/2026 sau khi đọc danh sách những câu không kiểm
+                  được — xem docblock của `KhoiLoiHua.tsx`.
+                */}
+                <ThanhTrust />
+
                 {/* ── Loại điểm đặt ──────────────────────────────────────── */}
                 {filters?.venue_types && filters.venue_types.length > 0 ? (
                     <section className="w" style={{ padding: '48px 0' }}>
@@ -441,6 +449,9 @@ export default async function HomePage() {
                         </div>
                     </div>
                 </section>
+
+                {/* ── Marketplace OOH đầu tiên có AI ─────────────────────── */}
+                <MucAI />
 
                 {/* ── Gói chiến dịch ─────────────────────────────────────── */}
                 {products.length > 0 ? (

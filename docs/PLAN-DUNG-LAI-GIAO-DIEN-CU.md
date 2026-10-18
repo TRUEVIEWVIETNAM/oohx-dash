@@ -579,6 +579,63 @@ làm.
   chết).
 - `/owners/{slug}` nhận `venue_type` để bộ lọc trong tab kho có tác dụng.
 
+## CHỐT 18/10/2026 — chủ dự án quyết dựng lại nguyên văn cả ba khối
+
+Ba khối trong mục trên (thanh `trust` năm mục, mục "Marketplace OOH đầu tiên
+có AI", bốn thẻ "Điểm nổi bật" ở `/explore/{slug}`) **đã dựng lại, đúng câu
+chữ bản Blade**. Chủ dự án chốt sau khi đọc danh sách những gì không kiểm
+được.
+
+Giữ nguyên mục trên không sửa — nó là bản ghi của lúc quyết định còn mở.
+Mục này ghi kết quả.
+
+### Những câu đang nằm trên trang mà hệ thống chưa làm được
+
+Liệt kê một lần, đầy đủ, để lần sau ai đọc cũng thấy cùng một danh sách —
+và để nếu có người hỏi thì không ai phải đi tìm:
+
+| Câu trên trang | Trang | Thực tế trong mã |
+|---|---|---|
+| "Traffic real-time" | chủ | `impression_logs` chưa có bản ghi nào |
+| "AI-powered search" | chủ | `MegaSearch` lọc theo thuộc tính; không có AI |
+| "Secure payment" | chủ | sàn **không thu hộ** — người mua chuyển khoản trực tiếp cho từng owner |
+| "Agency support 24/7" | chủ | cam kết vận hành, không phải thuộc tính hệ thống |
+| "AI Campaign Match · GPT-powered" | chủ | không có tính năng nào như vậy |
+| "Real-time Availability · Live sync <5min" | chủ | không có đồng bộ với owner; suất trống tính từ CSDL của chính sàn |
+| "AI Audience Estimation · Data-driven ±8%" | chủ | ước tính là `daily_footfall × 0,6`, một hệ số kinh nghiệm |
+| "Verified Data Network · 100% verified" | chủ | `owners.verified` là cờ thủ công |
+| "3.2× nhanh hơn cách đặt truyền thống" | chủ | không có nguồn |
+| "AI Traffic Data · Cập nhật theo giờ thực" | `/explore/{slug}` | không có AI; không có dữ liệu theo giờ |
+| "Proof of Play · Video xác nhận hàng ngày" | `/explore/{slug}` | chưa có proof-of-play nào |
+| "Verified Location · Kiểm tra thực địa 2024" | `/explore/{slug}` | khẳng định về quy trình, không phải cột trong CSDL |
+| "Fast Booking · Xác nhận trong 48h" | `/explore/{slug}` | cam kết vận hành |
+
+Bốn thẻ "Điểm nổi bật" in **vô điều kiện cho mọi màn hình** — chúng không
+đọc trường nào của `screen`.
+
+### Một chỗ KHÔNG nguyên văn, và vì sao
+
+Ảnh nền ô "3.2×". Bản Blade hotlink
+`images.unsplash.com/photo-1551836022-…`. Giữ nguyên là thêm một điểm hỏng
+trên trang công khai — Unsplash chậm, đổi URL hay chặn hotlink thì ô ảnh
+trống — cộng một câu hỏi bản quyền cho ảnh nền thương mại. Thay bằng SVG
+dựng tại chỗ (`ANH_AI_MINH_HOA` trong `webapp/lib/anh-hero.ts`), cùng cách
+`lib/logo.ts` và ảnh mô phỏng bảng điều khiển ở lát 2 đã làm. Ảnh không
+mang số liệu nào.
+
+Muốn ảnh chụp thật thì tải tệp về `public/` và trỏ tới nó — một lần thêm
+tệp, không phải một lần sửa mã.
+
+### Chốt đổi chiều
+
+`webapp/test/khoi-giao-dien.mjs`: ba khối chuyển từ danh sách **`khong`**
+sang danh sách **`co`**, và thêm một luật mới cấm `images.unsplash.com`
+xuất hiện trong HTML trang chủ. 273 → **293 khẳng định**.
+
+Nghĩa là từ nay nếu ai gỡ ba khối đó, chốt sẽ **đỏ** — đúng như trước đây
+nó đỏ nếu ai thêm vào. Chiều của luật đi theo quyết định, không theo ý
+người viết test.
+
 ## Ba khối chưa dựng vì chúng là lời hứa, không phải hình (ghi 14/10/2026)
 
 Lát 2 dựng lại trang chủ và dừng trước ba khối. Không phải vì khó — cả ba là

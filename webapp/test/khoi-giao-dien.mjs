@@ -64,8 +64,36 @@ const TRANG = [
             'class="inv-grid"', // lưới màn hình, không phải lưới thẻ owner
             'class="oc-card', // thẻ owner (biến thể compact thêm hậu tố)
             'class="ft-g"', // lưới liên kết tỉnh thành
+
+            // Hai khối lời hứa, chủ dự án chốt dựng nguyên văn 18/10/2026.
+            // Chúng từng nằm trong danh sách `khong` của chính tệp này —
+            // xem `KhoiLoiHua.tsx` về những câu không kiểm được.
+            'class="trust"',
+            'class="trust-in"',
+            'class="trust-item"',
+            'class="trust-sep"',
+            'Traffic real-time',
+            'AI-powered search',
+            'Secure payment',
+            'class="value-grid"',
+            'class="ai-cards"',
+            'class="ai-card"',
+            'class="ai-card-tag"',
+            'class="value-visual"',
+            'class="vv-number"',
+            '3.2×',
+            'Marketplace OOH đầu tiên có AI',
         ],
-        khong: ['class="sc"', 'class="oc"', 'class="oc-name"'],
+        khong: [
+            'class="sc"',
+            'class="oc"',
+            'class="oc-name"',
+
+            // Ảnh của mục AI dựng tại chỗ, KHÔNG hotlink dịch vụ ngoài: một
+            // trang công khai phụ thuộc `images.unsplash.com` là thêm một
+            // điểm hỏng, cộng một câu hỏi bản quyền.
+            'images.unsplash.com',
+        ],
     },
     {
         path: '/explore',
@@ -184,6 +212,15 @@ const TRANG = [
             'class="similar-section"',
             'class="inv-grid"',
             'class="sc-card sc-compact"',
+
+            // Bốn thẻ "Điểm nổi bật", chủ dự án chốt dựng nguyên văn
+            // 18/10/2026. Chúng in vô điều kiện cho mọi màn hình.
+            'class="hl-grid"',
+            'class="hl-card"',
+            'AI Traffic Data',
+            'Proof of Play',
+            'Verified Location',
+            'Fast Booking',
         ],
         khong: [
             // CHÚ Ý: `class="sc"` KHÔNG nằm trong danh sách này, khác với
@@ -192,12 +229,6 @@ const TRANG = [
             // `specs-grid`. Lỗi của lát 0 là thẻ **màn hình** mở bằng tên ấy —
             // và chỗ canh điều đó ở trang này là `class="sc-card sc-compact"`
             // trong danh sách `co` phía trên.
-
-            // Bốn thẻ "Điểm nổi bật" của bản Blade: bốn câu không câu nào kiểm
-            // được ("AI Traffic Data", "Proof of Play", "Verified Location
-            // 2024", "Fast Booking 48h"). Chờ chủ dự án quyết.
-            'class="hl-grid"',
-            'class="hl-card"',
 
             // Bốn thẻ đánh giá 4.9 sao: bản Blade đã bọc trong `@if(false)`,
             // tức chính tác giả đã tắt vì chúng là dữ liệu bịa.
