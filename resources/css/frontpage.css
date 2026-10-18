@@ -743,6 +743,151 @@ ul{list-style:none}
 .inv-price sup{font-size:12px;color:var(--t3)}
 .inv-actions{display:flex;gap:6px;flex-shrink:0}
 
+
+/* ── Hero hai cột (18/10/2026) ─────────────────────────────────────────────
+ *
+ * Trước lát này hero là một cột giữa trang: badge, tiêu đề, mô tả, ô tìm
+ * kiếm, hai nút, ba ô số liệu — rồi bên dưới là `hero-browser`, một ảnh SVG
+ * vẽ tay mô phỏng bảng điều khiển. Bản đồ thật nằm cách đó bốn khối, ở mục
+ * "Live Map View".
+ *
+ * Người mở trang lần đầu thấy một ảnh giả trước khi thấy một màn hình thật.
+ * Lát này đổi chỗ hai thứ đó: chữ và ô tìm kiếm sang trái, bản đồ thật sang
+ * phải, và `hero-browser` bị gỡ.
+ *
+ * ══ Không tốn thêm một byte nào ══
+ *
+ * `BanDoTrangChu` đã nằm trên trang chủ từ trước và `useEffect` của nó chạy
+ * ngay khi component gắn vào — không có `IntersectionObserver` nào, nên mọi
+ * lượt vào trang chủ hôm nay ĐÃ tải Leaflet và tải tile. Chuyển nó lên hero
+ * là đổi chỗ, không phải thêm. Thứ duy nhất đổi là lúc người ta nhìn thấy.
+ *
+ * ══ Một cột cho tới 900px ══
+ *
+ * Không phải 768px: ở 820px (iPad dọc) hai cột cho cột chữ ~370px, và tiêu
+ * đề `--fs-hero` ở cỡ đó vỡ thành năm dòng. 900px là chỗ cột trái còn đủ
+ * ~420px.
+ */
+/* Hero cũ mở bằng 80/96/108px chừa chỗ cho một khối chữ căn giữa. Hai cột
+ * thì cột phải đã cao sẵn, nên khoảng đó chỉ đẩy mọi thứ xuống dưới nếp
+ * gấp — đo ở 1440×980: đáy hero nằm ở 1.150px, tức không ai thấy ba ô số
+ * liệu mà không cuộn. */
+.hero--split{padding:64px 0 40px}
+@media(min-width:768px){.hero--split{padding:76px 0 52px}}
+@media(min-width:1024px){.hero--split{padding:84px 0 56px}}
+
+.hero-luoi{display:grid;grid-template-columns:1fr;gap:28px;align-items:center;position:relative;z-index:1}
+@media(min-width:900px){.hero-luoi{grid-template-columns:1fr 1.05fr;gap:44px}}
+
+.hero-chu{min-width:0}
+
+/* Cột trái căn trái từ 900px. Dưới mức đó nó là một cột giữa trang, nên giữ
+   nguyên cách căn giữa của hero cũ — đổi sang căn trái ở màn hình hẹp làm
+   tiêu đề dính mép và ba ô số liệu lệch khỏi ô tìm kiếm. */
+/* Một nấc xuống khi hero chia đôi.
+ *
+ * `--fs-hero` (tới 64px) được chọn cho một tiêu đề chiếm cả bề ngang trang.
+ * Trong cột trái rộng ~550px nó vỡ thành BỐN dòng và đẩy ô tìm kiếm xuống
+ * dưới nếp gấp — đo ở 1440×980 trước khi sửa.
+ *
+ * `--fs-1` là nấc ngay dưới trong cùng thang tám nấc (PR #112), không phải
+ * một cỡ mới đặt cho riêng chỗ này.
+ *
+ * Dưới 900px hero là MỘT cột chiếm cả bề ngang, nên nó giữ `--fs-hero`.
+ * Qua mốc 900px con số tụt (49px → 31px) nhưng bề ngang chứa nó cũng tụt
+ * một nửa, nên tỉ lệ chữ trên cột gần như không đổi.
+ */
+@media(min-width:900px){.hero--split .hero-hed{font-size:var(--fs-1)}}
+
+.hero-chu .hero-hed{margin-bottom:14px}
+.hero-chu .hero-desc{margin-bottom:22px}
+.hero-chu .hero-stats{margin-bottom:0;max-width:none}
+.hero-chu .hero-hint{margin-top:14px;margin-bottom:0}
+
+@media(min-width:900px){
+    .hero-chu{text-align:left}
+    .hero-chu .hero-text{text-align:left}
+    .hero-chu .hero-desc{margin-left:0;margin-right:0}
+    .hero-chu .hero-stats{margin-left:0;margin-right:0}
+    .hero-chu .hero-hint{text-align:left}
+    /* `.ms-chips` căn giữa cho hero một cột; ở hai cột nó phải thẳng mép
+       trái với ô tìm kiếm ngay trên nó. */
+    .hero-chu .ms-chips{justify-content:flex-start}
+}
+
+/* Bản đồ trong hero: cao theo tỉ lệ chứ không theo `height` cố định của
+   `.map-mock`, để nó co cùng cột thay vì để lại một dải trống khi cột hẹp.
+   Thanh đếm nằm ĐÈ lên bản đồ chứ không nối bên dưới — trong một ô vuông
+   thì một thanh trắng dính đáy làm ô cao thêm mà không thêm thông tin. */
+.map-wrap--hero{position:relative;border-radius:var(--r4);box-shadow:var(--sh4)}
+.map-wrap--hero .map-mock{height:auto;aspect-ratio:4/3}
+
+/* Một cột nhưng đã rộng (máy tính bảng dọc): 4/3 cho ra một ô cao 578px và
+   hero dài 1.219px — đo ở 834px trước khi sửa, tức gần một màn hình rưỡi
+   chỉ để mở đầu. Một dải ngang thấp vẫn đọc được vị trí mà không ăn hết
+   màn hình. */
+@media(min-width:560px) and (max-width:899px){.map-wrap--hero .map-mock{aspect-ratio:2/1}}
+
+@media(min-width:900px){.map-wrap--hero .map-mock{aspect-ratio:1/1}}
+@media(min-width:1280px){.map-wrap--hero .map-mock{aspect-ratio:5/4}}
+
+/* `bottom` chừa dòng ghi công của Leaflet/Esri ở sát đáy — điều khoản dùng
+   tile đòi nó đọc được, và ở `bottom:10px` thanh đếm nằm đè lên nó. */
+.map-wrap--hero .map-bar{position:absolute;left:10px;right:10px;bottom:26px;z-index:11;border-top:none;border-radius:12px;padding:9px 12px;box-shadow:0 2px 14px rgba(0,0,0,.16);background:rgba(255,255,255,.96);backdrop-filter:blur(8px)}
+
+/* Hai nút thu phóng mặc định nằm ở `bottom:10px` — đúng chỗ thanh đếm vừa
+   chiếm. Đẩy chúng lên trên thanh. */
+.map-wrap--hero .hp-map-zoom{bottom:80px}
+
+/* Dưới 768px thanh đếm trả về DƯỚI bản đồ thay vì đè lên.
+ *
+ * Cùng mốc 767px của luật vùng chạm 44px (PR #111): dưới mốc đó nút
+ * "Xem tất cả trên bản đồ" cao 44px thay vì 30px, nên thanh cao 62–69px.
+ * Đo ở 390px: 62px đè lên một ô bản đồ cao 260px là che một phần tư, và
+ * dòng ghi công Esri/OSM — điều khoản dùng tile đòi nó đọc được — nằm một
+ * nửa dưới thanh. Trên 768px thanh chỉ cao 48px nên đè được.
+ */
+@media(max-width:767px){
+    .map-wrap--hero .map-bar{position:static;border-top:1px solid var(--ln2);border-radius:0;padding:12px 16px;box-shadow:none;background:#fff;backdrop-filter:none}
+    .map-wrap--hero .hp-map-zoom{bottom:26px}
+}
+
+/* Ô tìm kiếm lớn trong cột trái: dạng GỌN khi cột chưa đủ rộng.
+ *
+ * `.ms-*` chuyển sang dạng đủ chữ từ 768px — một mốc đo theo CỬA SỔ, hợp
+ * khi ô chiếm cả bề ngang trang. Trong hero hai cột ô chỉ được một nửa, nên
+ * ở 900px nó nhận dạng đủ chữ trong một cột 379px: ô nhập co còn 32px và
+ * nút "Tìm kiếm" bị `overflow:hidden` của `.ms-box` cắt mất một nửa.
+ *
+ * Dải này KHÔNG có mốc trên. Đo lại sau khi sửa: cột trái bị `--mw: 1280px`
+ * chặn ở 552px, và dạng đủ chữ trong 552px chỉ chừa 142px cho ô nhập —
+ * hẹp hơn cả dạng gọn ở 900px (185px). Tức cột trái KHÔNG BAO GIỜ đủ rộng
+ * cho dạng đủ chữ, nên hero hai cột dùng dạng gọn ở mọi bề ngang.
+ *
+ * Vì sao không dùng container query — thứ đúng về mặt khái niệm: đặt
+ * `container-type: inline-size` lên `.hero-chu` kéo theo `contain: layout`,
+ * và `.hero-chu` thành khối chứa cho mọi con `position: absolute` lẫn
+ * `fixed` — tức hai dropdown `.mega-drop` và lớp nền `.ms-backdrop` của ô
+ * tìm kiếm đổi chỗ neo. Đổi một mốc đo mà làm hỏng dropdown là một đánh đổi
+ * tồi.
+ */
+/* Nút tìm: bỏ chữ ở mọi bề ngang của hero hai cột. Kính lúp thì ai cũng
+   đọc được, còn chữ "Tìm kiếm" ăn 72px của ô nhập. */
+@media(min-width:900px){.hero-chu .ms-submit-txt{display:none}}
+
+/* Nhãn hai pill cũng bỏ, ở mọi bề ngang của hero hai cột.
+ *
+ * Thử giữ nhãn từ 1100px trở lên trước đã — "Tỉnh/Thành" và "Loại hình"
+ * nói cho người đọc biết bấm vào ra gì, một icon trần thì không. Đo lại thì
+ * nó làm ô nhập TỆ ĐI chứ không khá hơn: 1099px (không nhãn) cho ô nhập
+ * 251px, 1100px (có nhãn) còn 113px, và kể cả ở 1920px — nơi cột trái đã
+ * chạm trần `--mw` — cũng chỉ lên 208px. Hai nhãn ăn hơn 130px mà cột
+ * không bao giờ rộng ra để bù.
+ *
+ * Đây là đúng dạng gọn mà mọi điện thoại vào oohx.net đang thấy, nên nó
+ * không phải một kiểu mới dựng riêng cho hero. */
+@media(min-width:900px){.hero-chu .ms-pill-txt{display:none}}
+
 /* Map section (index) */
 .map-wrap{border-radius:var(--r4);overflow:hidden;box-shadow:var(--sh3);border:1px solid var(--ln2)}
 .map-mock{position:relative;background:#E4E6EB;height:300px;overflow:hidden}

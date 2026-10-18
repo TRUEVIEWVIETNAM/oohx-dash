@@ -51,6 +51,21 @@ const GHIM = [
     { ma: 'danang', ten: 'Đà Nẵng' },
 ];
 
+/**
+ * Hai chỗ khối này đứng, và vì sao một component chứ không hai.
+ *
+ *  · `muc`  — ô xem trước trong một mục giữa trang (chỗ cũ, "Live Map View").
+ *  · `hero` — cột phải của hero trang chủ (18/10/2026).
+ *
+ * Khác nhau đúng hai điều, và cả hai là CSS: ô cao theo tỉ lệ thay vì theo
+ * `height` cố định, và thanh đếm đè lên bản đồ thay vì nối bên dưới. Logic —
+ * dựng Leaflet, đổi thành phố, chống chồng lời gọi, bộ đếm — không đổi một
+ * dòng, nên tách thành hai component là tạo hai bản của cùng một thứ.
+ *
+ * Mặc định là `muc` để chỗ gọi cũ không phải sửa.
+ */
+export type BienThe = 'muc' | 'hero';
+
 export type ThanhPho = { code?: string | null; name?: string | null; count?: number };
 
 export function BanDoTrangChu({
@@ -58,11 +73,13 @@ export function BanDoTrangChu({
     thanhPhoBanDau,
     tenThanhPhoBanDau,
     thanhPho = [],
+    bienThe = 'muc',
 }: {
     pinBanDau: MapPin[];
     thanhPhoBanDau: string;
     tenThanhPhoBanDau: string;
     thanhPho?: ThanhPho[];
+    bienThe?: BienThe;
 }) {
     const oRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<LeafletMap | null>(null);
@@ -219,7 +236,7 @@ export function BanDoTrangChu({
     const khac = thanhPho.filter((c) => !GHIM.some((g) => g.ma === c.code));
 
     return (
-        <div className="map-wrap">
+        <div className={bienThe === 'hero' ? 'map-wrap map-wrap--hero' : 'map-wrap'}>
             <div className="map-mock">
                 <div ref={oRef} style={{ position: 'absolute', inset: 0, zIndex: 0 }} />
 

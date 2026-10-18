@@ -47,11 +47,18 @@ const TRANG = [
         path: '/',
         ten: 'trang chủ',
         co: [
-            'class="hero"',
             'class="hero-badge"',
             'class="hstat"',
             'class="hero-hint"',
-            'class="hero-browser"',
+
+            // Hero hai cột (18/10/2026): chữ + ô tìm kiếm trái, bản đồ thật
+            // phải. Ba luật dưới canh cái KHUNG — nếu lưới mất, hai cột rơi
+            // về một chồng dọc mà không có lỗi nào bắn ra.
+            'class="hero hero--split"',
+            'hero-luoi',
+            'class="hero-chu"',
+            'map-wrap map-wrap--hero',
+
             'class="ms-box"', // ô tìm kiếm lớn
             'class="mega-drop"', // hai dropdown của nó
             'class="map-mock"', // bản đồ nhúng
@@ -125,6 +132,14 @@ const TRANG = [
             'class="sc"',
             'class="oc"',
             'class="oc-name"',
+
+            // Ảnh SVG mô phỏng bảng điều khiển, gỡ 18/10/2026 khi bản đồ
+            // thật lên hero. Nó không mang một con số nào nên không thuộc
+            // nhóm F-15 — lý do gỡ là chỗ: nó chiếm vị trí đầu trang để vẽ
+            // một màn hình không có thật, trước khi người xem thấy một màn
+            // hình có thật.
+            'class="hero-browser"',
+            'class="hb-screen"',
 
         ],
     },

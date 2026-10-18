@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getHomeData, DEFAULT_CITY, type HomeData } from '@/lib/home';
-import { ANH_HERO_DASHBOARD } from '@/lib/anh-hero';
 import { buildMetadata, jsonLd, OgType } from '@/lib/seo';
 import { SiteHeader } from '@/components/SiteHeader';
 import { ScreenCard } from '@/components/ScreenCard';
@@ -91,141 +90,121 @@ export default async function HomePage() {
 
             <main>
                 {/* ── Hero ───────────────────────────────────────────────── */}
-                <section className="hero">
-                    <div className="w" style={{ textAlign: 'center' }}>
-                        {/*
-                          Thẻ đếm inventory đang mở đặt lịch. Con số là
-                          `stats.total_screens` — cùng con số ba ô dưới dùng,
-                          nên không có chỗ nào để hai số lệch nhau.
-                        */}
-                        {stats ? (
-                            <div className="hero-badge" style={{ display: 'inline-flex' }}>
-                                <div className="hero-badge-dot" />
-                                {new Intl.NumberFormat('vi-VN').format(stats.total_screens)}{' '}
-                                inventory đang mở đặt lịch
+                {/*
+                  Hai cột: chữ + ô tìm kiếm bên trái, bản đồ THẬT bên phải.
+
+                  Trước lát này (18/10/2026) hero là một cột giữa trang, và
+                  dưới nó là `hero-browser` — một ảnh SVG vẽ tay mô phỏng bảng
+                  điều khiển. Bản đồ thật nằm cách đó bốn khối, ở mục "Live Map
+                  View". Người mở trang lần đầu thấy một ảnh giả trước khi thấy
+                  một màn hình thật của sàn.
+
+                  Lát này đổi chỗ hai thứ đó. `hero-browser` bị gỡ, và
+                  `lib/anh-hero.ts` đi theo nó.
+
+                  Không tốn thêm byte nào: `BanDoTrangChu` đã ở trên trang chủ
+                  từ trước và `useEffect` của nó chạy ngay khi gắn vào, không
+                  chờ cuộn tới — nên mọi lượt vào trang chủ hôm nay đã tải
+                  Leaflet và tile rồi. Đây là một lần chuyển chỗ.
+                */}
+                <section className="hero hero--split">
+                    <div className="w hero-luoi">
+                        <div className="hero-chu">
+                            {/*
+                              Thẻ đếm inventory đang mở đặt lịch. Con số là
+                              `stats.total_screens` — cùng con số ba ô dưới
+                              dùng, nên không có chỗ nào để hai số lệch nhau.
+                            */}
+                            {stats ? (
+                                <div className="hero-badge" style={{ display: 'inline-flex' }}>
+                                    <div className="hero-badge-dot" />
+                                    {new Intl.NumberFormat('vi-VN').format(stats.total_screens)}{' '}
+                                    inventory đang mở đặt lịch
+                                </div>
+                            ) : null}
+
+                            <div className="hero-text">
+                                <h1 className="hero-hed">
+                                    Marketplace OOH/DOOH{' '}
+                                    <span className="acc">thông minh nhất Việt Nam.</span>
+                                </h1>
+
+                                <p className="hero-desc">
+                                    Tìm, so sánh và đặt booking billboard · LED · LCD trong vài
+                                    phút.
+                                    {stats ? (
+                                        <>
+                                            {' '}
+                                            {new Intl.NumberFormat('vi-VN').format(
+                                                stats.total_screens,
+                                            )}{' '}
+                                            vị trí từ{' '}
+                                            {new Intl.NumberFormat('vi-VN').format(
+                                                stats.total_owners,
+                                            )}{' '}
+                                            media owner.
+                                        </>
+                                    ) : null}
+                                </p>
                             </div>
-                        ) : null}
 
-                        <div className="hero-text">
-                            <h1 className="hero-hed" style={{ marginBottom: 18 }}>
-                                Marketplace OOH/DOOH
-                                <br />
-                                <span className="acc">thông minh nhất Việt Nam.</span>
-                            </h1>
+                            {/*
+                              Ô tìm kiếm lớn — biến thể `hero`.
 
-                            <p className="hero-desc">
-                                Tìm, so sánh và đặt booking billboard · LED · LCD trong vài phút.
-                                {stats ? (
-                                    <>
-                                        {' '}
-                                        {new Intl.NumberFormat('vi-VN').format(
-                                            stats.total_screens,
-                                        )}{' '}
-                                        vị trí từ{' '}
-                                        {new Intl.NumberFormat('vi-VN').format(
-                                            stats.total_owners,
-                                        )}{' '}
-                                        media owner.
-                                    </>
-                                ) : null}
-                            </p>
+                              Chip gợi ý dựng đúng cách bản Blade dựng: ba nhóm
+                              loại hình đầu ghép với tên tỉnh thành đông
+                              inventory nhất, rồi nhóm thứ tư đứng một mình.
+                              Không có nguồn nào khác cho chúng, và bịa ra một
+                              truy vấn gợi ý là bịa ra một tính năng.
+                            */}
+                            <MegaSearch
+                                variant="hero"
+                                target="/explore"
+                                regions={regions}
+                                categories={filters?.categories_networks ?? []}
+                                chips={chipGoiY(filters)}
+                            />
+
+                            {/*
+                              Ba ô số liệu dùng đúng bộ class `hstat`.
+
+                              Một chỗ cố ý khác bản Blade: nó in
+                              `total_screens / 1000` kèm "K+", nên 104 màn hình
+                              hiện ra "0.1K+". Ở đây in số thật. Làm tròn một
+                              con số nhỏ thành đơn vị nghìn là nói sai về quy
+                              mô, theo cả hai chiều.
+                            */}
+                            {stats ? (
+                                <div className="hero-stats">
+                                    <Hstat value={stats.total_screens} label="Inventory" />
+                                    <Hstat value={stats.total_cities} label="Tỉnh thành" />
+                                    <Hstat value={stats.total_owners} label="Media owners" />
+                                </div>
+                            ) : null}
+
+                            {/*
+                              "Miễn phí đăng ký · Không phí môi giới" là chính
+                              sách thật, nên nó ở lại. Câu "30M+ impressions"
+                              đứng cạnh nó trong bản Blade thì không có nguồn
+                              nào và đã bị gỡ từ đợt dọn F-15 — không mang lại.
+                            */}
+                            <div className="hero-hint">Miễn phí đăng ký · Không phí môi giới</div>
                         </div>
 
                         {/*
-                          Ô tìm kiếm lớn — biến thể `hero`.
-
-                          Chip gợi ý dựng đúng cách bản Blade dựng: ba nhóm loại
-                          hình đầu ghép với tên tỉnh thành đông inventory nhất,
-                          rồi nhóm thứ tư đứng một mình. Không có nguồn nào khác
-                          cho chúng, và bịa ra một truy vấn gợi ý là bịa ra một
-                          tính năng.
+                          Hai nút "Khám phá Inventory" và "Xem bản đồ" của hero
+                          cũ KHÔNG dựng lại ở đây. Cả hai đích đều còn đường
+                          tới — `/explore` là chỗ nút "Tìm kiếm" của ô tìm kiếm
+                          dẫn tới, `/map` là chỗ thanh dưới bản đồ dẫn tới —
+                          nên giữ chúng là đặt bốn nút cạnh nhau cho hai đích.
                         */}
-                        <MegaSearch
-                            variant="hero"
-                            target="/explore"
-                            regions={regions}
-                            categories={filters?.categories_networks ?? []}
-                            chips={chipGoiY(filters)}
+                        <BanDoTrangChu
+                            bienThe="hero"
+                            pinBanDau={pins}
+                            thanhPhoBanDau={DEFAULT_CITY}
+                            tenThanhPhoBanDau={tenThanhPho(filters, DEFAULT_CITY)}
+                            thanhPho={filters?.cities ?? []}
                         />
-
-                        <div className="hero-actions" style={{ marginTop: 28 }}>
-                            <Link href="/explore" className="btn btn-p btn-lg">
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    fill="#fff"
-                                    style={{ width: 18, height: 18, flexShrink: 0 }}
-                                    aria-hidden="true"
-                                >
-                                    <path d="M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z" />
-                                </svg>{' '}
-                                Khám phá Inventory
-                            </Link>
-                            <Link href="/map" className="btn btn-s btn-lg">
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    fill="var(--t2)"
-                                    style={{ width: 18, height: 18, flexShrink: 0 }}
-                                    aria-hidden="true"
-                                >
-                                    <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z" />
-                                </svg>{' '}
-                                Xem bản đồ
-                            </Link>
-                        </div>
-
-                        {/*
-                          "Miễn phí đăng ký · Không phí môi giới" là chính sách
-                          thật, nên nó ở lại. Câu "30M+ impressions" đứng cạnh
-                          nó trong bản Blade thì không có nguồn nào và đã bị gỡ
-                          từ đợt dọn F-15 — không mang lại.
-                        */}
-                        <div className="hero-hint">Miễn phí đăng ký · Không phí môi giới</div>
-
-                        {/*
-                          Ba ô số liệu dùng đúng bộ class `hstat`. Bản trước vẽ
-                          `<div><strong>…</strong></div>` nên ba ô không có kiểu
-                          nào dù `.hstat`, `.hstat-n`, `.hstat-l` đều có trong
-                          CSS.
-
-                          Một chỗ cố ý khác bản Blade: nó in
-                          `total_screens / 1000` kèm "K+", nên 104 màn hình hiện
-                          ra "0.1K+". Ở đây in số thật. Làm tròn một con số nhỏ
-                          thành đơn vị nghìn là nói sai về quy mô, theo cả hai
-                          chiều.
-                        */}
-                        {stats ? (
-                            <div className="hero-stats">
-                                <Hstat value={stats.total_screens} label="Inventory" />
-                                <Hstat value={stats.total_cities} label="Tỉnh thành" />
-                                <Hstat value={stats.total_owners} label="Media owners" />
-                            </div>
-                        ) : null}
-                    </div>
-
-                    {/*
-                      Ảnh mô phỏng bảng điều khiển. Là SVG vẽ tay, không mang số
-                      liệu nào — nên không thuộc nhóm F-15. Hai thẻ nổi từng đè
-                      lên nó ("Live Impressions" đếm bằng `Math.random()`,
-                      "AI Match 94%") đã bị gỡ ở đợt dọn đó và không được dựng
-                      lại.
-                    */}
-                    <div className="w" style={{ paddingBottom: 0 }}>
-                        <div className="hero-visual" style={{ position: 'relative', padding: '0 20px' }}>
-                            <div className="hero-browser">
-                                <div className="hb-bar">
-                                    <div className="hb-dots">
-                                        <div className="hb-dot" style={{ background: '#FF5F57' }} />
-                                        <div className="hb-dot" style={{ background: '#FEBC2E' }} />
-                                        <div className="hb-dot" style={{ background: '#28C840' }} />
-                                    </div>
-                                    <div className="hb-url">oohx.net</div>
-                                </div>
-                                <div className="hb-screen">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={ANH_HERO_DASHBOARD} alt="Giao diện bảng điều khiển OOHX" />
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </section>
 
@@ -399,48 +378,6 @@ export default async function HomePage() {
                         </p>
                     </section>
                 ) : null}
-
-                {/* ── Live Map View ──────────────────────────────────────── */}
-                <section className="sec sec-gray">
-                    <div className="w">
-                        <div className="sec-head">
-                            <div className="sec-head-row">
-                                <div>
-                                    <span className="eyebrow">GEO INTELLIGENCE</span>
-                                    <h2 className="section-hed">Live Map View</h2>
-                                    <p
-                                        className="section-sub"
-                                        style={{ marginTop: 10 }}
-                                    >
-                                        OOH là business của vị trí — xem thực tế trên bản đồ.
-                                    </p>
-                                </div>
-                                <Link
-                                    href="/map"
-                                    className="btn btn-p btn-sm"
-                                    style={{ marginTop: 6, flexShrink: 0 }}
-                                >
-                                    <svg
-                                        viewBox="0 0 24 24"
-                                        fill="#fff"
-                                        style={{ width: 14, height: 14, flexShrink: 0 }}
-                                        aria-hidden="true"
-                                    >
-                                        <path d="M21 11V3h-8l3.29 3.29-10 10L3 13v8h8l-3.29-3.29 10-10z" />
-                                    </svg>{' '}
-                                    Mở bản đồ
-                                </Link>
-                            </div>
-                        </div>
-
-                        <BanDoTrangChu
-                            pinBanDau={pins}
-                            thanhPhoBanDau={DEFAULT_CITY}
-                            tenThanhPhoBanDau={tenThanhPho(filters, DEFAULT_CITY)}
-                            thanhPho={filters?.cities ?? []}
-                        />
-                    </div>
-                </section>
 
                 {/* ── Media owner ────────────────────────────────────────── */}
                 {featuredOwners.length > 0 ? (
