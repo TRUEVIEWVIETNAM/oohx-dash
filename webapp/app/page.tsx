@@ -415,17 +415,13 @@ export default async function HomePage() {
                         </div>
 
                         {/*
-                          Bốn thẻ, đúng bố cục bản Blade.
+                          Bốn thẻ, đúng bố cục VÀ đúng câu chữ bản Blade.
 
-                          Chữ trong thẻ **đã viết lại**, và đó là một quyết định
-                          cần nói ra. Bản Blade hứa bốn năng lực hôm nay không
-                          kiểm được: "AI search", "traffic data", "so sánh tối
-                          đa 5 vị trí" (không có chức năng so sánh nào) và
-                          "proof-of-play report tự động" (đường ghi bằng chứng
-                          phát sóng đã có, nhưng chưa thiết bị nào gửi dữ liệu).
-                          Chữ ở đây mô tả đúng những gì bốn bước này làm được
-                          hôm nay. Muốn đúng câu chữ cũ thì đó là một quyết định
-                          về lời hứa sản phẩm, không phải một lần sửa giao diện.
+                          Lát 2 viết lại bốn câu mô tả; chủ dự án chốt trả lại
+                          nguyên văn ngày 18/10/2026. Danh sách bốn chỗ không
+                          kiểm được nằm ở docblock của `BON_BUOC` dưới cuối
+                          tệp — "AI search", "traffic data", "so sánh tối đa 5
+                          vị trí" và "proof-of-play report tự động".
                         */}
                         <div
                             className="steps-grid"
@@ -552,35 +548,51 @@ export default async function HomePage() {
 }
 
 /**
- * Bốn bước của mục WORKFLOW.
+ * Bốn bước của mục WORKFLOW — **nguyên văn bản Blade**.
  *
- * Màu lấy đúng bản Blade (xanh · lục · cam · tím), vì nó là thứ tự màu người
- * đọc thấy. Chữ thì viết lại — lý do ghi ngay tại khối render.
+ * Lát 2 viết lại bốn câu mô tả vì chúng hứa những điều không kiểm được; chủ
+ * dự án chốt trả lại nguyên văn (18/10/2026), cùng đợt với thanh `trust`, mục
+ * AI và bốn thẻ "Điểm nổi bật".
+ *
+ * Bốn chỗ không kiểm được, ghi lại ở đúng chỗ người sửa sau đọc:
+ *
+ *  - **"AI search"** (bước 01) — `MegaSearch` lọc theo thuộc tính; không có AI.
+ *  - **"traffic data"** (bước 02) — số liệu lưu lượng là cột do media owner
+ *    khai, không phải đo độc lập; `impression_logs` chưa có bản ghi nào.
+ *  - **"So sánh tối đa 5 vị trí"** (bước 02) — **không có chức năng so sánh
+ *    nào** trên sàn, không phải "có nhưng giới hạn 5".
+ *  - **"proof-of-play report tự động"** (bước 04) — đường ghi bằng chứng phát
+ *    sóng đã dựng từ giai đoạn 2, nhưng chưa thiết bị nào gửi dữ liệu.
+ *
+ * Bốn **bước** thì có thật và đã dựng; bốn **câu** thì chưa.
+ *
+ * Màu lấy đúng bản Blade (xanh · lục · cam · tím) — nó là thứ tự màu người đọc
+ * thấy.
  */
 const BON_BUOC = [
     {
         so: '01',
         mau: 'var(--bl)',
         tieuDe: 'Tìm kiếm & lọc',
-        moTa: 'Lọc theo tỉnh thành, loại điểm đặt, network và khoảng giá. Xem ngay trên bản đồ.',
+        moTa: 'AI search theo khu vực, loại biển, budget và availability. Map view tức thì.',
     },
     {
         so: '02',
         mau: '#34C759',
         tieuDe: 'So sánh',
-        moTa: 'Ảnh thực địa, thông số kỹ thuật, suất còn trống 30 ngày tới và giá niêm yết.',
+        moTa: 'Ảnh thực địa, traffic data, availability calendar. So sánh tối đa 5 vị trí.',
     },
     {
         so: '03',
         mau: '#FF9F0A',
         tieuDe: 'Gửi booking',
-        moTa: 'Điền thông tin chiến dịch, tải nội dung lên. Media owner nhận yêu cầu ngay.',
+        moTa: 'Điền thông tin campaign, upload creative. Media owner nhận ngay, xử lý nhanh chóng.',
     },
     {
         so: '04',
         mau: '#AF52DE',
         tieuDe: 'Theo dõi & báo cáo',
-        moTa: 'Bảng điều khiển theo trạng thái từng dòng đặt chỗ, kèm báo cáo chiến dịch.',
+        moTa: 'Dashboard theo dõi booking status + proof-of-play report tự động.',
     },
 ];
 

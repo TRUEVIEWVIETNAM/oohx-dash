@@ -59,6 +59,13 @@ const TRANG = [
             'class="map-count"',
             'class="steps-grid"', // bốn bước đặt booking
             'class="step-card"',
+
+            // Bốn câu mô tả, nguyên văn bản Blade (chốt 18/10/2026). Lát 2
+            // từng viết lại chúng; luật này canh để lần sau không ai viết lại
+            // mà không đi qua một quyết định.
+            'AI search theo khu vực',
+            'So sánh tối đa 5 vị trí',
+            'proof-of-play report tự động',
             'class="owner-cta"', // khối mời media owner
             'class="oc-feat"',
             'class="inv-grid"', // lưới màn hình, không phải lưới thẻ owner
