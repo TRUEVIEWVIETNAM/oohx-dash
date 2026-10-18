@@ -82,11 +82,18 @@ class ChuBladePanelPhaiCoDauTest extends TestCase
         'ssh -i /www/wwwroot/dash.oohx.net/storage/app/oohx-ssh/oohx_sync \\',
         'systemctl status oohx-pg-tunnel',
 
-        // Cấu hình Leaflet nằm trong thuộc tính, không phải chữ hiển thị.
-        "attribution: '©",
-        "iconRetinaUrl: '/vendor/leaflet/images/marker-icon-2x.png',",
-        "iconUrl: '/vendor/leaflet/images/marker-icon.png',",
-        "shadowUrl: '/vendor/leaflet/images/marker-shadow.png',",
+        // ── Bốn mục Leaflet đã gạch 18/10/2026, và vì sao ─────────────────
+        //
+        // `map-picker.blade.php` từng có `attribution: '&copy; <a href=…>`.
+        // Thẻ `<a>` đó là thứ duy nhất đóng lại một text node bắt đầu từ dấu
+        // `>` của `() => {` trong một `$watch` phía trên — nên cả khối
+        // `L.Icon.Default.mergeOptions({…})` lọt vào bộ quét như thể là chữ,
+        // và bốn mảnh JS phải nằm đây để chốt khỏi đỏ.
+        //
+        // Nguồn tile nay đọc từ `config/map.php`, attribution hết thẻ `<a>`,
+        // node đó không còn khép được và mã JS ra khỏi tầm quét — đúng chỗ của
+        // nó. Số text node toàn tầm chỉ đổi 3405 → 3403, nên đây là một lỗ
+        // đóng lại, không phải tầm quét co đi.
     ];
 
     private const THU_MUC = 'resources/views/filament';

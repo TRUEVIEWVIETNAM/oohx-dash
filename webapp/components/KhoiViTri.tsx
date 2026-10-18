@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Map as LeafletMap, Marker } from 'leaflet';
 import type { NearbyPoi } from '@/lib/api';
-import { thoat } from '@/lib/ban-do';
+import { themLopNen, thoat } from '@/lib/ban-do';
 
 /**
  * Khối "Vị trí trên bản đồ": danh sách POI nhóm theo loại ở bên trái, bản đồ
@@ -91,10 +91,7 @@ export function KhoiViTri({
                 scrollWheelZoom: false,
             });
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap',
-                maxZoom: 19,
-            }).addTo(map);
+            themLopNen(L, map);
 
             // Pin của chính màn hình: to hơn, có vòng nhấp nháy, và luôn ở trên.
             const screenIcon = L.divIcon({

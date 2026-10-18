@@ -124,3 +124,89 @@ test('bộ trích không rỗng — một regex vỡ phải đỏ, không xanh v
     assert.ok(soImport >= 5, `Chỉ thấy ${soImport} lời gọi \`import('leaflet')\` — bộ trích có vẻ hỏng.`);
     assert.ok(soMarker >= 2, `Chỉ thấy ${soMarker} lời gọi \`L.marker(\` — bộ trích có vẻ hỏng.`);
 });
+
+// ── Nguồn tile: hai bản sao phải khớp, và không chỗ nào hardcode ───────────
+
+/** Đọc một khoá chuỗi của `config/map.php` mà không cần chạy PHP. */
+function configMap(khoa) {
+    const php = readFileSync('config/map.php', 'utf8');
+
+    // `'khoa' => env('X', 'giá trị')` hoặc `'khoa' => 'giá trị'`,
+    // và giá trị có thể nằm trên dòng riêng.
+    const re = new RegExp(
+        `'${khoa}'\\s*=>\\s*(?:\\(int\\)\\s*)?(?:env\\(\\s*'[^']*'\\s*,\\s*)?'([^']*)'`,
+        's',
+    );
+
+    const m = php.match(re);
+    assert.ok(m, `Không đọc được \`${khoa}\` trong config/map.php`);
+
+    return m[1];
+}
+
+/** Đọc một hằng chuỗi export của `webapp/lib/ban-do.ts`. */
+function hangNext(ten) {
+    const ts = readFileSync('webapp/lib/ban-do.ts', 'utf8');
+    const m = ts.match(new RegExp(`export const ${ten} =\\s*'([^']*)'`, 's'));
+    assert.ok(m, `Không đọc được \`${ten}\` trong webapp/lib/ban-do.ts`);
+
+    return m[1];
+}
+
+test('nguồn tile của Next và của Filament phải là cùng một giá trị', () => {
+    // Hai bản sao là đánh đổi có ý thức — Next không đọc được config PHP, và
+    // kéo URL tile qua một lời gọi API là thêm một vòng mạng cho một chuỗi
+    // hằng. Chốt này là thứ bịt chỗ trôi: quên sửa một bên thì đỏ.
+    for (const [khoaPhp, tenTs] of [
+        ['tile_url', 'TILE_URL'],
+        ['tile_subdomains', 'TILE_SUBDOMAINS'],
+        ['tile_attribution', 'TILE_ATTRIBUTION'],
+        ['tile_fallback_url', 'TILE_FALLBACK_URL'],
+        ['tile_fallback_attribution', 'TILE_FALLBACK_ATTRIBUTION'],
+    ]) {
+        assert.equal(
+            hangNext(tenTs),
+            configMap(khoaPhp),
+            `\`${tenTs}\` (Next) khác \`${khoaPhp}\` (config/map.php) — ` +
+                'đổi nhà cung cấp tile phải sửa cả hai nơi.',
+        );
+    }
+});
+
+test('không view nào hardcode một nguồn tile', () => {
+    const thuMuc = ['resources/views', 'webapp/components', 'webapp/app'];
+    const sai = [];
+
+    function quet(duong) {
+        for (const muc of readdirSync(duong, { withFileTypes: true })) {
+            const p = join(duong, muc.name);
+
+            if (muc.isDirectory()) {
+                quet(p);
+                continue;
+            }
+
+            if (!/\.(blade\.php|tsx|ts)$/.test(muc.name)) continue;
+
+            const ma = boChuThich(readFileSync(p, 'utf8'));
+
+            // Mọi URL tile đều có hình dạng `{z}/{x}/{y}` — bắt theo hình dạng
+            // đó thay vì theo tên một nhà cung cấp, nên nó cũng đỏ nếu ai cắm
+            // một nguồn thứ ba vào thẳng view.
+            if (/https:\/\/[^'"]*\{z\}[^'"]*\{[xy]\}/.test(ma)) {
+                sai.push(p.replace(/\\/g, '/'));
+            }
+        }
+    }
+
+    for (const d of thuMuc) quet(d);
+
+    assert.deepEqual(
+        sai,
+        [],
+        'Những tệp sau cắm thẳng một URL tile. Nguồn tile sống ở ' +
+            '`config/map.php` (Blade) và `webapp/lib/ban-do.ts` (Next) — ' +
+            'mười hai bản đồ, một chỗ đổi:\n  ' +
+            sai.join('\n  '),
+    );
+});

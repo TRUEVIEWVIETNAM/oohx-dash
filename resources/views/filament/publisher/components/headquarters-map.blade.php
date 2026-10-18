@@ -31,7 +31,7 @@
                 zoom: 14,
                 zoomControl: true,
             });
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            L.tileLayer('{{ config('map.tile_url') }}', {
                 attribution: '&copy; OSM',
                 maxZoom: 19,
             }).addTo(this.map);
