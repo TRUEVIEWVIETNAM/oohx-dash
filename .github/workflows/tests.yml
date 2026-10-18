@@ -32,7 +32,8 @@ jobs:
           for f in deploy.sh rollback.sh \
                    docs/deploy/nextjs-proxy/oohx-sync-proxy.sh \
                    tests/shell/thu-kiem-conf.sh \
-                   tests/shell/thu-dat-env.sh; do
+                   tests/shell/thu-dat-env.sh \
+                   tests/shell/thu-nap-lai.sh; do
             bash -n "$f" && echo "OK  $f"
           done
 
@@ -77,6 +78,17 @@ jobs:
       # biến rỗng, và một khóa đang chạy KHÔNG được biến mất vì chuyện đó.
       - name: Phép kiểm cho hàm ghi .env
         run: bash tests/shell/thu-dat-env.sh
+
+      # Bash đọc script đang chạy TỪ ĐĨA, và bước 3 của `deploy.sh` ghi đè
+      # chính tệp đó. Ngày 18/10/2026 điều này làm một lần deploy kết thúc
+      # "success", in đủ mười một bước, mà bước mới thêm thì không chạy —
+      # khóa MapTiler không tới production và không lỗi nào được ghi.
+      #
+      # Khối sửa nó dùng `exec`, nên sai một chiều là deploy không cập nhật,
+      # sai chiều kia là vòng lặp vô hạn trên máy chủ. Bộ thử dựng một repo
+      # git thật rồi kiểm cả hai chiều.
+      - name: Phép kiểm cho khối tự-nạp-lại của deploy.sh
+        run: bash tests/shell/thu-nap-lai.sh
 
   # Trang công khai trên Next.js (giai đoạn 6).
   #

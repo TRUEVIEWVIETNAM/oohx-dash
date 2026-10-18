@@ -170,6 +170,54 @@ class MapTileConfigTest extends TestCase
         $this->assertStringContainsString('MapTiler', $cfg['tile_attribution']);
     }
 
+    /**
+     * Style rỗng phải lùi về mặc định, không được cho ra `maps//{z}/…`.
+     *
+     * Chuyện thật, 18/10/2026. `deploy.sh` export
+     * `NEXT_PUBLIC_MAPTILER_STYLE` từ một secret chưa đặt, nên nó là chuỗi
+     * rỗng. Phía Next dùng `?? 'streets-v2'`, mà `??` chỉ bắt `undefined` —
+     * chuỗi rỗng đi thẳng vào URL: `api.maptiler.com/maps//13/6504/3605.png`.
+     * MapTiler trả 503 cho mọi ô.
+     *
+     * Không ai thấy, vì dự phòng Esri nhảy vào và bản đồ vẫn có nền. Phải mở
+     * tab Network mới biết MapTiler chưa hề chạy — hình dạng lỗi thứ tư
+     * trong một ngày: báo thành công, làm việc khác.
+     *
+     * Phía PHP có đúng cái bẫy đó với `env('X', 'mặc định')`, nên ca này
+     * canh cả hai.
+     */
+    public function test_style_rong_phai_lui_ve_mac_dinh(): void
+    {
+        // Chỉ chuỗi rỗng, không thử chuỗi toàn khoảng trắng: Dotenv cắt
+        // khoảng trắng của giá trị không đặt trong nháy, nên một `.env` thật
+        // không sinh ra trường hợp đó — và một chốt canh thứ không xảy ra là
+        // một chốt bắt mã phức tạp thêm mà không đổi lấy gì.
+        foreach ([''] as $rong) {
+            $cfg = $this->nap([
+                'MAPTILER_KEY' => 'khoa-gia-de-test',
+                'MAPTILER_STYLE' => $rong,
+            ]);
+
+            $this->assertStringNotContainsString(
+                'maps//',
+                $cfg['tile_url'],
+                'Style rỗng cho ra URL hai dấu gạch chéo — MapTiler trả 503 mọi ô.',
+            );
+
+            $this->assertStringContainsString('streets-v2', $cfg['tile_url']);
+        }
+    }
+
+    public function test_style_dat_thi_dung_style_do(): void
+    {
+        $cfg = $this->nap([
+            'MAPTILER_KEY' => 'khoa-gia-de-test',
+            'MAPTILER_STYLE' => 'oohx-tieng-viet',
+        ]);
+
+        $this->assertStringContainsString('maps/oohx-tieng-viet/', $cfg['tile_url']);
+    }
+
     public function test_khong_khoa_thi_lui_ve_esri(): void
     {
         $cfg = $this->nap(['MAPTILER_KEY' => '']);
