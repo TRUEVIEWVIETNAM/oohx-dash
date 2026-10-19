@@ -61,6 +61,74 @@ function tachDanhSach(gia_tri?: string): Set<string> {
 const CAT_TINH = 12;
 const CAT_LOAI_DIEM = 10;
 
+function doiTap(tap: Set<string>, gia_tri: string): Set<string> {
+    const moi = new Set(tap);
+    moi.has(gia_tri) ? moi.delete(gia_tri) : moi.add(gia_tri);
+
+    return moi;
+}
+
+/**
+ * Một dòng tick.
+ *
+ * ══ Định nghĩa ở cấp module, KHÔNG lồng trong `BoLocKho` ══
+ *
+ * Bản đầu đặt hàm này bên trong thân component. Mỗi lần render tạo ra một
+ * **danh tính hàm mới**, nên React coi đó là một loại component khác và
+ * **tháo rồi gắn lại** toàn bộ cây con sau mỗi lần tick. Đo được ở 1440px:
+ * tick "Chưa báo giá" rồi tick "Billboard" thì ô thứ hai không ăn — nút đã
+ * bị thay bằng một nút khác giữa hai cú bấm, và cú bấm thứ hai rơi vào một
+ * nút đã rời khỏi tài liệu. Ô nhập chữ trong cùng cây cũng sẽ mất con trỏ
+ * theo đúng cơ chế đó.
+ *
+ * `tat` = nhóm này đếm 0. Hiện mờ và vô hiệu chứ **không ẩn**: một loại hình
+ * hiện 0 nói với người mua rằng sàn biết loại đó tồn tại nhưng chưa có hàng;
+ * ẩn nó đi thì người mua tưởng sàn không bán loại đó.
+ */
+function OTick({
+    ten,
+    gia_tri,
+    nhan,
+    so,
+    tap,
+    dat,
+}: {
+    ten: string;
+    gia_tri: string;
+    nhan: string;
+    so?: number | null;
+    tap: Set<string>;
+    dat: (t: Set<string>) => void;
+}) {
+    const dangChon = tap.has(gia_tri);
+    const tat = so === 0 && !dangChon;
+
+    return (
+        <label
+            className={dangChon ? 'sb-item on' : tat ? 'sb-item sb-item-tat' : 'sb-item'}
+            aria-disabled={tat || undefined}
+        >
+            {/*
+              Input thật, ẩn bằng CSS nội tuyến như `/products`:
+              `.sb-checkbox` là ô vuông vẽ bằng CSS, nhưng phần tử nhận bàn
+              phím và đọc được bởi trình đọc màn hình vẫn phải là input thật.
+            */}
+            <input
+                type="checkbox"
+                name={ten}
+                value={gia_tri}
+                checked={dangChon}
+                disabled={tat}
+                onChange={() => dat(doiTap(tap, gia_tri))}
+                style={{ display: 'none' }}
+            />
+            <div className="sb-checkbox" />
+            <span>{nhan}</span>
+            {so === null || so === undefined ? null : <span className="sb-count">{so}</span>}
+        </label>
+    );
+}
+
 export function BoLocKho({
     filters,
     params = {},
@@ -98,13 +166,6 @@ export function BoLocKho({
         };
     }, [mo]);
 
-    function doiTap(tap: Set<string>, gia_tri: string): Set<string> {
-        const moi = new Set(tap);
-        moi.has(gia_tri) ? moi.delete(gia_tri) : moi.add(gia_tri);
-
-        return moi;
-    }
-
     function apDung() {
         const url = new URLSearchParams();
 
@@ -139,58 +200,6 @@ export function BoLocKho({
     }
 
     const coBoLoc = soBoLoc > 0;
-
-    /**
-     * Một dòng tick.
-     *
-     * `tat` = nhóm này đếm 0. Hiện mờ và vô hiệu chứ **không ẩn**: một loại
-     * hình hiện 0 nói với người mua rằng sàn biết loại đó tồn tại nhưng chưa
-     * có hàng; ẩn nó đi thì người mua tưởng sàn không bán loại đó.
-     */
-    function O({
-        ten,
-        gia_tri,
-        nhan,
-        so,
-        tap,
-        dat,
-    }: {
-        ten: string;
-        gia_tri: string;
-        nhan: string;
-        so?: number | null;
-        tap: Set<string>;
-        dat: (t: Set<string>) => void;
-    }) {
-        const dangChon = tap.has(gia_tri);
-        const tat = so === 0 && !dangChon;
-
-        return (
-            <label
-                className={dangChon ? 'sb-item on' : tat ? 'sb-item sb-item-tat' : 'sb-item'}
-                aria-disabled={tat || undefined}
-            >
-                {/*
-                  Input thật, ẩn bằng CSS nội tuyến như `/products`:
-                  `.sb-checkbox` là ô vuông vẽ bằng CSS, nhưng phần tử nhận bàn
-                  phím và đọc được bởi trình đọc màn hình vẫn phải là input
-                  thật.
-                */}
-                <input
-                    type="checkbox"
-                    name={ten}
-                    value={gia_tri}
-                    checked={dangChon}
-                    disabled={tat}
-                    onChange={() => dat(doiTap(tap, gia_tri))}
-                    style={{ display: 'none' }}
-                />
-                <div className="sb-checkbox" />
-                <span>{nhan}</span>
-                {so === null || so === undefined ? null : <span className="sb-count">{so}</span>}
-            </label>
-        );
-    }
 
     return (
         <>
@@ -230,7 +239,7 @@ export function BoLocKho({
                     <div className="sb-card">
                         <div className="sb-title">Trạng thái giá</div>
                         <div className="sb-group">
-                            <O
+                            <OTick
                                 ten="price_status"
                                 gia_tri="quoted"
                                 nhan="Đã có giá"
@@ -238,7 +247,7 @@ export function BoLocKho({
                                 tap={giaTrangThai}
                                 dat={setGiaTrangThai}
                             />
-                            <O
+                            <OTick
                                 ten="price_status"
                                 gia_tri="unquoted"
                                 nhan="Chưa báo giá"
@@ -255,7 +264,7 @@ export function BoLocKho({
                             <div className="sb-group">
                                 {filters.screen_types.map((t) =>
                                     t.code ? (
-                                        <O
+                                        <OTick
                                             key={t.code}
                                             ten="screen_type"
                                             gia_tri={t.code}
@@ -284,7 +293,7 @@ export function BoLocKho({
                                 */}
                                 {filters.cities.slice(0, CAT_TINH).map((c) =>
                                     c.code ? (
-                                        <O
+                                        <OTick
                                             key={c.code}
                                             ten="city"
                                             gia_tri={c.code}
@@ -305,7 +314,7 @@ export function BoLocKho({
                             <div className="sb-group">
                                 {filters.venue_types.slice(0, CAT_LOAI_DIEM).map((v) =>
                                     v.code ? (
-                                        <O
+                                        <OTick
                                             key={v.code}
                                             ten="venue_type"
                                             gia_tri={v.code}
@@ -326,7 +335,7 @@ export function BoLocKho({
                             <div className="sb-group">
                                 {filters.owners.map((o) =>
                                     o.slug ? (
-                                        <O
+                                        <OTick
                                             key={o.slug}
                                             ten="owner"
                                             gia_tri={o.slug}
