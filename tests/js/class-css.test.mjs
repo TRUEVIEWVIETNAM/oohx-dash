@@ -905,6 +905,12 @@ test('luật vùng chạm 44px vẫn còn trong stylesheet', () => {
         ['.ms-pill', 'pill của ô tìm kiếm lớn — đo được 24px'],
         ['.trial-notice-x', 'nút đóng dải thông báo — đo được 22px'],
         ['.ft-ls a', 'liên kết danh sách chân trang — đo được 18px'],
+
+        // Hai cái này hỏng từ PR #111 mà không ai thấy: luật 44px lúc đó đo
+        // trang chủ, trang kho và bản đồ, không ai mở drawer bộ lọc ra đo.
+        // Lộ ra ngày 19/10/2026 khi cột lọc sang `/explore`.
+        ['.filter-float', 'nút nổi mở drawer bộ lọc — đo được 38px'],
+        ['.sb-item', 'dòng tick trong cột lọc — đo được 34px'],
     ]) {
         assert.ok(
             khoiMobile.includes(sel),

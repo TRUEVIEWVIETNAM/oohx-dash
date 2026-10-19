@@ -519,6 +519,19 @@ const ROUTES = {
             ],
 
             price_range: { min: 0, max: 1000000 },
+
+            // Trạng thái giá và loại màn hình — hai nhóm cột lọc `/explore`
+            // dựng (19/10/2026).
+            //
+            // `led: 0` có chủ ý: nhóm đếm 0 phải hiện ra MỜ chứ không biến
+            // mất, và đó là thứ `khoi-giao-dien.mjs` canh. Trên kho thật có
+            // đúng tình huống này — ba loại hình chưa có hàng.
+            price_status: { quoted: 1, unquoted: 103 },
+            screen_types: [
+                { code: 'billboard', name: 'Billboard', count: 30 },
+                { code: 'led', name: 'LED', count: 0 },
+                { code: 'lcd', name: 'LCD', count: 20 },
+            ],
         },
     },
 };

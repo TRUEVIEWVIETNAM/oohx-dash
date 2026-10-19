@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Http\Resources\V2\ScreenSummaryResource;
 use App\Models\Network;
 use App\Models\Owner;
 use App\Models\Screen;
@@ -702,14 +703,59 @@ class FrontpageService
                 ->limit(20)
                 ->get();
 
+            // Đếm **đã báo giá / chưa báo giá**, trên đúng tập màn hình mà
+            // danh sách công khai hiển thị.
+            //
+            // Một truy vấn, hai con số: `leftJoin` được vì `screen_inventory`
+            // có `screen_id` UNIQUE, nên không hàng nào nhân đôi. Màn hình
+            // chưa có dòng tồn kho nào rơi vào nhánh `ELSE` — đúng như
+            // `whereDoesntHave` của bộ lọc, nên con số đếm và tập lọc không
+            // thể lệch nhau.
+            $priceStatus = Screen::publiclyVisible()
+                ->leftJoin('screen_inventory', 'screen_inventory.screen_id', '=', 'screens.id')
+                ->selectRaw(
+                    'SUM(CASE WHEN ' . self::CO_GIA_SQL . ' THEN 1 ELSE 0 END) AS quoted, '
+                    . 'SUM(CASE WHEN ' . self::CO_GIA_SQL . ' THEN 0 ELSE 1 END) AS unquoted'
+                )
+                ->toBase()
+                ->first();
+
+            // Đếm theo **loại màn hình** (billboard / LED / LCD).
+            //
+            // Dùng chính `applyScreenTypeFilter()` của bộ lọc, không viết lại
+            // điều kiện: `screen_type` là một giá trị **suy ra** từ kích
+            // thước và `venue_type` chứ không phải một cột, nên hai lần diễn
+            // giải cùng một quy tắc sẽ trôi khỏi nhau — và chỗ lệch chỉ lộ ra
+            // dưới dạng "bộ lọc nói 30, bấm vào thấy 28".
+            //
+            // Danh sách mã lấy từ `SCREEN_TYPE_LABELS`, bảng chữ duy nhất cho
+            // loại màn hình (`NhanLoaiManHinhTest` canh nó khớp với
+            // `resolveScreenType()`).
+            //
+            // Màn hình **không có dòng `screen_specs`** không rơi vào nhóm
+            // nào: cả ba nhánh của bộ lọc đều cần `whereHas('spec', ...)`.
+            // Đó là hành vi có sẵn của bộ lọc, giữ nguyên ở đây để con số
+            // đếm khớp tập lọc — nhưng nó có nghĩa là tổng ba nhóm có thể
+            // NHỎ HƠN tổng số màn hình.
+            $screenTypes = [];
+
+            foreach (array_keys(ScreenSummaryResource::SCREEN_TYPE_LABELS) as $loaiManHinh) {
+                $screenTypes[$loaiManHinh] = $this
+                    ->applyScreenTypeFilter(Screen::publiclyVisible(), [$loaiManHinh])
+                    ->count();
+            }
+
             return [
                 'formats'              => $formats,
+                'screen_types'         => $screenTypes,
                 'categories_networks'  => $this->getCategoriesWithNetworks(),
                 'cities'               => $cities,
                 'networks'             => $networks,
                 'owners'               => $owners,
                 'min_price'            => (float) ($priceRange->min_price ?? 0),
                 'max_price'            => (float) ($priceRange->max_price ?? 0),
+                'price_quoted'         => (int) ($priceStatus->quoted ?? 0),
+                'price_unquoted'       => (int) ($priceStatus->unquoted ?? 0),
                 // Nói ra đơn vị thay vì để người đọc tự đoán. Đây là VND **quy
                 // đổi**, gồm cả hàng niêm yết bằng USD — xem `vndEquivalentSql()`.
                 'price_currency'       => 'VND',
@@ -1115,6 +1161,9 @@ class FrontpageService
             ->when(! empty($ownerSlugs = $this->resolveArrayParam($request, 'owner')),
                 fn ($q) => $q->whereHas('owner', fn ($oq) => $oq->whereIn('slug', $ownerSlugs))
             )
+            ->when(! empty($priceStatus = $this->resolveArrayParam($request, 'price_status')),
+                fn ($q) => $this->applyPriceStatusFilter($q, $priceStatus)
+            )
             // Lọc theo giá **quy đổi về VND**: khoảng giá người dùng gõ là VND,
             // nhưng `floor_cpm` có hàng USD, nên so trực tiếp thì một màn hình
             // 2,50 USD lọt vào khoảng "dưới 1.000 ₫" (Codex R39).
@@ -1156,6 +1205,61 @@ class FrontpageService
             });
     }
 
+
+    /**
+     * Một màn hình được coi là **đã báo giá** khi nào.
+     *
+     * Hai mô hình giá cùng tồn tại trong `screen_inventory`: `floor_cpm` (giá
+     * sàn CPM) và `io_rate` (giá thuê trọn gói theo tuần/tháng). Thẻ màn hình
+     * trên trang công khai hiện cả hai.
+     *
+     * Vì thế định nghĩa phải nhận cả hai. Đo trên production ngày 19/10/2026:
+     * **50/50** bản ghi mang `pricing_model = io`, `floor_cpm` null, và đúng
+     * một bản ghi có `io_rate` (550.000.000 ₫/tháng). Một định nghĩa chỉ nhìn
+     * `floor_cpm` sẽ nói "0 màn hình có giá" trong khi trang công khai đang
+     * in ra một cái giá — và đó cũng chính là lý do `price_range` của
+     * `/api/v2/filters` trả `{0, 0}`: nó chỉ tính `floor_cpm`.
+     */
+    private const CO_GIA_SQL = '(screen_inventory.floor_cpm > 0 OR screen_inventory.io_rate > 0)';
+
+    /**
+     * Lọc theo trạng thái giá.
+     *
+     * `unquoted` dùng `whereDoesntHave`, không dùng `whereHas(... = 0)`: một
+     * màn hình **không có dòng `screen_inventory` nào** cũng là chưa báo giá,
+     * và `whereHas` bỏ sót đúng nhóm đó.
+     *
+     * Chọn cả hai trạng thái nghĩa là "có giá hoặc không có giá" — tức không
+     * lọc gì. Trả nguyên truy vấn, không trả tập rỗng: tập rỗng là câu trả
+     * lời cho một câu hỏi không ai hỏi.
+     *
+     * ══ `whereRaw(CO_GIA_SQL)` chứ không viết lại điều kiện bằng Eloquent ══
+     *
+     * Bản đầu của hàm này viết `where('floor_cpm','>',0)->orWhere('io_rate',
+     * '>',0)` — cùng một quy tắc, diễn giải lần thứ hai. Phép đột biến bắt
+     * được ngay: bỏ `io_rate` khỏi `CO_GIA_SQL` làm **nhóm đếm** sai trong
+     * khi **bộ lọc** vẫn đúng, tức hai con số trôi khỏi nhau mà không có gì
+     * báo. Đúng cái bẫy mà chú thích của `screen_types` nói phải tránh, và
+     * tôi vừa tự rơi vào.
+     *
+     * `whereHas` sinh truy vấn con trên chính bảng `screen_inventory` không
+     * đặt bí danh, nên tên cột đủ điều kiện trong hằng số dùng được nguyên
+     * văn ở cả hai nơi.
+     */
+    private function applyPriceStatusFilter($query, array $trangThai)
+    {
+        $muon = array_values(array_unique(array_intersect($trangThai, ['quoted', 'unquoted'])));
+
+        if (count($muon) !== 1) {
+            return $query;
+        }
+
+        $coGia = fn ($iq) => $iq->whereRaw(self::CO_GIA_SQL);
+
+        return $muon[0] === 'quoted'
+            ? $query->whereHas('inventory', $coGia)
+            : $query->whereDoesntHave('inventory', $coGia);
+    }
 
     private function expandCitySlugs(array $slugs): array
     {

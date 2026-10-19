@@ -10,6 +10,7 @@ class FrontpageListingRequest extends FormRequest
     private const LIST_PARAMS = [
         'city', 'province', 'venue_type', 'screen_type',
         'orientation', 'network', 'owner', 'district', 'region',
+        'price_status',
     ];
 
     public function authorize(): bool
@@ -78,6 +79,20 @@ class FrontpageListingRequest extends FormRequest
             'district.*'    => 'string|max:50',
             'region'        => 'nullable|array|max:3',
             'region.*'      => 'in:north,central,south',
+            /*
+             * Trạng thái giá: đã báo giá hay chưa.
+             *
+             * Khác `min_price`/`max_price` về bản chất. Hai tham số kia hỏi
+             * "giá nằm trong khoảng nào" — một câu hỏi chỉ trả lời được khi
+             * có giá. Đo trên production ngày 18/10/2026: **1 trong 50** bản
+             * ghi có giá, và `/api/v2/filters` trả `price_range {0, 0}`, tức
+             * thanh lọc giá không lọc được gì.
+             *
+             * Nên tham số này hỏi câu trả lời được: *đã có giá, hay chưa?*
+             */
+            'price_status'   => 'nullable|array|max:2',
+            'price_status.*' => 'in:quoted,unquoted',
+
             'site'          => 'nullable|string|max:50',
             'group'         => 'nullable|in:screen,network,site',
             'min_price'     => 'nullable|numeric|min:0',

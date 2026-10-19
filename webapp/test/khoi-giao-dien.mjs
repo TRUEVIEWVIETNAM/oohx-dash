@@ -263,6 +263,32 @@ const TRANG = [
             // Fixture có một màn hình `screen_type: 'lcd'`; trang phải in
             // "LCD". Bảng chữ sống ở `ScreenSummaryResource`.
             '>LCD<',
+
+            // ── Cột lọc (19/10/2026) ──────────────────────────────────────
+            //
+            // Trước hôm nay trang này đọc `city`, `venue_type`, `screen_type`
+            // từ URL nhưng KHÔNG vẽ bộ lọc nào: muốn lọc thì phải tự sửa URL.
+            //
+            // Canh ở đây chứ không chỉ ở `class-css` vì phép kiểm kia chỉ hỏi
+            // "tên class có định nghĩa CSS không" — nó xanh cả khi cột lọc
+            // không được gắn vào trang nào.
+            'class="listing-layout"',
+            'class="sidebar"',
+            'class="sb-card"',
+            'class="filter-float"', // nút mở drawer dưới 1024px
+            'class="drawer-drag"',
+
+            // Nhóm đầu tiên là trạng thái giá, và con số đi kèm. Đây là lý do
+            // cả cột lọc tồn tại: 103/104 vị trí chưa báo giá, nên thanh lọc
+            // giá (`price_range {0, 0}`) không lọc được gì.
+            '>Trạng thái giá<',
+            '>Đã có giá<',
+            '>Chưa báo giá<',
+            '>103<',
+
+            // Nhóm đếm 0 hiện MỜ chứ không biến mất. Fixture có `led: 0`.
+            'class="sb-item sb-item-tat"',
+            '>LED<',
         ],
         khong: [
             'class="sc"',
@@ -285,6 +311,11 @@ const TRANG = [
 
             // Mã thô ra mặt người dùng — chuyện đã xảy ra với `lcd`.
             'sc-spec-v">lcd<',
+
+            // `.ex-results` gỡ 19/10/2026: trang chuyển sang `.listing-layout`
+            // để có cột lọc, và khoảng cách trên dưới nay do lớp đó lo. Còn
+            // lại một trong hai là hai bảng khoảng cách chồng nhau.
+            'ex-results',
         ],
     },
     {
