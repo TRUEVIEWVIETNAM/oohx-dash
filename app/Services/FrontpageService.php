@@ -1232,6 +1232,19 @@ class FrontpageService
      * Chọn cả hai trạng thái nghĩa là "có giá hoặc không có giá" — tức không
      * lọc gì. Trả nguyên truy vấn, không trả tập rỗng: tập rỗng là câu trả
      * lời cho một câu hỏi không ai hỏi.
+     *
+     * ══ `whereRaw(CO_GIA_SQL)` chứ không viết lại điều kiện bằng Eloquent ══
+     *
+     * Bản đầu của hàm này viết `where('floor_cpm','>',0)->orWhere('io_rate',
+     * '>',0)` — cùng một quy tắc, diễn giải lần thứ hai. Phép đột biến bắt
+     * được ngay: bỏ `io_rate` khỏi `CO_GIA_SQL` làm **nhóm đếm** sai trong
+     * khi **bộ lọc** vẫn đúng, tức hai con số trôi khỏi nhau mà không có gì
+     * báo. Đúng cái bẫy mà chú thích của `screen_types` nói phải tránh, và
+     * tôi vừa tự rơi vào.
+     *
+     * `whereHas` sinh truy vấn con trên chính bảng `screen_inventory` không
+     * đặt bí danh, nên tên cột đủ điều kiện trong hằng số dùng được nguyên
+     * văn ở cả hai nơi.
      */
     private function applyPriceStatusFilter($query, array $trangThai)
     {
@@ -1241,9 +1254,7 @@ class FrontpageService
             return $query;
         }
 
-        $coGia = fn ($iq) => $iq->where(
-            fn ($sub) => $sub->where('floor_cpm', '>', 0)->orWhere('io_rate', '>', 0)
-        );
+        $coGia = fn ($iq) => $iq->whereRaw(self::CO_GIA_SQL);
 
         return $muon[0] === 'quoted'
             ? $query->whereHas('inventory', $coGia)
