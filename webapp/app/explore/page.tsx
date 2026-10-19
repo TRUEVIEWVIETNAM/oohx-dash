@@ -7,7 +7,7 @@ import { ScreenCard } from '@/components/ScreenCard';
 import { BoLocKho } from '@/components/BoLocKho';
 import { SiteHeader } from '@/components/SiteHeader';
 import { Pagination } from '@/components/Pagination';
-import { KhoiKetQua } from '@/components/KhoiKetQua';
+import { KhoiExplore } from '@/components/KhoiExplore';
 
 /**
  * `/explore` — danh sách màn hình. Đường dẫn ĐẦU TIÊN chuyển sang Next.js.
@@ -149,24 +149,28 @@ export default async function ExplorePage({
             </div>
 
             {/*
-              Hai cột: cột lọc trái, kết quả phải — từ 1024px. Dùng
-              `.listing-layout` của `/products` chứ không dựng lưới riêng; xem
-              docblock của `BoLocKho`.
+              Ba cột: lọc · kết quả · bản đồ.
+
+              Cột lọc hiện từ 1024px (`.listing-layout` của `/products`, xem
+              docblock của `BoLocKho`); cột bản đồ từ 1280px (`.ex-layout`).
+              Dưới mốc đó bản đồ là một kiểu xem bật bằng nút trong thanh kết
+              quả — ba cột trong 1136px còn lại cho lưới khoảng 150px một thẻ,
+              tức một bố cục đủ cột mà không đọc được gì.
 
               Trước 19/10/2026 trang này đọc `city`, `venue_type`,
               `screen_type` từ URL nhưng **không vẽ bộ lọc nào**: muốn lọc thì
-              phải tự sửa URL.
+              phải tự sửa URL. Và vị trí — chiều duy nhất dữ liệu đủ 100% —
+              chỉ xem được ở một trang khác.
             */}
             <div className="w">
-                <div className="listing-layout">
+                <div className="listing-layout ex-layout">
                 <BoLocKho filters={filters} params={params} />
 
-                <div>
-                <KhoiKetQua
+                <KhoiExplore
                     tong={meta.total ?? 0}
                     sort={params.sort ?? ''}
-                    basePath="/explore"
                     query={params}
+                    pagination={<Pagination basePath="/explore" params={params} meta={meta} />}
                 >
                     {screens.length === 0 ? (
                         <div
@@ -182,10 +186,7 @@ export default async function ExplorePage({
                     ) : (
                         screens.map((screen) => <ScreenCard key={screen.slug} screen={screen} />)
                     )}
-                </KhoiKetQua>
-
-                <Pagination basePath="/explore" params={params} meta={meta} />
-                </div>
+                </KhoiExplore>
                 </div>
                 </div>
             </main>

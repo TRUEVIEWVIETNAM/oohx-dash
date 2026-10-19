@@ -130,6 +130,11 @@ export function mauPin(venueType?: string | null): 'bl' | 'grn' | 'org' | 'red' 
     return 'bl';
 }
 
+/** Số theo lối Việt Nam: `1234` → `1.234`. */
+export function soVN(n: number): string {
+    return new Intl.NumberFormat('vi-VN').format(n);
+}
+
 /** `1234` → `1.2K`. Dùng cho số trong vòng tròn cụm. */
 export function gonSo(n: number): string {
     if (n >= 1000) return (n / 1000).toFixed(1).replace('.0', '') + 'K';

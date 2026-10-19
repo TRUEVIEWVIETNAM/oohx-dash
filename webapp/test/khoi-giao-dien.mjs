@@ -272,7 +272,7 @@ const TRANG = [
             // Canh ở đây chứ không chỉ ở `class-css` vì phép kiểm kia chỉ hỏi
             // "tên class có định nghĩa CSS không" — nó xanh cả khi cột lọc
             // không được gắn vào trang nào.
-            'class="listing-layout"',
+            'class="listing-layout ex-layout"',
             'class="sidebar"',
             'class="sb-card"',
             'class="filter-float"', // nút mở drawer dưới 1024px
@@ -289,6 +289,19 @@ const TRANG = [
             // Nhóm đếm 0 hiện MỜ chứ không biến mất. Fixture có `led: 0`.
             'class="sb-item sb-item-tat"',
             '>LED<',
+
+            // ── Cột bản đồ (lát 3, 19/10/2026) ────────────────────────────
+            //
+            // Khung ba cột và nút đổi sang kiểu xem bản đồ có trong HTML máy
+            // chủ trả về — chúng là bố cục, không phải thứ JS dựng ra.
+            'class="ex-cot-kq"',
+            'class="ex-cot-map"',
+            'ex-nut-map',
+
+            // `data-slug` trên thẻ: đường duy nhất để pin tìm ra thẻ tương
+            // ứng và ngược lại. Thiếu nó thì bản đồ thành trang trí, và
+            // không có gì đỏ lên.
+            'data-slug="man-hinh-co-gia"',
         ],
         khong: [
             'class="sc"',
@@ -316,6 +329,12 @@ const TRANG = [
             // để có cột lọc, và khoảng cách trên dưới nay do lớp đó lo. Còn
             // lại một trong hai là hai bảng khoảng cách chồng nhau.
             'ex-results',
+
+            // Bản đồ KHÔNG nằm trong HTML máy chủ render, và đó là chủ ý.
+            // Hai lý do: trang không chờ Leaflet mới hiện được danh sách, và
+            // `/explore` với `/map` không cùng đem một tập pin đi index.
+            'class="ex-map-khung"',
+            'leaflet',
         ],
     },
     {
