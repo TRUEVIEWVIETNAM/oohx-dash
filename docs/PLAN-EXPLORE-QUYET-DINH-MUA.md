@@ -129,6 +129,15 @@ Khung ba cột từ **1180px**: lọc 232px · kết quả 1fr · bản đồ 40
 cuộn. Dưới 1180px bản đồ thành một kiểu xem trong bộ nút đổi kiểu xem đã có
 (`KhoiKetQua`), chiếm toàn bộ chiều ngang.
 
+> **Làm ngày 19/10/2026, ba con số khác với dự kiến trên.** Mốc là **1280px**,
+> cột lọc **260px** (dùng lại `.listing-layout` của `/products` thay vì dựng
+> một bề ngang thứ hai), bản đồ **340px**. Lý do: `.w` lấy 52px mỗi bên từ
+> 1024px, nên nội dung rộng nhất là 1176px — ở 1180px lưới chỉ còn 432px cho
+> ba thẻ, tức 140px một thẻ. Với các con số đã làm, thẻ rộng 255px ở 1440px.
+> Nút đổi kiểu xem là một nút **thứ ba** cạnh lưới/danh sách chứ không dùng
+> chung khoá `listing_view`: khoá đó dùng chung với `/products`, nơi "bản đồ"
+> không có nghĩa gì.
+
 Pin lấy từ `GET /api/v2/screens/map` với **đúng bộ tham số lọc của danh sách**
 cộng khung nhìn hiện tại — endpoint đã hỗ trợ sẵn, không sửa backend. Nghĩa là
 bản đồ hiện **mọi** vị trí khớp bộ lọc (tới 500 pin), không chỉ 24 thẻ của
