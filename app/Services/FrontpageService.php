@@ -8,6 +8,7 @@ use App\Models\Owner;
 use App\Models\Screen;
 use App\Models\Site;
 use App\Models\VenueCategory;
+use App\Support\PhanTrangOnDinh;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -17,6 +18,8 @@ use Illuminate\Support\Str;
 
 class FrontpageService
 {
+    use PhanTrangOnDinh;
+
     private const CITY_SLUG_MAP = [
         'hanoi'    => 'Hà Nội',
         'hcm'      => 'Hồ Chí Minh',
@@ -379,8 +382,9 @@ class FrontpageService
             })
             ->withCount(['screens as screen_count' => fn ($q) => $q->where('active', true)])
             ->orderByDesc('featured')
-            ->orderByDesc('screen_count')
-            ->paginate($perPage);
+            ->orderByDesc('screen_count');
+
+        $owners = $this->phanTrang($owners, $perPage);
 
         $this->loadOwnerExtras($owners);
 
@@ -392,13 +396,14 @@ class FrontpageService
      */
     public function getAgenciesPaginated(Request $request, int $perPage = 12): LengthAwarePaginator
     {
-        return \App\Models\Organization::query()
+        $query = \App\Models\Organization::query()
             ->where('type', 'agency')
             ->where('status', 'active')
             ->when($request->filled('q'), fn ($q) => $q->where('name', 'LIKE', '%' . $request->input('q') . '%'))
             ->withCount(['campaigns as campaign_count'])
-            ->orderBy('name')
-            ->paginate($perPage);
+            ->orderBy('name');
+
+        return $this->phanTrang($query, $perPage);
     }
 
     public function getOwnerBySlug(string $slug): ?Owner
@@ -493,7 +498,7 @@ class FrontpageService
             }
         }
 
-        return $query->with([
+        $query->with([
                 'spec:screen_id,photo_url,photos,width_cm,height_cm',
                 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day',
                 'owner:id,name,slug,cover_url',
@@ -501,8 +506,9 @@ class FrontpageService
                 'site.network:id,name,code,banner',
                 'products:id,slug,name,total_units,listing_mode',
             ])
-            ->orderByDesc('created_at')
-            ->paginate($perPage);
+            ->orderByDesc('created_at');
+
+        return $this->phanTrang($query, $perPage);
     }
 
     /**
@@ -572,7 +578,7 @@ class FrontpageService
             ->having('screen_count', '>', 0)
             ->orderByDesc('screen_count');
 
-        return $query->paginate($perPage);
+        return $this->phanTrang($query, $perPage);
     }
 
     /**
@@ -619,7 +625,7 @@ class FrontpageService
         $query->having('screen_count', '>', 0)
             ->orderByDesc('screen_count');
 
-        return $query->paginate($perPage);
+        return $this->phanTrang($query, $perPage);
     }
 
     public function getScreensPaginated(Request $request, int $perPage = 20): LengthAwarePaginator
@@ -636,7 +642,7 @@ class FrontpageService
 
         $query = $this->applySort($query, $request);
 
-        return $query->paginate($perPage);
+        return $this->phanTrang($query, $perPage);
     }
 
     public function getFilterAggregates(): array

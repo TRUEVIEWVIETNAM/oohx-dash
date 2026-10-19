@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Product;
+use App\Support\PhanTrangOnDinh;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\Cache;
 
 class ProductService
 {
+    use PhanTrangOnDinh;
+
     /**
      * Get paginated products for /explore with filters.
      */
@@ -73,7 +76,7 @@ class ProductService
             default      => $query->orderByDesc('featured')->orderBy('sort_order')->orderByDesc('created_at'),
         };
 
-        return $query->paginate($perPage);
+        return $this->phanTrang($query, $perPage);
     }
 
     /**

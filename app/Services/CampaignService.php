@@ -13,6 +13,7 @@ use App\Models\OrganizationUser;
 use App\Models\Owner;
 use App\Models\Screen;
 use App\Models\User;
+use App\Support\PhanTrangOnDinh;
 use App\Services\Booking\BundleExpander;
 use App\Services\InventoryHoldService;
 use App\Services\PurchaseEligibilityService;
@@ -24,6 +25,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class CampaignService
 {
+    use PhanTrangOnDinh;
+
     /**
      * Danh sách chiến dịch của một người, trong **tổ chức đang chọn**.
      *
@@ -57,7 +60,7 @@ class CampaignService
             // `whereRaw('1 = 0')` thay vì trả `collect()`: người gọi cần một
             // paginator thật để `meta` vẫn đúng hình dạng, chứ không phải một
             // nhánh đặc biệt ở mọi bên tiêu thụ.
-            return Campaign::whereRaw('1 = 0')->paginate($perPage);
+            return $this->phanTrang(Campaign::whereRaw('1 = 0'), $perPage);
         }
 
         $query = Campaign::where('organization_id', $membership->organization_id);
@@ -82,7 +85,7 @@ class CampaignService
             });
         }
 
-        return $query->latest()->paginate($perPage);
+        return $this->phanTrang($query->latest(), $perPage);
     }
 
     /**
