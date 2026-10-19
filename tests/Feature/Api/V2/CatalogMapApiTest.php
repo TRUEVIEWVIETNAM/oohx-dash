@@ -386,4 +386,101 @@ class CatalogMapApiTest extends TestCase
         $this->assertSame(['name'], array_keys($pin['site']));
     }
 
+    // ── Bản đồ của `/explore` dùng chung bộ lọc với danh sách ───────────────
+    //
+    // Lát 3 đặt một bản đồ cạnh danh sách `/explore`. Nó không có bộ lọc
+    // riêng: tham số đến từ URL của trang danh sách, nên hai bên không thể
+    // nói hai con số khác nhau về cùng một bộ lọc.
+    //
+    // Điều đó chỉ đúng nếu endpoint bản đồ thật sự áp `price_status` — tham
+    // số thêm ngày 19/10/2026. `MapViewportRequest` kế thừa
+    // `FrontpageListingRequest` nên nó *nhận* tham số; nhận mà không lọc là
+    // dạng hỏng tệ nhất ở đây, vì bản đồ vẫn trả về một tập pin trông hợp lý.
+
+    /** Màn hình trong khung nhìn Hà Nội, chưa có giá nào. */
+    private function manHinhChuaBaoGia(float $lat, float $lon): Screen
+    {
+        $owner = Owner::factory()->create(['status' => 'active']);
+        $site  = Site::factory()->create([
+            'owner_id' => $owner->id,
+            'city'     => 'Hà Nội',
+            'status'   => 'active',
+            'lat'      => $lat,
+            'lon'      => $lon,
+        ]);
+
+        $screen = Screen::factory()->create([
+            'owner_id' => $owner->id,
+            'site_id'  => $site->id,
+            'active'   => true,
+        ]);
+
+        ScreenInventory::create([
+            'screen_id'     => $screen->id,
+            'pricing_model' => 'io',
+            'io_rate'       => null,
+            'floor_cpm'     => null,
+            'spot_length'   => 15,
+        ]);
+
+        return $screen;
+    }
+
+    public function test_ban_do_loc_theo_trang_thai_gia(): void
+    {
+        $coGia = $this->screenAt(21.02, 105.80);
+        $chua  = $this->manHinhChuaBaoGia(21.03, 105.81);
+
+        $slugs = function (string $them): array {
+            $data = $this->getJson('/api/v2/screens/map?' . self::HANOI . '&' . $them)
+                ->assertOk()
+                ->json('data');
+
+            return collect($data)->pluck('slug')->sort()->values()->all();
+        };
+
+        $this->assertSame(
+            [$coGia->slug],
+            $slugs('price_status=quoted'),
+            'Bản đồ nhận `price_status` nhưng không lọc theo nó. Danh sách '
+                . 'nói một con số, bản đồ vẽ một tập khác, và cả hai trông '
+                . 'vẫn hợp lý.',
+        );
+
+        $this->assertSame(
+            [$chua->slug],
+            $slugs('price_status=unquoted'),
+        );
+    }
+
+    public function test_tong_pin_khop_tong_danh_sach_cua_cung_bo_loc(): void
+    {
+        $this->screenAt(21.02, 105.80);
+        $this->screenAt(21.04, 105.82);
+        $this->manHinhChuaBaoGia(21.03, 105.81);
+
+        foreach (['quoted', 'unquoted', 'quoted,unquoted'] as $trangThai) {
+            $this->assertSame(
+                $this->getJson("/api/v2/screens?price_status={$trangThai}")->json('meta.total'),
+                $this->getJson('/api/v2/screens/map?' . self::HANOI . "&price_status={$trangThai}")
+                    ->json('meta.total'),
+                "Số pin và số kết quả lệch nhau với `price_status={$trangThai}`. "
+                    . 'Bản đồ hiện MỌI vị trí khớp bộ lọc, không chỉ trang '
+                    . 'hiện tại — nên hai con số này phải bằng nhau khi mọi '
+                    . 'vị trí đều nằm trong khung nhìn.',
+            );
+        }
+    }
+
+    public function test_ban_do_tu_choi_trang_thai_gia_la(): void
+    {
+        $this->screenAt(21.02, 105.80);
+
+        // Cùng một bộ luật với `/screens` vì cùng một FormRequest. Nếu bản đồ
+        // lặng lẽ bỏ qua giá trị lạ thì nó trả về cả kho cho một bộ lọc người
+        // dùng tưởng đang hẹp.
+        $this->getJson('/api/v2/screens/map?' . self::HANOI . '&price_status=mien-phi')
+            ->assertStatus(422)
+            ->assertJsonStructure(['error', 'message', 'code', 'details']);
+    }
 }

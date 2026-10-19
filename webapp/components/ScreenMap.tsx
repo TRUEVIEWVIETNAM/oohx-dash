@@ -1,19 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { Map as LeafletMap, MarkerClusterGroup } from 'leaflet';
-import {
-    cumHtml,
-    gomTheoSite,
-    mauPin,
-    pinHtml,
-    type CumSite,
-    type MapPin,
-} from '@/lib/ban-do';
+import { soVN, type CumSite, type MapPin } from '@/lib/ban-do';
+import { useBanDoPin, VIETNAM } from '@/lib/dung-ban-do';
 import type { Filters, Region } from '@/lib/api';
-import { themLopNen } from '@/lib/ban-do';
 import { BoLocThongMinh } from '@/components/BoLocThongMinh';
+import { PopupBanDo } from '@/components/PopupBanDo';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 
@@ -56,11 +49,12 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
  * npm nên đi cùng bản build.
  */
 
-/** Khung nhìn ban đầu: cả Việt Nam. */
-const VIETNAM = {
-    center: [16.0, 107.5] as [number, number],
-    zoom: 5.5,
-};
+/*
+ * Khung nhìn ban đầu, phép nạp pin và phép gom cụm nay ở `lib/dung-ban-do.ts`,
+ * còn popup ở `components/PopupBanDo.tsx`: lát 3 đặt một bản đồ thứ hai cạnh
+ * danh sách `/explore`, và hai bản của cùng một luật gọi API sẽ trôi khỏi
+ * nhau. Trang này giữ phần riêng của nó — panel danh sách và thanh tỉnh thành.
+ */
 
 /**
  * Toạ độ tâm của các tỉnh thành có nút riêng trên thanh công cụ.
@@ -85,23 +79,6 @@ const TOA_DO_TINH: Record<string, [number, number, number]> = {
 /** Số nút thành phố hiện thẳng trên thanh; phần còn lại vào dropdown "Khác". */
 const SO_NUT_TINH = 5;
 
-function soVN(n: number): string {
-    return new Intl.NumberFormat('vi-VN').format(n);
-}
-
-function giaCum(cum: CumSite): string | null {
-    const p = cum.manHinh[0]?.price;
-
-    if (!p?.amount) return null;
-
-    const tien =
-        (p.currency ?? 'VND') === 'VND'
-            ? `${soVN(p.amount)} ₫`
-            : `${soVN(p.amount)} ${p.currency}`;
-
-    return p.unit ? `${tien}/${p.unit}` : tien;
-}
-
 export function ScreenMap({
     filters: thamSo,
     regions = [],
@@ -112,22 +89,16 @@ export function ScreenMap({
     regions?: Region[];
     boLoc: Filters | null;
 }) {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const mapRef = useRef<LeafletMap | null>(null);
-    const clusterRef = useRef<MarkerClusterGroup | null>(null);
-    const seqRef = useRef(0);
-
-    const [pins, setPins] = useState<MapPin[]>([]);
-    const [meta, setMeta] = useState<{ returned: number; total: number; truncated: boolean } | null>(
-        null,
-    );
-    const [loi, setLoi] = useState<string | null>(null);
     const [dangChon, setDangChon] = useState<CumSite | null>(null);
     const [moPanel, setMoPanel] = useState(false);
     const [tinhDangXem, setTinhDangXem] = useState<string>('all');
     const [moDropdown, setMoDropdown] = useState(false);
 
-    const cums = useMemo(() => gomTheoSite(pins), [pins]);
+    const { containerRef, mapRef, pins, cums, meta, loi, thuPhong, vuaKhung } = useBanDoPin({
+        thamSo,
+        khiChonCum: setDangChon,
+    });
+
     const soManHinh = pins.length;
 
     // Tỉnh thành cho thanh công cụ: nhiều màn hình nhất trước.
@@ -138,188 +109,6 @@ export function ScreenMap({
                 .map((c) => ({ ma: c.code as string, ten: c.name ?? '', dem: c.count ?? 0 })),
         [boLoc],
     );
-
-    const napPin = useCallback(
-        async (map: LeafletMap) => {
-            const L = (await import('leaflet')).default;
-            const bounds = map.getBounds();
-            const seq = ++seqRef.current;
-
-            const params = new URLSearchParams({
-                north: String(bounds.getNorth()),
-                south: String(bounds.getSouth()),
-                east: String(bounds.getEast()),
-                west: String(bounds.getWest()),
-            });
-
-            for (const [k, v] of Object.entries(thamSo ?? {})) {
-                if (v && k !== 'page') params.set(k, v);
-            }
-
-            try {
-                const res = await fetch(`/api/v2/screens/map?${params.toString()}`, {
-                    headers: { Accept: 'application/json' },
-                });
-
-                // 422 nghĩa là khung nhìn không hợp lệ — xảy ra khi bản đồ chưa
-                // đo xong kích thước container. Bỏ qua, lần `moveend` sau sẽ
-                // gọi lại với khung nhìn thật.
-                if (!res.ok) {
-                    if (res.status !== 422) setLoi('Không tải được dữ liệu bản đồ.');
-
-                    return;
-                }
-
-                const body = (await res.json()) as {
-                    data: MapPin[];
-                    meta: { returned: number; total: number; truncated: boolean };
-                };
-
-                // `seqRef` chống kết quả về trễ: kéo bản đồ nhanh thì có vài
-                // lời gọi chồng nhau, và lời gọi cũ về sau sẽ vẽ lại pin của
-                // vùng đã rời khỏi.
-                if (seq !== seqRef.current) return;
-
-                setPins(body.data);
-                setMeta(body.meta);
-                setLoi(null);
-
-                const cluster = clusterRef.current;
-                if (!cluster) return;
-
-                cluster.clearLayers();
-
-                const lop = gomTheoSite(body.data).map((cum) => {
-                    const icon = L.divIcon({
-                        className: 'oohx-pin oohx-pin--rich',
-                        html: pinHtml(cum),
-                        iconSize: [200, 48],
-                        iconAnchor: [16, 48],
-                    });
-
-                    const marker = L.marker([cum.lat, cum.lng], { icon });
-                    marker.on('click', () => {
-                        setDangChon(cum);
-                        map.panTo([cum.lat, cum.lng]);
-                    });
-
-                    return marker;
-                });
-
-                cluster.addLayers(lop);
-            } catch (e) {
-                if (seq !== seqRef.current) return;
-                setLoi(e instanceof Error ? e.message : 'Không nạp được pin bản đồ.');
-            }
-        },
-        [thamSo],
-    );
-
-    useEffect(() => {
-        let huy = false;
-        let hen: ReturnType<typeof setTimeout> | undefined;
-
-        void (async () => {
-            const L = (await import('leaflet')).default;
-            await import('leaflet.markercluster');
-
-            if (huy || !containerRef.current || mapRef.current) return;
-
-            const map = L.map(containerRef.current, {
-                center: VIETNAM.center,
-                zoom: VIETNAM.zoom,
-                zoomControl: false,
-                attributionControl: false,
-            });
-
-            themLopNen(L, map);
-
-            L.control.attribution({ position: 'bottomleft', prefix: true }).addTo(map);
-
-            /*
-             * `L` ở đây PHẢI là `.default`, không phải namespace của
-             * `await import('leaflet')`.
-             *
-             * `leaflet.markercluster` là plugin UMD: nó gắn
-             * `markerClusterGroup` lên **module.exports của leaflet**, tức
-             * `L.default` trong ESM. Namespace object không nhận thuộc tính
-             * thêm sau, nên gọi trên nó ném `markerClusterGroup is not a
-             * function` — và lỗi đó chỉ hiện ở trình duyệt, không ở
-             * `typecheck` hay ở chốt đọc HTML máy chủ render.
-             */
-            const cluster = (
-                L as unknown as {
-                    markerClusterGroup: (o: Record<string, unknown>) => MarkerClusterGroup;
-                }
-            ).markerClusterGroup({
-                showCoverageOnHover: false,
-                disableClusteringAtZoom: 16,
-                chunkedLoading: true,
-                iconCreateFunction: (c: { getChildCount: () => number }) => {
-                    const { html, px } = cumHtml(c.getChildCount());
-
-                    return L.divIcon({
-                        className: 'marker-cluster',
-                        html,
-                        iconSize: L.point(px, px),
-                    });
-                },
-            });
-
-            map.addLayer(cluster);
-
-            mapRef.current = map;
-            clusterRef.current = cluster;
-
-            // Leaflet đo container ngay trong `L.map()`. Bản đồ này nằm trong
-            // một flex layout cao `100vh - hdr`, và nếu trình duyệt chưa xong
-            // layout tại thời điểm đó thì map có kích thước 0 — không xin tile
-            // nào và `getBounds()` trả một khung vô nghĩa. Đo lại ở frame sau.
-            requestAnimationFrame(() => map.invalidateSize());
-
-            // Hoãn 300ms: kéo bản đồ sinh hàng chục sự kiện `moveend`, và gọi
-            // API cho từng cái là tự làm cạn hạn mức tần suất của chính mình.
-            map.on('moveend', () => {
-                if (hen) clearTimeout(hen);
-                hen = setTimeout(() => void napPin(map), 300);
-            });
-
-            void napPin(map);
-        })();
-
-        return () => {
-            huy = true;
-            if (hen) clearTimeout(hen);
-            mapRef.current?.remove();
-            mapRef.current = null;
-            clusterRef.current = null;
-        };
-        // Bản đồ chỉ dựng MỘT lần — dựng lại là mất vị trí và mức thu phóng
-        // người dùng đang xem. Lần nạp theo bộ lọc mới do effect dưới lo.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    useEffect(() => {
-        if (mapRef.current) void napPin(mapRef.current);
-    }, [napPin]);
-
-    function thuPhong(buoc: number) {
-        const map = mapRef.current;
-        if (!map) return;
-
-        map.setZoom(map.getZoom() + buoc);
-    }
-
-    async function vuaKhung() {
-        const map = mapRef.current;
-        if (!map || pins.length === 0) return;
-
-        const L = (await import('leaflet')).default;
-        map.fitBounds(
-            L.latLngBounds(pins.map((p) => [p.lat, p.lng] as [number, number])),
-            { padding: [40, 40], maxZoom: 14 },
-        );
-    }
 
     async function chonTinh(ma: string) {
         const map = mapRef.current;
@@ -594,79 +383,5 @@ function TheManHinh({ pin, nested = false }: { pin: MapPin; nested?: boolean }) 
                 )}
             </div>
         </Link>
-    );
-}
-
-/**
- * Popup của bản đồ.
- *
- * Bản Blade dựng một `div#popup` cố định ngoài bản đồ rồi điền bằng JS, chứ
- * không dùng popup của Leaflet — vì nó có bố cục riêng (ảnh, giá, danh sách
- * màn hình trong site) và phải đứng yên khi bản đồ di chuyển. Giữ nguyên cách
- * đó, nhưng nội dung là JSX nên không có chuỗi HTML nào phải tự thoát.
- */
-function PopupBanDo({ cum, dong }: { cum: CumSite; dong: () => void }) {
-    const gia = giaCum(cum);
-    const dau = cum.manHinh[0];
-
-    return (
-        <div className="map-popup">
-            <button type="button" className="mpop-close" onClick={dong} aria-label="Đóng">
-                ×
-            </button>
-
-            <div className="mpop-img">
-                {dau?.photo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={dau.photo_url} alt={cum.tenSite} />
-                ) : null}
-            </div>
-
-            <div className="mpop-body">
-                <div className="mpop-bc">
-                    {[cum.city, cum.networkName].filter(Boolean).join(' · ')}
-                </div>
-
-                <div className="mpop-name">{cum.tenSite}</div>
-
-                {cum.address ? <div className="mpop-loc">{cum.address}</div> : null}
-
-                {gia ? (
-                    <div className="mpop-price">
-                        {gia}
-                        <span className="mpop-price-unit">/{dau?.price?.unit ?? 'tháng'}</span>
-                    </div>
-                ) : (
-                    <div className="mpop-price mpop-price-quote">Liên hệ báo giá</div>
-                )}
-
-                {cum.manHinh.length > 1 ? (
-                    <div className="mpop-list">
-                        <div className="mpop-list-title">{cum.manHinh.length} màn hình tại đây</div>
-                        <div className="mpop-list-body">
-                            {cum.manHinh.slice(0, 5).map((p) => (
-                                <Link key={p.slug} href={`/explore/${p.slug}`} className="mpop-product">
-                                    {p.name}
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-                ) : null}
-
-                <div className="mpop-actions">
-                    <Link href={`/explore/${dau?.slug ?? ''}`} className="btn btn-p btn-sm">
-                        Xem chi tiết
-                    </Link>
-                </div>
-            </div>
-
-            <div className="mpop-foot">
-                <span
-                    className="oohx-dot"
-                    style={{ background: `var(--${mauPin(cum.venueType) === 'bl' ? 'bl' : mauPin(cum.venueType)})` }}
-                />
-                {cum.ownerName}
-            </div>
-        </div>
     );
 }
