@@ -732,11 +732,10 @@ class FrontpageService
             // loại màn hình (`NhanLoaiManHinhTest` canh nó khớp với
             // `resolveScreenType()`).
             //
-            // Màn hình **không có dòng `screen_specs`** không rơi vào nhóm
-            // nào: cả ba nhánh của bộ lọc đều cần `whereHas('spec', ...)`.
-            // Đó là hành vi có sẵn của bộ lọc, giữ nguyên ở đây để con số
-            // đếm khớp tập lọc — nhưng nó có nghĩa là tổng ba nhóm có thể
-            // NHỎ HƠN tổng số màn hình.
+            // Từ 19/10/2026 ba nhóm **chia hết** tập màn hình công khai, nên
+            // tổng ba con số này bằng tổng số bản ghi. Trước hôm đó không:
+            // cả ba nhánh của bộ lọc đòi có dòng `screen_specs`, nên 20/104
+            // bản ghi rơi ra ngoài trong khi thẻ của chúng vẫn in "LCD".
             $screenTypes = [];
 
             foreach (array_keys(ScreenSummaryResource::SCREEN_TYPE_LABELS) as $loaiManHinh) {
@@ -1307,20 +1306,62 @@ class FrontpageService
         return [];
     }
 
+    /**
+     * Lọc theo loại màn hình — **cùng ba tập** mà
+     * `ScreenSummaryResource::resolveScreenType()` gán nhãn.
+     *
+     * ══ Lỗi sửa ngày 19/10/2026 ══
+     *
+     * Cả ba nhánh đều đòi `whereHas('spec', ...)`, nên màn hình **không có
+     * dòng `screen_specs`** rơi ra ngoài cả ba nhóm — trong khi thẻ của nó
+     * vẫn mang nhãn "LCD", vì nhãn tính hai cạnh là 0 rồi đi tiếp. 20/104
+     * bản ghi trên production nằm ở đó, và cột lọc hiện "LCD 0" ngay cạnh
+     * hai chục thẻ LCD.
+     *
+     * ══ Hình dạng mới ══
+     *
+     * Đúng một điều kiện cho mỗi vế, dùng cho cả khẳng định lẫn phủ định:
+     * billboard là `whereHas(spec, lớn)`, còn hai nhóm kia mở đầu bằng
+     * `whereDoesntHave(spec, lớn)` — **cùng** closure, nên không có cách nào
+     * để "lớn" và "không lớn" trôi khỏi nhau. Ba nhóm vì thế chia hết tập
+     * màn hình: tổng ba con số luôn bằng tổng số bản ghi.
+     */
     private function applyScreenTypeFilter($query, array $types)
     {
-        return $query->where(function ($or) use ($types) {
-            foreach ($types as $type) {
-                $or->orWhere(function ($sub) use ($type) {
+        $hopLe = array_values(array_intersect(
+            $types,
+            array_keys(ScreenSummaryResource::SCREEN_TYPE_LABELS),
+        ));
+
+        if ($hopLe === []) {
+            return $query;
+        }
+
+        $nguong = ScreenSummaryResource::NGUONG_BILLBOARD_CM;
+
+        // Một cạnh từ ngưỡng trở lên. Closure lồng cho rõ phạm vi của `OR`;
+        // `whereHas` tự bọc điều kiện của closure, nên đây là để người đọc,
+        // không phải để sửa một lỗi thứ tự.
+        $canhLon = fn ($sq) => $sq->where(
+            fn ($w) => $w->where('width_cm', '>=', $nguong)->orWhere('height_cm', '>=', $nguong),
+        );
+
+        $ngoaiTroi = fn ($iq) => $iq->where('venue_type', ScreenSummaryResource::VENUE_NGOAI_TROI);
+
+        return $query->where(function ($or) use ($hopLe, $canhLon, $ngoaiTroi) {
+            foreach ($hopLe as $type) {
+                $or->orWhere(function ($sub) use ($type, $canhLon, $ngoaiTroi) {
                     if ($type === 'billboard') {
-                        $sub->whereHas('spec', fn ($sq) => $sq->where('width_cm', '>=', 300)->orWhere('height_cm', '>=', 300));
-                    } elseif ($type === 'led') {
-                        $sub->whereHas('inventory', fn ($iq) => $iq->where('venue_type', 'outdoor'))
-                            ->whereHas('spec', fn ($sq) => $sq->where('width_cm', '<', 300)->where('height_cm', '<', 300));
-                    } else {
-                        $sub->whereHas('inventory', fn ($iq) => $iq->where('venue_type', '!=', 'outdoor'))
-                            ->whereHas('spec', fn ($sq) => $sq->where('width_cm', '<', 300)->where('height_cm', '<', 300));
+                        $sub->whereHas('spec', $canhLon);
+
+                        return;
                     }
+
+                    $sub->whereDoesntHave('spec', $canhLon);
+
+                    $type === 'led'
+                        ? $sub->whereHas('inventory', $ngoaiTroi)
+                        : $sub->whereDoesntHave('inventory', $ngoaiTroi);
                 });
             }
         });
