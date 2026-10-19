@@ -77,7 +77,18 @@ export function ScreenCard({
     const siteName = screen.location?.site;
 
     return (
-        <Link href={href} className={compact ? 'sc-card sc-compact' : 'sc-card'}>
+        /*
+         * `data-slug`: cách bản đồ của `/explore` tìm ra thẻ tương ứng với
+         * một pin, và ngược lại (lát 3). Một thuộc tính dữ liệu chứ không
+         * phải `id`: cùng một màn hình có thể xuất hiện hai lần trên một
+         * trang — trong lưới và trong băng "gần đây" — và hai phần tử cùng
+         * `id` là HTML sai.
+         */
+        <Link
+            href={href}
+            data-slug={screen.slug}
+            className={compact ? 'sc-card sc-compact' : 'sc-card'}
+        >
             <div className="sc-photo">
                 {screen.photo_url ? (
                     // Dùng `<img>` chứ không `next/image`: ảnh do media owner

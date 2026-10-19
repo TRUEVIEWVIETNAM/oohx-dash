@@ -27,7 +27,16 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const GOC = 'webapp/components';
+/**
+ * Hai thư mục, không một.
+ *
+ * Ngày 19/10/2026 lõi bản đồ chuyển từ `ScreenMap.tsx` sang
+ * `webapp/lib/dung-ban-do.ts` để `/map` và `/explore` dùng chung. Nếu phạm vi
+ * quét vẫn chỉ là `components` thì cả hai luật dưới đây tiếp tục xanh trong
+ * khi đoạn mã chúng canh đã đi chỗ khác — tức là chốt tự tắt mình trong im
+ * lặng, đúng kiểu hỏng mà tệp này sinh ra để chặn.
+ */
+const GOC = ['webapp/components', 'webapp/lib'];
 
 /**
  * Bỏ chú thích trước khi quét, giữ nguyên số dòng.
@@ -43,14 +52,54 @@ function boChuThich(ma) {
         .replace(/\/\/[^\n]*/g, (khoi) => ' '.repeat(khoi.length));
 }
 
-/** Mọi tệp `.tsx` trong `webapp/components` có nhắc tới leaflet. */
+/** Mọi tệp nguồn trong `GOC` có nhắc tới leaflet. */
 function tepDungLeaflet() {
-    return readdirSync(GOC)
-        .filter((t) => t.endsWith('.tsx'))
-        .map((t) => ({ ten: t, noiDung: readFileSync(join(GOC, t), 'utf8') }))
-        .map((t) => ({ ...t, noiDung: boChuThich(t.noiDung) }))
-        .filter((t) => t.noiDung.includes("import('leaflet')"));
+    return tepNguon().filter((t) => t.noiDung.includes("import('leaflet')"));
 }
+
+/** Mọi tệp `.ts`/`.tsx` trong `GOC`, đã bỏ chú thích. */
+function tepNguon() {
+    return GOC.flatMap((thuMuc) =>
+        readdirSync(thuMuc)
+            .filter((t) => t.endsWith('.tsx') || t.endsWith('.ts'))
+            .map((t) => ({
+                ten: `${thuMuc}/${t}`,
+                noiDung: boChuThich(readFileSync(join(thuMuc, t), 'utf8')),
+            })),
+    );
+}
+
+/**
+ * Danh sách đóng những nơi được gọi endpoint pin bản đồ.
+ *
+ * `/map` và cột bản đồ của `/explore` là hai giao diện của cùng một câu hỏi
+ * dữ liệu, nên chúng đi chung `useBanDoPin`. Hai đường gọi riêng sẽ trôi khỏi
+ * nhau — CLAUDE.md mục 1 ghi lại đúng chuyện đó đã xảy ra giữa
+ * `InventoryController` và `FrontpageService`, và lần ấy nó làm rò dữ liệu
+ * chưa duyệt. Với hai bản đồ thì cái trôi ra là **bộ lọc**: một bên gửi
+ * `price_status`, bên kia quên, và cả hai vẫn trả về thứ trông hợp lý. Không
+ * chốt đọc HTML nào thấy được, vì cả hai chỉ chạy ở trình duyệt.
+ *
+ * `BanDoTrangChu` là ngoại lệ **có chủ ý, chưa trả**: nó hỏi một câu khác —
+ * khung nhìn cả nước cố định, pin lần đầu đến từ máy chủ, không bộ lọc URL,
+ * không nạp lại theo `moveend`. Ép nó vào hook là thêm ba nhánh điều kiện vào
+ * lớp dữ liệu để gộp ba mươi dòng. Nó nằm trong danh sách này để lần sau có
+ * người chạm vào thì thấy nó đang ở đây và vì sao.
+ *
+ * Tệp thứ ba thì phép kiểm đỏ, và đó là điểm của một danh sách đóng.
+ */
+test('endpoint pin bản đồ chỉ gọi từ những chỗ đã khai', () => {
+    const goi = tepNguon()
+        .filter((t) => t.noiDung.includes('/api/v2/screens/map'))
+        .map((t) => t.ten);
+
+    assert.deepEqual(
+        goi,
+        ['webapp/components/BanDoTrangChu.tsx', 'webapp/lib/dung-ban-do.ts'],
+        'Bản đồ của một tập lọc phải đi qua `useBanDoPin`, không tự gọi. ' +
+            'Thấy ở: ' + (goi.join(', ') || 'không chỗ nào'),
+    );
+});
 
 test('mọi `await import("leaflet")` đều lấy `.default`', () => {
     const tep = tepDungLeaflet();

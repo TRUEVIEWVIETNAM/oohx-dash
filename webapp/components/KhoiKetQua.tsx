@@ -50,6 +50,7 @@ export function KhoiKetQua({
     basePath,
     query = {},
     kieuXem = true,
+    nutThem,
     children,
 }: {
     tong: number;
@@ -66,6 +67,17 @@ export function KhoiKetQua({
      * nút đó ở đây là cho người dùng một công tắc chỉ làm lưới hẹp lại.
      */
     kieuXem?: boolean;
+
+    /**
+     * Nút thêm vào cuối thanh kết quả.
+     *
+     * `/explore` cắm nút "Bản đồ" vào đây (lát 3). Nó **không** đi qua
+     * `listing_view` của hai nút lưới/danh sách: khoá đó dùng chung với
+     * `/products`, nơi "bản đồ" không có nghĩa gì, và ghi một giá trị thứ ba
+     * vào đó là để `/products` đọc phải một kiểu xem nó không dựng được.
+     */
+    nutThem?: ReactNode;
+
     children: ReactNode;
 }) {
     const router = useRouter();
@@ -151,6 +163,8 @@ export function KhoiKetQua({
                     </button>
                     </>
                 ) : null}
+
+                {nutThem}
             </div>
 
             <div className={dangList ? 'inv-grid list-view' : 'inv-grid'}>{children}</div>

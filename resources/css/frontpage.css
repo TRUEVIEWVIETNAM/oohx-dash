@@ -1352,6 +1352,43 @@ ul{list-style:none}
    và chỉ hiện ra dưới dạng drawer, nên một cột là đúng. */
 .listing-layout{display:block;padding:20px 0 48px}
 @media(min-width:1024px){.listing-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;align-items:start;padding:28px 0 64px}}
+
+/* ── /explore: cột bản đồ cạnh danh sách (lát 3, 19/10/2026) ──────────────
+ *
+ * Ba cột chỉ từ **1280px**, không phải 1180px như plan viết. Phép tính:
+ * `--mw` là 1280px, trừ 44px padding của `.w` còn 1236; trừ cột lọc 260 và
+ * hai khe 28 còn 920 cho kết quả + bản đồ. Bản đồ 360 thì lưới còn 560, tức
+ * hai thẻ 266px — bằng bề ngang thẻ ở 560px, mốc hẹp nhất mà lưới hai cột đã
+ * chạy được. Ở 1180px lưới chỉ còn 460 và thẻ xuống 150px: đủ ba cột, không
+ * đọc được gì.
+ *
+ * Dưới mốc đó bản đồ là một kiểu xem, bật bằng nút trong thanh kết quả, và
+ * khi bật thì nó thay chỗ của lưới chứ không nằm thêm bên dưới — hai cách
+ * nhìn cùng một tập dữ liệu, không phải hai khối nội dung.
+ */
+.ex-cot-kq{min-width:0}
+.ex-cot-map{display:none;min-width:0}
+.ex-cot-map.hien{display:block;margin-top:14px}
+.ex-an-luoi .inv-grid{display:none}
+.ex-map-khung{position:relative;height:62vh;min-height:320px;border-radius:14px;overflow:hidden;background:#e8ecf0;border:1px solid var(--ln2)}
+.ex-map-loi{position:absolute;left:12px;right:12px;top:12px;z-index:260;background:#fff;border-radius:10px;padding:10px 12px;font-size:12.5px;font-weight:600;color:var(--red);box-shadow:var(--sh2)}
+@media(min-width:1280px){
+  .ex-layout{grid-template-columns:260px minmax(0,1fr) 360px}
+  /* Lưới về hai cột: `.inv-grid` lên bốn cột từ 1200px, và bốn thẻ trong
+     560px là 125px một thẻ. */
+  .ex-layout .inv-grid{grid-template-columns:repeat(2,1fr)}
+  .ex-cot-map{display:block;position:sticky;top:calc(var(--hdr) + 14px)}
+  .ex-cot-map.hien{margin-top:0}
+  .ex-map-khung{height:calc(100vh - var(--hdr) - 44px)}
+  /* Có cột riêng rồi thì không còn gì để bật. */
+  .ex-nut-map{display:none}
+}
+
+/* Hai chiều liên kết thẻ ↔ pin. Bản đồ không phải trang trí: rê chuột lên
+   thẻ thì pin sáng, bấm pin thì thẻ sáng và cuộn tới. */
+.oohx-pin--sang{z-index:450}
+.oohx-pin--sang .oohx-rich{transform:scale(1.06);box-shadow:0 0 0 3px var(--bl),0 6px 18px rgba(0,0,0,.2)}
+.sc-card.ex-the-sang{box-shadow:0 0 0 2px var(--bl),var(--sh3)}
 /* Sidebar: mobile-first — bottom sheet 60vh (same as map-panel), inline on desktop */
 .sidebar{display:none;width:100%;background:#fff;overflow:hidden}
 .sidebar.open{display:flex;flex-direction:column;position:fixed;bottom:var(--nav);left:0;right:0;top:auto;height:60vh;z-index:300;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.12)}
