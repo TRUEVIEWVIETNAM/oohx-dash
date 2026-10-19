@@ -39,6 +39,19 @@ class ScreenSummaryResource extends JsonResource
         'lcd'       => 'LCD',
     ];
 
+    /**
+     * Từ cạnh này trở lên thì gọi là billboard, tính bằng **xăng-ti-mét**.
+     *
+     * Hằng số công khai vì `FrontpageService::applyScreenTypeFilter()` phải
+     * dựng **cùng** ngưỡng bằng SQL. Hai con số 300 viết rời ở hai tệp thì
+     * sửa một chỗ là đủ để nhãn trên thẻ và bộ lọc nói hai chuyện khác nhau
+     * — và không có gì đỏ lên, vì mỗi bên tự nhất quán với chính nó.
+     */
+    public const NGUONG_BILLBOARD_CM = 300;
+
+    /** Giá trị `venue_type` tách LED khỏi LCD. Cùng lý do như hằng số trên. */
+    public const VENUE_NGOAI_TROI = 'outdoor';
+
     public static $wrap = null;
 
     public function toArray(Request $request): array
@@ -126,15 +139,27 @@ class ScreenSummaryResource extends JsonResource
         return $number === floor($number) ? (int) $number : $number;
     }
 
+    /**
+     * Ba nhóm, và **mọi** màn hình rơi vào đúng một nhóm.
+     *
+     * Không có dòng `screen_specs` thì hai cạnh là 0, nên nó không phải
+     * billboard — nó vẫn là LED hoặc LCD, không phải "không phân loại được".
+     * Đó là hành vi cố ý: 20/104 bản ghi trên production không có spec, và
+     * một thẻ không nói nổi mình là loại gì thì vô dụng với người mua.
+     *
+     * `FrontpageService::applyScreenTypeFilter()` phải nhận đúng ba tập này.
+     * Ngày 19/10/2026 nó không: cả ba nhánh của nó đều đòi có spec, nên 20
+     * bản ghi kia mang nhãn "LCD" trên thẻ trong khi bộ lọc LCD trả 0.
+     */
     private function resolveScreenType(): string
     {
         $widthCm  = $this->spec?->width_cm ?? 0;
         $heightCm = $this->spec?->height_cm ?? 0;
 
-        if ($widthCm >= 300 || $heightCm >= 300) {
+        if ($widthCm >= self::NGUONG_BILLBOARD_CM || $heightCm >= self::NGUONG_BILLBOARD_CM) {
             return 'billboard';
         }
 
-        return ($this->inventory?->venue_type === 'outdoor') ? 'led' : 'lcd';
+        return ($this->inventory?->venue_type === self::VENUE_NGOAI_TROI) ? 'led' : 'lcd';
     }
 }

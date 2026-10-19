@@ -93,6 +93,12 @@ export interface paths {
                                  *     thay vì giấu đi: một loại hình hiện 0 nói rằng sàn
                                  *     biết loại đó tồn tại nhưng chưa có hàng.
                                  *
+                                 *     Ba nhóm **chia hết** tập màn hình công khai: tổng
+                                 *     của chúng bằng `meta.total` của `/api/v2/screens`
+                                 *     không lọc. Màn hình chưa khai kích thước vẫn thuộc
+                                 *     một nhóm (`led` nếu điểm đặt ngoài trời, `lcd` nếu
+                                 *     không) — đúng nhãn mà thẻ của nó hiển thị.
+                                 *
                                  *     Tổng ba nhóm có thể nhỏ hơn tổng số màn hình: loại
                                  *     hình suy ra từ kích thước, nên màn hình chưa khai
                                  *     kích thước không rơi vào nhóm nào — đúng như bộ lọc.
