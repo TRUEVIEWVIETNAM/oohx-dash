@@ -389,6 +389,36 @@ class CatalogController extends Controller
                     'min'      => (int) round((float) ($aggregates['min_price'] ?? 0)),
                     'max'      => (int) round((float) ($aggregates['max_price'] ?? 0)),
                 ],
+
+                // Đếm theo **trạng thái giá** (thêm 19/10/2026).
+                //
+                // Vì sao thêm, dù đã có `price_range`: trên dữ liệu thật
+                // `price_range` là `{0, 0}`, tức thanh lọc giá không lọc được
+                // gì — 103/104 vị trí chưa báo giá. Hai con số ở đây là câu
+                // hỏi trả lời được thay cho câu hỏi không trả lời được.
+                //
+                // `??` chứ không truy cập thẳng: `getFilterAggregates()` cache
+                // 1800 giây, nên ngay sau khi deploy vẫn còn những mảng cũ
+                // chưa có hai khóa này. Thiếu thì trả 0, không đổ 500.
+                'price_status' => [
+                    'quoted'   => (int) ($aggregates['price_quoted'] ?? 0),
+                    'unquoted' => (int) ($aggregates['price_unquoted'] ?? 0),
+                ],
+
+                // Đếm theo loại màn hình. Nhãn lấy từ `SCREEN_TYPE_LABELS` —
+                // cùng bảng chữ mà thẻ màn hình dùng, nên bộ lọc và thẻ không
+                // thể gọi cùng một thứ bằng hai cái tên.
+                //
+                // Trả cả nhóm **đếm 0**: giao diện hiện nó mờ và vô hiệu chứ
+                // không ẩn. Một loại hình hiện 0 nói với người mua rằng sàn
+                // biết loại đó tồn tại nhưng chưa có hàng; ẩn nó đi thì người
+                // mua tưởng sàn không bán loại đó.
+                'screen_types' => collect(ScreenSummaryResource::SCREEN_TYPE_LABELS)
+                    ->map(fn ($nhan, $ma) => [
+                        'code'  => $ma,
+                        'name'  => $nhan,
+                        'count' => (int) ($aggregates['screen_types'][$ma] ?? 0),
+                    ])->values()->all(),
             ],
         ]);
     }

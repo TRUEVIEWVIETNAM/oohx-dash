@@ -86,10 +86,26 @@ paths:
                 properties:
                   data:
                     type: object
-                    required: [cities, venue_types, networks, owners, price_range, categories_networks]
+                    required: [cities, venue_types, screen_types, networks, owners, price_range, price_status, categories_networks]
                     properties:
                       cities:      { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
                       venue_types: { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
+                      screen_types:
+                        type: array
+                        description: |
+                          Đếm theo **loại màn hình** (`billboard`, `led`,
+                          `lcd`) — cùng từ vựng với `screen_type` của
+                          `/api/v2/screens` và với `screen_type` trên thẻ màn
+                          hình. Khác `venue_types`, vốn là loại **điểm đặt**.
+
+                          Nhóm đếm 0 vẫn được trả về, để giao diện hiện nó mờ
+                          thay vì giấu đi: một loại hình hiện 0 nói rằng sàn
+                          biết loại đó tồn tại nhưng chưa có hàng.
+
+                          Tổng ba nhóm có thể nhỏ hơn tổng số màn hình: loại
+                          hình suy ra từ kích thước, nên màn hình chưa khai
+                          kích thước không rơi vào nhóm nào — đúng như bộ lọc.
+                        items: { $ref: '#/components/schemas/FilterFacet' }
                       networks:    { type: array, items: { $ref: '#/components/schemas/FilterFacet' } }
                       categories_networks:
                         type: array
@@ -129,6 +145,21 @@ paths:
                           currency: { type: string, enum: [VND] }
                           min:      { type: integer }
                           max:      { type: integer }
+                      price_status:
+                        type: object
+                        description: |
+                          Số màn hình **đã báo giá** và **chưa báo giá**, đếm
+                          trên đúng tập mà `/api/v2/screens` trả về.
+
+                          Thêm 19/10/2026 vì `price_range` ở trên là `{0, 0}`
+                          trên dữ liệu thật: hầu hết kho chưa có giá, nên một
+                          khoảng giá không lọc được gì. Đã báo giá nghĩa là
+                          `floor_cpm > 0` **hoặc** `io_rate > 0` — hai mô hình
+                          giá cùng tồn tại, và thẻ màn hình hiện cả hai.
+                        required: [quoted, unquoted]
+                        properties:
+                          quoted:   { type: integer }
+                          unquoted: { type: integer }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /api/v2/screens/map:
@@ -224,6 +255,11 @@ paths:
         - { name: site,        in: query, schema: { type: string, maxLength: 50 } }
         - { name: min_price,   in: query, schema: { type: number, minimum: 0 } }
         - { name: max_price,   in: query, schema: { type: number, minimum: 0 } }
+        # Trạng thái giá — khác `min_price`/`max_price` về bản chất: hai tham
+        # số kia hỏi "giá nằm trong khoảng nào", câu hỏi chỉ trả lời được khi
+        # có giá. Gửi cả hai giá trị = không lọc (có giá HOẶC không có giá).
+        # Số lượng mỗi nhóm nằm ở `price_status` của `/api/v2/filters`.
+        - { name: price_status, in: query, style: form, explode: false, schema: { type: array, maxItems: 2, items: { type: string, enum: [quoted, unquoted] } } }
         - { name: sort,        in: query, schema: { type: string, enum: [price_asc, price_desc, newest] } }
       responses:
         '200':

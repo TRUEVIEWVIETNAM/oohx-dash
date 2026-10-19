@@ -4,6 +4,7 @@ import { listScreens, getFilters, getLocations, type Filters, type Region } from
 import { MegaSearch } from '@/components/MegaSearch';
 import { buildMetadata, OgType } from '@/lib/seo';
 import { ScreenCard } from '@/components/ScreenCard';
+import { BoLocKho } from '@/components/BoLocKho';
 import { SiteHeader } from '@/components/SiteHeader';
 import { Pagination } from '@/components/Pagination';
 import { KhoiKetQua } from '@/components/KhoiKetQua';
@@ -41,6 +42,15 @@ type SearchParams = {
     city?: string;
     venue_type?: string;
     screen_type?: string;
+    owner?: string;
+    /**
+     * `quoted` / `unquoted`, phân tách bằng dấu phẩy.
+     *
+     * Thêm 19/10/2026 cùng cột lọc. Nó thay chỗ của thanh lọc giá, vốn không
+     * lọc được gì: `/api/v2/filters` trả `price_range {min: 0, max: 0}` vì
+     * hầu hết kho chưa báo giá.
+     */
+    price_status?: string;
     sort?: string;
 };
 
@@ -73,6 +83,8 @@ export default async function ExplorePage({
             city: params.city,
             venue_type: params.venue_type,
             screen_type: params.screen_type,
+            owner: params.owner,
+            price_status: params.price_status,
             sort: params.sort,
         }),
         getLocations(),
@@ -136,7 +148,20 @@ export default async function ExplorePage({
                 </div>
             </div>
 
-            <div className="w ex-results">
+            {/*
+              Hai cột: cột lọc trái, kết quả phải — từ 1024px. Dùng
+              `.listing-layout` của `/products` chứ không dựng lưới riêng; xem
+              docblock của `BoLocKho`.
+
+              Trước 19/10/2026 trang này đọc `city`, `venue_type`,
+              `screen_type` từ URL nhưng **không vẽ bộ lọc nào**: muốn lọc thì
+              phải tự sửa URL.
+            */}
+            <div className="w">
+                <div className="listing-layout">
+                <BoLocKho filters={filters} params={params} />
+
+                <div>
                 <KhoiKetQua
                     tong={meta.total ?? 0}
                     sort={params.sort ?? ''}
@@ -160,6 +185,8 @@ export default async function ExplorePage({
                 </KhoiKetQua>
 
                 <Pagination basePath="/explore" params={params} meta={meta} />
+                </div>
+                </div>
                 </div>
             </main>
         </>

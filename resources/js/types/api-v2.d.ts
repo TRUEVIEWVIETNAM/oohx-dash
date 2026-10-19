@@ -83,6 +83,21 @@ export interface paths {
                             data: {
                                 cities: components["schemas"]["FilterFacet"][];
                                 venue_types: components["schemas"]["FilterFacet"][];
+                                /**
+                                 * @description Đếm theo **loại màn hình** (`billboard`, `led`,
+                                 *     `lcd`) — cùng từ vựng với `screen_type` của
+                                 *     `/api/v2/screens` và với `screen_type` trên thẻ màn
+                                 *     hình. Khác `venue_types`, vốn là loại **điểm đặt**.
+                                 *
+                                 *     Nhóm đếm 0 vẫn được trả về, để giao diện hiện nó mờ
+                                 *     thay vì giấu đi: một loại hình hiện 0 nói rằng sàn
+                                 *     biết loại đó tồn tại nhưng chưa có hàng.
+                                 *
+                                 *     Tổng ba nhóm có thể nhỏ hơn tổng số màn hình: loại
+                                 *     hình suy ra từ kích thước, nên màn hình chưa khai
+                                 *     kích thước không rơi vào nhóm nào — đúng như bộ lọc.
+                                 */
+                                screen_types: components["schemas"]["FilterFacet"][];
                                 networks: components["schemas"]["FilterFacet"][];
                                 /**
                                  * @description Cùng danh sách loại hình như `venue_types`, nhưng có
@@ -113,6 +128,20 @@ export interface paths {
                                     currency: "VND";
                                     min: number;
                                     max: number;
+                                };
+                                /**
+                                 * @description Số màn hình **đã báo giá** và **chưa báo giá**, đếm
+                                 *     trên đúng tập mà `/api/v2/screens` trả về.
+                                 *
+                                 *     Thêm 19/10/2026 vì `price_range` ở trên là `{0, 0}`
+                                 *     trên dữ liệu thật: hầu hết kho chưa có giá, nên một
+                                 *     khoảng giá không lọc được gì. Đã báo giá nghĩa là
+                                 *     `floor_cpm > 0` **hoặc** `io_rate > 0` — hai mô hình
+                                 *     giá cùng tồn tại, và thẻ màn hình hiện cả hai.
+                                 */
+                                price_status: {
+                                    quoted: number;
+                                    unquoted: number;
                                 };
                             };
                         };
@@ -238,6 +267,7 @@ export interface paths {
                     site?: string;
                     min_price?: number;
                     max_price?: number;
+                    price_status?: ("quoted" | "unquoted")[];
                     sort?: "price_asc" | "price_desc" | "newest";
                 };
                 header?: never;
