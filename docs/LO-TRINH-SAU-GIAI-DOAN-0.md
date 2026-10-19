@@ -731,6 +731,14 @@ Chi tiết, cùng năm lỗi thật tìm được trên đường và ba thứ c
 quyết, ở mục cập nhật 17/10 phía dưới ("Đề xuất làm gì ngay") và ở cuối
 `PLAN-DUNG-LAI-GIAO-DIEN-CU.md`.
 
+**Việc tiếp theo của trang kho có lịch riêng:**
+**`docs/PLAN-EXPLORE-QUYET-DINH-MUA.md`** (chốt 19/10/2026) — bảy lát đưa
+`/explore` từ trang liệt kê thành trang ra quyết định: lọc theo trạng thái
+giá, bản đồ cạnh danh sách, danh sách rút gọn và yêu cầu báo giá hàng loạt.
+Lý do nằm ở dữ liệu: đo trên production ngày 18/10, **1/50** bản ghi có giá và
+**0/50** có ảnh thực địa riêng, nên một trang danh mục kiểu thương mại điện tử
+đang mời người mua làm một việc mà dữ liệu không cho phép làm.
+
 ---
 
 ## Việc quản trị
