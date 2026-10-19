@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { soVN, type CumSite } from '@/lib/ban-do';
 import { useBanDoPin } from '@/lib/dung-ban-do';
+import { dungDanhSach } from '@/lib/dung-danh-sach';
 import { PopupBanDo } from '@/components/PopupBanDo';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -103,6 +104,30 @@ export function BanDoKetQua({
         el.classList.add('oohx-pin--sang');
         daSang.current = el;
     }, [slugSang, cums, markerRef]);
+
+    /**
+     * Pin của vị trí **đã chọn** mang dấu riêng (lát 4).
+     *
+     * Quét lại cả tập mỗi lần danh sách đổi, không giữ phần tử cũ như phép
+     * tô sáng ở trên: tick một pin có thể đổi trạng thái của nhiều pin cùng
+     * lúc (bấm "Bỏ chọn" xoá hết), và tập này tối đa 500 nên một vòng lặp là
+     * đủ rẻ.
+     */
+    const daChon = dungDanhSach();
+
+    useEffect(() => {
+        const chon = new Set(daChon.map((m) => m.slug));
+
+        for (const cum of cums) {
+            const el = markerRef.current.get(cum.khoa)?.getElement();
+            if (!el) continue;
+
+            el.classList.toggle(
+                'oohx-pin--chon',
+                cum.manHinh.some((m) => m.slug && chon.has(m.slug)),
+            );
+        }
+    }, [daChon, cums, markerRef]);
 
     return (
         <div className="ex-map-khung">

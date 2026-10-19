@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { mauPin, soVN, type CumSite } from '@/lib/ban-do';
+import { OTick } from '@/components/OTick';
 
 /**
  * Popup của bản đồ — dùng chung cho `/map` và cột bản đồ của `/explore`.
@@ -67,6 +68,25 @@ export function PopupBanDo({ cum, dong }: { cum: CumSite; dong: () => void }) {
                 ) : null}
 
                 <div className="mpop-actions">
+                    {/*
+                      Ô tick cho **màn hình đầu** của cụm, không cho cả cụm:
+                      danh sách rút gọn đếm theo màn hình, và một toà nhà có
+                      năm màn hình thì người mua chọn cái nào là một quyết
+                      định của họ. Cụm nhiều màn hình có danh sách ngay bên
+                      trên để bấm sang từng cái.
+                    */}
+                    {dau?.slug ? (
+                        <OTick
+                            muc={{
+                                slug: dau.slug,
+                                ten: dau.name ?? dau.slug,
+                                thanhPho: cum.city ?? undefined,
+                                owner: cum.ownerName ?? undefined,
+                            }}
+                            nhan={`Thêm ${dau.name ?? 'vị trí này'} vào danh sách`}
+                        />
+                    ) : null}
+
                     <Link href={`/explore/${dau?.slug ?? ''}`} className="btn btn-p btn-sm">
                         Xem chi tiết
                     </Link>

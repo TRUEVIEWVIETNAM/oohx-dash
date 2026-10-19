@@ -911,6 +911,9 @@ test('luật vùng chạm 44px vẫn còn trong stylesheet', () => {
         // Lộ ra ngày 19/10/2026 khi cột lọc sang `/explore`.
         ['.filter-float', 'nút nổi mở drawer bộ lọc — đo được 38px'],
         ['.sb-item', 'dòng tick trong cột lọc — đo được 34px'],
+
+        // Lát 4: ô tick thêm vào danh sách rút gọn, nằm trên ảnh thẻ.
+        ['.o-tick', 'ô tick trên thẻ màn hình — đo được 28px'],
     ]) {
         assert.ok(
             khoiMobile.includes(sel),

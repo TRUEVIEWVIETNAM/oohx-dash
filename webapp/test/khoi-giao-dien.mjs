@@ -302,6 +302,15 @@ const TRANG = [
             // ứng và ngược lại. Thiếu nó thì bản đồ thành trang trí, và
             // không có gì đỏ lên.
             'data-slug="man-hinh-co-gia"',
+
+            // ── Danh sách rút gọn (lát 4, 19/10/2026) ─────────────────────
+            //
+            // Ô tick có trong HTML máy chủ render, nên người dùng thấy nó
+            // trước khi JS tải xong. Nó là `<span role="checkbox">` chứ
+            // không phải `<button>`: cả thẻ là một `<a>`, và button lồng
+            // trong a là HTML không hợp lệ.
+            'class="o-tick"',
+            'role="checkbox"',
         ],
         khong: [
             'class="sc"',
@@ -335,6 +344,12 @@ const TRANG = [
             // `/explore` với `/map` không cùng đem một tập pin đi index.
             'class="ex-map-khung"',
             'leaflet',
+
+            // Thanh đáy chỉ hiện khi đã chọn ít nhất một vị trí, mà danh
+            // sách sống trong localStorage — phía máy chủ không biết gì về
+            // nó. Thấy nó trong HTML đầu tiên nghĩa là có ai đó đang đoán
+            // trạng thái của người dùng ở máy chủ.
+            'class="ds-thanh"',
         ],
     },
     {

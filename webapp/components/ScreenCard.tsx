@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ScreenSummary } from '@/lib/api';
+import { OTick } from '@/components/OTick';
 
 /**
  * Thẻ một màn hình trong danh sách.
@@ -65,10 +66,21 @@ export function ScreenCard({
     screen,
     availability,
     compact = false,
+    choPhepChon = false,
 }: {
     screen: ScreenSummary;
     availability?: Availability;
     compact?: boolean;
+
+    /**
+     * Hiện ô tick thêm vào danh sách rút gọn (lát 4).
+     *
+     * Mặc định **tắt**, và bật riêng ở `/explore`. Danh sách rút gọn là để
+     * khoanh vùng khi đang duyệt kho; một ô tick trên băng "nổi bật" của
+     * trang chủ hay trên thẻ trong trang chi tiết media owner chỉ là một ô
+     * tick không ai hiểu để làm gì.
+     */
+    choPhepChon?: boolean;
 }) {
     const price = formatPrice(screen);
     const thongSo = dungThongSo(screen);
@@ -90,6 +102,18 @@ export function ScreenCard({
             className={compact ? 'sc-card sc-compact' : 'sc-card'}
         >
             <div className="sc-photo">
+                {choPhepChon ? (
+                    <OTick
+                        muc={{
+                            slug: screen.slug,
+                            ten: screen.name ?? screen.slug,
+                            thanhPho: screen.location?.city ?? undefined,
+                            owner: screen.owner?.name ?? undefined,
+                        }}
+                        nhan={`Thêm ${screen.name ?? 'vị trí này'} vào danh sách`}
+                    />
+                ) : null}
+
                 {screen.photo_url ? (
                     // Dùng `<img>` chứ không `next/image`: ảnh do media owner
                     // tải lên và phục vụ từ Laravel trên cùng tên miền. Cho

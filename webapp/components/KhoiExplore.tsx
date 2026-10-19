@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { KhoiKetQua } from '@/components/KhoiKetQua';
 import { BanDoKetQua } from '@/components/BanDoKetQua';
+import { ThanhDanhSach } from '@/components/ThanhDanhSach';
 
 /**
  * Hai cột phải của `/explore`: kết quả và bản đồ (lát 3).
@@ -151,6 +152,13 @@ export function KhoiExplore({
                     />
                 ) : null}
             </div>
+
+            {/*
+              Thanh đáy của danh sách rút gọn (lát 4). Nó tự ẩn khi chưa chọn
+              gì, nên không có nhánh điều kiện ở đây — và nó nằm ngoài hai
+              cột vì `position: fixed`.
+            */}
+            <ThanhDanhSach />
         </>
     );
 }
