@@ -1,9 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { components } from '@api-types';
-
-type Me = components['schemas']['Me'];
+import { usePhien } from '@/lib/phien';
 
 /**
  * Phần header phụ thuộc người đăng nhập, điền ở TRÌNH DUYỆT.
@@ -77,32 +75,8 @@ export function AuthState({ cartHref, loginHref, registerHref }: {
     loginHref: string;
     registerHref: string;
 }) {
-    const [me, setMe] = useState<Me | null>(null);
+    const me = usePhien();
     const [open, setOpen] = useState(false);
-
-    useEffect(() => {
-        let huy = false;
-
-        (async () => {
-            try {
-                const response = await fetch('/api/v2/me', {
-                    credentials: 'include',
-                    headers: { Accept: 'application/json' },
-                });
-
-                if (!response.ok) return; // 401 = khách, giữ nguyên khung
-                const body = (await response.json()) as { data: Me };
-                if (!huy) setMe(body.data);
-            } catch {
-                // Mạng lỗi thì vẫn là khung khách. Thanh điều hướng không phải
-                // chỗ báo lỗi mạng.
-            }
-        })();
-
-        return () => {
-            huy = true;
-        };
-    }, []);
 
     // Đóng menu khi bấm ra ngoài — cùng hành vi bản Blade.
     useEffect(() => {

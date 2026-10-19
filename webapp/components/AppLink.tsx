@@ -17,18 +17,27 @@ import { trongApp } from '@/lib/duong-dan';
 export function AppLink({
     href,
     className,
+    onNavigate,
     children,
 }: {
     href: string;
     className?: string;
+    /**
+     * Chạy khi người dùng bấm vào liên kết.
+     *
+     * Có mặt vì menu trượt phải tự đóng sau khi điều hướng: ở bản Blade cả
+     * trang tải lại nên lớp phủ biến mất theo, còn ở Next điều hướng là phía
+     * client — lớp phủ sẽ ở lại che trang mới.
+     */
+    onNavigate?: () => void;
     children: ReactNode;
 }) {
     return trongApp(href) ? (
-        <Link href={href} className={className}>
+        <Link href={href} className={className} onClick={onNavigate}>
             {children}
         </Link>
     ) : (
-        <a href={href} className={className}>
+        <a href={href} className={className} onClick={onNavigate}>
             {children}
         </a>
     );
