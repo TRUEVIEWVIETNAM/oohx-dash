@@ -184,7 +184,9 @@ export default async function ExplorePage({
                             Không tìm thấy inventory phù hợp
                         </div>
                     ) : (
-                        screens.map((screen) => <ScreenCard key={screen.slug} screen={screen} />)
+                        screens.map((screen) => (
+                            <ScreenCard key={screen.slug} screen={screen} choPhepChon />
+                        ))
                     )}
                 </KhoiExplore>
                 </div>

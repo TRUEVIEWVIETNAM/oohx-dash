@@ -1391,6 +1391,60 @@ ul{list-style:none}
   .view-btn.ex-nut-map{display:none}
 }
 
+
+/* ── Danh sách rút gọn (lát 4, 19/10/2026) ────────────────────────────────
+ *
+ * Ô tick nằm **trong** `<a class="sc-card">`, nên nó phải nổi lên trên ảnh
+ * và chặn con trỏ của chính nó — xem docblock của `OTick`.
+ */
+.o-tick{position:absolute;top:8px;left:8px;z-index:3;width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.92);border:1.5px solid var(--ln2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:transparent;transition:all 140ms;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.o-tick svg{width:16px;height:16px}
+.o-tick:hover{border-color:var(--bl)}
+.o-tick:focus-visible{outline:2px solid var(--bl);outline-offset:2px}
+.o-tick.on{background:var(--bl);border-color:var(--bl);color:#fff}
+/* Lời nhắc chạm trần, đặt cạnh ô tick vừa bấm chứ không ở đáy màn hình. */
+.o-tick-day{position:absolute;top:calc(100% + 6px);left:0;white-space:nowrap;background:var(--t1);color:#fff;font-size:11px;font-weight:600;padding:4px 8px;border-radius:6px;z-index:4}
+
+/* Ô tick trong popup bản đồ đứng cạnh nút "Xem chi tiết", không chồng ảnh. */
+.mpop-actions .o-tick{position:static;width:32px;height:32px;flex-shrink:0}
+
+/* Pin của vị trí đã chọn. Khác `--sang` (rê chuột) ở chỗ nó bền: dấu này
+   còn đó khi con trỏ đã đi nơi khác. */
+.oohx-pin--chon .oohx-rich{border-color:var(--bl);box-shadow:0 0 0 2px var(--bl),0 4px 20px rgba(0,0,0,.18)}
+
+/* Thanh đáy. Trên `--nav` của mobile, và nút nổi "Bộ lọc" tránh nó bằng
+   `body.co-thanh-ds` — hai thứ cùng `fixed` ở đáy giữa thì phải có một
+   cái nhường. */
+.ds-thanh{position:fixed;left:0;right:0;bottom:calc(var(--nav) + var(--safe-b));z-index:320;background:var(--t1);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;box-shadow:0 -4px 20px rgba(0,0,0,.22)}
+@media(min-width:768px){.ds-thanh{bottom:var(--safe-b);padding:12px 24px}}
+.ds-dem{background:none;border:none;color:#fff;font-family:var(--font);font-size:13px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:1px;min-height:44px;justify-content:center}
+.ds-dem strong{font-size:15px}
+.ds-dem-phu{font-size:11.5px;opacity:.72;white-space:nowrap}
+.ds-nut{display:flex;gap:8px;flex-shrink:0}
+.ds-thanh .btn{min-height:44px}
+/* Đo ở 390px ngày 19/10: `.ds-thanh` cao **77px**, không phải 64 như tôi
+   ước từ padding và min-height. Hai lần đo, hai con số khác nhau — nên ở đây
+   là số đo cộng 19px thở, chứ không phải một phép tính. Thiếu khoảng này thì
+   nút nổi "Bộ lọc" nằm đúng mép trên thanh, và cả hai đều bấm được nên không
+   ai biết mình vừa bấm cái nào. */
+body.co-thanh-ds .filter-float{bottom:calc(var(--nav) + var(--safe-b) + 96px)}
+@media(min-width:768px){body.co-thanh-ds .filter-float{bottom:calc(var(--safe-b) + 96px)}}
+
+/* Ngăn kéo xem lại. Cùng hình dạng bottom sheet với `.sidebar.open` và
+   `.map-panel`, vì ba thứ này là cùng một cử chỉ. */
+.ds-panel{display:none;position:fixed;left:0;right:0;bottom:calc(var(--nav) + var(--safe-b) + 84px);max-width:100%;max-height:56vh;z-index:319;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.16);flex-direction:column;overflow:hidden}
+.ds-panel.open{display:flex}
+@media(min-width:768px){.ds-panel{bottom:calc(var(--safe-b) + 88px);left:auto;right:24px;width:420px;border-radius:16px}}
+.ds-panel-dau{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--ln2);font-size:13px;font-weight:700;color:var(--t2);flex-shrink:0}
+.ds-panel-dong{background:none;border:none;font-size:22px;line-height:1;color:var(--t4);cursor:pointer;min-width:44px;min-height:44px}
+.ds-panel-than{overflow-y:auto;padding:4px 0}
+.ds-dong{display:flex;align-items:center;gap:10px;padding:8px 16px;min-height:44px}
+.ds-dong:hover{background:var(--bg1)}
+.ds-dong-ten{flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--t1);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ds-dong-phu{font-size:11.5px;color:var(--t4);flex-shrink:0;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ds-dong-bo{background:none;border:none;font-size:18px;line-height:1;color:var(--t4);cursor:pointer;min-width:44px;min-height:44px;flex-shrink:0}
+.ds-dong-bo:hover{color:var(--red)}
+
 /* Hai chiều liên kết thẻ ↔ pin. Bản đồ không phải trang trí: rê chuột lên
    thẻ thì pin sáng, bấm pin thì thẻ sáng và cuộn tới. */
 .oohx-pin--sang{z-index:450}
@@ -2950,6 +3004,12 @@ body.page-map{overflow:hidden}
 @media(max-width:767px){
     .view-btn{display:flex;width:44px;height:44px}
     .sort-sel{min-height:44px;font-size:13px}
+
+    /* Ô tick trên thẻ — đo được 28px ở 390px ngày 19/10. Trên ảnh thẻ cao
+       110-180px thì một ô 44px vẫn vừa, và nó là ngón tay chạm chứ không
+       phải con trỏ chuột. */
+    .o-tick{width:44px;height:44px;border-radius:10px}
+    .o-tick svg{width:18px;height:18px}
 
     /* `.rh-count` đang `white-space:nowrap` + `text-overflow:ellipsis`: ở
        360px nó cắt mất chữ. Cho xuống dòng thay vì cắt. */

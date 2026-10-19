@@ -170,6 +170,26 @@ Giới hạn cứng **50 vị trí** một danh sách, đúng bằng `MAX_PER_PA
 cùng một trạng thái · chặn ở mục thứ 51 · `localStorage` bị chặn thì trang vẫn
 chạy, chỉ mất tính nhớ.
 
+> **Làm ngày 19/10/2026, hai khác biệt với mô tả trên.**
+>
+> **Thanh đáy không có nút _Yêu cầu báo giá_.** Màn hình gửi là lát 6, endpoint
+> là lát 5; một nút dẫn tới trang chưa tồn tại là hứa với người mua một việc
+> sàn chưa làm được. Chỗ của nó đã chừa sẵn trong `ThanhDanhSach`.
+>
+> **Có thêm nút _Sao chép_**, không có trong mô tả. Nó chạy được hôm nay mà
+> không cần máy chủ: người mua khoanh xong, dán danh sách vào email gửi thẳng
+> cho owner — đúng việc họ đang làm. Lát 7 sẽ thay nó bằng tệp tải về.
+>
+> **Ô tick trên pin** là ô tick trong **popup** của pin, không phải một ô vẽ
+> lên chính pin: pin là HTML chuỗi đưa vào `divIcon` của Leaflet, nên một ô
+> tick ở đó phải đi qua uỷ nhiệm sự kiện và tự quản trạng thái — hai bản của
+> cùng một thứ. Pin **đã chọn** thì mang viền riêng (`.oohx-pin--chon`).
+>
+> Trạng thái dùng chung đi qua `useSyncExternalStore` chứ không phải
+> `useState` + `useEffect`: có ba nơi cùng đọc danh sách (ô tick trên thẻ, ô
+> tick trong popup, thanh đáy), và với state cục bộ thì tick ở popup không làm
+> ô tick trên thẻ đổi theo.
+
 ### Lát 5 — Yêu cầu báo giá: CSDL, API, Filament
 
 Lát lớn nhất, và là lát duy nhất tạo bảng mới.
