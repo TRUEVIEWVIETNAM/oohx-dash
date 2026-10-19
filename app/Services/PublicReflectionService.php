@@ -3,11 +3,14 @@
 namespace App\Services;
 
 use App\Models\PublicReflection;
+use App\Support\PhanTrangOnDinh;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class PublicReflectionService
 {
+    use PhanTrangOnDinh;
+
     /**
      * Ghi nhận một phản ánh mới từ tổ chức xã hội.
      *
@@ -43,13 +46,14 @@ class PublicReflectionService
      */
     public function published(int $perPage = 20): LengthAwarePaginator
     {
-        return PublicReflection::published()
+        $query = PublicReflection::published()
             ->select([
                 'id', 'code', 'organization_name', 'subject', 'content',
                 'received_at', 'status', 'resolution', 'resolved_at',
             ])
-            ->orderByDesc('received_at')
-            ->paginate($perPage);
+            ->orderByDesc('received_at');
+
+        return $this->phanTrang($query, $perPage);
     }
 
     /**
