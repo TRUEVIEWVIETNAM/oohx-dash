@@ -52,6 +52,12 @@ export type MetaPin = { returned: number; total: number; truncated: boolean };
  * điểm, nhưng nó đi vào `ORDER BY` và do đó quyết định **500 pin nào** còn lại
  * khi bị cắt; một bản đồ đổi tập điểm vì người dùng đổi ô sắp xếp là thứ không
  * ai đoán được.
+ *
+ * Danh sách **đen**, không phải trắng, và đó là một lựa chọn. Hệ quả của nó:
+ * tham số lạ trong URL (`utm_source`, một cache-buster) cũng được gửi kèm, và
+ * API bỏ qua chúng. Hệ quả của danh sách trắng thì nặng hơn: thêm một bộ lọc
+ * mà quên khai ở đây là bản đồ lặng lẽ không lọc theo nó — đúng cái lát này
+ * sinh ra để chặn.
  */
 const BO_QUA = new Set(['page', 'sort']);
 
