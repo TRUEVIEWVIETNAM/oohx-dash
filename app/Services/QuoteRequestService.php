@@ -172,7 +172,62 @@ class QuoteRequestService
         return $yeuCau->refresh();
     }
 
-    /** Mã tra cứu: YCB-YYYYMM-XXXX. Cùng dạng với PA- và CPN-. */
+    /**
+     * Xoá hẳn một yêu cầu — đường duy nhất, và chỉ quản trị sàn gọi được.
+     *
+     * Quyền ở `QuoteRequestPolicy::delete()`; hàm này **không** kiểm lại (một
+     * điều kiện viết hai nơi là hai nơi có thể trôi). Người gọi phải hỏi
+     * policy trước — `/admin` làm điều đó ở `->visible()` và ở `->authorize()`
+     * của action.
+     *
+     * ══ Ghi nhật ký trước khi xoá, không sau ══
+     *
+     * CLAUDE.md mục 5 đòi "ai, lúc nào, trước sau, lý do". Sau khi `delete()`
+     * chạy thì không còn gì để đọc, nên ảnh chụp phải lấy trước. Trong cùng
+     * transaction: nếu xoá đổ thì dòng nhật ký nói "đã xoá" là một lời sai —
+     * nhưng nó nằm ngoài CSDL nên transaction không gỡ được, vì vậy `Log` gọi
+     * **sau** khi `delete()` thành công, với dữ liệu đã chụp trước.
+     *
+     * Nhật ký mang mã, số mục, owner nào bị mất đầu mối, và lý do. **Không**
+     * mang tên, email, điện thoại: xoá bản ghi vì dữ liệu cá nhân rồi chép
+     * chính dữ liệu đó sang tệp log là xoá trên giấy.
+     */
+    public function xoa(QuoteRequest $yeuCau, ?int $userId, string $lyDo): void
+    {
+        $anhChup = [
+            'code'       => $yeuCau->code,
+            'trang_thai' => $yeuCau->status,
+            'da_duyet'   => $yeuCau->lienHeDaMo(),
+            'gui_luc'    => $yeuCau->created_at?->toIso8601String(),
+            'so_muc'     => $yeuCau->items()->count(),
+            'owner_ids'  => $yeuCau->items()->pluck('owner_id')->unique()->values()->all(),
+        ];
+
+        DB::transaction(function () use ($yeuCau) {
+            // Xoá tường minh thay vì chỉ dựa vào `cascadeOnDelete` của khoá
+            // ngoại: cùng một kết quả, nhưng đọc được ở chỗ này chứ không
+            // phải ở migration.
+            //
+            // Phép đột biến 20/10/2026: bỏ dòng này đi, chốt vẫn xanh — khoá
+            // ngoại của MySQL dọn hàng con. Nên nó là lớp thứ hai, không phải
+            // thứ làm việc; đừng đọc nó như một dòng được canh.
+            $yeuCau->items()->delete();
+            $yeuCau->delete();
+        });
+
+        Log::info('Xoá yêu cầu báo giá', $anhChup + [
+            'user_id' => $userId,
+            'ly_do'   => $lyDo,
+        ]);
+    }
+
+    /**
+     * Mã tra cứu: YCB-YYYYMM-XXXX. Cùng dạng với PA- và CPN-.
+     *
+     * Mã lấy từ bản ghi lớn nhất **đang còn**, nên xoá yêu cầu mới nhất thì
+     * yêu cầu sau dùng lại mã đó. Không vỡ gì — mã chỉ cần duy nhất trong
+     * bảng — nhưng đọc nhật ký thì hai dòng cùng mã là hai yêu cầu khác nhau.
+     */
     public function sinhMa(): string
     {
         $dau = 'YCB-' . now()->format('Ym') . '-';

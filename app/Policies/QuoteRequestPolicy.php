@@ -79,7 +79,7 @@ class QuoteRequestPolicy
     }
 
     /**
-     * Không ai tạo hay xoá yêu cầu từ khu quản trị.
+     * Không ai tạo yêu cầu từ khu quản trị.
      *
      * Yêu cầu sinh ra từ đúng một đường: `POST /api/v2/quote-requests`. Một
      * nút "Tạo yêu cầu" trong Filament là cách tạo ra bản ghi không có người
@@ -90,8 +90,40 @@ class QuoteRequestPolicy
         return false;
     }
 
+    /**
+     * Xoá — **chỉ quản trị sàn**, và là xoá thật (chủ dự án chốt 20/10/2026).
+     *
+     * ══ Vì sao mở ══
+     *
+     * Lát 5 đóng cứng `delete` để không ai tay trượt làm mất một đầu mối của
+     * media owner. Hệ quả: không ai dám thử đường gửi thật trên production,
+     * vì bản ghi thử sẽ nằm vĩnh viễn trong danh sách việc của owner và trong
+     * mọi con số báo cáo. Một tính năng không ai thử được trên môi trường
+     * thật là một tính năng chưa biết có chạy.
+     *
+     * ══ Vì sao media owner không có ══
+     *
+     * Owner chỉ thấy phần của mình trong yêu cầu, nhưng xoá thì xoá cả bản
+     * ghi — tức xoá luôn phần của owner khác. Không có cách nào cho owner
+     * "xoá một phần" mà không biến `quote_requests` thành dữ liệu lịch sử bị
+     * sửa (CLAUDE.md mục 6). Owner muốn đóng một yêu cầu thì đổi trạng thái,
+     * không xoá.
+     *
+     * ══ Vì sao xoá thật, không xoá mềm ══
+     *
+     * Bản ghi này chứa tên, email, điện thoại người gửi. Xoá mềm giữ nguyên
+     * cả ba trong CSDL — đó không phải xoá, đó là ẩn. Khi người mua yêu cầu
+     * xoá dữ liệu của họ, một cột `deleted_at` không trả lời được.
+     *
+     * Hàng `quote_request_items` đi theo, và `screen_id` ở đó là
+     * `nullOnDelete` nên xoá yêu cầu không chạm tới màn hình nào.
+     *
+     * Bù lại bằng hai lớp ở tầng trên: hộp thoại đòi gõ đúng mã yêu cầu cùng
+     * một lý do, và một dòng nhật ký ghi ai–lúc nào–lý do–xoá cái gì. Nhật ký
+     * **không** mang dữ liệu cá nhân: nó đi qua nhiều tay hơn CSDL.
+     */
     public function delete(User $user, QuoteRequest $yeuCau): bool
     {
-        return false;
+        return $user->hasRole('super_admin');
     }
 }
