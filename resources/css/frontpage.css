@@ -1405,6 +1405,12 @@ ul{list-style:none}
 .o-tick svg{width:16px;height:16px}
 .o-tick:hover{border-color:var(--bl)}
 .o-tick:focus-visible{outline:2px solid var(--bl);outline-offset:2px}
+/* Màu dấu tick khi chưa chọn là `transparent`, và nó chỉ lộ ra khi trỏ
+   chuột vào. Trên thiết bị cảm ứng **không có hover**, nên ô này hiện ra như
+   một ô trắng 44×44 rỗng đè lên ảnh — không ai đoán được nó làm gì. Cho dấu
+   tick một màu xám nhạt ở đó: vẫn im lặng so với trạng thái đã chọn (nền
+   xanh, dấu trắng), nhưng nói được rằng đây là một ô chọn. */
+@media(hover:none){.o-tick{color:var(--t4)}}
 .o-tick.on{background:var(--bl);border-color:var(--bl);color:#fff}
 /* Lời nhắc chạm trần, đặt cạnh ô tick vừa bấm chứ không ở đáy màn hình. */
 .o-tick-day{position:absolute;top:calc(100% + 6px);left:0;white-space:nowrap;background:var(--t1);color:#fff;font-size:11px;font-weight:600;padding:4px 8px;border-radius:6px;z-index:4}
@@ -2344,7 +2350,11 @@ body.page-map{overflow:hidden}
 .sc-bc-sep{color:var(--ln);flex-shrink:0}
 .sc-product-badge{position:absolute;bottom:10px;left:10px;right:10px;display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;font-size:10px;font-weight:700;background:rgba(0,0,0,.65);color:#fff;backdrop-filter:blur(6px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sc-body{padding:14px 14px 0;flex:1;min-width:0}
-.sc-title{font-size:15px;font-weight:700;color:var(--t1);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* `overflow-wrap:anywhere` thêm 20/10/2026. Tên kho thật có dạng mã, không
+   một khoảng trắng nào: `OOHX_LED_YBI_YEN_BAI_NGUYEN_VAN_CU_1`. Không có nó
+   thì chuỗi ấy không xuống dòng được, `overflow:hidden` cắt phũ giữa chữ và
+   KHÔNG có dấu "…" — đo ở khung 390px: nội dung 307px trong ô 197px. */
+.sc-title{font-size:15px;font-weight:700;color:var(--t1);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .sc-loc{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--bl);margin-top:4px}
 .sc-loc-icon{width:12px;height:12px;flex-shrink:0}
 .sc-specs{margin-top:10px;display:flex;flex-direction:column;gap:4px}
@@ -3034,7 +3044,10 @@ body.page-map{overflow:hidden}
        phần lớn tên màn hình production là mã nội bộ dài
        (`OOHX_LED_YBI_YEN_BAI_NGUYEN_TAT_THANH_1`) — cắt ở một dòng không
        mất thông tin nào người đọc dùng được. */
-    .inv-grid .sc-title{font-size:14px;-webkit-line-clamp:1}
+    /* Hai dòng, không phải một (20/10/2026). Với một dòng ở 197px thì
+       `OOHX_LED_YBI_YEN_BAI_NGUYEN_VAN_CU_1` và `..._CU_2` cắt ra **giống
+       hệt nhau** — người mua không phân biệt nổi hai vị trí khác nhau. */
+    .inv-grid .sc-title{font-size:14px;-webkit-line-clamp:2}
     .inv-grid .sc-breadcrumb{font-size:10.5px;margin-bottom:2px}
     .inv-grid .sc-loc{font-size:11.5px;margin-top:3px}
 

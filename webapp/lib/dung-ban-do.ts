@@ -210,7 +210,19 @@ export function useBanDoPin({
 
             themLopNen(L, map);
 
-            L.control.attribution({ position: 'bottomleft', prefix: true }).addTo(map);
+            /*
+             * `prefix: false`, không phải `true`.
+             *
+             * `prefix` của Leaflet là **chuỗi HTML** in trước phần ghi công
+             * (mặc định là liên kết "Leaflet"), không phải cờ bật/tắt. Truyền
+             * `true` thì Leaflet nối thẳng giá trị đó vào DOM, nên dòng ghi
+             * công trên production đọc là **"true | © MapTiler ·
+             * © OpenStreetMap"** — chữ `true` nằm ngay dưới bản đồ, và nhìn
+             * thoáng qua trông như tên một đơn vị bị cắt mất đầu.
+             *
+             * `false` là cách tắt nó.
+             */
+            L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map);
 
             /*
              * `L` ở đây PHẢI là `.default`, không phải namespace của
