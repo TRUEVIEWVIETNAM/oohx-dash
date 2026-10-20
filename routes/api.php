@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V2\PaymentController as V2PaymentController;
 use App\Http\Controllers\Api\V2\CampaignReportController as V2CampaignReportController;
 use App\Http\Controllers\Api\V2\PaymentRecipientController as V2PaymentRecipientController;
 use App\Http\Controllers\Api\V2\PublicContentController as V2PublicContentController;
+use App\Http\Controllers\Api\V2\QuoteRequestController as V2QuoteRequestController;
 use App\Http\Controllers\Api\V2\SettingsController as V2SettingsController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OohxEstimateController;
@@ -146,6 +147,13 @@ Route::prefix('v2')->group(function () {
     // Gửi phản ánh có hạn mức RIÊNG, chặt hơn `api`: đây là đường ghi, mở cho
     // người lạ, và trang Blade tương ứng cũng đã có `throttle:5,60`.
     Route::post('reflections', [V2PublicContentController::class, 'storeReflection'])
+        ->middleware('throttle:5,60');
+
+    // Yêu cầu báo giá — cùng hạn mức, cùng lý do: đường ghi mở cho người lạ.
+    // Chủ dự án chốt 19/10/2026 rằng khách chưa đăng nhập vẫn gửi được, nên
+    // hạn mức này là lớp chặn lạm dụng **đứng đầu**, không phải lớp phụ sau
+    // một cổng đăng nhập.
+    Route::post('quote-requests', [V2QuoteRequestController::class, 'store'])
         ->middleware('throttle:5,60');
 });
 

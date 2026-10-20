@@ -295,14 +295,14 @@ thì vô hiệu hoá.
 | 500 pin trên một bản đồ làm chậm máy yếu | vừa | Giới hạn cứng đã có; gom cụm pin khi quá 150 |
 | `localStorage` bị chặn | thấp | Mọi lần đọc/ghi trong `try/catch`, trang chạy không cần nó |
 
-## Bốn việc cần chủ dự án chốt
+## Bốn việc cần chủ dự án chốt — **đã chốt 19/10/2026**
 
-| Việc | Text copy để duyệt |
-|---|---|
-| Khách chưa đăng nhập có gửi được yêu cầu báo giá không (đề xuất: **có** — bắt đăng nhập trước khi hỏi giá là mất người mua ở bước rẻ nhất) | `khách ẩn danh gửi được` |
-| Cam kết thời gian trả lời in trên màn xác nhận (ví dụ *"owner trả lời trong 2 ngày làm việc"*) | `thời gian trả lời: <số> ngày làm việc` |
-| Owner thấy liên hệ người mua ngay, hay chỉ sau khi quản trị duyệt (đề xuất: **sau khi duyệt**) | `liên hệ chỉ mở sau khi duyệt` |
-| Tệp tải về: CSV (không thêm thư viện) hay `.xlsx` (thêm một lát và một thư viện) | `tệp tải về: csv` |
+| Việc | Quyết định | Hệ quả lên thiết kế |
+|---|---|---|
+| Khách chưa đăng nhập có gửi được yêu cầu báo giá không | **Có** | `quote_requests.organization_id` nullable; người gửi tự khai tên/email/điện thoại; chống spam phải đứng một mình (throttle + honeypot + IP), không dựa vào việc đã đăng nhập |
+| Cam kết thời gian trả lời | **Không cam kết** | Không cột hạn, không job nhắc, và **không câu nào** trên màn xác nhận hứa một con số. `/admin` vẫn lọc được theo "gửi đã lâu chưa trả lời" — đó là công cụ nội bộ, không phải lời hứa với người mua |
+| Owner thấy liên hệ người mua ngay hay sau khi duyệt | **Sau khi quản trị duyệt** | Email, điện thoại và tên người gửi **không** nằm trong DTO của `/publisher` cho tới khi yêu cầu sang trạng thái đã duyệt. Đây là ranh giới dữ liệu, nên nó phải có chốt chạy thật trên MySQL |
+| Tệp tải về | **CSV** | Lát 7 không thêm thư viện nào; sinh bằng `fputcsv`, kèm BOM UTF-8 để Excel tiếng Việt không vỡ dấu |
 
 ## Bắt đầu
 
