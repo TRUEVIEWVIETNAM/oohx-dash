@@ -1,6 +1,6 @@
 # TapON SSP — Danh sách API
 
-> **Cập nhật lần cuối:** 2026-03-24
+> **Cập nhật lần cuối:** 2026-10-20
 > **Base URL:** `https://ssp.tapon.vn/api/v1`
 > **Auth:** Sanctum Bearer Token (trừ `POST /auth/token` và `/player/*`)
 
@@ -701,3 +701,24 @@ city[]=hanoi&city[]=danang        ← PHP array (chuẩn, khuyên dùng)
 city=hanoi|danang                 ← pipe-separated (legacy, vẫn hoạt động)
 city=hanoi                        ← single value (vẫn hoạt động)
 ```
+
+### Thứ tự khi lật trang (từ 20/10/2026)
+
+Mọi danh sách phân trang nay sắp theo khoá sắp xếp đã công bố, **rồi theo
+khoá chính của bảng** làm khoá phụ. Lý do: `LIMIT ... OFFSET ...` không cam
+kết thứ tự khi khoá sắp xếp có hàng bằng nhau, nên cơ sở dữ liệu được tự do
+trả thứ tự nào rẻ nhất cho từng lần chạy — và khi đó lật trang 1 → 2 vừa trả
+lặp một số bản ghi vừa bỏ sót số khác.
+
+Đo trên `/api/v2` ngày 19/10/2026 (cùng lớp lỗi, cùng dữ liệu): đọc hết ba
+trang của 104 bản ghi được 104 dòng nhưng chỉ **75 bản ghi khác nhau**.
+
+Những gì **không** đổi: các giá trị `sort` được nhận, và khoá sắp xếp chính
+vẫn thắng. `sort=newest` vẫn trả mới nhất trước, `sort=price_asc` vẫn trả rẻ
+nhất trước, `GET /inventory/owners` vẫn đưa owner `featured` lên đầu. Khoá
+phụ chỉ phá thế bằng.
+
+Một chỗ đối tác có thể thấy khác trước: `GET /owners`, `GET /sites` và
+`GET /screens` **không có thứ tự nào** khi gọi mà không kèm `sort`. Nay chúng
+đi theo khoá chính (ULID, nên ≈ cũ nhất trước). Thứ tự cũ ở ba endpoint đó
+không phải một thứ tự khác — nó đổi giữa các lần chạy.

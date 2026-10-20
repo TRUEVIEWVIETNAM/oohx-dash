@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\OwnerResource;
 use App\Models\Owner;
 use App\Services\TenantPermission;
+use App\Support\PhanTrangOnDinh;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,13 +20,15 @@ use Spatie\QueryBuilder\QueryBuilder;
  */
 class OwnerController extends Controller
 {
+    use PhanTrangOnDinh;
+
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Owner::class);
 
         $user = $request->user();
 
-        $owners = QueryBuilder::for(Owner::class)
+        $query = QueryBuilder::for(Owner::class)
             ->allowedFilters(['status', 'type', 'onboard_method'])
             ->allowedSorts(['name', 'created_at'])
             // Không phải super_admin thì chỉ thấy owner mình là thành viên.
@@ -33,8 +36,9 @@ class OwnerController extends Controller
                 $user->hasRole('super_admin'),
                 fn ($q) => $q->whereIn('id', $user->owners()->pluck('owners.id'))
             )
-            ->withCount(['sites', 'screens'])
-            ->paginate(20);
+            ->withCount(['sites', 'screens']);
+
+        $owners = $this->phanTrang($query, 20);
 
         return OwnerResource::collection($owners)->response();
     }
