@@ -1690,3 +1690,146 @@ việc".
 | **Thanh "trust"** | Vẫn in "Verified inventory", "Traffic real-time", "AI-powered search" |
 | Mốc ba cột 1280px thay vì 1180px như plan viết | Đã ghi lại trong plan: `.w` lấy 52px mỗi bên, nên ở 1180px lưới còn 140px một thẻ |
 | Hai định nghĩa CSS trùng (`.loc-item`, `.mpop-price`) | Việc của một lần dọn CSS |
+
+> **Bảng trên đã cũ tính từ chiều 20/10/2026.** Ba dòng đầu đã xử lý ở #136 →
+> #138 (quyền xoá yêu cầu, soát lỗi ghép vị trí, khoá ghép khi nhập). Bảng còn
+> hiệu lực ở cuối mục kế tiếp.
+
+## Ngày 20/10/2026 — ba việc lấy ra khỏi hàng đợi (#136 → #138)
+
+`main` ở `6a755da`. CI **1.139 ca / 4.306 khẳng định** (sáng 20/10: 1.086 /
+4.142). Không còn PR nào mở, cả ba đã lên production.
+
+| PR | Việc | Đo được |
+|---|---|---|
+| #136 | Mở quyền xoá yêu cầu báo giá cho quản trị sàn | 12 ca / 46 khẳng định |
+| #137 | Báo cáo soát dữ liệu vị trí ở `/admin` | 9 phép đo, 30 ca |
+| #138 | Lưu khoá ghép điểm đặt khi nhập | 11 ca, kèm một lỗi có sẵn |
+
+### #136 — xoá được thì mới thử được
+
+Lát 5 đóng cứng `QuoteRequestPolicy::delete()` để không ai tay trượt làm mất
+một đầu mối của media owner. Hệ quả ngược lại: **không ai thử được đường gửi
+thật trên production**, vì bản ghi thử nằm vĩnh viễn trong danh sách việc của
+owner và trong mọi con số báo cáo. Một tính năng không ai thử được trên môi
+trường thật là một tính năng chưa biết có chạy.
+
+Ba quyết định bên trong:
+
+| Quyết định | Vì sao |
+|---|---|
+| Chỉ `super_admin` | Owner chỉ thấy phần của mình, nhưng xoá thì xoá cả bản ghi — tức xoá luôn phần của owner khác |
+| Xoá thật, không xoá mềm | Bản ghi chứa tên, email, điện thoại người gửi. Một cột `deleted_at` là **ẩn**, không phải **xoá**, và nó không trả lời được khi người mua đòi xoá dữ liệu của họ |
+| Gõ lại mã + lý do bắt buộc | `requiresConfirmation()` một mình chỉ đòi một cú bấm nữa, và cú bấm nữa là thứ người ta làm theo quán tính |
+
+Nhật ký ghi mã, trạng thái, mốc gửi, số mục, **owner nào mất đầu mối**, ai xoá
+và lý do — **không** mang tên, email, điện thoại. Có một ca test đi tìm đúng ba
+thứ đó trong nội dung đã ghi: xoá bản ghi vì dữ liệu cá nhân rồi chép chính dữ
+liệu đó sang tệp log là xoá trên giấy.
+
+Phép đột biến bắt được một thứ đáng ghi: **bỏ `items()->delete()` thì chốt vẫn
+xanh** — khoá ngoại MySQL dọn hàng con. Dòng đó là lớp thứ hai, không phải thứ
+làm việc; đã ghi lại ngay tại chỗ để không ai đọc nó như một dòng được canh.
+
+### #137 — "ghép sai vị trí" là MỘT hàng
+
+Soát 104 bản ghi công khai qua API công khai, không chạm CSDL production.
+
+| Phát hiện | Số |
+|---|---|
+| **Thiếu tỉnh/thành** — `OOHX_LED_LCU_LAI_CHAU`, địa chỉ *"TP Lai Châu, Lai Châu"* và toạ độ đủ, ô tỉnh rỗng | 1 |
+| **`Màn Hình Quảng Cáo Aeon Mall Tân Phú`** gắn "LED Bắc Kạn" | 1 |
+| **`LED Yên Bái`: 6 màn hình một toạ độ**, tên chúng chỉ **ba** con đường | 6 |
+| Ô tỉnh chứa hai cấp ("Thái Nguyên > Phường Bắc Kạn") | 21 |
+
+Hàng đợi ghi việc này như thể một lỗi hệ thống. Nó không phải: 20/21 màn hình
+của cùng owner theo đúng một quy ước (`OOHX_LED_<mã tỉnh>_<TỈNH>_<chi tiết>`)
+và **tất cả** khớp điểm đặt. Đúng một hàng lệch — hình dạng của một bản ghi
+nhập tay. Toạ độ của nó **là** ở Bắc Kạn, trùng khít `OOHX_LED_BKN_BAC_KAN`,
+nên trường sai là **tên**, hoặc bản ghi gắn sai chỗ.
+
+**Phép đo tôi thử rồi bỏ.** "Tên màn hình không có token nào chung với điểm
+đặt / địa chỉ / tỉnh" — nghe hiển nhiên, cho **15 cảnh báo, 14 báo sai**: một
+owner đặt tên viết tắt (`Billboard CV 23/9` ↔ *Công viên 23 Tháng 9*;
+`Billboard LTT-SVH` ↔ *Giao lộ Lý Thái Tổ - Sư Vạn Hạnh*). Một bảng mà 14/15
+dòng là rác thì không ai đọc lần thứ hai, và dòng thật chết cùng những dòng
+kia. `test_ten_viet_tat_khong_bi_bao_sai` đóng băng quyết định ấy bằng bốn
+hàng thật.
+
+Phép đo **đã** ship và bắt được hàng Aeon lại rất hẹp: *20/21 màn hình của
+owner này tên dạng mã, cái này thì không*. Bảy phép đo khác im lặng với nó —
+toạ độ đúng, tỉnh đúng, nhóm đúng, không khoá nào để đối chiếu, trong tên
+không có tên tỉnh nào.
+
+**Cột "đối chiếu được".** Mỗi phép đo in kèm số bản ghi nó thật sự xét tới, vì
+"0 lỗi" trên 0 bản ghi đọc giống hệt "0 lỗi" trên cả kho. Hai mức: `Lỗi` là
+một khẳng định, `Cần đọc lại` thì không — badge trên menu chỉ đếm mức đầu,
+gộp cả hai thì badge không bao giờ về 0 (21 ô tỉnh hai cấp, không cái nào là
+lỗi) và một badge không bao giờ tắt thì không ai nhìn nữa.
+
+### #138 — khoá ghép, và lưu nó TỪ NGUỒN
+
+`ghepLechKhoa()` của #137 hiện `0/104`: cả ba lối nhập tra `site_external_id`
+để tìm `site_id` rồi **bỏ mã đi**.
+
+Điểm dễ làm sai nhất không phải việc lưu, mà là lưu **từ đâu**. Lấy mã từ
+`$site->external_id` thì hai bên luôn bằng nhau, và một bất biến không bao giờ
+vỡ được thì không canh gì — báo cáo sẽ in `104/104` và không bao giờ nói được
+điều gì. Nên mã lấy từ ô trong tệp, ô người gọi gửi lên.
+
+Hai hàng rào chống báo oan, vì một báo cáo báo oan sẽ bị tắt: `Screen::saving`
+kéo cột theo khi `site_id` đổi mà không ai nói gì về mã nguồn (đúng việc biểu
+mẫu Filament làm), và `Site::updated` kéo cột ở màn hình con khi mã địa điểm
+đổi.
+
+**Không điền ngược hàng cũ.** Cột nói "nguồn đã nói gì"; với hàng nhập trước
+hôm nay thì không ai còn biết. Điền từ điểm đặt hiện tại là tự dựng bằng chứng
+rằng chỗ gắn hôm nay đúng — kể cả khi nó sai, và hàng Aeon là đúng loại hàng
+sẽ bị dựng bằng chứng cho. Độ phủ lớn dần theo từng lượt nhập lại.
+
+**Lỗi có sẵn ca test tìm ra.** `RowValidator::resolveSiteId()` khai kiểu trả
+về `?int` trong khi `sites.id` là ULID `char(26)`, và PHP 8 ném TypeError chứ
+không ép. `createSite(): int` mang đúng lỗi đó. Nghĩa là
+`ScreenWriter::write()` đổ ở **mọi** dòng — cả lối nhập màn hình ở `/admin`
+không ghi được hàng nào. Im lặng tới hôm nay vì **không ca test nào gọi
+`ScreenWriter`**.
+
+### Ba lỗi của chính tôi trong ngày
+
+| Lỗi | Thứ bắt được |
+|---|---|
+| In thẳng "cao" / "xem tay" vào Blade của panel | CI — `ChuBladePanelPhaiCoDauTest` đòi chữ hiển thị phải có dấu |
+| Một mảnh chữ kẹp giữa hai biểu thức Blade thành chuỗi không dấu | CI, cùng chốt đó, **lần thứ hai trong một ngày** |
+| Commit lên `main` vì quên tạo nhánh sau khi merge #137 | Tự soát trước khi push. Chưa push nên production không bị chạm |
+
+Lỗi thứ ba đáng nhớ nhất: `merge = deploy`, nên một lần `git push` sai chỗ là
+một lần deploy không ai duyệt. Việc cứu nó là `git switch -c` rồi
+`git branch -f main origin/main` — không `reset --hard`, không mất gì.
+
+### Hai chốt mới đáng ghi
+
+**Trang Filament được dựng thật.** Hai ca nạp đúng URL `/admin/soat-vi-tri` và
+đọc nội dung trả về, nên một lỗi Blade hay một biến thiếu trong
+`getViewData()` làm chúng đỏ. Lần đầu chúng trả **404**: `AdminPanelProvider`
+gắn `->domain(config('domains.dash'))` ở mọi môi trường trừ `local`, nên phải
+gọi kèm tên miền của panel. Đó là lỗ hổng đã nêu ở #136 ("chưa có chốt nào
+render thật bảng Filament") và nay đã bịt.
+
+**Tệp Excel dựng trong ca test.** `KhoaGhepDiemDatTest` sinh workbook bằng
+PhpSpreadsheet chứ không dùng tệp nhị phân cố định trong repo: khuôn tệp là
+thứ chốt này canh, nên nó phải đọc được ngay trong mã test.
+
+### Còn mở sau ngày 20/10 (bản cập nhật)
+
+| Việc | Chặn bởi |
+|---|---|
+| **Chưa ai thử đường gửi yêu cầu thật trên production** | Nay xoá được rồi (#136), nên không còn gì chặn. Cần chủ dự án bấm |
+| **Chưa ai chạy thật lối nhập màn hình ở `/admin`** sau khi sửa kiểu ULID | Hai ca hồi quy đi qua `ScreenWriter` trực tiếp, không qua `ScreenImportService` và hàng đợi của nó |
+| **Ba việc nhập liệu từ báo cáo soát** | Điền tỉnh cho LED Lai Châu · quyết định tên hay điểm đặt mới là cái sai ở hàng Aeon · cho sáu màn hình Yên Bái toạ độ riêng |
+| **Độ phủ `ghepLechKhoa` vẫn 0/104** | Chờ lượt nhập lại đầu tiên. Không có cách trung thực nào làm nó nhảy lên hôm nay |
+| **Phân trang `/api/v1` mang đúng lỗi #130** | Đổi thứ tự trả về là đổi hành vi hợp đồng đối tác (CLAUDE.md mục 1) — cần chủ dự án chốt |
+| **Thanh "trust"** | Vẫn in "Verified inventory", "Traffic real-time", "AI-powered search" |
+| **Nhãn tiếng Việt trên bản đồ** | Cần tạo style trong MapTiler Cloud rồi đưa tên vào `MAPTILER_STYLE` |
+| Báo cáo soát chưa xét giá, ảnh thực địa, kích thước | Trang in câu đó ra để không ai đọc nó như một báo cáo đầy đủ |
+| Mốc ba cột 1280px thay vì 1180px như plan viết | `.w` lấy 52px mỗi bên, nên ở 1180px lưới còn 140px một thẻ |
+| Hai định nghĩa CSS trùng (`.loc-item`, `.mpop-price`) | Việc của một lần dọn CSS |
