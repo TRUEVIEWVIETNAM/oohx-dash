@@ -10,6 +10,7 @@ use App\Models\VietnamProvince;
 use App\Services\SoatViTriService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -580,6 +581,21 @@ class SoatViTriTest extends TestCase
                 'Phép đo ' . $loai . ' không nói được hệ quả của nó với người mua.',
             );
             $this->assertNotSame('', trim(SoatViTriService::HE_QUA[$loai]));
+        }
+    }
+
+    public function test_hai_muc_deu_co_chu_tieng_viet(): void
+    {
+        // `ChuBladePanelPhaiCoDauTest` đòi mọi chuỗi hiển thị trong Blade của
+        // panel phải có dấu. Bản đầu in "cao" và "xem tay" thẳng vào Blade và
+        // CI đỏ ở đúng chốt đó.
+        foreach ([SoatViTriService::MUC_CAO, SoatViTriService::MUC_XEM_TAY] as $muc) {
+            $this->assertArrayHasKey($muc, SoatViTriService::MUC_NHAN);
+            $this->assertMatchesRegularExpression(
+                '/[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/u',
+                Str::lower(SoatViTriService::MUC_NHAN[$muc]),
+                'Chữ cho mức "' . $muc . '" không có dấu tiếng Việt nào.',
+            );
         }
     }
 

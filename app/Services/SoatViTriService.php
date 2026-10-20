@@ -44,6 +44,19 @@ class SoatViTriService
     public const MUC_CAO     = 'cao';
     public const MUC_XEM_TAY = 'xem_tay';
 
+    /**
+     * Chữ cho hai mức.
+     *
+     * "Lỗi" là một khẳng định; "Cần đọc lại" thì không — và phân biệt đó là
+     * cả tính thực dụng của báo cáo này. Chữ nằm ở đây, không ở Blade: panel
+     * Filament có chốt đòi mọi chuỗi hiển thị phải là tiếng Việt có dấu
+     * (`ChuBladePanelPhaiCoDauTest`), và "cao"/"xem tay" trượt nó.
+     */
+    public const MUC_NHAN = [
+        self::MUC_CAO     => 'Lỗi',
+        self::MUC_XEM_TAY => 'Cần đọc lại',
+    ];
+
     /** Khoảng cách từ trung vị nhóm cùng tỉnh mà vẫn coi là bình thường. */
     public const NGUONG_XA_KM = 50;
 

@@ -50,7 +50,7 @@ class SoatViTri extends Command
             ['Phép đo', 'Mức', 'Lỗi', 'Đối chiếu được'],
             collect($kq['theo_loai'])->map(fn (array $t, string $loai) => [
                 SoatViTriService::NHAN[$loai] ?? $loai,
-                $t['muc'] === SoatViTriService::MUC_CAO ? 'cao' : 'xem tay',
+                SoatViTriService::MUC_NHAN[$t['muc']] ?? $t['muc'],
                 $t['so'] > 0 ? (string) $t['so'] : '—',
                 $t['do_phu'] . '/' . $kq['tong_man_hinh'],
             ])->values()->all(),

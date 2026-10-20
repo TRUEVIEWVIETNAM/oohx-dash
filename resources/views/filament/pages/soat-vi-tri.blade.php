@@ -54,9 +54,9 @@
                             <td class="py-2 pr-4 font-medium">{{ SoatViTriService::NHAN[$loai] ?? $loai }}</td>
                             <td class="py-2 pr-4">
                                 @if($t['muc'] === SoatViTriService::MUC_CAO)
-                                    <x-filament::badge color="danger" size="sm">cao</x-filament::badge>
+                                    <x-filament::badge color="danger" size="sm">{{ SoatViTriService::MUC_NHAN[SoatViTriService::MUC_CAO] }}</x-filament::badge>
                                 @else
-                                    <x-filament::badge color="warning" size="sm">xem tay</x-filament::badge>
+                                    <x-filament::badge color="warning" size="sm">{{ SoatViTriService::MUC_NHAN[SoatViTriService::MUC_XEM_TAY] }}</x-filament::badge>
                                 @endif
                             </td>
                             <td class="py-2 pr-4 text-right tabular-nums">
