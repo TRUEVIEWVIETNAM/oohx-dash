@@ -143,16 +143,20 @@ const TRANG = [
 
             'class="ft-g"', // lưới liên kết tỉnh thành ở chân trang
 
-            // Thanh "trust", chủ dự án chốt dựng nguyên văn 18/10/2026. Nó
-            // từng nằm trong danh sách `khong` của chính tệp này — xem
-            // `KhoiLoiHua.tsx` về những câu không kiểm được.
+            // Thanh "trust". Khối thì giữ, chữ thì đổi ngày 20/10/2026: năm
+            // câu của bản Blade thay bằng năm việc kiểm được. Canh nguyên văn
+            // vì mỗi câu ở đây tương ứng một đường trong mã — bảng đối chiếu
+            // ở docblock của `KhoiLoiHua.tsx`. Năm câu cũ nay nằm trong
+            // `khong` của chính tệp này.
             'class="trust"',
             'class="trust-in"',
             'class="trust-item"',
             'class="trust-sep"',
-            'Traffic real-time',
-            'AI-powered search',
-            'Secure payment',
+            'Vị trí trên bản đồ',
+            'Dữ liệu từ chủ màn hình',
+            'Lọc theo tỉnh, loại hình',
+            'Gửi yêu cầu không cần đăng ký',
+            'Xuất danh sách CSV',
 
             // Ba bảo đảm của khối ⑤ nói những điều CLAUDE.md ghi là sự thật
             // của sàn, không phải lời hứa năng lực. Canh nguyên văn để một
@@ -175,6 +179,30 @@ const TRANG = [
             'class="sc"',
             'class="oc"',
             'class="oc-name"',
+
+            // ── Năm câu của thanh "trust", đổi ngày 20/10/2026 ────────────
+            //
+            // Cùng kiểu đảo chiều như sáu luật mục AI ở dưới: chúng từng nằm
+            // ở `co` (chủ dự án chốt dựng nguyên văn 18/10, #94 và #97), nay
+            // ở đây. Vì sao từng câu không kiểm được:
+            //
+            //  - "Traffic real-time" — `impression_logs` chưa có bản ghi nào
+            //  - "AI-powered search" — không có tính năng AI nào trong mã
+            //  - "Secure payment" — sàn không thu hộ; người mua chuyển khoản
+            //    trực tiếp cho từng media owner
+            //  - "Verified inventory" — `owners.verified` là cờ thủ công,
+            //    không phải một quy trình kiểm định
+            //  - "Agency support 24/7" — cam kết vận hành, không có gì trong
+            //    mã để đối chiếu
+            //
+            // Thanh này là chỗ CUỐI CÙNG còn những câu đó sau khi khối AI bị
+            // gỡ ở lát 3. Mang lại một câu phải là một quyết định, không
+            // phải một lần sửa test cho xanh.
+            'Verified inventory',
+            'Traffic real-time',
+            'AI-powered search',
+            'Secure payment',
+            'Agency support 24/7',
 
             // Ảnh SVG mô phỏng bảng điều khiển, gỡ 18/10/2026 khi bản đồ
             // thật lên hero. Nó không mang một con số nào nên không thuộc

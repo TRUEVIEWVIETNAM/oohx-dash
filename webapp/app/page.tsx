@@ -233,9 +233,12 @@ export default async function HomePage() {
                 </section>
 
                 {/*
-                  Thanh năm mục, nguyên văn bản Blade. Chủ dự án chốt dựng lại
-                  ngày 18/10/2026 sau khi đọc danh sách những câu không kiểm
-                  được — xem docblock của `KhoiLoiHua.tsx`.
+                  Thanh năm mục. Chữ đổi ngày 20/10/2026: năm câu của bản
+                  Blade ("Verified inventory", "Traffic real-time",
+                  "AI-powered search", "Secure payment", "Agency support
+                  24/7") thay bằng năm việc hệ thống làm được và kiểm được —
+                  bảng "mã nào đứng sau từng câu" ở docblock của
+                  `KhoiLoiHua.tsx`.
                 */}
                 <ThanhTrust />
 
