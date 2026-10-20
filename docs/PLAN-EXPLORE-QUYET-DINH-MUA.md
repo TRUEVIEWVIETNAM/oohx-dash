@@ -325,6 +325,16 @@ tên ↔ toạ độ, kích thước bất thường, thiếu giá, thiếu ản
 một việc riêng; chủ dự án đã có nó trong hàng đợi dưới tên *soát lỗi ghép vị
 trí*.
 
+> **Đã làm, 20/10/2026 (#137).** `/admin/soat-vi-tri`, chín phép đo về **vị
+> trí**; giá, ảnh và kích thước thì chưa — trang in thẳng câu đó ra để không ai
+> đọc nó như một báo cáo đầy đủ.
+>
+> Một điều plan này đoán sai: phép đo "lệch tên ↔ toạ độ" **không dùng được**.
+> Đo trên kho thật, nó cho 15 cảnh báo và 14 trong đó là báo sai — một media
+> owner đặt tên bằng chữ viết tắt (`Billboard CV 23/9` cho *Công viên 23 Tháng
+> 9*). Hàng "Aeon Mall Tân Phú" cuối cùng bị bắt bởi một phép đo khác hẳn:
+> 20/21 màn hình của owner đó đặt tên dạng mã, đúng cái đó thì không.
+
 **2. Bộ lọc "Có ảnh thực địa".** Hôm nay nó trả 0 kết quả cho mọi lượt bấm.
 Một bộ lọc luôn rỗng là một bộ lọc hỏng dưới mắt người dùng. Nó nên xuất hiện
 cùng lúc với tấm ảnh thực địa đầu tiên, không sớm hơn.
