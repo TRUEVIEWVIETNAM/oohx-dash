@@ -11,6 +11,7 @@ use App\Models\ScreenSpec;
 use App\Models\Site;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
@@ -322,6 +323,22 @@ class PhanTrangV1Test extends TestCase
     }
 
     // ── Ba endpoint quản lý ──────────────────────────────────────────────────
+    //
+    // ĐỌC TRƯỚC KHI TIN SÁU CA DƯỚI ĐÂY.
+    //
+    // Phép đột biến (gỡ khoá phụ khỏi `phanTrang()`) làm bốn ca kho hàng ở
+    // trên đỏ, nhưng **sáu ca quản lý vẫn xanh**. Lý do: ba endpoint đó
+    // không có `ORDER BY` nào khi khoá phụ bị gỡ, và với 25 hàng trong một
+    // bảng vừa dựng, MySQL quét theo khoá chính một cách nhất quán giữa hai
+    // truy vấn — nên không có bản ghi nào lặp. Thứ tự *không xác định* không
+    // có nghĩa là thứ tự *ngẫu nhiên*: nó đổi khi kế hoạch truy vấn đổi, tức
+    // khi dữ liệu đủ nhiều để optimizer chọn đường khác, chứ không đổi ở cỡ
+    // của một fixture.
+    //
+    // Nên sáu ca này canh một thứ hẹp hơn tên chúng gợi ra: endpoint trả về
+    // đủ số bản ghi và không lặp *trong điều kiện hiện tại*. Thứ canh đúng
+    // lỗi là `test_ba_endpoint_quan_ly_co_khoa_phu_trong_cau_sql` ở dưới, và
+    // nó đi xuống tận câu SQL vì ở mức phản hồi không quan sát được.
 
     public function test_lat_het_trang_owners_quan_ly_khong_lap(): void
     {
@@ -511,6 +528,107 @@ class PhanTrangV1Test extends TestCase
             $thay[0],
             'Owner `featured` phải đứng đầu — khoá phụ không được giành chỗ.',
         );
+    }
+
+    /**
+     * Ba endpoint quản lý: khoá phụ phải có mặt trong câu SQL.
+     *
+     * Ca này đi xuống mức SQL vì ở mức phản hồi không quan sát được — xem
+     * khối chú thích trên sáu ca lật trang quản lý. Nó đỏ ngay khi
+     * `phanTrang()` mất `orderBy()`, kể cả khi MySQL tình cờ trả đúng.
+     *
+     * Khẳng định là "câu SQL **kết thúc** bằng khoá chính": điều đó vừa nói
+     * khoá phụ có mặt, vừa nói nó đứng **sau** mọi khoá sắp xếp khác.
+     */
+    public function test_ba_endpoint_quan_ly_co_khoa_phu_trong_cau_sql(): void
+    {
+        // Phải có hàng thật: `paginate()` bỏ hẳn truy vấn liệt kê khi tổng
+        // bằng 0, nên một bảng rỗng thì không có câu SQL nào để xem.
+        $this->dungKhoGiongNhau();
+
+        $duong = [
+            '/owners'            => 'owners',
+            '/sites'             => 'sites',
+            '/screens'           => 'screens',
+            '/sites?sort=name'   => 'sites',
+            '/screens?sort=name' => 'screens',
+        ];
+
+        foreach ($duong as $url => $bang) {
+            // `/owners` cần super_admin, hai cái kia cần publisher có tenant.
+            str_starts_with($url, '/owners')
+                ? $this->dangNhapQuanTriSan()
+                : $this->dangNhapPublisher();
+
+            $cau = [];
+            DB::listen(function ($su) use (&$cau) {
+                $cau[] = $su->sql;
+            });
+
+            $this->getJson('/api/v1' . $url)->assertOk();
+
+            // Bỏ truy vấn đếm của paginator và các truy vấn phụ (quyền, đếm
+            // quan hệ): câu cần xem là câu có `limit`.
+            $cauLiet = array_values(array_filter(
+                $cau,
+                fn (string $sql) => str_contains($sql, "from `{$bang}`")
+                    && str_contains($sql, 'limit'),
+            ));
+
+            $this->assertNotEmpty(
+                $cauLiet,
+                "Không thấy truy vấn liệt kê nào cho `{$url}`.",
+            );
+
+            foreach ($cauLiet as $sql) {
+                $this->assertMatchesRegularExpression(
+                    '/order by .*`' . $bang . '`\.`id` asc\s*limit/i',
+                    $sql,
+                    "`{$url}` phân trang mà khoá chính không phải khoá sắp cuối "
+                        . "cùng. Câu SQL: {$sql}",
+                );
+            }
+        }
+    }
+
+    /**
+     * Nhánh mặc định của `inventory/screens` cũng chỉ còn khoá phụ.
+     *
+     * Trước ngày 20/10 nhánh đó tự sắp `screens.id`; nay nó dựa vào
+     * `phanTrang()` như ba nhánh kia, nên SQL sinh ra y hệt nhưng chỗ quyết
+     * định đã chuyển. Phép đột biến cho thấy ca lật trang **không** bắt được
+     * điều này — không có `ORDER BY`, MySQL vẫn trả nhất quán ở cỡ fixture —
+     * nên câu SQL là chỗ duy nhất quan sát được.
+     */
+    public function test_kho_hang_mac_dinh_co_khoa_phu_trong_cau_sql(): void
+    {
+        $this->dungKhoGiongNhau();
+
+        $cau = [];
+        DB::listen(function ($su) use (&$cau) {
+            $cau[] = $su->sql;
+        });
+
+        $this->withToken($this->tokenDoiTac())
+            ->getJson('/api/v1/inventory/screens?limit=10')
+            ->assertOk();
+
+        $cauLiet = array_values(array_filter(
+            $cau,
+            fn (string $sql) => str_contains($sql, 'from `screens`')
+                && str_contains($sql, 'limit'),
+        ));
+
+        $this->assertNotEmpty($cauLiet, 'Không thấy truy vấn liệt kê màn hình nào.');
+
+        foreach ($cauLiet as $sql) {
+            $this->assertMatchesRegularExpression(
+                '/order by .*`screens`\.`id` asc\s*limit/i',
+                $sql,
+                "Danh sách kho hàng phân trang mà khoá chính không phải khoá "
+                    . "sắp cuối cùng. Câu SQL: {$sql}",
+            );
+        }
     }
 
     // ── Chốt tĩnh chống tái phát ─────────────────────────────────────────────

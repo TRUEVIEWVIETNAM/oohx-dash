@@ -33,9 +33,10 @@ use Illuminate\Pagination\LengthAwarePaginator;
  * Luôn duy nhất, nên thứ tự là toàn phần. ULID còn mang tiền tố thời gian,
  * nên trong một nhóm bằng nhau nó xếp theo lúc tạo chứ không ngẫu nhiên.
  *
- * Gọi `paginate()` thẳng ở chỗ khác là bỏ qua lớp này, nên
- * `PhanTrangThuTuXacDinhTest` canh rằng các service dùng trait này không còn
- * lời gọi `paginate()` nào của riêng chúng.
+ * Gọi `paginate()` thẳng ở chỗ khác là bỏ qua lớp này, nên có hai chốt tĩnh
+ * canh rằng không nơi nào dùng trait còn lời gọi `paginate()` riêng:
+ * `PhanTrangThuTuXacDinhTest` cho bốn service, `PhanTrangV1Test` cho bốn
+ * controller `/api/v1`.
  *
  * ══ `/api/v1` dùng trait này từ ngày 20/10/2026 ══
  *
