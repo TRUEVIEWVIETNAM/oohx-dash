@@ -14,14 +14,13 @@ import { dungDanhSach } from '@/lib/dung-danh-sach';
  * dùng để biết danh sách của mình đã đủ rộng chưa: mười màn hình của một
  * owner trong một quận không phải một chiến dịch.
  *
- * **Không** có nút "Yêu cầu báo giá" ở đây, dù mock đã duyệt có nó. Màn hình
- * gửi yêu cầu là lát 6 và endpoint là lát 5; dựng sẵn một nút dẫn tới trang
- * chưa tồn tại là hứa với người mua một việc sàn chưa làm được. Nó sẽ vào
- * đúng chỗ này khi lát 6 xong.
+ * Nút **Yêu cầu báo giá** vào đây ở lát 6, khi màn hình gửi và endpoint đã
+ * có thật. Ở lát 4 chỗ này để trống có chủ ý: một nút dẫn tới trang chưa tồn
+ * tại là hứa với người mua một việc sàn chưa làm được.
  *
- * "Sao chép" thì có, vì nó chạy được **hôm nay** mà không cần máy chủ: người
- * mua khoanh xong, dán vào email gửi thẳng cho owner. Lát 7 sẽ thay nó bằng
- * tệp tải về.
+ * "Sao chép" vẫn giữ: nó chạy mà không cần máy chủ, và có người mua chỉ muốn
+ * dán danh sách vào email của chính họ thay vì đi qua sàn. Lát 7 sẽ thêm tệp
+ * tải về bên cạnh nó.
  */
 export function ThanhDanhSach() {
     const ds = dungDanhSach();
@@ -87,13 +86,21 @@ export function ThanhDanhSach() {
                 </button>
 
                 <div className="ds-nut">
-                    <button type="button" className="btn btn-s btn-sm" onClick={() => void chep()}>
+                    <button type="button" className="btn btn-s btn-sm ds-nut-phu" onClick={() => void chep()}>
                         {daChep ? 'Đã sao chép' : 'Sao chép'}
                     </button>
 
-                    <button type="button" className="btn btn-s btn-sm" onClick={() => xoaHet()}>
+                    <button type="button" className="btn btn-s btn-sm ds-nut-phu" onClick={() => xoaHet()}>
                         Bỏ chọn
                     </button>
+
+                    {/*
+                      Hành động chính của cả thanh, nên nó là `btn-p` và đứng
+                      cuối — chỗ ngón cái với tới trước trên điện thoại.
+                    */}
+                    <Link href="/explore/yeu-cau-bao-gia" className="btn btn-p btn-sm">
+                        Yêu cầu báo giá
+                    </Link>
                 </div>
             </div>
 
