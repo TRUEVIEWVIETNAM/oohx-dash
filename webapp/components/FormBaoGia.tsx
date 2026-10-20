@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { bo, TOI_DA, xoaHet } from '@/lib/danh-sach-rut-gon';
+import { bo, TOI_DA, xoaHet, type MucDaChon } from '@/lib/danh-sach-rut-gon';
 import { dungDanhSach } from '@/lib/dung-danh-sach';
 import { cauLoi, dungThan, gomTheoOwner, type ThongTinGui } from '@/lib/bao-gia';
+import { dungCsv, tenTep } from '@/lib/tep-csv';
+import { taiTep } from '@/lib/tai-tep';
 
 /**
  * Màn hình gửi yêu cầu báo giá (lát 6).
@@ -46,7 +48,13 @@ export function FormBaoGia() {
 
     const [dangGui, setDangGui] = useState(false);
     const [loi, setLoi] = useState<string | null>(null);
-    const [xong, setXong] = useState<{ ma: string; soViTri: number; soBiBo: number; soOwner: number } | null>(null);
+    const [xong, setXong] = useState<{
+        ma: string;
+        soViTri: number;
+        soBiBo: number;
+        soOwner: number;
+        ds: MucDaChon[];
+    } | null>(null);
 
     /** Ô mồi ẩn. Người thật không bao giờ điền; bot điền mọi ô nó thấy. */
     const moiRef = useRef<HTMLInputElement>(null);
@@ -152,6 +160,11 @@ export function FormBaoGia() {
                 soViTri: body?.data?.so_vi_tri ?? ds.length,
                 soBiBo: body?.data?.so_bi_bo ?? 0,
                 soOwner: nhom.length,
+
+                // Giữ một bản của danh sách **trước khi dọn**: người mua vừa
+                // gửi mười hai vị trí thường muốn chính danh sách đó cho hồ
+                // sơ của họ, và sau `xoaHet()` thì không còn chỗ nào lấy ra.
+                ds: [...ds],
             });
 
             // Dọn SAU khi máy chủ đã nhận, không trước.
@@ -206,6 +219,14 @@ export function FormBaoGia() {
                 </p>
 
                 <div className="bg-xong-nut">
+                    <button
+                        type="button"
+                        className="btn btn-s"
+                        onClick={() => taiTep(dungCsv(xong.ds, window.location.origin), tenTep())}
+                    >
+                        Tải danh sách (CSV)
+                    </button>
+
                     <Link href="/explore" className="btn btn-p">
                         Tiếp tục khám phá kho
                     </Link>
