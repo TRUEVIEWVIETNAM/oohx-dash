@@ -1,7 +1,5 @@
 /**
- * Thanh năm mục "trust" của trang chủ bản Blade — một khối chữ mà lát 2 **cố
- * ý không dựng**, nay dựng lại **nguyên văn** theo quyết định của chủ dự án
- * (18/10/2026).
+ * Thanh năm mục ngay dưới hero. **Chữ đổi ngày 20/10/2026** — xem mục cuối.
  *
  * ══ Vì sao có tệp riêng, không nhét vào `app/page.tsx` ══
  *
@@ -9,9 +7,12 @@
  * dòng. Nội dung ở đây là **lời hứa sản phẩm**, không phải dữ liệu — nên nó
  * nên sống ở một chỗ đọc được trong một lần nhìn.
  *
- * ══ Chữ ở đây nói những điều hệ thống chưa làm được ══
+ * ══ Năm câu cũ, và cái gì đứng sau mỗi câu ══
  *
- * Ghi lại một lần, ở đúng chỗ người sửa sau sẽ đọc:
+ * Bản Blade in "Verified inventory · Traffic real-time · AI-powered search ·
+ * Secure payment · Agency support 24/7". Lát 2 **cố ý không dựng** khối này;
+ * chủ dự án chốt dựng lại nguyên văn ngày 18/10/2026 sau khi đọc đúng danh
+ * sách dưới đây, rồi chốt sửa ngày 20/10.
  *
  *  - **"Traffic real-time"** — `impression_logs` chưa có bản ghi nào.
  *  - **"AI-powered search"** — không có tính năng AI nào trong mã;
@@ -20,11 +21,36 @@
  *    trực tiếp cho từng media owner (hồ sơ Bộ Công Thương).
  *  - **"Verified inventory"** — cột `owners.verified` có thật nhưng là cờ
  *    thủ công, không phải một quy trình kiểm định.
+ *  - **"Agency support 24/7"** — một cam kết vận hành, không phải một thuộc
+ *    tính của hệ thống. Không có gì trong mã để đối chiếu.
  *
  * Audit F-15 đã gỡ khỏi trang này "30M+ impressions", bộ đếm chạy bằng
  * `Math.random()`, "AI Match 94%" và "tăng fill rate 40%". Thanh này sống sót
- * đợt đó vì nó dọn theo *con số*; đây là *lời khẳng định năng lực*. Chủ dự án
- * đã đọc danh sách trên và chốt dựng lại nguyên văn.
+ * đợt đó vì F-15 dọn theo *con số*; đây là *lời khẳng định năng lực*, và nó
+ * là chỗ **cuối cùng** còn những câu đó sau khi khối AI bị gỡ ở lát 3.
+ *
+ * ══ Năm câu mới, và mã nào đứng sau từng câu ══
+ *
+ * | Câu | Đứng sau nó |
+ * |---|---|
+ * | Vị trí trên bản đồ | `GET /api/v2/screens/pins` + `BanDoTrangChu`; 104/104 bản ghi công khai có toạ độ (báo cáo soát 20/10) |
+ * | Dữ liệu từ chủ màn hình | Ba lối nhập (Excel, biểu mẫu, `/api/v1`) đều ghi dữ liệu của owner; sàn không tự đo lại |
+ * | Lọc theo tỉnh, loại hình | `GET /api/v2/filters` trả 17 tỉnh, 2 loại địa điểm, 3 loại màn hình trên kho thật |
+ * | Gửi yêu cầu không cần đăng ký | `POST /api/v2/quote-requests` nằm ngoài nhóm Sanctum (chốt 19/10) |
+ * | Xuất danh sách CSV | `/explore` xuất giỏ ra CSV (chốt lát 5: "CSV") |
+ *
+ * Mỗi câu nói một **việc làm được**, không nói một **năng lực**. Đó là khác
+ * biệt làm chúng kiểm được: "Vị trí trên bản đồ" sai khi bản đồ không có pin,
+ * còn "Traffic real-time" thì không có phép thử nào.
+ *
+ * Ba thứ **cố ý không nói ở đây** vì trang đã nói chỗ khác, và nhắc lại là
+ * lấp chỗ: "Miễn phí đăng ký · Không phí môi giới" (ở hero), "Sàn không thu
+ * hộ" và "Giá do chủ màn hình đặt" (khối ⑤ Bảo đảm).
+ *
+ * Thứ **không** nói vì chưa đo được: chất lượng toạ độ. Báo cáo soát ngày
+ * 20/10 tìm ra sáu màn hình Yên Bái dùng chung một toạ độ và một bản ghi
+ * thiếu tỉnh — nên câu ở đây là "vị trí trên bản đồ" (có pin), không phải
+ * "toạ độ chính xác" (một khẳng định về chất lượng).
  *
  * ══ Mục "Marketplace OOH đầu tiên có AI" đã gỡ (lát 3, 18/10/2026) ══
  *
@@ -49,24 +75,29 @@
 
 const TRUST: { nhan: string; path: string }[] = [
     {
-        nhan: 'Verified inventory',
-        path: 'M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.7L1 12l2.44 2.79-.34 3.7 3.61.82 1.89 3.2L12 21.04l3.4 1.46 1.89-3.19 3.61-.82-.34-3.69L23 12zm-12.91 4.72l-3.8-3.81 1.48-1.48 2.32 2.33 5.85-5.87 1.48 1.48-7.33 7.35z',
+        // place
+        nhan: 'Vị trí trên bản đồ',
+        path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
     },
     {
-        nhan: 'Traffic real-time',
-        path: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z',
+        // storefront
+        nhan: 'Dữ liệu từ chủ màn hình',
+        path: 'M21.9 8.89l-1.05-4.37c-.22-.9-1-1.52-1.91-1.52H5.05c-.9 0-1.69.63-1.9 1.52L2.1 8.89c-.24 1.02-.02 2.06.62 2.88.08.11.19.19.28.29V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-6.94c.09-.09.2-.18.28-.28.64-.82.86-1.87.62-2.89zM13 5l.67 4.47c.1.68-.42 1.53-1.3 1.53-.72 0-1.31-.59-1.37-1.34V5h2zM5.96 5H8l-.63 4.59c-.11.73-.69 1.32-1.39 1.4-.73.09-1.4-.42-1.5-1.13L5.96 5zm12.08 14H6c-.55 0-1-.45-1-1v-5.02c.09.01.17.02.26.02.8 0 1.52-.33 2.05-.86.54.54 1.26.86 2.08.86.79 0 1.5-.33 2.03-.84.54.51 1.26.84 2.08.84.76 0 1.48-.33 2.01-.84.54.51 1.25.84 2.01.84.09 0 .17-.01.26-.02V18c0 .55-.45 1-1 1z',
     },
     {
-        nhan: 'AI-powered search',
-        path: 'M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25z',
+        // filter_list
+        nhan: 'Lọc theo tỉnh, loại hình',
+        path: 'M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z',
     },
     {
-        nhan: 'Secure payment',
-        path: 'M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z',
+        // send
+        nhan: 'Gửi yêu cầu không cần đăng ký',
+        path: 'M2.01 21L23 12 2.01 3 2 10l15 2-15 2z',
     },
     {
-        nhan: 'Agency support 24/7',
-        path: 'M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z',
+        // file_download
+        nhan: 'Xuất danh sách CSV',
+        path: 'M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z',
     },
 ];
 

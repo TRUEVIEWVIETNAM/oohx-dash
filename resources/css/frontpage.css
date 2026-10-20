@@ -566,7 +566,11 @@ ul{list-style:none}
 @media(min-width:768px){.trust{padding:28px 0}}
 .trust-in{max-width:var(--mw);margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:0;justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .trust-in::-webkit-scrollbar{display:none}
-@media(min-width:768px){.trust-in{padding:0 32px;justify-content:center;overflow:visible}}
+/* `flex-wrap:wrap` ở desktop, thêm 20/10/2026 cùng lúc đổi chữ của thanh.
+   Năm nhãn tiếng Việt dài hơn năm nhãn tiếng Anh cũ; với `nowrap` +
+   `overflow:visible` chúng không cuộn mà TRÀN ra ngoài khung, và chỗ tràn
+   lộ ra đúng ở dải 1024-1280px. `row-gap` để hai dòng không dính nhau. */
+@media(min-width:768px){.trust-in{padding:0 32px;justify-content:center;overflow:visible;flex-wrap:wrap;row-gap:10px}}
 .trust-item{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:var(--t3);white-space:nowrap;flex-shrink:0;padding:0 6px}
 @media(min-width:768px){.trust-item{font-size:14px;gap:8px;padding:0 20px}}
 .trust-item svg{width:14px;height:14px;color:var(--bl)}
