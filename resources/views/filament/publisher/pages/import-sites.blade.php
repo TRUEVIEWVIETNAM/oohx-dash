@@ -619,6 +619,40 @@
     </div>
     @endif
 
+    {{-- Màn hình bị chuyển sang điểm đặt khác --}}
+    @php $daChuyen = $results['doi_diem_dat'] ?? []; @endphp
+    @if(count($daChuyen) > 0)
+    <div class="mb-6 rounded-lg border border-warning-200 bg-warning-50 p-4 dark:border-warning-800 dark:bg-warning-950/30">
+        <h4 class="mb-2 flex items-center gap-2 text-sm font-semibold text-warning-700 dark:text-warning-400">
+            <x-heroicon-s-arrows-right-left class="h-4 w-4"/>
+            Màn hình đổi điểm đặt ({{ number_format(count($daChuyen)) }})
+        </h4>
+        <p class="mb-3 text-xs text-warning-700 dark:text-warning-400">
+            Tệp vừa gắn những màn hình này sang địa điểm khác với lần trước. Nếu
+            đó là chủ ý thì không cần làm gì. Nếu không, đây là một bản ghi vừa
+            đi sai chỗ — và sau khi nhập thì người mua đọc một địa chỉ không
+            phải của nó.
+        </p>
+        <ul class="max-h-56 space-y-1.5 overflow-y-auto text-sm text-warning-700 dark:text-warning-400">
+            @foreach($daChuyen as $dc)
+                <li class="flex items-start gap-2">
+                    <span class="mt-0.5 shrink-0 text-warning-400">•</span>
+                    <span>
+                        <strong>{{ $dc['ten'] }}</strong>
+                        <span class="opacity-70">[{{ $dc['screen'] }}]</span>
+                        {{-- Mỗi mảnh chữ giữa hai biểu thức phải tự có dấu:
+                             `ChuBladePanelPhaiCoDauTest` quét theo text node, nên
+                             "… sang …" kẹp giữa hai `{{ }}` thành một mảnh "sang"
+                             không dấu và chốt đó đỏ. --}}
+                        <br>
+                        Điểm đặt cũ: {{ $dc['tu'] }} — mới: {{ $dc['sang'] }}
+                    </span>
+                </li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
     {{-- DB Duplicate report --}}
     @php
         $dbDupSites   = $results['duplicates']['sites']   ?? [];
