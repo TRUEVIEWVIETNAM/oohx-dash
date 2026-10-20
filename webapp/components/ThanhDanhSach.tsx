@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { bo, demTheoNhom, TOI_DA, xoaHet } from '@/lib/danh-sach-rut-gon';
 import { dungDanhSach } from '@/lib/dung-danh-sach';
+import { dungCsv, tenTep } from '@/lib/tep-csv';
+import { taiTep } from '@/lib/tai-tep';
 
 /**
  * Thanh đáy của danh sách rút gọn, và ngăn kéo xem lại (lát 4).
@@ -18,9 +20,15 @@ import { dungDanhSach } from '@/lib/dung-danh-sach';
  * có thật. Ở lát 4 chỗ này để trống có chủ ý: một nút dẫn tới trang chưa tồn
  * tại là hứa với người mua một việc sàn chưa làm được.
  *
- * "Sao chép" vẫn giữ: nó chạy mà không cần máy chủ, và có người mua chỉ muốn
- * dán danh sách vào email của chính họ thay vì đi qua sàn. Lát 7 sẽ thêm tệp
- * tải về bên cạnh nó.
+ * ══ Hai nút phụ chuyển vào ngăn kéo ở lát 7 ══
+ *
+ * "Sao chép" và "Tải CSV" là hai cách lấy danh sách ra ngoài sàn, và cả hai
+ * chỉ có nghĩa khi người ta đang **nhìn** danh sách. Để cả bốn nút trên
+ * thanh đáy thì ở 390px nút chính bị đẩy xuống dòng, và thứ bị đẩy đi lại
+ * là hành động quan trọng nhất.
+ *
+ * Nên thanh giữ đúng việc của nó — đếm, bỏ chọn, gửi — còn hai nút kia nằm
+ * trong ngăn kéo, ngay trên danh sách chúng thao tác.
  */
 export function ThanhDanhSach() {
     const ds = dungDanhSach();
@@ -54,6 +62,10 @@ export function ThanhDanhSach() {
 
     if (!co) return null;
 
+    function tai() {
+        taiTep(dungCsv(ds, window.location.origin), tenTep());
+    }
+
     async function chep() {
         const van = ds
             .map((m, i) => `${i + 1}. ${m.ten}${m.thanhPho ? ' — ' + m.thanhPho : ''}${m.owner ? ' — ' + m.owner : ''}`)
@@ -86,10 +98,6 @@ export function ThanhDanhSach() {
                 </button>
 
                 <div className="ds-nut">
-                    <button type="button" className="btn btn-s btn-sm ds-nut-phu" onClick={() => void chep()}>
-                        {daChep ? 'Đã sao chép' : 'Sao chép'}
-                    </button>
-
                     <button type="button" className="btn btn-s btn-sm ds-nut-phu" onClick={() => xoaHet()}>
                         Bỏ chọn
                     </button>
@@ -109,6 +117,16 @@ export function ThanhDanhSach() {
                     <span>
                         Đã chọn {dem.viTri}/{TOI_DA}
                     </span>
+
+                    <div className="ds-panel-nut">
+                        <button type="button" className="btn btn-s btn-xs" onClick={() => void chep()}>
+                            {daChep ? 'Đã chép' : 'Sao chép'}
+                        </button>
+
+                        <button type="button" className="btn btn-s btn-xs" onClick={() => tai()}>
+                            Tải CSV
+                        </button>
+                    </div>
 
                     <button type="button" className="ds-panel-dong" onClick={() => setMo(false)} aria-label="Đóng">
                         ×

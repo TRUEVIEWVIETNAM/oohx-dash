@@ -278,6 +278,26 @@ tiếp, không thêm thư viện nào vào `composer.json`, và agency dán th�
 bảng kế hoạch của họ. Nếu chủ dự án cần đúng `.xlsx` (có định dạng, có logo)
 thì đó là một lát riêng kèm một thư viện mới.
 
+> **Làm ngày 20/10/2026, và KHÔNG có endpoint nào.** Chủ dự án chốt kiểu
+> trình duyệt sau khi tôi nêu một mâu thuẫn trong chính plan này: endpoint
+> viết ở trên tải theo **mã yêu cầu đã gửi**, nhưng nút tải lại nằm ở danh
+> sách rút gọn — chỗ người mua đứng **trước** khi gửi, khi chưa có mã nào.
+>
+> Danh sách sống trong `localStorage`; máy chủ không biết nó. Gửi nó lên chỉ
+> để nhận lại dưới dạng tệp là một vòng mạng cho dữ liệu đã nằm sẵn trong
+> tay, cộng một endpoint mới phải phân quyền. Nên CSV sinh ở trình duyệt
+> (`lib/tep-csv.ts`), và `GET /api/v2/quote-requests/{ma}/tep` **không** được
+> dựng. Khi nào `/admin` hay `/publisher` cần xuất tệp thì đó là lát riêng,
+> với một tập dữ liệu khác và một bộ quyền khác.
+>
+> **Nút chuyển chỗ.** "Sao chép" và "Tải CSV" nằm trong ngăn kéo, ngay trên
+> danh sách chúng thao tác; thanh đáy giữ đúng ba việc của nó — đếm, bỏ
+> chọn, gửi. Bốn nút trên thanh thì ở 390px nút chính bị đẩy xuống dòng.
+>
+> Màn xác nhận cũng có nút tải: nó giữ một bản của danh sách **trước khi**
+> `xoaHet()`, vì người vừa gửi mười hai vị trí thường muốn chính danh sách
+> đó cho hồ sơ của họ.
+
 ## Ba thứ trong mock sẽ KHÔNG lên trang công khai
 
 **1. Nhãn cảnh báo dữ liệu trên thẻ.** Mock in *"Tên nói Aeon Mall Tân Phú
