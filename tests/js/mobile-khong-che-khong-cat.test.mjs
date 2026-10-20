@@ -134,6 +134,51 @@ test('ô tick nói được nó là ô chọn trên thiết bị cảm ứng', (
     );
 });
 
+test('ngăn danh sách `/map` chừa chỗ cho bản đồ', () => {
+    const than = thanQuyTac(doc('resources/css/frontpage.css'), '.map-panel.open');
+
+    assert.ok(than, 'Không tìm thấy quy tắc `.map-panel.open`.');
+
+    assert.match(
+        than,
+        /height:\s*clamp\(40dvh,\s*calc\(100dvh - var\(--hdr\) - 300px\),\s*60dvh\)/,
+        'Ngăn danh sách `/map` quay về chiều cao cố định. Với `60vh`, đo ở '
+            + 'viewport 742px thì ngăn chiếm 445px và bản đồ **chỉ còn 245px** — '
+            + 'trên một trang mà bản đồ là nội dung. `clamp` chừa 300px cho bản '
+            + 'đồ trước rồi mới lấy phần còn lại.',
+    );
+
+    assert.match(
+        than,
+        /height:\s*60vh;height:\s*clamp\(/,
+        'Mất dòng `height:60vh` đứng trước. Nó là dự phòng cho trình duyệt '
+            + 'không biết `dvh`; bỏ đi thì ở đó ngăn không có chiều cao nào.',
+    );
+});
+
+test('ba ngăn kéo lên đều đo theo vùng nhìn thật', () => {
+    const css = doc('resources/css/frontpage.css');
+
+    // `vh` tính theo viewport khi thanh địa chỉ ẩn, nên trên điện thoại thật
+    // `60vh` chiếm tới ~73% vùng nhìn thấy. `dvh` theo vùng nhìn thật.
+    for (const [sel, mong] of [
+        ['.sidebar.open', /height:\s*60vh;height:\s*60dvh/],
+        ['.ds-panel', /max-height:\s*56vh;max-height:\s*56dvh/],
+    ]) {
+        const than = thanQuyTac(css, sel);
+
+        assert.ok(than, `Không tìm thấy quy tắc \`${sel}\`.`);
+
+        assert.match(
+            than,
+            mong,
+            `\`${sel}\` không còn đo theo \`dvh\`. Ba ngăn kéo lên — `
+                + '`.map-panel.open`, `.sidebar.open`, `.ds-panel` — là cùng một '
+                + 'cử chỉ, nên chúng phải cùng đo theo một thứ.',
+        );
+    }
+});
+
 test('bản đồ không in chữ "true" dưới chân', () => {
     const ts = doc('webapp/lib/dung-ban-do.ts');
 
