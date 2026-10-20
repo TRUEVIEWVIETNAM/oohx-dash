@@ -1821,6 +1821,10 @@ thứ chốt này canh, nên nó phải đọc được ngay trong mã test.
 
 ### Còn mở sau ngày 20/10 (bản cập nhật)
 
+> **Bảng này hết hiệu lực chiều 20/10.** Hai dòng trong nó — phân trang
+> `/api/v1` và thanh "trust" — đã làm xong ở #140 và #141. Bảng còn hiệu lực
+> ở cuối tệp.
+
 | Việc | Chặn bởi |
 |---|---|
 | **Chưa ai thử đường gửi yêu cầu thật trên production** | Nay xoá được rồi (#136), nên không còn gì chặn. Cần chủ dự án bấm |
@@ -1830,6 +1834,132 @@ thứ chốt này canh, nên nó phải đọc được ngay trong mã test.
 | **Phân trang `/api/v1` mang đúng lỗi #130** | Đổi thứ tự trả về là đổi hành vi hợp đồng đối tác (CLAUDE.md mục 1) — cần chủ dự án chốt |
 | **Thanh "trust"** | Vẫn in "Verified inventory", "Traffic real-time", "AI-powered search" |
 | **Nhãn tiếng Việt trên bản đồ** | Cần tạo style trong MapTiler Cloud rồi đưa tên vào `MAPTILER_STYLE` |
+| Báo cáo soát chưa xét giá, ảnh thực địa, kích thước | Trang in câu đó ra để không ai đọc nó như một báo cáo đầy đủ |
+| Mốc ba cột 1280px thay vì 1180px như plan viết | `.w` lấy 52px mỗi bên, nên ở 1180px lưới còn 140px một thẻ |
+| Hai định nghĩa CSS trùng (`.loc-item`, `.mpop-price`) | Việc của một lần dọn CSS |
+
+## Ngày 20/10/2026, chiều — hai việc lấy từ bảng "còn mở" (#140, #141)
+
+`main` ở `87af1d3`. CI **1.157 ca / 4.407 khẳng định** (sáng nay: 1.139 /
+4.306). Không còn PR nào mở, cả hai đã lên production và đã đo lại trên đó.
+
+| PR | Việc | Đo được |
+|---|---|---|
+| #140 | `/api/v1` lật trang không còn trùng và thiếu bản ghi | 18 ca / 101 khẳng định |
+| #141 | Thanh "trust" nói việc làm được thay vì năng lực | 5 câu đổi, 1 lỗi bố cục đo trong trình duyệt |
+
+### #140 — vì sao hôm nay sửa được cái #130 phải hoãn
+
+#130 hoãn `/api/v1` vì nó là hợp đồng với đối tác (CLAUDE.md mục 1), và đổi
+thứ tự trả về là đổi hành vi. Điều mở khoá cho hôm nay không phải một quyết
+định nới tay, mà là một câu hỏi hẹp hơn: **hợp đồng đã công bố cái gì?**
+
+`docs/tapon_api_list.md` và `docs/api_tapon_browse_filters_v1.md` công bố
+**những khoá sắp xếp nào tồn tại**. Không chỗ nào công bố thứ tự **trong một
+nhóm bằng nhau** — và đó là tất cả những gì khoá phụ chạm tới. Một đối tác
+đang lật trang không thể đã dựa vào thứ tự cũ, vì thứ tự cũ không tồn tại:
+nó đổi giữa các lần chạy.
+
+Năm chỗ, và cột nào đang sắp trước khi sửa:
+
+| Đường | Khoá sắp xếp cũ |
+|---|---|
+| `inventory/screens?sort=newest` | `updated_at` — trùng hàng loạt khi nhập theo lô |
+| `inventory/screens?sort=price_asc\|price_desc` | `floor_cpm` — NULL cho 103/104 bản ghi thật |
+| `inventory/owners` | `featured` (boolean) rồi `name` |
+| `owners`, `sites`, `screens` | **không có `ORDER BY` nào** khi không gửi `sort` |
+
+Ba endpoint quản lý là chỗ **duy nhất** đối tác có thể thấy khác trước: nay
+chúng đi theo ULID (≈ cũ nhất trước). Cái họ thấy trước đó là thứ tự MySQL
+thấy rẻ nhất hôm ấy.
+
+**Phép đột biến nói ra một điều không đoán trước.** Gỡ khoá phụ khỏi
+`phanTrang()` làm bốn ca kho hàng đỏ, nhưng **sáu ca endpoint quản lý vẫn
+xanh**. Không còn `ORDER BY` nào thì MySQL quét 25 hàng theo khoá chính một
+cách nhất quán giữa hai truy vấn, nên không bản ghi nào lặp. Thứ tự *không
+xác định* không có nghĩa là *ngẫu nhiên*: nó đổi khi kế hoạch truy vấn đổi —
+tức khi dữ liệu đủ nhiều — chứ không đổi ở cỡ một fixture.
+
+Nên hai ca mới đi xuống **câu SQL** (`DB::listen`) và đòi khoá chính phải là
+khoá sắp **cuối cùng** — vừa nói khoá phụ có mặt, vừa nói nó đứng sau mọi
+khoá khác. Giới hạn của sáu ca kia ghi thẳng lên đầu chúng trong tệp test,
+thay vì để người đọc tưởng chúng canh lỗi này.
+
+Đột biến thứ hai — chèn `reorder()` để khoá phụ **giành chỗ** khoá chính —
+làm đúng bốn ca "hợp đồng không đổi" đỏ. Bốn ca đó cần thiết vì
+`allowedSorts()` của Spatie nạp sort vào query **ngay trong thân nó**: một
+thứ tự gọi nằm trong thư viện bên ngoài, không có chốt thì không ai biết nó
+đổi.
+
+**Chưa đo được trên production.** `/api/v1` đòi Bearer token đối tác, không
+có thì không gọi được; v2 đo được hôm 19/10 vì nó công khai. Đo thay thế:
+v2 sau deploy vẫn 104/104 bản ghi duy nhất ở cả bốn cách sắp.
+
+### #141 — chỗ cuối cùng còn những câu không kiểm được
+
+Thanh năm mục dưới hero là chỗ **cuối cùng** còn chúng, sau khi khối AI bị gỡ
+ở lát 3. Chủ dự án chốt dựng nguyên văn ngày 18/10 (#94, #97) rồi chốt sửa
+ngày 20/10.
+
+| Câu cũ | Câu mới | Mã đứng sau câu mới |
+|---|---|---|
+| Verified inventory | Vị trí trên bản đồ | `/api/v2/screens/pins`; 104/104 bản ghi công khai có toạ độ |
+| Traffic real-time | Dữ liệu từ chủ màn hình | Ba lối nhập đều ghi dữ liệu của owner |
+| AI-powered search | Lọc theo tỉnh, loại hình | `/api/v2/filters`: 17 tỉnh, 2 loại địa điểm, 3 loại màn hình |
+| Secure payment | Gửi yêu cầu không cần đăng ký | `POST /api/v2/quote-requests` nằm ngoài nhóm Sanctum |
+| Agency support 24/7 | Xuất danh sách CSV | `/explore` xuất giỏ ra CSV |
+
+Tiêu chí: mỗi câu nói một **việc làm được**, không nói một **năng lực**. Đó là
+khác biệt làm chúng kiểm được — "Vị trí trên bản đồ" sai khi bản đồ không có
+pin, còn "Traffic real-time" thì không có phép thử nào.
+
+Ba thứ **cố ý không nói ở đây** vì trang đã nói chỗ khác, và nhắc lại là lấp
+chỗ: "Miễn phí đăng ký · Không phí môi giới" (hero), "Sàn không thu hộ" và
+"Giá do chủ màn hình đặt" (khối ⑤). Một thứ **không nói vì chưa đo được**:
+chất lượng toạ độ — báo cáo soát sáng nay tìm ra sáu màn hình Yên Bái chung
+một toạ độ, nên câu là "vị trí trên bản đồ" (có pin), không phải "toạ độ
+chính xác" (một khẳng định về chất lượng).
+
+**Chữ mới tạo ra một lỗi bố cục.** Nhãn tiếng Việt dài hơn nhãn tiếng Anh, và
+`.trust-in` ở desktop là `flex-wrap:nowrap` + `overflow:visible` — tràn ra
+ngoài khung chứ không cuộn. Đo trong trình duyệt bằng iframe (media query
+theo chiều rộng iframe, nên là phép đo thật):
+
+| Rộng | Có `wrap` | Nếu tắt `wrap` |
+|---|---|---|
+| 1280px · 1180px | 1 dòng, không tràn | — |
+| 1024px | 2 dòng, không tràn | mục cuối chạm 1052px — tràn 28px |
+| 768px | 2 dòng, không tràn | mục cuối chạm 924px — tràn 156px |
+| < 768px | cuộn ngang trong thanh (đúng thiết kế mobile), trang không cuộn ngang | — |
+
+Nên thêm `flex-wrap:wrap; row-gap:10px` ở ≥768px và rút hai nhãn dài nhất.
+Đánh đổi đã chọn: ở 768–1024px thanh nay hai dòng.
+
+### Hai thứ đáng ghi về cách làm
+
+**Đo trên production, không chỉ xem mã thoát.** Sau mỗi deploy hôm nay đều có
+một phép đo thật, không chỉ smoke 200: #140 đếm bản ghi duy nhất khi lật hết
+trang, #141 `grep` năm câu mới có mặt **và** năm câu cũ bằng 0 trong HTML
+production, cộng một lần kiểm `flex-wrap:wrap` thật sự nằm trong tệp CSS đã
+build.
+
+**Đảo một quyết định thì ghi lại cả hai đầu.** Năm câu cũ chuyển từ danh sách
+`co` sang `khong` của `khoi-giao-dien.mjs`, cùng kiểu với sáu luật mục AI hồi
+lát 3 — mang lại một câu phải là một quyết định, không phải một lần sửa test
+cho xanh.
+
+### Còn mở sau chiều 20/10
+
+| Việc | Chặn bởi |
+|---|---|
+| **Chưa ai thử đường gửi yêu cầu thật trên production** | Nay xoá được rồi (#136), không còn gì chặn. Cần chủ dự án bấm |
+| **Chưa ai chạy thật lối nhập màn hình ở `/admin`** sau khi sửa kiểu ULID | Hai ca hồi quy đi qua `ScreenWriter` trực tiếp, không qua `ScreenImportService` và hàng đợi của nó |
+| **Chưa đo `/api/v1` trên production** | Cần một API client (scope `inventory`) và token của nó. Không có token thì không gọi được đường nào trong nhóm đó |
+| **Ba việc nhập liệu từ báo cáo soát** | Điền tỉnh cho LED Lai Châu · quyết định tên hay điểm đặt mới là cái sai ở hàng Aeon · cho sáu màn hình Yên Bái toạ độ riêng |
+| **Độ phủ `ghepLechKhoa` vẫn 0/104** | Chờ lượt nhập lại đầu tiên |
+| **Đối tác chưa được báo** về thứ tự mặc định mới của `/owners`, `/sites`, `/screens` | `docs/tapon_api_list.md` đã ghi, nhưng tài liệu không tự đến tay ai — và STATUS.md vẫn đang chờ trả lời "đối tác nào đang dùng API" |
+| **Nhãn tiếng Việt trên bản đồ** | Cần tạo style trong MapTiler Cloud rồi đưa tên vào `MAPTILER_STYLE` |
+| `price_per_slot_vnd` của `/api/v1` mang giá trị `floor_cpm` | Ghi chú F09 tại chỗ: đổi là làm sai số tiền trong hệ thống đối tác mà họ không được báo trước |
 | Báo cáo soát chưa xét giá, ảnh thực địa, kích thước | Trang in câu đó ra để không ai đọc nó như một báo cáo đầy đủ |
 | Mốc ba cột 1280px thay vì 1180px như plan viết | `.w` lấy 52px mỗi bên, nên ở 1180px lưới còn 140px một thẻ |
 | Hai định nghĩa CSS trùng (`.loc-item`, `.mpop-price`) | Việc của một lần dọn CSS |
