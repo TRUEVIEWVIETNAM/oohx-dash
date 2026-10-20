@@ -1512,6 +1512,107 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/quote-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gửi yêu cầu báo giá cho một danh sách vị trí
+         * @description Đường để người mua hỏi giá một tập vị trí đã khoanh ở `/explore`.
+         *     **85/104 vị trí trên sàn chưa có giá**, nên đây là cách chính để một
+         *     vị trí có giá lần đầu.
+         *
+         *     **Khách chưa đăng nhập gửi được** — chủ dự án chốt 19/10/2026. Vì thế
+         *     mọi lớp chống lạm dụng phải đứng được một mình: hạn mức 5 lần mỗi 60
+         *     phút (cùng mức `reflections`), ô mồi ẩn `website` (`prohibited`),
+         *     và IP cùng user agent được ghi lại.
+         *
+         *     `slugs` là danh sách **slug màn hình**; tên, thành phố và media owner
+         *     đều do máy chủ tra lại. Nhận tên từ client là để một yêu cầu nói sai
+         *     về chính kho của owner nhận nó.
+         *
+         *     Slug không còn công khai thì **bị bỏ qua**, không làm hỏng cả yêu cầu:
+         *     danh sách rút gọn sống trong `localStorage` hàng tuần, nên một màn
+         *     hình gỡ khỏi sàn trong lúc đó là chuyện thường. Số bị bỏ trả về ở
+         *     `so_bi_bo`. Nếu **không** slug nào còn hợp lệ thì trả 422.
+         *
+         *     Phản hồi **không** nói gì về media owner: endpoint mở cho người lạ, và
+         *     một phản hồi liệt kê owner biến nó thành đường tra quan hệ sở hữu của
+         *     sàn.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Trần 50, đúng bằng trần của danh sách rút gọn phía trình
+                         *     duyệt và bằng `MAX_PER_PAGE` của `/api/v2/screens`. Hai
+                         *     đầu cùng giới hạn thì không có trạng thái "khoanh được 80
+                         *     nhưng gửi chỉ nhận 50".
+                         */
+                        slugs: string[];
+                        contact_name: string;
+                        /** Format: email */
+                        contact_email: string;
+                        contact_phone?: string | null;
+                        contact_company?: string | null;
+                        /** Format: date */
+                        campaign_start?: string | null;
+                        /** Format: date */
+                        campaign_end?: string | null;
+                        /** @description VND số nguyên. Người mua tự khai; sàn không tính gì từ con số này. */
+                        budget_vnd?: number | null;
+                        notes?: string | null;
+                        /**
+                         * @description Bắt buộc. Người gửi để lại email và điện thoại, nên đây là
+                         *     điều kiện để thu thập chúng. Phiên bản chính sách do máy
+                         *     chủ ghi lại qua `PolicyConsentService`, không nhận từ
+                         *     client.
+                         */
+                        dong_y_chinh_sach: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã tiếp nhận */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                /** @description YCB-YYYYMM-nnnn — mã tra cứu. */
+                                code: string;
+                                so_vi_tri: number;
+                                /** @description Số slug gửi lên nhưng không còn công khai, nên không vào yêu cầu. */
+                                so_bi_bo: number;
+                                message: string;
+                            };
+                        };
+                    };
+                };
+                422: components["responses"]["ValidationFailed"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/me": {
         parameters: {
             query?: never;

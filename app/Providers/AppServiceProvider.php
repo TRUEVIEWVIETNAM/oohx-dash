@@ -61,6 +61,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Campaign::class, CampaignPolicy::class);
         Gate::policy(Owner::class, OwnerPolicy::class);
         Gate::policy(Refund::class, RefundPolicy::class);
+        Gate::policy(\App\Models\QuoteRequest::class, \App\Policies\QuoteRequestPolicy::class);
         Gate::policy(CartItem::class, CartItemPolicy::class);
         Gate::policy(Creative::class, CreativePolicy::class);
         Gate::policy(OwnerUser::class, OwnerUserPolicy::class);
