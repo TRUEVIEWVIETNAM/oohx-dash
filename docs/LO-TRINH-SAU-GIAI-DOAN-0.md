@@ -1963,3 +1963,127 @@ cho xanh.
 | Báo cáo soát chưa xét giá, ảnh thực địa, kích thước | Trang in câu đó ra để không ai đọc nó như một báo cáo đầy đủ |
 | Mốc ba cột 1280px thay vì 1180px như plan viết | `.w` lấy 52px mỗi bên, nên ở 1180px lưới còn 140px một thẻ |
 | Hai định nghĩa CSS trùng (`.loc-item`, `.mpop-price`) | Việc của một lần dọn CSS |
+
+> **Bảng trên thiếu một dòng.** #143 (dưới đây) tìm ra rằng `/map` bỏ sót
+> `OOHX_LED_LCU_LAI_CHAU` khỏi danh sách — dòng "ba việc nhập liệu" vì thế
+> nặng hơn vẻ ngoài của nó. Bảng còn hiệu lực ở cuối mục sau.
+
+## Ngày 20/10/2026, tối — bốn lỗi mobile từ hai tấm ảnh (#143)
+
+Chủ dự án gửi hai ảnh chụp `/explore` và `/map` trên điện thoại, kèm đúng một
+câu: *"Giao diện mobile của 2 trang này bị lỗi."* Đo lại ở khung **390×844**
+trong trình duyệt (iframe, nên media query ăn theo chiều rộng khung) ra bốn
+lỗi, cộng một chênh lệch số liệu hoá ra không phải lỗi giao diện.
+
+### Một biến CSS sai phạm vi, bốn triệu chứng
+
+`--nav: 60px` là chiều cao thanh điều hướng dưới của bản **Blade** (`.bnav`,
+chỉ được `include` trong layout Blade). **Không trang Next nào render nó** —
+kiểm cả `/`, `/explore`, `/map`: không có phần tử cố định nào ở đáy. Nhưng
+`frontpage.css` dùng chung, và **15 quy tắc** trừ hao `var(--nav)` để né một
+thanh không tồn tại:
+
+| Đo ở 390px | Trước | Sau |
+|---|---|---|
+| "Bộ lọc" (`/explore`) cách đáy | 72px — lơ lửng giữa nội dung, đè lên thẻ | 12px |
+| "Danh sách" (`/map`) cách đáy | 72px — đè lên dòng ghi công | 12px |
+| `body` chừa cuối trang | 60px trống | 0 |
+| Khung `.map-layout` | `100vh − hdr − 60px` | 668/720 |
+
+Sửa bằng **một dòng** `--nav: 0px` trong `webapp/app/globals.css`, không đụng
+`frontpage.css`: bên đó `var(--nav)` vẫn đúng cho bản Blade, nơi `.bnav` có
+thật. Đây là lần thứ hai trong hai ngày mà cách đúng là **sửa ở lớp
+`globals.css` của Next** thay vì sửa tệp dùng chung — lần trước là `--font`.
+
+### Tên dạng mã bị cắt giữa chữ
+
+Tên kho thật không có một khoảng trắng nào:
+`OOHX_LED_YBI_YEN_BAI_NGUYEN_VAN_CU_1`. `.sc-title` có `overflow:hidden`
+nhưng `overflow-wrap: normal`, nên chuỗi ấy không xuống dòng được — **307px
+nội dung trong ô 197px**, cắt phũ, không dấu "…".
+
+Tệ hơn chuyện thẩm mỹ: ở mobile ô này clamp **một** dòng, nên
+`..._NGUYEN_VAN_CU_1` và `..._CU_2` cắt ra **giống hệt nhau**. Hai vị trí
+khác nhau hiện ra như một. Sửa: `overflow-wrap:anywhere` + clamp hai dòng.
+
+### Ô trắng rỗng trên ảnh
+
+`.o-tick` (ô chọn vào danh sách rút gọn) có `color: transparent` khi chưa
+chọn, dấu tick chỉ lộ ra khi **trỏ chuột vào**. Điện thoại không có hover,
+nên nó hiện ra như một ô trắng 44×44 rỗng nằm trên ảnh. Thêm
+`@media(hover:none){.o-tick{color:var(--t4)}}`.
+
+Đây là loại lỗi chỉ tồn tại ở một nửa số thiết bị, và nửa không thấy nó là
+nửa mà người viết mã ngồi.
+
+### Dòng ghi công in chữ "true"
+
+`L.control.attribution({ prefix: true })`. `prefix` của Leaflet là **chuỗi
+HTML** in trước phần ghi công, không phải cờ bật/tắt — nên dòng dưới bản đồ
+production đọc là `true | © MapTiler · © OpenStreetMap`. Nhìn thoáng qua
+trông như tên một đơn vị bị cắt mất đầu, và đó đúng là cách nó bị đọc nhầm
+khi soát. `false` mới là cách tắt.
+
+### 103 ≠ 104: một vị trí không có đường nào để tới
+
+`/map` hiện "Hiển thị **103** kết quả" trong khi kho có 104.
+`/api/v2/screens/map` trả đủ 104, nhưng **đúng một** bản ghi không có tỉnh —
+`OOHX_LED_LCU_LAI_CHAU` — nên nó rơi khỏi danh sách gom theo tỉnh.
+
+Báo cáo soát sáng nay đã xếp bản ghi này là *"thiếu tỉnh, mức cao"*, nhưng
+chưa ai biết **hệ quả**: nó biến mất khỏi `/map`. Một ô dữ liệu rỗng thành
+một vị trí người mua không tìm thấy. Không sửa ở #143 vì có hai cách khác
+nhau — điền tỉnh, hay cho danh sách một nhóm "chưa rõ tỉnh" — và đó là lựa
+chọn của chủ dự án.
+
+("94 vị trí đang hiển thị" thì đúng: đó là số pin trong khung nhìn.)
+
+### Vì sao không test nào bắt được bốn lỗi này
+
+jsdom không chạy layout, `khoi-giao-dien.mjs` đọc HTML đã render chứ không
+chạy CSS, và không chốt nào đọc tới `dung-ban-do.ts`.
+`tests/js/mobile-khong-che-khong-cat.test.mjs` **không** mở rộng tầm đó ra
+tới cách trang hiện ra — điều ấy vẫn ngoài tầm. Nó đóng một khoảng hẹp hơn và
+kiểm được bằng văn bản: bốn dòng đã sửa phải còn nguyên, mỗi chốt mang theo
+số đo của lỗi nó chặn.
+
+Một ca đi theo chiều ngược: `frontpage.css` **phải** giữ `--nav: 60px` và
+`.bnav` **phải** còn là thanh cố định — nếu bản Blade bỏ thanh đó thì dòng
+`--nav: 0px` của Next cũng hết lý do. Chốt nói ra quan hệ ấy thay vì để hai
+tệp trôi khỏi nhau.
+
+Đột biến: gỡ từng sửa một → đúng ca tương ứng đỏ, 5/5.
+
+### Lỗi của chính tôi hôm nay, dòng thứ tư
+
+| Lỗi | Thứ bắt được |
+|---|---|
+| Tạo nhánh `fix/mobile-explore-map` bằng `git switch -c` khi **đang đứng trên nhánh tài liệu**, không phải trên `main` | `git rebase main` của PR tài liệu — nó báo *"patch contents already upstream"* |
+
+Hệ quả: PR #143 mang theo hai tệp `docs/` của PR #142, và **mô tả của #143
+không nhắc tới chúng**. Nội dung không sai và không mất gì, nhưng một PR sửa
+CSS lại chứa 145 dòng tài liệu mà người duyệt không được báo — nếu có người
+duyệt, họ sẽ đọc một PR khác với PR họ nghĩ mình đang đọc.
+
+Cùng họ với lỗi *"commit lên `main` vì quên tạo nhánh"* sáng nay: cả hai đều
+là **không kiểm nhánh hiện tại trước khi tạo nhánh mới**. Cách tránh rẻ hơn
+mọi cách sửa: `git switch -c <tên> main`, nêu rõ điểm xuất phát.
+
+### Còn mở sau ngày 20/10 (bản cuối ngày)
+
+| Việc | Chặn bởi |
+|---|---|
+| **`OOHX_LED_LCU_LAI_CHAU` không có đường nào để tới qua `/map`** | Hai cách sửa, cần chủ dự án chọn: điền tỉnh, hay cho `/map` nhóm "chưa rõ tỉnh" |
+| **Chưa ai thử đường gửi yêu cầu thật trên production** | Không còn gì chặn (#136). Cần chủ dự án bấm |
+| **Chưa ai chạy thật lối nhập màn hình ở `/admin`** sau khi sửa kiểu ULID | Hai ca hồi quy đi qua `ScreenWriter` trực tiếp, không qua `ScreenImportService` và hàng đợi |
+| **Chưa đo `/api/v1` trên production** | Cần một API client (scope `inventory`) và token của nó |
+| **Hai việc nhập liệu còn lại** | Tên hay điểm đặt mới là cái sai ở hàng Aeon · sáu màn hình Yên Bái chung một toạ độ |
+| **Độ phủ `ghepLechKhoa` vẫn 0/104** | Chờ lượt nhập lại đầu tiên |
+| **Đối tác chưa được báo** về thứ tự mặc định mới của `/owners`, `/sites`, `/screens` | Tài liệu đã ghi, nhưng vẫn chưa biết đối tác nào đang dùng API |
+| **Ô tick trên thiết bị cảm ứng chưa ai nhìn tận mắt** | `@media(hover:none)` không kiểm được từ máy tính; chốt chỉ canh quy tắc tồn tại |
+| **Nhãn tiếng Việt trên bản đồ** | Cần tạo style trong MapTiler Cloud rồi đưa tên vào `MAPTILER_STYLE` |
+| Bố cục `/map` mobile: bottom sheet chiếm phần lớn màn hình | #143 chỉ trả lại 60px chiều cao, không thiết kế lại tỷ lệ |
+| `price_per_slot_vnd` của `/api/v1` mang giá trị `floor_cpm` | Ghi chú F09: đổi là làm sai số tiền trong hệ thống đối tác |
+| Báo cáo soát chưa xét giá, ảnh thực địa, kích thước | Trang in câu đó ra để không ai đọc nó như báo cáo đầy đủ |
+| Mốc ba cột 1280px thay vì 1180px như plan viết | `.w` lấy 52px mỗi bên |
+| Hai định nghĩa CSS trùng (`.loc-item`, `.mpop-price`) | Việc của một lần dọn CSS |
