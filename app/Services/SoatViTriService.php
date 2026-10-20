@@ -234,9 +234,17 @@ class SoatViTriService
      * nghĩa là lần ghép đã đi chệch, và đó là một khẳng định chứ không phải
      * một phỏng đoán.
      *
-     * Chỉ `POST /api/v1/screens` điền cột này; `SiteImportService` tra mã để
-     * tìm `site_id` rồi **không lưu lại mã**. Nên độ phủ của phép đo này có
-     * thể rất thấp, và con số đó phải hiện trong báo cáo — xem `tongHop()`.
+     * Từ 20/10/2026 cả ba lối nhập đều lưu mã nguồn (`SiteImportService`,
+     * `ScreenImport\ScreenWriter`, `POST /api/v1/screens`), và một hàng rào ở
+     * `Screen::booted()` giữ cột khớp khi người ta chuyển màn hình bằng tay.
+     * Trước đó chỉ `site_id` được lưu, mã bị bỏ đi sau khi tra — nên phép đo
+     * này có **0/104** bản ghi kiểm được.
+     *
+     * Những hàng nhập **trước** ngày đó vẫn rỗng và **không được điền ngược**:
+     * cột này nói "nguồn đã nói gì", mà với hàng cũ thì không ai còn biết
+     * nguồn nói gì. Điền từ điểm đặt hiện tại là tự dựng bằng chứng rằng chỗ
+     * gắn hôm nay đúng — kể cả khi nó sai. Độ phủ lớn dần theo từng lượt nhập
+     * lại, và con số đó phải hiện trong báo cáo — xem `tongHop()`.
      *
      * @param Collection<int, Screen> $manHinh
      */

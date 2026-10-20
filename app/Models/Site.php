@@ -102,6 +102,29 @@ class Site extends Model
             throw new HttpException(403, 'Bạn chỉ được đặt địa điểm vào những mạng lưới đã được giao.');
         });
 
+        /*
+         * Đổi `external_id` của địa điểm → mã nguồn ở màn hình con đi theo.
+         *
+         * `screens.site_external_id` phải khớp `sites.external_id` của điểm
+         * đặt nó gắn vào (xem hàng rào trong `Screen::booted()`). Sửa mã ở
+         * đây mà không cập nhật con thì **mọi** màn hình của địa điểm này hoá
+         * "ghép lệch" trong báo cáo soát — một bảng báo oan hàng loạt vì một
+         * lần sửa hợp lệ.
+         *
+         * Cập nhật bằng query, không qua model: đây là một cột theo sau, và
+         * nạp từng màn hình chỉ để ghi lại một chuỗi là N truy vấn cho một
+         * việc một truy vấn làm xong.
+         */
+        static::updated(function (Site $site) {
+            if (! $site->wasChanged('external_id')) {
+                return;
+            }
+
+            $site->screens()
+                ->withoutGlobalScope('owner_scope')
+                ->update(['site_external_id' => $site->external_id]);
+        });
+
         // Khi Site đổi owner → đồng bộ owner_id cho tất cả Screens con
         static::updating(function (Site $site) {
             if ($site->isDirty('owner_id') && $site->owner_id) {

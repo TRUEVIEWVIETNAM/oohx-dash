@@ -122,6 +122,32 @@ class Screen extends Model
             }
         });
 
+        /*
+         * `site_external_id` = mã điểm đặt **do nguồn dữ liệu nói**.
+         *
+         * Đó là một bất biến: nó phải khớp `external_id` của điểm đặt bản ghi
+         * đang gắn vào. Lệch nhau nghĩa là lần ghép đã đi chệch, và
+         * `SoatViTriService::ghepLechKhoa()` báo nó lên.
+         *
+         * Hàng rào này giữ bất biến đúng khi `site_id` đổi mà KHÔNG ai nói gì
+         * về mã nguồn — tức khi một người chuyển màn hình sang điểm đặt khác
+         * qua biểu mẫu Filament. Không có nó, mỗi lần chuyển tay là một dòng
+         * "ghép lệch" báo oan, và một báo cáo báo oan thì sẽ bị tắt.
+         *
+         * Khi lối nhập đặt **cả hai** cột (nó biết mã nguồn), hàng rào không
+         * chạm vào gì — nên bất biến chỉ vỡ được vì một lỗi tra mã ở lối nhập,
+         * đúng thứ phép đo muốn bắt.
+         */
+        static::saving(function (Screen $screen) {
+            if (! $screen->isDirty('site_id') || $screen->isDirty('site_external_id')) {
+                return;
+            }
+
+            $screen->site_external_id = Site::withoutGlobalScopes()
+                ->whereKey($screen->site_id)
+                ->value('external_id');
+        });
+
         // Clear frontpage caches when screen data changes
         $clearCache = function () {
             Cache::forget('fp:locations');

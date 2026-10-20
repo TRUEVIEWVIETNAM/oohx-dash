@@ -29,7 +29,7 @@ class ScreenWriter
      * @param array<string, array<string, mixed>> $data
      * @param RowValidator $validator
      *
-     * @return array{screen_id: int|string, action: string}  action ∈ created|updated|skipped
+     * @return array{screen_id: string, action: string}  action ∈ created|updated|skipped
      */
     public function write(array $data, RowValidator $validator): array
     {
@@ -62,10 +62,17 @@ class ScreenWriter
             return ['screen_id' => $existing->id, 'action' => 'skipped'];
         }
 
+        // Mã điểm đặt **do tệp nói**. Khi tệp không khai mã mà địa điểm vừa
+        // được tạo ở bước 1, lấy mã của chính địa điểm đó — nguồn và đích là
+        // một, nên bất biến vẫn đúng và phép soát không báo oan.
+        $siteExternalId = $siteData['external_id']
+            ?? Site::withoutGlobalScopes()->whereKey($siteId)->value('external_id');
+
         $screen = Screen::updateOrCreate(
             ['owner_id' => $this->ownerId, 'external_id' => $externalId],
             array_filter([
-                'site_id'        => $siteId,
+                'site_id'          => $siteId,
+                'site_external_id' => $siteExternalId,
                 'name'           => $screenData['name']           ?? null,
                 'slug'           => Screen::generateUniqueSlug($screenData['name'] ?? $externalId),
                 'description'    => $screenData['description']    ?? null,
@@ -142,7 +149,8 @@ class ScreenWriter
         ];
     }
 
-    private function createSite(array $siteData): int
+    /** Trả ULID (`char(26)`), không phải số — xem `RowValidator::resolveSiteId()`. */
+    private function createSite(array $siteData): string
     {
         $name = $siteData['name'] ?? null;
         if (! $name) {

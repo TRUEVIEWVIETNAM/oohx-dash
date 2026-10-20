@@ -107,7 +107,15 @@ class RowValidator
         return $errors;
     }
 
-    public function resolveSiteId(array $data): ?int
+    /**
+     * `sites.id` là **ULID** (`char(26)`), không phải số tự tăng.
+     *
+     * Kiểu trả về từng khai `?int`, và PHP 8 không ép một ULID sang int — nó
+     * **ném TypeError**. Nghĩa là hàm này đổ mỗi lần tra ra một địa điểm, tức
+     * mỗi dòng nhập có mã điểm đặt đã tồn tại. Nó im lặng cho tới hôm nay vì
+     * không ca test nào gọi `ScreenWriter` (20/10/2026).
+     */
+    public function resolveSiteId(array $data): ?string
     {
         $extId = $data['site']['external_id'] ?? null;
         return $extId ? ($this->existingSiteIds[$extId] ?? null) : null;

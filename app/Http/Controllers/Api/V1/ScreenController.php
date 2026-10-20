@@ -73,6 +73,14 @@ class ScreenController extends Controller
         $screen = Screen::create([
             'owner_id'    => $data['owner_id'],
             'site_id'     => $site->id,
+
+            // Lưu nguyên văn mã điểm đặt người gọi gửi lên. Hàng rào trong
+            // `Screen::booted()` cũng điền cột này, nhưng nó điền từ **địa
+            // điểm đã tra ra** — trùng nhau khi phép tra đúng, và chính sự
+            // trùng đó là thứ không nói được gì. Lưu từ nguồn thì cột mới
+            // đối chiếu được (`SoatViTriService::ghepLechKhoa()`).
+            'site_external_id' => $data['site_external_id'],
+
             'external_id' => $data['external_id'],
             'name'        => $data['name'],
             'description' => $data['description'] ?? null,

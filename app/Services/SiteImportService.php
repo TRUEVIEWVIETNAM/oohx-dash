@@ -8,6 +8,7 @@ use App\Models\ScreenInventory;
 use App\Models\ScreenSpec;
 use App\Models\Site;
 use App\Models\VenueCategory;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -83,6 +84,10 @@ class SiteImportService
             'screens_created' => 0,
             'screens_updated' => 0,
             'errors'          => [],
+
+            // Màn hình bị lượt nhập này chuyển sang điểm đặt khác. Không phải
+            // lỗi, nhưng là thứ người bấm "Nhập" phải đọc.
+            'doi_diem_dat'    => [],
         ];
 
         // Pre-populate siteIdMap from existing DB sites (for screens referencing sites not in this file)
@@ -140,16 +145,53 @@ class SiteImportService
                 Site::where('id', $siteId)->whereNull('network_id')->update(['network_id' => $networkId]);
             }
 
+            // Điểm đặt bản ghi đang gắn vào TRƯỚC lượt nhập này. Đọc trước
+            // `updateOrCreate` vì sau đó không còn gì để so.
+            $truocDo = Screen::withoutGlobalScopes()
+                ->where('owner_id', $ownerId)
+                ->where('external_id', $sc['external_id'])
+                ->value('site_id');
+
             $screen = Screen::updateOrCreate(
                 ['owner_id' => $ownerId, 'external_id' => $sc['external_id']],
                 [
                     'site_id' => $siteId,
+
+                    // Mã điểm đặt **do tệp nói**, lưu nguyên văn. Trước đây
+                    // chỉ dùng để tra `site_id` rồi bỏ đi, nên không còn gì
+                    // đối chiếu khi phép tra đi chệch —
+                    // `SoatViTriService::ghepLechKhoa()` có 0/104 bản ghi
+                    // kiểm được. Lưu nó lại là đủ để phép đo đó chạy thật.
+                    'site_external_id' => $sc['site_external_id'],
+
                     'name'    => $sc['name'],
                     'slug'    => Screen::generateUniqueSlug($sc['name']),
                     'active'  => true,
                     'status'  => 'offline',
                 ]
             );
+
+            // Lượt nhập vừa chuyển một màn hình sang điểm đặt khác. Hợp lệ —
+            // owner sửa tệp là được phép — nhưng đây cũng là đúng cái cách một
+            // bản ghi đi sai chỗ, nên nó phải hiện trong báo cáo thay vì xảy
+            // ra im lặng.
+            if ($truocDo !== null && (string) $truocDo !== (string) $siteId) {
+                $cu = Site::withoutGlobalScopes()->find($truocDo, ['external_id', 'name']);
+
+                $results['doi_diem_dat'][] = [
+                    'screen'   => $sc['external_id'],
+                    'ten'      => $sc['name'],
+                    'tu'       => $cu ? "{$cu->name} [{$cu->external_id}]" : (string) $truocDo,
+                    'sang'     => "{$sc['site_external_id']}",
+                ];
+
+                Log::info('Nhập Excel chuyển màn hình sang điểm đặt khác', [
+                    'owner_id'    => $ownerId,
+                    'screen'      => $sc['external_id'],
+                    'site_cu'     => $cu?->external_id,
+                    'site_moi'    => $sc['site_external_id'],
+                ]);
+            }
 
             // Spec
             ScreenSpec::updateOrCreate(
