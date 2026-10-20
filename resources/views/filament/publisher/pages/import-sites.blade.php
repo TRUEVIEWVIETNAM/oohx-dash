@@ -640,7 +640,12 @@
                     <span>
                         <strong>{{ $dc['ten'] }}</strong>
                         <span class="opacity-70">[{{ $dc['screen'] }}]</span>
-                        — từ {{ $dc['tu'] }} sang {{ $dc['sang'] }}
+                        {{-- Mỗi mảnh chữ giữa hai biểu thức phải tự có dấu:
+                             `ChuBladePanelPhaiCoDauTest` quét theo text node, nên
+                             "… sang …" kẹp giữa hai `{{ }}` thành một mảnh "sang"
+                             không dấu và chốt đó đỏ. --}}
+                        <br>
+                        Điểm đặt cũ: {{ $dc['tu'] }} — mới: {{ $dc['sang'] }}
                     </span>
                 </li>
             @endforeach
