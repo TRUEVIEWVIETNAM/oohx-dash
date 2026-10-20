@@ -37,17 +37,36 @@ use Illuminate\Pagination\LengthAwarePaginator;
  * `PhanTrangThuTuXacDinhTest` canh rằng các service dùng trait này không còn
  * lời gọi `paginate()` nào của riêng chúng.
  *
- * ══ `/api/v1` cố ý không dùng trait này ══
+ * ══ `/api/v1` dùng trait này từ ngày 20/10/2026 ══
  *
- * Bốn controller v1 cũng phân trang theo cột không duy nhất, và cũng hỏng
- * như vậy. Nhưng chúng là hợp đồng với đối tác (CLAUDE.md mục 1): đổi thứ
- * tự trả về là đổi hành vi, kể cả khi thứ tự mới đúng hơn. Sửa chúng là một
- * quyết định riêng, cần chủ dự án chốt.
+ * Bốn controller v1 mang đúng lỗi trên. Hoãn ở #130 vì `/api/v1` là hợp đồng
+ * với đối tác (CLAUDE.md mục 1) và đổi thứ tự trả về là đổi hành vi. Chủ dự
+ * án chốt sửa ngày 20/10.
+ *
+ * Điều làm nó an toàn: tài liệu hợp đồng (`docs/tapon_api_list.md`,
+ * `docs/api_tapon_browse_filters_v1.md`) công bố **những khoá sắp xếp nào
+ * tồn tại**, không ở đâu công bố thứ tự **trong một nhóm bằng nhau** — và
+ * đó là tất cả những gì khoá phụ chạm tới. Một đối tác đang lật trang không
+ * thể đã dựa vào thứ tự cũ, vì thứ tự cũ không tồn tại: nó đổi giữa các lần
+ * chạy. Nên thay đổi quan sát được là từ *không xác định* sang *ổn định*,
+ * không phải từ thứ tự này sang thứ tự khác.
+ *
+ * Một ngoại lệ đáng nói riêng: ba endpoint quản lý (`/owners`, `/sites`,
+ * `/screens`) **không có `ORDER BY` nào** khi đối tác không gửi `sort`, nên
+ * ở đó khoá phụ trở thành khoá sắp duy nhất và danh sách nay đi theo ULID
+ * (≈ cũ nhất trước). Đây là chỗ duy nhất một đối tác có thể thấy khác trước,
+ * và cái họ thấy trước đó là thứ tự MySQL thấy rẻ nhất hôm ấy.
  */
 trait PhanTrangOnDinh
 {
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  \Illuminate\Database\Eloquent\Builder|\Spatie\QueryBuilder\QueryBuilder  $query
+     *
+     * `QueryBuilder` của Spatie không phải Builder, nhưng nó forward mọi lời
+     * gọi lạ sang builder bên dưới nên `getModel()`, `orderBy()` và
+     * `paginate()` đều chạy. Quan trọng: `allowedSorts()` nạp sort của
+     * request vào query **ngay trong thân nó**, nên `orderBy()` gọi sau đó
+     * là khoá phụ, không phải khoá chính.
      */
     protected function phanTrang($query, int $perPage): LengthAwarePaginator
     {

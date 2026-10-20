@@ -3,6 +3,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Site;
+use App\Support\PhanTrangOnDinh;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -10,16 +11,18 @@ use Spatie\QueryBuilder\QueryBuilder;
 
 class SiteController extends Controller
 {
+    use PhanTrangOnDinh;
+
     public function index(): JsonResponse
     {
         Gate::authorize('viewAny', Site::class);
 
-        $sites = QueryBuilder::for(Site::class)
+        $query = QueryBuilder::for(Site::class)
             ->allowedFilters(['status','city','region','country'])
             ->allowedSorts(['name','created_at','city'])
-            ->withCount('screens')
-            ->paginate(20);
-        return response()->json($sites);
+            ->withCount('screens');
+
+        return response()->json($this->phanTrang($query, 20));
     }
 
     public function store(Request $request): JsonResponse

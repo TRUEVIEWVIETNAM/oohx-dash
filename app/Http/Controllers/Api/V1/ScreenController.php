@@ -7,6 +7,7 @@ use App\Models\Screen;
 use App\Models\ScreenInventory;
 use App\Models\ScreenSpec;
 use App\Models\Site;
+use App\Support\PhanTrangOnDinh;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -15,11 +16,13 @@ use Spatie\QueryBuilder\QueryBuilder;
 
 class ScreenController extends Controller
 {
+    use PhanTrangOnDinh;
+
     public function index(): JsonResponse
     {
         Gate::authorize("viewAny", Screen::class);
 
-        $screens = QueryBuilder::for(Screen::class)
+        $query = QueryBuilder::for(Screen::class)
             ->allowedFilters([
                 'active', 'status', 'player_type',
                 AllowedFilter::exact('site_id'),
@@ -32,10 +35,9 @@ class ScreenController extends Controller
                 ),
             ])
             ->allowedSorts(['name', 'created_at', 'last_heartbeat_at'])
-            ->allowedIncludes(['spec', 'inventory', 'site'])
-            ->paginate(20);
+            ->allowedIncludes(['spec', 'inventory', 'site']);
 
-        return response()->json($screens);
+        return response()->json($this->phanTrang($query, 20));
     }
 
     public function store(Request $request): JsonResponse

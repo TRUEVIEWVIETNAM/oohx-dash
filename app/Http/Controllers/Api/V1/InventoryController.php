@@ -11,6 +11,7 @@ use App\Models\Network;
 use App\Models\Owner;
 use App\Models\Screen;
 use App\Models\VenueType;
+use App\Support\PhanTrangOnDinh;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -19,6 +20,8 @@ use Illuminate\Support\Str;
 
 class InventoryController extends Controller
 {
+    use PhanTrangOnDinh;
+
     public function index(Request $request): ScreenCollection
     {
         $request->validate([
@@ -33,7 +36,7 @@ class InventoryController extends Controller
         $query = $this->buildScreenQuery($request)->with($with);
         $query = $this->applySort($query, $request);
 
-        return new ScreenCollection($query->paginate($limit));
+        return new ScreenCollection($this->phanTrang($query, $limit));
     }
 
     public function map(Request $request): ScreenMapCollection
@@ -327,14 +330,17 @@ class InventoryController extends Controller
 
         $limit = min((int) $request->input('limit', 20), 100);
 
-        $owners = Owner::query()
+        $query = Owner::query()
             ->where('status', 'active')
             ->when($request->boolean('featured'), fn($q) => $q->where('featured', true))
             ->when($request->filled('q'), fn($q) => $q->where('name', 'LIKE', '%' . $request->input('q') . '%'))
             ->withCount(['screens as screen_count' => fn($q) => $q->where('active', true)])
             ->orderByDesc('featured')
-            ->orderBy('name')
-            ->paginate($limit);
+            ->orderBy('name');
+
+        // `featured` là boolean và `name` trùng được, nên hai khoá này chưa
+        // phủ hết: `phanTrang()` thêm `owners.id` làm khoá phụ.
+        $owners = $this->phanTrang($query, $limit);
 
         // Batch load city_count và venue_types để tránh N+1
         $ownerIds = $owners->pluck('id');
@@ -603,6 +609,11 @@ class InventoryController extends Controller
     /**
      * Áp dụng sort. Dùng subquery để tránh column ambiguity với eager loading.
      */
+    /**
+     * Khoá sắp xếp chính, **không** kèm khoá phụ: `phanTrang()` thêm
+     * `screens.id` sau đó cho cả ba nhánh. Nhánh mặc định vì thế không còn
+     * `orderBy('screens.id')` của riêng nó — SQL sinh ra y hệt như trước.
+     */
     private function applySort($query, Request $request)
     {
         $sort = $request->input('sort');
@@ -617,7 +628,7 @@ class InventoryController extends Controller
 
         return match ($sort) {
             'newest' => $query->orderBy('screens.updated_at', 'desc'),
-            default  => $query->orderBy('screens.id', 'asc'),
+            default  => $query,
         };
     }
 }
