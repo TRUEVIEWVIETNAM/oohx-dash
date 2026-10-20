@@ -30,3 +30,33 @@
 :root {
     --font: var(--font-open-sans), 'Open Sans', -apple-system, 'Helvetica Neue', sans-serif;
 }
+
+/*
+ * `--nav` về 0 trên các trang do Next phục vụ.
+ *
+ * `--nav: 60px` là chiều cao thanh điều hướng dưới của bản **Blade**
+ * (`.bnav`, dựng ở `resources/views/frontpage/partials/mobile-nav.blade.php`
+ * và chỉ được `include` trong layout Blade). Không trang Next nào render nó —
+ * đã kiểm `/`, `/explore`, `/map` trên production ngày 20/10/2026: không có
+ * phần tử cố định nào ở đáy.
+ *
+ * Nhưng `frontpage.css` dùng chung cho cả hai bản, và 15 quy tắc trong đó
+ * trừ hao `var(--nav)` để **né một thanh không tồn tại**. Hệ quả đo được ở
+ * khung 390px:
+ *
+ *  - `.filter-float` ("Bộ lọc" ở `/explore`) và `.panel-toggle` ("Danh sách"
+ *    ở `/map`) nổi cách đáy **72px**, tức lơ lửng giữa nội dung thay vì nằm
+ *    ở đáy — chúng đè lên thẻ phía dưới, và ở `/map` đè lên dòng ghi công.
+ *  - `body` chừa 60px trống ở cuối mọi trang.
+ *  - `.map-layout` lấy `100vh - hdr - nav`, nên khung bản đồ ngắn hơn chỗ
+ *    thật sự có 60px.
+ *
+ * Sửa ở đây, không sửa `frontpage.css`: bên đó `var(--nav)` vẫn đúng cho bản
+ * Blade, nơi `.bnav` có thật. Một dòng này sửa cả 15 chỗ cùng lúc.
+ *
+ * Nếu sau này bản Next dựng thanh điều hướng dưới của riêng nó, bỏ dòng này
+ * đi là mọi quy tắc kia tự đúng trở lại.
+ */
+:root {
+    --nav: 0px;
+}

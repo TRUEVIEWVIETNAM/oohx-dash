@@ -591,6 +591,13 @@ Mục này ghi kết quả.
 
 ### Những câu đang nằm trên trang mà hệ thống chưa làm được
 
+> **Hết hiệu lực chiều 20/10/2026.** Bốn câu đầu bảng ("Traffic real-time",
+> "AI-powered search", "Secure payment", "Agency support 24/7") và cả
+> "Verified inventory" đã **không còn trên trang** — PR #141 thay thanh
+> `trust` bằng năm câu có mã đứng sau. Bốn câu của mục AI đã đi cùng khối đó
+> ở lát 3. Bảng dưới giữ nguyên làm hồ sơ: nó là danh sách những gì từng
+> đứng trên trang và vì sao, không phải danh sách hiện tại.
+
 Liệt kê một lần, đầy đủ, để lần sau ai đọc cũng thấy cùng một danh sách —
 và để nếu có người hỏi thì không ai phải đi tìm:
 
@@ -680,6 +687,14 @@ không kiểm được**, và trang này sắp được một cơ quan quản l�
 
 Bốn thẻ WORKFLOW đã dựng với **chữ viết lại**, mô tả đúng những gì hôm nay làm
 được. Hai khối còn lại **chưa có trên trang**.
+
+> **Cập nhật 20/10/2026.** Cả ba khối nay đã ngã ngũ, và không khối nào kết
+> thúc như mục này đoán. Thanh `trust` được dựng lại **nguyên văn** ngày
+> 18/10 theo quyết định của chủ dự án (#94, #97), rồi chiều 20/10 đổi chữ
+> (#141) sang năm câu mỗi câu có một đường trong mã đứng sau — tức đi tới
+> đúng chỗ mà bốn thẻ WORKFLOW đã đi từ lát 2: *viết lại*, không phải *bỏ*
+> hay *giữ nguyên*. Mục "Marketplace OOH đầu tiên có AI" được dựng nguyên
+> văn rồi **gỡ hẳn** cùng ngày ở lát 3, mang theo tấm ảnh hotlink Unsplash.
 
 Đây là ba quyết định về lời hứa sản phẩm, nên chúng thuộc chủ dự án, không
 thuộc người sửa giao diện. Ba lựa chọn cho mỗi khối: dựng lại **đúng câu chữ
