@@ -739,6 +739,10 @@ Lý do nằm ở dữ liệu: đo trên production ngày 18/10, **1/50** bản g
 **0/50** có ảnh thực địa riêng, nên một trang danh mục kiểu thương mại điện tử
 đang mời người mua làm một việc mà dữ liệu không cho phép làm.
 
+> **XONG cả bảy lát ngày 20/10/2026** (#126, #128, #131, #132, #133, #134).
+> Tổng kết, cùng ba lỗi có sẵn lộ ra trên đường, ở mục **19–20/10/2026** cuối
+> tài liệu này.
+
 ---
 
 ## Việc quản trị
@@ -1564,3 +1568,125 @@ proxy có thể vẫn nằm đúng chỗ.
 | **Nhãn tiếng Việt trên bản đồ** | Cần tạo style trong MapTiler Cloud rồi đưa tên style vào `MAPTILER_STYLE` |
 | **Tên màn hình `OOHX_LED_SLA_SON_LA`** | Chủ dự án chọn: đổi tiêu đề thẻ hay sửa dữ liệu |
 | **Ba loại hình chưa có hàng** | Chủ dự án chọn: hiện mờ "sắp có" hay ẩn |
+
+## Ngày 19–20/10/2026 — `/explore` thành trang ra quyết định (#126 → #134)
+
+`main` ở `1f3253c`. CI **1.086 ca / 4.142 khẳng định** (chiều 18/10: 1.037 /
+3.973), `test:js` **252** (207), `test:khoi` **369 khẳng định trên 11 trang**
+(330 / 10), `test:seo` **16 trang**. Không còn PR nào mở.
+
+Bảy lát của `docs/PLAN-EXPLORE-QUYET-DINH-MUA.md` đã xong, cộng ba lỗi có sẵn
+mà chính việc làm bảy lát ấy làm lộ ra.
+
+### Vì sao plan này tồn tại
+
+Chủ dự án hỏi ngày 18/10: *"nếu chỉ listing thôi nghĩ rất khó để buyer quyết
+định mua"*. Đo trên production cùng ngày, câu đó không phải cảm tính:
+
+| Thứ người mua cần để quyết | Tỉ lệ bản ghi có |
+|---|---|
+| Giá | **1/50** (định nghĩa cũ, chỉ nhìn `floor_cpm`) |
+| Ảnh thực địa riêng | **0/50** — cả 50 dùng chung hai tấm ảnh bìa của owner |
+| Quận/huyện | 0/50 |
+| Toạ độ | **50/50** |
+
+Một trang danh mục thương mại điện tử giả định *giá có sẵn, ảnh có sẵn, người
+mua tự so sánh rồi bấm mua*. Ở kho này không điều nào đúng. Việc người mua
+**thật sự làm được** là khoanh một danh sách theo vị trí và loại hình rồi hỏi
+giá — và bảy lát dựng đúng đường đó.
+
+### Bảy lát
+
+| PR | Lát | Việc | Đo được |
+|---|---|---|---|
+| #126 | 1 + 2 | `price_status` ở API, cột lọc trái | Thanh lọc giá cũ trả `{0,0}`; định nghĩa mới (nhận cả `io_rate`) tìm ra **19 vị trí có giá**, không phải 1 |
+| #128 | 3 | Bản đồ cạnh danh sách, ba cột từ 1280px | Pin khớp `meta.total` tuyệt đối: 19/19 và 85/85 |
+| #131 | 4 | Danh sách rút gọn trong `localStorage`, trần 50 | Tick ở thẻ và ở popup bản đồ là **một** trạng thái |
+| #132 | 5 | Hai bảng, `POST /api/v2/quote-requests`, hai panel Filament | 24 ca test, trong đó 8 ca chỉ canh ranh giới dữ liệu |
+| #133 | 6 | Màn hình gửi `/explore/yeu-cau-bao-gia` | Ba cú bấm → **một** POST |
+| #134 | 7 | Tải CSV sinh ở trình duyệt | BOM `EF BB BF`, 6 cột, bọc ô theo RFC 4180 |
+
+Bốn câu chủ dự án chốt ngày 19/10 quyết định hình dạng CSDL của lát 5: khách
+ẩn danh **gửi được** · sàn **không cam kết** thời gian trả lời · liên hệ người
+mua mở **sau khi quản trị duyệt** · tệp tải về là **CSV**.
+
+### Ba lỗi có sẵn, lộ ra vì có người soát
+
+Cả ba đều có **trước** plan. Cột lọc và các phép đối chiếu chỉ làm chúng đọc
+được — và hai trong ba chỉ lộ ra khi tôi soát production sau khi merge, không
+phải khi viết mã.
+
+**1. Thẻ nói LCD, bộ lọc LCD trả 0 (#129).** Hai luật cho cùng một tên: nhãn
+tính hai cạnh là 0 rồi trả "LCD", còn cả ba nhánh bộ lọc đều đòi
+`whereHas('spec')`. 20/104 bản ghi không có dòng `screen_specs` rơi ra ngoài
+cả ba nhóm, trong khi thẻ của chúng vẫn mang nhãn. Cột lọc in "LCD 0" ngay
+cạnh hai chục thẻ LCD.
+
+Chốt của #126 im lặng vì nó so nhóm đếm với `meta.total` của **cùng một hàm
+sai** — hai con số lấy từ một chỗ thì luôn bằng nhau. Chốt mới so **nhãn người
+dùng đọc trên thẻ** với nhóm mà bộ lọc xếp bản ghi đó vào.
+
+**2. Lật sang trang 2 thấy lại 29 vị trí của trang 1 (#130).** Đọc hết ba
+trang `/api/v2/screens`: 104 dòng trả về, **75 slug duy nhất**. 29 vị trí
+không có đường nào để người mua tới. Với `sort=price_asc`: 54/104.
+
+`LIMIT … OFFSET …` không cam kết thứ tự khi khoá sắp xếp có hàng bằng nhau, và
+mọi danh sách công khai sắp theo **một** cột không duy nhất. Kho nhập theo lô
+nên `created_at` trùng hàng loạt; 103/104 chưa có giá nên khoá sắp giá là NULL
+cho gần hết. Sửa bằng trait `PhanTrangOnDinh` cho bốn service — chín chỗ gọi
+`paginate()` là chín cơ hội quên.
+
+**3. Bốn vùng chạm dưới 44px.** Nút nổi bộ lọc 38px và dòng tick cột lọc 34px
+(hỏng từ #111, lúc đó không ai mở drawer `/products` ra đo) · ô tick trên thẻ
+28px · nhãn ô đồng ý chính sách 38px. Cả bốn nay trong danh sách của
+`class-css.test.mjs`.
+
+### Năm lỗi của chính tôi, và cái bắt được chúng
+
+| Lỗi | Thứ bắt được |
+|---|---|
+| Điều kiện "đã báo giá" viết **hai lần** — hằng số SQL cho nhóm đếm, Eloquent cho bộ lọc | Phép đột biến: 2 ca đỏ thay vì 4 |
+| Dòng tick định nghĩa **trong thân** component → React tháo và gắn lại cả cây con, tick hai ô chỉ ăn một | Đo tay ở 1440px |
+| `getOwnerScreens()` còn `return` ở dòng trên → `phanTrang()` thành mã chết, hàm trả Builder thay vì paginator | Soát lại diff trước khi chạy test |
+| Chặn gửi trùng bằng **state** React: `setDangGui(true)` không đổi giá trị ngay, ba cú bấm → ba yêu cầu | Chính chốt mà plan đã nêu trước |
+| Phép tính bề ngang lấy padding `.w` là 22px; từ 1024px nó là **52px** | Đo trong iframe |
+
+### Hai lần suýt sửa thứ không hỏng
+
+**`whereHas` và thứ tự `AND`/`OR`.** Tôi đọc
+`where(w>=300)->orWhere(h>=300)` trong `whereHas` thành một lỗi ngoặc nuốt mất
+ràng buộc khoá ngoại, và đã **báo với chủ dự án** rằng con số 84 trên
+production là triệu chứng của nó. `toSql()` cho thấy Laravel tự bọc closure;
+phép đột biến bỏ ngoặc không làm đỏ ca nào. 84 là số billboard thật.
+
+**"CSV không có BOM".** `blob.text()` báo không có BOM. Đọc `arrayBuffer()`
+thì ba byte đầu là `239 187 191` — `Blob.text()` giải mã UTF-8 và **bỏ BOM
+theo spec**.
+
+Cả hai cùng một hình dạng: một phép đo trả lời đúng câu hỏi của **nó**, không
+phải câu hỏi của tôi.
+
+### Hai lớp canh mới đáng ghi
+
+**Chốt chạy trên chính mã sẽ lên production.** Node 24 bóc chú thích kiểu khi
+nạp, nên `tests/js/*.test.mjs` import **thẳng** module TypeScript của Next —
+không có bản sao nào để trôi. Ba tệp mới dùng cách này: danh sách rút gọn (13
+ca), phần thuần của màn hình gửi (12), xuất CSV (14).
+
+**Khẳng định phủ định.** `test:khoi` nay canh cả thứ **không được** có trong
+HTML máy chủ render: bản đồ (để `/explore` và `/map` không cùng đem một tập
+pin đi index), thanh danh sách rút gọn (trạng thái của riêng từng người), và
+mọi câu hứa thời gian trả lời — "sẽ liên hệ sớm", "trong 24h", "ngày làm
+việc".
+
+### Còn mở sau ngày 20/10
+
+| Việc | Chặn bởi |
+|---|---|
+| **Chưa ai thử đường gửi yêu cầu thật trên production** | Bản ghi tạo ra không xoá được qua `/admin`: `QuoteRequestPolicy::delete()` đóng có chủ ý. Cần chủ dự án thử, hoặc mở quyền xoá cho `super_admin` trước |
+| **Phân trang `/api/v1` mang đúng lỗi #130** | Bốn controller ở đó cũng sắp theo cột không duy nhất. Đổi thứ tự trả về là đổi hành vi hợp đồng đối tác (CLAUDE.md mục 1) — cần chủ dự án chốt |
+| **Ghép sai vị trí** | "Aeon Mall Tân Phú" gắn site ở Bắc Kạn. Dữ liệu, không phải mã |
+| **Nhãn tiếng Việt trên bản đồ** | Cần tạo style trong MapTiler Cloud rồi đưa tên vào `MAPTILER_STYLE` |
+| **Thanh "trust"** | Vẫn in "Verified inventory", "Traffic real-time", "AI-powered search" |
+| Mốc ba cột 1280px thay vì 1180px như plan viết | Đã ghi lại trong plan: `.w` lấy 52px mỗi bên, nên ở 1180px lưới còn 140px một thẻ |
+| Hai định nghĩa CSS trùng (`.loc-item`, `.mpop-price`) | Việc của một lần dọn CSS |

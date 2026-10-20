@@ -4,6 +4,15 @@ Viết 19/10/2026 · Claude Code · Chủ dự án đã chốt cả ba hướng 
 
 Mock đã duyệt: <https://claude.ai/artifact/5ytRQifieU8xwhGek7T7bc>
 
+> **XONG CẢ BẢY LÁT ngày 20/10/2026** — #126, #128, #131, #132, #133, #134.
+> Plan giữ nguyên văn bản gốc; mỗi lát có một khối trích dẫn ghi **chỗ bản
+> làm khác bản viết** và vì sao. Đọc cả hai mới thấy đủ.
+>
+> Ba lỗi có sẵn lộ ra trong lúc làm, sửa ở #129 (nhãn loại hình ≠ bộ lọc),
+> #130 (phân trang trả trùng 29 vị trí) và trong chính các lát (bốn vùng
+> chạm dưới 44px). Tổng kết ở `docs/LO-TRINH-SAU-GIAI-DOAN-0.md`, mục ngày
+> 19–20/10/2026.
+
 ## Vấn đề, nói bằng con số đo được
 
 Chủ dự án đặt câu hỏi ngày 18/10/2026: *"nếu chỉ listing thôi nghĩ rất khó để
@@ -61,15 +70,19 @@ thứ khác: nó là **câu hỏi**, giỏ hàng là **đơn**.
 
 Mỗi lát là một PR, chạy CI đầy đủ, merge riêng. Thứ tự là thứ tự phụ thuộc.
 
-| Lát | Nội dung | Đụng gì | Ước lượng |
-|---|---|---|---|
-| 1 | Bộ lọc trạng thái giá — API | Laravel + OpenAPI | nhỏ |
-| 2 | Cột lọc trái ở `/explore` | Next + CSS | vừa |
-| 3 | Bản đồ cạnh danh sách | Next + CSS | vừa |
-| 4 | Danh sách rút gọn (phía trình duyệt) | Next | vừa |
-| 5 | Yêu cầu báo giá — CSDL, API, Filament | Laravel + Filament | **lớn** |
-| 6 | Màn hình gửi yêu cầu | Next | vừa |
-| 7 | Tải danh sách về máy | Laravel + Next | nhỏ |
+| Lát | Nội dung | Đụng gì | Ước lượng | Làm ở |
+|---|---|---|---|---|
+| 1 | Bộ lọc trạng thái giá — API | Laravel + OpenAPI | nhỏ | #126 |
+| 2 | Cột lọc trái ở `/explore` | Next + CSS | vừa | #126 |
+| 3 | Bản đồ cạnh danh sách | Next + CSS | vừa | #128 |
+| 4 | Danh sách rút gọn (phía trình duyệt) | Next | vừa | #131 |
+| 5 | Yêu cầu báo giá — CSDL, API, Filament | Laravel + Filament | **lớn** | #132 |
+| 6 | Màn hình gửi yêu cầu | Next | vừa | #133 |
+| 7 | Tải danh sách về máy | ~~Laravel +~~ Next | nhỏ | #134 |
+
+Lát 7 không đụng Laravel: chủ dự án chốt sinh CSV ở trình duyệt, nên
+`GET /api/v2/quote-requests/{ma}/tep` **không** được dựng — xem khối trích
+dẫn ở mục lát 7.
 
 ### Lát 1 — Bộ lọc trạng thái giá (API)
 
