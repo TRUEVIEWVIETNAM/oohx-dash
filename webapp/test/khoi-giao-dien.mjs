@@ -716,6 +716,40 @@ const TRANG = [
         ],
     },
     {
+        path: '/explore/yeu-cau-bao-gia',
+        ten: 'gửi yêu cầu báo giá',
+        co: [
+            // Khung trang do máy chủ dựng; nội dung biểu mẫu do trình duyệt
+            // điền từ `localStorage`. Phép kiểm này canh cái khung.
+            'class="ex-hero"',
+            'class="ex-title"',
+            '>Yêu cầu báo giá<',
+
+            // Câu mở đầu đọc số thật từ `/api/v2/filters`, không viết cứng.
+            // Fixture khai `price_status: {quoted: 1, unquoted: 103}`, nên
+            // trang phải in đúng "103 trong 104".
+            '103 trong 104 vị trí',
+
+            // Thanh điều hướng vẫn là của `/explore` — người dùng đang ở
+            // giữa một việc bắt đầu từ trang kho.
+            'class="hdr"',
+        ],
+        khong: [
+            // Biểu mẫu KHÔNG có trong HTML máy chủ: danh sách rút gọn sống
+            // trong localStorage, máy chủ không biết người này chọn gì. Thấy
+            // nó ở đây nghĩa là có ai đó đang đoán trạng thái người dùng.
+            'class="bg-form"',
+            'class="bg-nhom"',
+
+            // Và không có lời hứa nào về thời gian trả lời: chủ dự án chốt
+            // 19/10/2026 rằng sàn không cam kết hạn.
+            'sẽ liên hệ sớm',
+            'trong 24h',
+            'trong 48h',
+            'ngày làm việc',
+        ],
+    },
+    {
         path: '/map',
         ten: 'bản đồ kho',
         co: [

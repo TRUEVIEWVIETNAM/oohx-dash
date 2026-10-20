@@ -254,6 +254,21 @@ có trả lời**. Câu thứ ba cần chủ dự án chốt một cam kết th�
 **Chốt:** gửi xong danh sách rút gọn được dọn · bấm hai lần không tạo hai yêu
 cầu · lỗi mạng giữa chừng không mất danh sách đã chọn.
 
+> **Làm ngày 20/10/2026.** Câu thứ ba của màn xác nhận — *"khi nào có trả
+> lời"* — nay nói đúng điều chủ dự án đã chốt: **sàn không đặt hạn trả lời**,
+> media owner liên hệ trực tiếp qua email người gửi để lại. Chốt giao diện có
+> một khẳng định **phủ định** canh đúng chỗ đó: trang không được chứa "sẽ liên
+> hệ sớm", "trong 24h", "trong 48h" hay "ngày làm việc".
+>
+> Câu mở đầu đọc số thật từ `/api/v2/filters` (*"103 trong 104 vị trí chưa
+> công bố giá"*) thay vì viết cứng — một con số trên trang bán hàng mà không
+> ai nhắc sửa thì sai dần từ hôm sau.
+>
+> **Chốt "bấm hai lần" đã bắt được một lỗi thật.** Bản đầu chặn bằng
+> `if (dangGui) return` với `dangGui` là state React; `setDangGui(true)` không
+> đổi giá trị ngay, nên ba cú bấm liên tiếp tạo **ba** yêu cầu. Cờ phải là
+> `useRef` (đồng bộ); state vẫn giữ nhưng chỉ để vẽ nút.
+
 ### Lát 7 — Tải danh sách về máy
 
 `GET /api/v2/quote-requests/{ma}/tep` và nút tải thẳng từ thanh đáy.

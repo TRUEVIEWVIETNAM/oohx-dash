@@ -631,9 +631,72 @@ export function startStubApi(port = 0) {
     return new Promise((resolve) => {
         const server = createServer((req, res) => {
             const url = new URL(req.url, 'http://127.0.0.1');
-            const body = ROUTES[url.pathname] ?? chiTiet(url.pathname, url.searchParams);
 
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
+            /*
+             * Đường **ghi** duy nhất của trang công khai: gửi yêu cầu báo giá
+             * (lát 6). Stub nhận nó để đo tay chạy được đầu-cuối mà không
+             * cần Laravel — và để phép kiểm sau này có chỗ mô phỏng 422 và
+             * 429 mà không phải dựng cả máy chủ thật.
+             *
+             * Trả về đúng hình dạng `/api/v2/quote-requests` khai trong
+             * `docs/openapi/v2.yaml`: một stub nói sai hợp đồng là một stub
+             * làm chốt xanh trong khi production đỏ — đã xảy ra ba lần trong
+             * giai đoạn 6.
+             */
+            if (req.method === 'POST' && url.pathname === '/api/v2/quote-requests') {
+                let tho = '';
+
+                req.on('data', (c) => (tho += c));
+                req.on('end', () => {
+                    let gui = {};
+                    try {
+                        gui = JSON.parse(tho || '{}');
+                    } catch {
+                        gui = {};
+                    }
+
+                    const slugs = Array.isArray(gui.slugs) ? gui.slugs : [];
+
+                    if (slugs.length === 0 || gui.dong_y_chinh_sach !== true) {
+                        res.statusCode = 422;
+                        res.end(
+                            JSON.stringify({
+                                error: 'validation_failed',
+                                message: 'Dữ liệu gửi lên không hợp lệ.',
+                                code: 422,
+                                details: [
+                                    {
+                                        field: slugs.length === 0 ? 'slugs' : 'dong_y_chinh_sach',
+                                        message: slugs.length === 0
+                                            ? 'Chưa chọn vị trí nào để hỏi giá.'
+                                            : 'Cần đồng ý chính sách bảo mật để gửi yêu cầu.',
+                                    },
+                                ],
+                            }),
+                        );
+
+                        return;
+                    }
+
+                    res.statusCode = 201;
+                    res.end(
+                        JSON.stringify({
+                            data: {
+                                code: 'YCB-202610-0001',
+                                so_vi_tri: slugs.length,
+                                so_bi_bo: 0,
+                                message: 'Đã nhận yêu cầu báo giá. Vui lòng giữ mã này để tra cứu.',
+                            },
+                        }),
+                    );
+                });
+
+                return;
+            }
+
+            const body = ROUTES[url.pathname] ?? chiTiet(url.pathname, url.searchParams);
 
             if (!body) {
                 res.statusCode = 404;

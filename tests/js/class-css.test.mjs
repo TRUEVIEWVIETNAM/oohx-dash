@@ -914,6 +914,9 @@ test('luật vùng chạm 44px vẫn còn trong stylesheet', () => {
 
         // Lát 4: ô tick thêm vào danh sách rút gọn, nằm trên ảnh thẻ.
         ['.o-tick', 'ô tick trên thẻ màn hình — đo được 28px'],
+
+        // Lát 6: nhãn ô đồng ý chính sách ở màn hình gửi yêu cầu báo giá.
+        ['.bg-dong-y', 'nhãn ô đồng ý chính sách — đo được 38px'],
     ]) {
         assert.ok(
             khoiMobile.includes(sel),

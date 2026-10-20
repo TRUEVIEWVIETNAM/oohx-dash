@@ -1421,6 +1421,9 @@ ul{list-style:none}
 .ds-dem strong{font-size:15px}
 .ds-dem-phu{font-size:11.5px;opacity:.72;white-space:nowrap}
 .ds-nut{display:flex;gap:8px;flex-shrink:0}
+/* Ba nút trong một thanh: ở màn hẹp hai nút phụ co lại để nút chính
+   ("Yêu cầu báo giá") không bị đẩy xuống dòng. */
+@media(max-width:559px){.ds-nut-phu{padding:0 10px;font-size:12px}}
 .ds-thanh .btn{min-height:44px}
 /* Đo ở 390px ngày 19/10: `.ds-thanh` cao **77px**, không phải 64 như tôi
    ước từ padding và min-height. Hai lần đo, hai con số khác nhau — nên ở đây
@@ -1444,6 +1447,72 @@ body.co-thanh-ds .filter-float{bottom:calc(var(--nav) + var(--safe-b) + 96px)}
 .ds-dong-phu{font-size:11.5px;color:var(--t4);flex-shrink:0;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ds-dong-bo{background:none;border:none;font-size:18px;line-height:1;color:var(--t4);cursor:pointer;min-width:44px;min-height:44px;flex-shrink:0}
 .ds-dong-bo:hover{color:var(--red)}
+
+
+/* ── Màn hình gửi yêu cầu báo giá (lát 6, 20/10/2026) ─────────────────────
+ *
+ * Hai cột từ 1024px: nội dung trái, khối gửi phải dính theo cuộn. Dưới mốc
+ * đó một cột, và khối gửi xuống cuối — nó là bước cuối cùng, nên nó đứng ở
+ * cuối thay vì nổi đè lên biểu mẫu người ta đang điền.
+ */
+.bg-dan{margin-top:8px;font-size:14.5px;color:var(--t3);max-width:62ch}
+.bg-form{display:block;padding:20px 0 56px}
+@media(min-width:1024px){.bg-form{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start;padding:28px 0 64px}}
+.bg-cot{display:flex;flex-direction:column;gap:16px;min-width:0}
+.bg-khoi{background:#fff;border:1px solid var(--ln2);border-radius:14px;padding:16px}
+.bg-h2{font-size:15px;font-weight:700;color:var(--t1);margin:0 0 4px}
+.bg-ghi-chu{font-size:12.5px;color:var(--t4);margin:0 0 12px}
+
+/* Nhóm theo media owner: người mua phải thấy yêu cầu đi tới mấy nơi. */
+.bg-nhom{border-top:1px solid var(--ln2);padding-top:10px;margin-top:10px}
+.bg-nhom:first-of-type{border-top:0;margin-top:0}
+.bg-nhom-ten{font-size:13px;font-weight:700;color:var(--t2);margin-bottom:6px}
+.bg-nhom-ten span{font-weight:600;color:var(--t4)}
+.bg-dong{display:flex;align-items:center;gap:10px;min-height:44px}
+.bg-dong-ten{flex:1;min-width:0;font-size:13.5px;color:var(--t1);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bg-dong-ten:hover{color:var(--bl)}
+.bg-dong-phu{font-size:12px;color:var(--t4);flex-shrink:0}
+.bg-dong-bo{background:none;border:none;font-size:18px;line-height:1;color:var(--t4);cursor:pointer;min-width:44px;min-height:44px;flex-shrink:0}
+.bg-dong-bo:hover{color:var(--red)}
+
+.bg-luoi{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:560px){.bg-luoi{grid-template-columns:1fr 1fr}}
+.bg-o{display:flex;flex-direction:column;gap:5px}
+.bg-o>span{font-size:12.5px;font-weight:600;color:var(--t2)}
+.bg-o input,.bg-o textarea{font-family:var(--font);font-size:14px;color:var(--t1);background:#fff;border:1.5px solid var(--ln2);border-radius:9px;padding:10px 12px;min-height:44px;outline:none;width:100%}
+.bg-o input:focus,.bg-o textarea:focus{border-color:var(--bl)}
+.bg-o textarea{min-height:88px;resize:vertical}
+.bg-o-rong{margin-top:12px}
+
+/* Khối gửi. Dính theo cuộn ở desktop để nút luôn trong tầm mắt khi người ta
+   cuộn qua danh sách dài. */
+.bg-gui{min-width:0}
+@media(min-width:1024px){.bg-gui{position:sticky;top:calc(var(--hdr) + 14px)}}
+.bg-gui-trong{background:#fff;border:1px solid var(--ln2);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.bg-gui-dem{font-size:13px;color:var(--t3)}
+.bg-gui-dem strong{font-size:18px;color:var(--t1)}
+.bg-dong-y{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--t2);line-height:1.5;cursor:pointer}
+.bg-dong-y input{width:18px;height:18px;margin-top:1px;flex-shrink:0;accent-color:var(--bl)}
+.bg-nut{width:100%;justify-content:center}
+.bg-nut:disabled{opacity:.5;cursor:not-allowed}
+.bg-gui-phu{font-size:11.5px;color:var(--t4);margin:0;line-height:1.5}
+.bg-loi{font-size:12.5px;font-weight:600;color:var(--red);background:rgba(255,59,48,.08);border-radius:8px;padding:9px 11px}
+
+/* Ô mồi chống bot: ra khỏi khung nhìn chứ không `display:none`. Vài bot bỏ
+   qua ô ẩn hẳn, nhưng vẫn điền ô có trong luồng bố cục. */
+.bg-moi{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+
+/* Hai màn hình phụ: chưa chọn gì, và đã gửi xong. */
+.bg-rong,.bg-xong{background:#fff;border:1px solid var(--ln2);border-radius:14px;padding:32px 20px;text-align:center;margin:24px 0 56px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.bg-rong h2,.bg-xong h2{font-size:18px;font-weight:700;color:var(--t1);margin:0}
+.bg-rong p{font-size:14px;color:var(--t3);margin:0;max-width:52ch}
+.bg-xong-icon{width:56px;height:56px;border-radius:50%;background:var(--grn);color:#fff;display:flex;align-items:center;justify-content:center}
+.bg-xong-icon svg{width:30px;height:30px}
+.bg-xong-ma{font-size:15px;color:var(--t2);margin:0}
+.bg-xong-ma strong{font-size:18px;color:var(--bl);letter-spacing:.3px}
+.bg-xong-dong{font-size:14px;color:var(--t2);margin:0;max-width:52ch}
+.bg-xong-phu{font-size:13px;color:var(--t4);margin:0;max-width:56ch;line-height:1.6}
+.bg-xong-nut{margin-top:6px}
 
 /* Hai chiều liên kết thẻ ↔ pin. Bản đồ không phải trang trí: rê chuột lên
    thẻ thì pin sáng, bấm pin thì thẻ sáng và cuộn tới. */
@@ -3010,6 +3079,11 @@ body.page-map{overflow:hidden}
        phải con trỏ chuột. */
     .o-tick{width:44px;height:44px;border-radius:10px}
     .o-tick svg{width:18px;height:18px}
+
+    /* Ô đồng ý chính sách: hộp tick 18px là đúng kiểu, nhưng vùng chạm
+       thật là cả nhãn — đo được 38px ở 390px ngày 20/10. Nhãn cao lên,
+       hộp tick giữ nguyên cỡ. */
+    .bg-dong-y{min-height:44px;align-items:center}
 
     /* `.rh-count` đang `white-space:nowrap` + `text-overflow:ellipsis`: ở
        360px nó cắt mất chữ. Cho xuống dòng thay vì cắt. */
