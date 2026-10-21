@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Filters } from '@/lib/api';
+import { dungKeoSheet } from '@/lib/dung-keo-sheet';
 
 /**
  * Cột lọc của `/explore`, kèm drawer cho mobile.
@@ -201,12 +202,23 @@ export function BoLocKho({
 
     const coBoLoc = soBoLoc > 0;
 
+    const dongDrawer = useCallback(() => setMo(false), []);
+
+    // Tay cầm kéo được: cùng một hook với ngăn danh sách của `/map`, vì đó là
+    // cùng một cử chỉ trên cùng một hình dạng.
+    const { refNgan, rong, tay } = dungKeoSheet<HTMLFormElement>({
+        mo,
+        dong: dongDrawer,
+        nhan: 'bộ lọc',
+    });
+
     return (
         <>
             <form
+                ref={refNgan}
                 method="GET"
                 action="/explore"
-                className={mo ? 'sidebar open' : 'sidebar'}
+                className={mo ? (rong ? 'sidebar open sheet-rong' : 'sidebar open') : 'sidebar'}
                 onSubmit={(e) => {
                     e.preventDefault();
                     apDung();
@@ -216,16 +228,7 @@ export function BoLocKho({
                   Tay cầm của drawer. CSS chỉ hiện nó khi `.sidebar.open`, và
                   chỉ dưới 1024px — ở desktop cột lọc là một cột tĩnh.
                 */}
-                <div
-                    className="drawer-drag"
-                    onClick={() => setMo(false)}
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Đóng bộ lọc"
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') setMo(false);
-                    }}
-                >
+                <div className="drawer-drag" {...tay}>
                     <div className="drawer-drag-bar" />
                 </div>
 
