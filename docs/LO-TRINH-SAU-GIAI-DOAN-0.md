@@ -2087,3 +2087,181 @@ mọi cách sửa: `git switch -c <tên> main`, nêu rõ điểm xuất phát.
 | Báo cáo soát chưa xét giá, ảnh thực địa, kích thước | Trang in câu đó ra để không ai đọc nó như báo cáo đầy đủ |
 | Mốc ba cột 1280px thay vì 1180px như plan viết | `.w` lấy 52px mỗi bên |
 | Hai định nghĩa CSS trùng (`.loc-item`, `.mpop-price`) | Việc của một lần dọn CSS |
+
+> **Bảng trên có một dòng đã đóng, và thiếu một dòng mới.** #144 và #145 (dưới
+> đây) đóng dòng "bottom sheet chiếm phần lớn màn hình" và trả nợ lời hứa của
+> tay nắm. Bảng còn hiệu lực ở cuối mục sau.
+
+## Đêm 20 → sáng 21/10/2026 — ngăn kéo lên, hai PR (#144, #145)
+
+Ba ngăn kéo lên của trang công khai — `.map-panel.open` ở `/map`,
+`.sidebar.open` ở `/explore` và `/products` — mang hai lỗi cùng một họ: ngăn
+**lấy quá nhiều chỗ**, và tay nắm trên đỉnh nó **hứa một cử chỉ rồi không
+làm**. #144 sửa cái thứ nhất, #145 cái thứ hai. Cả hai đều là dòng đã nằm
+trong bảng "còn mở" từ ngày hôm trước.
+
+### #144 — `60vh` là 60% của cái gì
+
+`height:60vh` cố định. Đo ở viewport 742px: ngăn chiếm **445px**, bản đồ còn
+**245px** — trên một trang mà bản đồ *là* nội dung, không phải hình minh hoạ.
+
+Và `vh` tính theo viewport **khi thanh địa chỉ ẩn**. Trên điện thoại thật,
+lúc thanh ấy đang hiện, 60vh chiếm tới **~73% vùng nhìn thấy**. Đó là chênh
+lệch giữa con số trong CSS và cái người dùng thấy, và nó đi đúng chiều xấu.
+
+| Đo ở 390×844 | Trước | Sau |
+|---|---|---|
+| `.map-panel.open` | 506px (60vh) | **492px** |
+| Bản đồ còn lại | 286px | **300px**, đã chừa trước |
+| Trên máy thanh địa chỉ hiện | ~73% vùng nhìn | 60% của vùng nhìn **thật** |
+
+Phép tính mới đọc từ giữa `clamp` ra: lấy **phần còn lại sau khi chừa 300px
+cho bản đồ**, nhưng không dưới `40dvh` (ngăn thấp quá thì không đọc được danh
+sách) và không quá `60dvh` (cao quá thì quay về đúng lỗi này).
+
+```css
+height:60vh;                                              /* dự phòng */
+height:clamp(40dvh,calc(100dvh - var(--hdr) - 300px),60dvh);
+```
+
+Hai dòng `height` là cố ý: trình duyệt không biết `dvh` bỏ dòng sau và giữ
+dòng trước. `.sidebar.open` và `.ds-panel` cũng đổi `vh` → `dvh`, nhưng giữ
+nguyên 60% — hai ngăn ấy không có bản đồ phía sau, nên chỉ cần đổi *60% của
+cái gì*.
+
+### #145 — tay nắm hứa cử chỉ, nay làm thật
+
+Tay nắm hình viên thuốc ở đỉnh ngăn là ký hiệu quy ước của một bottom sheet
+kéo được. Từ lát 6 tới hôm qua nó **chỉ đóng ngăn khi bấm**: kéo xuống không
+có gì xảy ra, kéo lên cũng không. Giao diện mượn một ký hiệu rồi không trả nợ
+nó.
+
+Nay cả ba ngăn có **hai bậc** và một cử chỉ thật:
+
+| Người dùng làm | Ngăn làm |
+|---|---|
+| Kéo xuống | thấp dần **theo ngón tay**, trôi khỏi màn hình — xem trước việc đóng |
+| Thả ở gần bậc nào | về bậc đó; ngang nhau thì **giữ ngăn lại**, không đóng |
+| Vẩy (≥ 0.5px/ms) | đi **một bậc** theo hướng vẩy, không nhảy thẳng tới cuối |
+| Nhấn | đóng, như cũ |
+| ↑ / ↓ / Enter | mở rộng / thu rồi đóng / đóng, và `aria-expanded` nói ra bậc đang ở |
+
+Vẩy đi một bậc chứ không nhảy thẳng: vẩy mạnh từ bậc rộng mà đóng luôn là
+lấy đi cả ngăn của người chỉ muốn thấy bản đồ nhiều hơn.
+
+### Vì sao đổi `height` thật chứ không `transform:translateY()`
+
+Cách thường gặp là dựng ngăn cao sẵn rồi dịch xuống — rẻ hơn với trình duyệt
+vì không reflow. Nhưng ngăn này **chứa một danh sách cuộn bên trong**. Dựng
+cao sẵn rồi dịch xuống thì phần dưới của khung cuộn nằm ngoài vùng nhìn, và
+**mục cuối cùng của danh sách không ai đọc được**: cuộn tới cuối rồi vẫn còn
+một đoạn nằm dưới mép màn hình.
+
+Nên: đổi `height` thật, ghi qua ref (`el.style.height`) chứ không qua
+`setState`, một lần ghi mỗi `requestAnimationFrame`. Ngăn là `position:fixed`
+nên reflow chỉ chạy trong cây con của nó.
+
+Phép đo trên production xác nhận đúng chỗ ấy: ở bậc rộng của `/map` (88 thẻ
+thật), cuộn tới cuối thì **thẻ cuối cùng ở 824px trong vùng nhìn 844px**.
+
+### Ba lỗi mà chỉ phép ĐO tìm ra, không phải đọc code
+
+| Lỗi | Biểu hiện | Sửa |
+|---|---|---|
+| React mất **330ms** mới gắn lớp bậc mới sau `setState` | Thả tay xong ngăn **tụt về bậc cũ** rồi mới bò lên bậc mới | `classList.toggle('sheet-rong', …)` thẳng vào DOM, rồi mới `setRong()` |
+| Cờ "vừa kéo" không được xoá ở đầu cử chỉ | `click` không tới sau một cú kéo (chuột nhả ngoài tay nắm) → **cú nhấn kế tiếp bị ăn mất**, ngăn không đóng được | `vuaKeo.current = false` ngay trong `batDau` |
+| Phép đo bậc thu rơi vào **giữa animation** | Ghi nhớ ~700px cho bậc thật 492px → cú kéo sau tính ngưỡng theo số sai | Đo lại ở `transitionend` |
+
+Lỗi thứ nhất đo bằng vòng lấy mẫu 14×100ms: chiều cao đứng ở 492 tại mốc
+107/216/325ms, rồi mới 654 → 756 → 780 ở mốc 650ms. Không đọc code nào ra
+được con số 330ms đó.
+
+Lỗi thứ hai không phải lỗi của phép đo: chuột nhả ngoài tay nắm trên máy thật
+cho cùng kết quả.
+
+### Chốt được gì, và chốt bằng cách nào
+
+Không chốt nào của dự án chạy được một cử chỉ thật: jsdom không chạy layout,
+`khoi-giao-dien.mjs` đọc HTML đã render chứ không chạy CSS, Chrome thì phải
+đo tay. Nên phép **quyết định** của cử chỉ tách khỏi DOM, vào
+`webapp/lib/keo-sheet.ts` — hàm thuần, nhận số, trả bậc — và
+`tests/js/sheet-keo-duoc.test.mjs` gọi thẳng bằng số (Node 24 bóc chú thích
+kiểu khi nạp, nên chốt `.mjs` import được `.ts`). Phần gắn DOM ở
+`dung-keo-sheet.ts` mỏng đi đúng chừng ấy: đọc toạ độ, ghi `style.height`,
+đổi class.
+
+14 ca, ba nhóm:
+
+1. **Phép tính**: chiều cao tối đa, chiều cao trong lúc kéo, bậc khi thả —
+   vẩy một bậc, vẩy thắng vị trí, gần nhất, ngang nhau thì giữ ngăn.
+2. **CSS ↔ JS khớp nhau bằng số**: `CAO_TOI_THIEU` và `KHE_TREN` xuất hiện ở
+   cả hai bên, lệch nhau thì ngăn **nảy một đoạn đúng lúc nhả ngón tay**. Kèm
+   `.sheet-rong` phải nằm trong `@media(max-width:1023px)`, cặp `vh`/`dvh` dự
+   phòng, `touch-action:none` ở cả hai tay nắm.
+3. **Ba lỗi đo được ở trên**: mỗi lỗi một ca canh đúng dòng đã sửa.
+
+`npm run test:js` **278/278**. Đột biến: gỡ từng sửa một → đúng ca tương ứng
+đỏ.
+
+### Một ca test từng sai kỳ vọng, và nó siết được code
+
+Ca "màn hình thấp" đỏ với `'thu' !== 'rong'`. Kỳ vọng của test sai, không
+phải code sai — nhưng nhân đó siết luôn `mocKhiTha`: khi bậc rộng **thấp hơn
+hoặc bằng** bậc thu (màn hình rất thấp, hoặc bàn phím ảo đang chiếm chỗ) thì
+bậc rộng **không tồn tại**, và trả `'rong'` ở đó là đặt `aria-expanded="true"`
+cho một ngăn không cao lên được chút nào. Trình đọc màn hình sẽ nói sai.
+
+### Bốn cái bẫy nhỏ, ghi lại để không đạp lại
+
+| Bẫy | Hệ quả nếu không biết |
+|---|---|
+| `setPointerCapture()` ném `NotFoundError` với pointerId không thật | Cử chỉ chết ngay câu đầu khi đo bằng sự kiện tổng hợp → bọc `try/catch` |
+| Đặc hiệu CSS: `.sidebar.open.sheet-rong` (3 class) thắng `.sidebar.open` (2 class) | Không khoanh trong `@media(max-width:1023px)` thì nó đè `height:auto` của desktop |
+| `npm start` lần hai đỏ `EADDRINUSE`, nhưng `curl` vẫn "server ok" | `TaskStop` giết wrapper npm, không giết node con → **phép đo chạy trên build cũ** |
+| `javascript_tool` chặn giá trị trả về khi *tên khoá* trông như khoá bí mật | Đặt tên khoá trung tính, không phải lỗi của trang |
+
+Cái thứ ba là bẫy thật: một phép đo "xanh" trên bản cũ tệ hơn một phép đo đỏ.
+
+### Số đo trên production, sau khi deploy
+
+Khung 390×844 trên `https://oohx.net`, `/map` có **88 thẻ thật**:
+
+| Bước | `/map` | `/explore` |
+|---|---|---|
+| Mở ra (bậc thu) | 492px | 506px |
+| Kéo lên, theo ngón tay | 532 → 572 → 612 → 652 → 692 | — |
+| Thả tay (bậc rộng) | **780px** | **780px** |
+| Đỉnh ngăn ở bậc rộng | 64px, dưới header | 64px |
+| Khung cuộn bên trong | 499px, cuộn được, thẻ cuối ở 824px | 756px, cuộn được |
+| Kéo xuống ~200px rồi thả | về 492px, vẫn mở | về 506px, vẫn mở |
+| Kéo xuống > 400px rồi thả | đóng | đóng |
+
+Desktop 1280×900 không đổi: `.sidebar` 260×680 và `.map-panel` 380×848 vẫn là
+cột `position:static`, tay nắm vẫn `display:none`.
+
+Phép đo local trước đó cho `ds_cuon_duoc: false` — không phải lỗi: API giả chỉ
+có 2 màn hình nên danh sách ngắn hơn khung. Chỉ production có đủ bản ghi để đo
+cái cần đo.
+
+### Còn mở sau sáng 21/10
+
+| Việc | Chặn bởi |
+|---|---|
+| **`OOHX_LED_LCU_LAI_CHAU` không có đường nào để tới qua `/map`** | Hai cách sửa, cần chủ dự án chọn: điền tỉnh, hay cho `/map` nhóm "chưa rõ tỉnh" |
+| **Chưa ai thử đường gửi yêu cầu thật trên production** | Không còn gì chặn (#136). Cần chủ dự án bấm |
+| **Cử chỉ kéo chưa ai thử bằng ngón tay thật** | Phép đo dùng `PointerEvent` tổng hợp trong iframe; quán tính cuộn và tranh chấp với cử chỉ hệ thống chỉ hiện ra trên máy thật |
+| **Chưa ai chạy thật lối nhập màn hình ở `/admin`** sau khi sửa kiểu ULID | Hai ca hồi quy đi qua `ScreenWriter` trực tiếp, không qua `ScreenImportService` và hàng đợi |
+| **Chưa đo `/api/v1` trên production** | Cần một API client (scope `inventory`) và token của nó |
+| **Hai việc nhập liệu còn lại** | Tên hay điểm đặt mới là cái sai ở hàng Aeon · sáu màn hình Yên Bái chung một toạ độ |
+| **Độ phủ `ghepLechKhoa` vẫn 0/104** | Chờ lượt nhập lại đầu tiên |
+| **Đối tác chưa được báo** về thứ tự mặc định mới của `/owners`, `/sites`, `/screens` | Tài liệu đã ghi, nhưng vẫn chưa biết đối tác nào đang dùng API |
+| **Ô tick trên thiết bị cảm ứng chưa ai nhìn tận mắt** | `@media(hover:none)` không kiểm được từ máy tính; chốt chỉ canh quy tắc tồn tại |
+| **Nhãn tiếng Việt trên bản đồ** | Cần tạo style trong MapTiler Cloud rồi đưa tên vào `MAPTILER_STYLE` |
+| `price_per_slot_vnd` của `/api/v1` mang giá trị `floor_cpm` | Ghi chú F09: đổi là làm sai số tiền trong hệ thống đối tác |
+| Báo cáo soát chưa xét giá, ảnh thực địa, kích thước | Trang in câu đó ra để không ai đọc nó như báo cáo đầy đủ |
+| Mốc ba cột 1280px thay vì 1180px như plan viết | `.w` lấy 52px mỗi bên |
+| Hai định nghĩa CSS trùng (`.loc-item`, `.mpop-price`) | Việc của một lần dọn CSS |
+
+Ngăn "xem lại" (`.ds-panel`) **cố ý** ở ngoài #145: nó không có tay nắm, nên
+không hứa cử chỉ nào. Thêm cử chỉ vào đó là một quyết định thiết kế mới, không
+phải trả nợ một lời hứa cũ.
