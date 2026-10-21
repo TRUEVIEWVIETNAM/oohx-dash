@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { soVN, type CumSite, type MapPin } from '@/lib/ban-do';
 import { useBanDoPin, VIETNAM } from '@/lib/dung-ban-do';
+import { dungKeoSheet } from '@/lib/dung-keo-sheet';
 import type { Filters, Region } from '@/lib/api';
 import { BoLocThongMinh } from '@/components/BoLocThongMinh';
 import { PopupBanDo } from '@/components/PopupBanDo';
@@ -99,6 +100,16 @@ export function ScreenMap({
         khiChonCum: setDangChon,
     });
 
+    const dongPanel = useCallback(() => setMoPanel(false), []);
+
+    // Tay nắm `.mp-drag` kéo được: xuống thì thấp dần rồi đóng, lên thì cao
+    // tới sát header. Nhấn vẫn đóng, như từ lát 6.
+    const { refNgan, rong, tay } = dungKeoSheet<HTMLDivElement>({
+        mo: moPanel,
+        dong: dongPanel,
+        nhan: 'danh sách',
+    });
+
     const soManHinh = pins.length;
 
     // Tỉnh thành cho thanh công cụ: nhiều màn hình nhất trước.
@@ -162,17 +173,17 @@ export function ScreenMap({
 
     return (
         <div className="map-layout">
-            <div className={moPanel ? 'map-panel open' : 'map-panel'}>
-                <div
-                    className="mp-drag"
-                    onClick={() => setMoPanel(false)}
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Đóng danh sách"
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') setMoPanel(false);
-                    }}
-                >
+            <div
+                ref={refNgan}
+                className={
+                    moPanel
+                        ? rong
+                            ? 'map-panel open sheet-rong'
+                            : 'map-panel open'
+                        : 'map-panel'
+                }
+            >
+                <div className="mp-drag" {...tay}>
                     <div className="mp-drag-bar" />
                 </div>
 

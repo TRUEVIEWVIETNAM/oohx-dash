@@ -1536,9 +1536,9 @@ body.co-thanh-ds .filter-float{bottom:calc(var(--nav) + var(--safe-b) + 96px)}
    `dvh` chứ không `vh`: xem lý do ở `.map-panel.open`. Ngăn này không có
    bản đồ phía sau nên nó giữ nguyên 60%, chỉ đổi 60% của cái gì. */
 .sidebar{display:none;width:100%;background:#fff;overflow:hidden}
-.sidebar.open{display:flex;flex-direction:column;position:fixed;bottom:var(--nav);left:0;right:0;top:auto;height:60vh;height:60dvh;z-index:300;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.12)}
+.sidebar.open{display:flex;flex-direction:column;position:fixed;bottom:var(--nav);left:0;right:0;top:auto;height:60vh;height:60dvh;z-index:300;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.12);transition:height .26s var(--ease)}
 @media(min-width:1024px){.sidebar{display:flex;flex-direction:column;gap:14px;position:static;height:auto;z-index:auto;overflow:visible;border-radius:0;box-shadow:none;background:var(--bg1)}
-.sidebar.open{position:static;height:auto;border-radius:0;box-shadow:none}}
+.sidebar.open{position:static;height:auto;border-radius:0;box-shadow:none;transition:none}}
 
 /* Filter backdrop — removed, panel is opaque white */
 .filter-backdrop{display:none}
@@ -1553,7 +1553,7 @@ body.co-thanh-ds .filter-float{bottom:calc(var(--nav) + var(--safe-b) + 96px)}
 @media(min-width:1024px){.filter-float{display:none}}
 
 /* Drawer drag bar — mobile only (mirrors .mp-drag) */
-.drawer-drag{display:none;padding:10px 0 4px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.drawer-drag{display:none;padding:12px 0 8px;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none}
 .drawer-drag-bar{width:36px;height:4px;border-radius:2px;background:var(--ln);margin:0 auto}
 .sidebar.open .drawer-drag{display:block}
 @media(min-width:1024px){.drawer-drag{display:none !important}}
@@ -1915,11 +1915,42 @@ body.page-map{overflow:hidden}
    `clamp` đọc từ giữa ra: lấy phần còn lại sau khi chừa 300px cho bản đồ,
    nhưng không bao giờ dưới 40dvh (ngăn quá thấp thì không đọc được danh
    sách) và không quá 60dvh (ngăn quá cao thì quay về đúng lỗi này). */
-.map-panel.open{display:flex;flex-direction:column;position:fixed;bottom:var(--nav);left:0;right:0;top:auto;height:60vh;height:clamp(40dvh,calc(100dvh - var(--hdr) - 300px),60dvh);z-index:300;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.12)}
-@media(min-width:1024px){.map-panel.open{position:static;height:auto;border-radius:0;box-shadow:none}}
-.mp-drag{display:none;padding:10px 0 4px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.map-panel.open{display:flex;flex-direction:column;position:fixed;bottom:var(--nav);left:0;right:0;top:auto;height:60vh;height:clamp(40dvh,calc(100dvh - var(--hdr) - 300px),60dvh);z-index:300;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.12);transition:height .26s var(--ease)}
+@media(min-width:1024px){.map-panel.open{position:static;height:auto;border-radius:0;box-shadow:none;transition:none}}
+.mp-drag{display:none;padding:12px 0 8px;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none}
 .mp-drag-bar{width:36px;height:4px;border-radius:2px;background:var(--ln);margin:0 auto}
 @media(max-width:1023px){.map-panel.open .mp-drag{display:block}}
+
+/* ═══ Hai bậc của ngăn kéo lên (21/10/2026) ═══
+
+   Tay nắm hình viên thuốc ở đỉnh `.map-panel.open` và `.sidebar.open` là ký
+   hiệu quy ước của một bottom sheet kéo được. Từ lát 6 tới hôm qua nó **chỉ
+   đóng khi bấm**: kéo xuống không có gì xảy ra, kéo lên cũng không. Giao diện
+   hứa một cử chỉ rồi không làm — lỗi đã ghi trong lộ trình.
+
+   `webapp/lib/dung-keo-sheet.ts` nay gắn cử chỉ thật vào tay nắm, và CSS ở đây
+   giữ hai thứ nó cần:
+
+   `.sheet-rong` — bậc rộng. `max()` lặp lại đúng `CAO_TOI_THIEU = 120` của
+   `keo-sheet.ts`, và `- 12px` lặp lại `KHE_TREN = 12`: hai con số đó phải khớp,
+   vì JS kẹp cú kéo theo chúng còn CSS giữ ngăn lại sau khi thả. Lệch nhau thì
+   ngăn nảy một đoạn ngay lúc nhả ngón tay.
+
+   Đỉnh ngăn dừng dưới header: header là lối duy nhất ra khỏi trang trên điện
+   thoại, và một ngăn che kín màn hình thì chỉ còn đúng tay nắm để thoát.
+
+   `.sheet-keo` — trong lúc ngón tay còn trên màn hình. Tắt transition, vì để
+   nguyên thì ngăn đuổi theo ngón tay chậm một nhịp 260ms và cử chỉ thành nhão;
+   chặn chọn chữ, vì kéo bằng chuột trên desktop sẽ bôi đen cả danh sách.
+
+   Cả hai nằm trong `@media(max-width:1023px)` — không phải để "chỉ mobile" cho
+   đẹp, mà vì ở ≥1024px hai phần tử này là cột tĩnh với `height:auto`, và
+   `.sidebar.open.sheet-rong` (3 class) sẽ **thắng** `.sidebar.open`
+   (2 class) nếu không khoanh lại. */
+@media(max-width:1023px){
+.map-panel.open.sheet-rong,.sidebar.open.sheet-rong{height:max(120px,calc(100vh - var(--hdr) - var(--nav) - 12px));height:max(120px,calc(100dvh - var(--hdr) - var(--nav) - 12px))}
+.map-panel.open.sheet-keo,.sidebar.open.sheet-keo{transition:none;user-select:none}
+}
 .mp-head{padding:12px 18px;border-bottom:1px solid var(--ln2);flex-shrink:0}
 .mp-search{display:flex;align-items:center;background:var(--bg2);border-radius:10px;overflow:hidden;padding:0 12px;margin-bottom:12px}
 .mp-search svg{width:16px;height:16px;color:var(--t4);flex-shrink:0}
