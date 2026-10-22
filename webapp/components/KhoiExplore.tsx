@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { KhoiKetQua } from '@/components/KhoiKetQua';
 import { BanDoKetQua } from '@/components/BanDoKetQua';
 import { DaiTongQuan } from '@/components/DaiTongQuan';
+import { TheChiTiet } from '@/components/TheChiTiet';
 import { ThanhDanhSach } from '@/components/ThanhDanhSach';
 import { dungKeoSheet } from '@/lib/dung-keo-sheet';
 import type { TomTat } from '@/lib/khung-nhin';
@@ -287,6 +288,87 @@ function KhungBanDo({
     const nhanTomTat = useCallback((t: TomTat | null) => setTomTat(t), []);
 
     /**
+     * Thẻ chi tiết mở cạnh danh sách (lát 5, 22/10/2026).
+     *
+     * Trạng thái là **đường dẫn**, không phải một biến: mở thẻ thì địa chỉ
+     * thành `/explore/{slug}` và Back đóng nó. Xem docblock của `TheChiTiet`
+     * về việc vì sao dùng `history.pushState` chứ không `router.push`.
+     */
+    const [slugChiTiet, setSlugChiTiet] = useState<string | null>(null);
+
+    const moChiTiet = useCallback((slug: string) => {
+        setSlugChiTiet(slug);
+        window.history.pushState(null, '', `/explore/${encodeURIComponent(slug)}`);
+    }, []);
+
+    /** Đóng bằng cách lùi lịch sử, nên nút × và nút Back làm cùng một việc. */
+    const dongChiTiet = useCallback(() => window.history.back(), []);
+
+    /**
+     * Back và Forward đều đọc lại từ địa chỉ, không chỉ "đóng".
+     *
+     * Đóng thẳng thì nút Forward — quay lại thẻ vừa xem — chỉ đổi địa chỉ mà
+     * không mở gì, và người dùng đứng trước một URL nói một đằng còn màn hình
+     * một nẻo.
+     */
+    useEffect(() => {
+        const doi = () => {
+            const m = window.location.pathname.match(/^\/explore\/([^/]+)\/?$/);
+
+            setSlugChiTiet(m ? decodeURIComponent(m[1]) : null);
+        };
+
+        window.addEventListener('popstate', doi);
+
+        return () => window.removeEventListener('popstate', doi);
+    }, []);
+
+    /**
+     * Bấm một thẻ trong panel mở chi tiết **tại chỗ**, không rời trang.
+     *
+     * Uỷ nhiệm trên khung cuộn thay vì gắn vào từng thẻ: thẻ do máy chủ dựng
+     * nên không nhận được hàm, và cả thẻ là một `<a href="/explore/{slug}">`
+     * — xem docblock của `ScreenCard`. Cùng cách phép rê chuột đã làm.
+     *
+     * ══ Pha CAPTURE, không phải bubble ══
+     *
+     * `onClick` trên khung cuộn **không chạy kịp**. Thẻ là một `<Link>` của
+     * Next, và `Link` gắn `onClick` của riêng nó lên chính thẻ `<a>`; React
+     * gọi handler của con trước handler của cha, nên lúc cú bấm tới đây thì
+     * Next đã bắt đầu điều hướng. Đo thấy ngay ở lần chạy đầu: bấm một thẻ
+     * là cả trang bản đồ biến mất, đúng thứ lát này sinh ra để tránh.
+     *
+     * `onClickCapture` chạy trước mọi handler bubble trong cây, và
+     * `stopPropagation()` ở đó cắt luôn đường tới `onClick` của `Link`.
+     *
+     * Ba trường hợp **không** chặn, vì chặn chúng là lấy mất một hành vi
+     * trình duyệt mà người dùng cố ý gọi: bấm giữa hoặc kèm
+     * Ctrl/Cmd/Shift/Alt (mở tab mới), và cú bấm rơi vào ô tick bên trong
+     * thẻ — ô tick là một nút khác, nằm lồng trong thẻ vì cả thẻ là một
+     * `<a>`.
+     */
+    const bamThe = useCallback(
+        (e: React.MouseEvent<HTMLDivElement>) => {
+            if (e.defaultPrevented || e.button !== 0) return;
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+            const dich = e.target as HTMLElement;
+
+            if (dich.closest('.o-tick')) return;
+
+            const a = dich.closest<HTMLAnchorElement>('a[data-slug]');
+            const slug = a?.dataset.slug;
+
+            if (!a || !slug) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+            moChiTiet(slug);
+        },
+        [moChiTiet],
+    );
+
+    /**
      * Cùng ngăn kéo hai bậc với `/map` và cột lọc (#145), không phải bản thứ
      * ba. Trên desktop CSS cho panel về thẻ nổi tĩnh và tay nắm ẩn, nên hook
      * vẫn gắn nhưng không có gì để kéo.
@@ -329,6 +411,7 @@ function KhungBanDo({
                     slugSang={slugSang}
                     khiChonCum={chonCum}
                     khiDoiTomTat={nhanTomTat}
+                    khiMoChiTiet={moChiTiet}
                     hien
                 />
 
@@ -374,6 +457,7 @@ function KhungBanDo({
                         className="ex-panel-cuon"
                         onMouseOver={reVao}
                         onMouseLeave={() => setSlugSang(null)}
+                        onClickCapture={bamThe}
                     >
                         <KhoiKetQua
                             tong={tong}
@@ -389,6 +473,16 @@ function KhungBanDo({
                         {pagination}
                     </div>
                 </aside>
+
+                {/*
+                  Thẻ chi tiết — anh em của panel danh sách, không con của
+                  nó: nó mở CẠNH danh sách ở left:428px, và nằm trong một
+                  panel `overflow:hidden` rộng 400 thì không có chỗ nào để
+                  mở ra.
+                */}
+                {slugChiTiet ? (
+                    <TheChiTiet key={slugChiTiet} slug={slugChiTiet} dong={dongChiTiet} />
+                ) : null}
 
                 {moPanel ? null : (
                     <button type="button" className="ex-mo-panel" onClick={() => setMoPanel(true)}>

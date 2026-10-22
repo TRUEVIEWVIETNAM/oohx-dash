@@ -1500,6 +1500,56 @@ ul{list-style:none}
   .ex-tq-cat{margin-top:4px;font-size:10.5px}
 }
 
+/* ── Thẻ chi tiết mở cạnh danh sách (lát 5, 22/10/2026) ───────────────────
+ *
+ * Đo Google Maps thật ở 1440×900: thẻ kết quả x=72 w=408, thẻ chi tiết
+ * x=496 w=408, bản đồ **còn thấy 536px**. Chi tiết mở ra không lấy mất chỗ
+ * người dùng đang đứng trong danh sách.
+ *
+ * Ở OOHX panel danh sách bắt đầu ở 16 và rộng 400, nên thẻ này ở
+ * **left:428** = 16 + 400 + 12 khe. Ở 1440px bản đồ còn thấy 1440 − 828 =
+ * 612px; ở 1280px còn 452px, vẫn đủ để đọc một vùng.
+ *
+ * Dưới 1024px không có chỗ cho hai cột, nên nó là ngăn kéo thứ hai **chồng
+ * lên** panel danh sách (z-index 320 so với 300) — cùng hình dạng, cùng cử
+ * chỉ hai bậc của `dung-keo-sheet.ts` (#145), không phải ngăn kéo thứ năm
+ * viết lại. Back đưa về danh sách.
+ */
+.ex-ct{position:fixed;left:0;right:0;bottom:var(--nav);top:auto;z-index:320;display:flex;flex-direction:column;background:#fff;overflow:hidden;height:60vh;height:clamp(40dvh,calc(100dvh - var(--hdr) - 300px),60dvh);border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.18);transition:height .26s var(--ease)}
+@media(min-width:1024px){
+  .ex-ct{position:absolute;left:428px;right:auto;top:12px;bottom:12px;width:400px;height:auto;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.17);transition:none}
+}
+.ex-ct-tay{display:block;padding:12px 0 8px;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none}
+@media(min-width:1024px){.ex-ct-tay{display:none}}
+.ex-ct-dong{position:absolute;right:10px;top:10px;z-index:2;width:32px;height:32px;border-radius:50%;border:1px solid var(--ln2);background:rgba(255,255,255,.94);backdrop-filter:blur(6px);font-size:20px;line-height:1;color:var(--t2);cursor:pointer}
+.ex-ct-dong:hover{color:var(--t1);border-color:var(--ln)}
+.ex-ct-cuon{flex:1;overflow-y:auto;min-height:0}
+.ex-ct-cho,.ex-ct-loi{padding:28px 16px;text-align:center;font-size:13px;font-weight:600;color:var(--t4)}
+.ex-ct-loi{color:var(--red)}
+.ex-ct-anh{display:block;width:100%;height:168px;object-fit:cover}
+.ex-ct-than{padding:14px 16px 24px}
+.ex-ct-ten{font-size:18px;font-weight:800;color:var(--t1);letter-spacing:-.3px;line-height:1.25}
+.ex-ct-meta{margin-top:4px;font-size:12.5px;color:var(--t3)}
+.ex-ct-nut{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px}
+/* Ô tick ở đây là một nút trong hàng, không phải dấu nổi trên ảnh thẻ. */
+.ex-ct-nut .o-tick{position:static;width:32px;height:32px;flex-shrink:0}
+/* Bốn ô số liệu trong 368px: hai hàng hai cột, không một hàng bốn cột.
+ *
+ * `.ex-ct .stats-row` chứ không `.ex-ct-so`: `.stats-row` bật bốn cột từ
+ * 480px và nằm **sau** khối này trong tệp, nên một class chọi một class thì
+ * nó thắng. Đo ở bản đầu: bốn ô 70px, và "Toà Nhà A" xuống ba dòng.
+ *
+ * Chữ cũng nhỏ lại — `.stat-n` 18px là cỡ cho trang đầy đủ rộng 760px, còn
+ * ở đây giá trị dài nhất là một tên network. */
+.ex-ct .stats-row{grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 0}
+.ex-ct .stat-box{padding:10px}
+.ex-ct .stat-n{font-size:14px;letter-spacing:-.2px;line-height:1.25}
+.ex-ct .stat-box:hover{transform:none;box-shadow:var(--sh1)}
+.ex-ct-bang{margin-top:14px;border-top:1px solid var(--ln2)}
+.ex-ct-hang{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--ln2);font-size:12.5px}
+.ex-ct-hang-l{color:var(--t4);flex-shrink:0}
+.ex-ct-hang-v{color:var(--t2);font-weight:600;text-align:right;min-width:0}
+
 /* Nút mở panel trên mobile — đúng vai `.panel-toggle` của `/map`. */
 .ex-mo-panel{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--nav) + var(--safe-b) + 16px);z-index:290;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 18px;border-radius:980px;border:1px solid var(--ln);background:#fff;box-shadow:var(--sh2);font-family:var(--font);font-size:13px;font-weight:700;color:var(--t1);cursor:pointer}
 @media(min-width:1024px){.ex-mo-panel{display:none}}
@@ -2192,8 +2242,8 @@ body.page-map{overflow:hidden}
    `.sidebar.open.sheet-rong` (3 class) sẽ **thắng** `.sidebar.open`
    (2 class) nếu không khoanh lại. */
 @media(max-width:1023px){
-.map-panel.open.sheet-rong,.sidebar.open.sheet-rong,.ex-panel.open.sheet-rong{height:max(120px,calc(100vh - var(--hdr) - var(--nav) - 12px));height:max(120px,calc(100dvh - var(--hdr) - var(--nav) - 12px))}
-.map-panel.open.sheet-keo,.sidebar.open.sheet-keo,.ex-panel.open.sheet-keo{transition:none;user-select:none}
+.map-panel.open.sheet-rong,.sidebar.open.sheet-rong,.ex-panel.open.sheet-rong,.ex-ct.sheet-rong{height:max(120px,calc(100vh - var(--hdr) - var(--nav) - 12px));height:max(120px,calc(100dvh - var(--hdr) - var(--nav) - 12px))}
+.map-panel.open.sheet-keo,.sidebar.open.sheet-keo,.ex-panel.open.sheet-keo,.ex-ct.sheet-keo{transition:none;user-select:none}
 }
 .mp-head{padding:12px 18px;border-bottom:1px solid var(--ln2);flex-shrink:0}
 .mp-search{display:flex;align-items:center;background:var(--bg2);border-radius:10px;overflow:hidden;padding:0 12px;margin-bottom:12px}
