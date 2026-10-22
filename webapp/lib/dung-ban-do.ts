@@ -15,7 +15,7 @@ import { canNapLai, tomTatKhung, type Khung, type TomTat } from './khung-nhin';
 /**
  * Lõi dùng chung của mọi bản đồ đọc `GET /api/v2/screens/map`.
  *
- * ══ Vì sao tách ra khỏi `ScreenMap` ══
+ * ══ Vì sao tách ra khỏi `ScreenMap` (gỡ 22/10/2026 cùng `/map`) ══
  *
  * Lát 3 của `docs/PLAN-EXPLORE-QUYET-DINH-MUA.md` đặt một bản đồ thứ hai cạnh
  * danh sách `/explore`. Nó cần đúng những thứ `ScreenMap` đã có: dựng Leaflet,

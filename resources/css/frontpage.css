@@ -956,8 +956,6 @@ ul{list-style:none}
 .map-mock{position:relative;background:#E4E6EB;height:300px;overflow:hidden}
 @media(min-width:768px){.map-mock{height:400px}}
 @media(min-width:1024px){.map-mock{height:480px}}
-.map-bg{position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=1200&q=70&auto=format&fit=crop') center/cover;filter:saturate(.5) brightness(1.1)}
-.mpin{position:absolute;transform:translate(-50%,-100%);cursor:pointer;filter:drop-shadow(0 4px 8px rgba(0,0,0,.2))}
 .mpc{width:42px;height:42px;border-radius:12px;background:var(--bl);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(42,79,246,.4);transition:transform 200ms var(--spring)}
 .mpc:hover{transform:scale(1.12)}
 .mpc-grn{background:var(--grn);box-shadow:0 4px 16px rgba(52,199,89,.4)}
@@ -966,21 +964,13 @@ ul{list-style:none}
 .mpc-lbl::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);width:0;height:0;border:5px solid transparent;border-top-color:#fff}
 .mpop{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:min(320px,calc(100% - 28px));background:#fff;border-radius:var(--r3);box-shadow:var(--sh4);overflow:hidden;display:flex}
 @media(min-width:768px){.mpop{left:auto;right:18px;bottom:18px;transform:none;flex-direction:column;width:290px}}
-.mpop-ph{width:90px;flex-shrink:0}
-.mpop-ph img{width:100%;height:100%;object-fit:cover}
-.mpop-bd{flex:1;padding:12px 14px}
 .mpop-name{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px;line-height:1.3}
-.mpop-meta{font-size:11px;color:var(--t4);display:flex;align-items:center;gap:4px;margin-bottom:8px}
-.mpop-meta svg{width:11px;height:11px;color:var(--bl)}
 .mpop-price{font-size:16px;font-weight:700;color:var(--t1)}
 .mpop-price-quote{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--bl);background:var(--bl-lt);padding:6px 10px;border-radius:8px}
-.mpop-list-price-quote{font-size:11px;font-weight:700;color:var(--bl);background:var(--bl-lt);padding:4px 8px;border-radius:6px}
 .mpop-ac{display:flex;align-items:center;padding:0 14px;flex-shrink:0}
 .map-bar{background:#fff;border-top:1px solid var(--ln2);display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:12px 18px}
 .map-count{font-size:13px;font-weight:600;color:var(--t2);flex:1}
 .map-count strong{color:var(--bl)}
-.map-filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
-.map-filters::-webkit-scrollbar{display:none}
 .mf{padding:6px 14px;border-radius:980px;font-size:13px;font-weight:600;border:1.5px solid var(--ln2);color:var(--t3);background:transparent;cursor:pointer;white-space:nowrap;transition:all 140ms}
 .mf:hover{border-color:var(--bl);color:var(--bl)}
 .mf.on{background:var(--bl);border-color:var(--bl);color:#fff}
@@ -1404,13 +1394,13 @@ ul{list-style:none}
  *
  * ══ Dưới 1024px panel là ngăn kéo, không phải thẻ nổi ══
  *
- * Cùng hình dạng và cùng cử chỉ với `.map-panel.open` — hai bậc, kéo được,
+  * Cùng hình dạng và cùng cử chỉ với `.sidebar.open` — hai bậc, kéo được,
  * tay nắm hình viên thuốc (#145). Dùng lại `dung-keo-sheet.ts` chứ không viết
  * ngăn kéo thứ ba: ba bản của cùng một cử chỉ là ba chỗ để chúng trôi khỏi
  * nhau. Vì thế `.ex-panel.open` có tên trong cả hai quy tắc `.sheet-*` ở dưới
  * tệp này.
  *
- * Chiều cao bậc thu lặp lại đúng phép tính của `.map-panel.open`: chừa 300px
+  * Chiều cao bậc thu chừa 300px
  * cho bản đồ trước, lấy phần còn lại, kẹp trong 40–60dvh.
  */
 .ex-app{position:relative;height:calc(100vh - var(--hdr) - var(--nav));height:calc(100dvh - var(--hdr) - var(--nav));min-height:420px;overflow:hidden}
@@ -1738,7 +1728,7 @@ body.co-thanh-ds .filter-float{bottom:calc(var(--nav) + var(--safe-b) + 96px)}
 @media(min-width:768px){body.co-thanh-ds .filter-float{bottom:calc(var(--safe-b) + 96px)}}
 
 /* Ngăn kéo xem lại. Cùng hình dạng bottom sheet với `.sidebar.open` và
-   `.map-panel`, vì ba thứ này là cùng một cử chỉ. */
+   `.ex-panel.open`, vì ba thứ này là cùng một cử chỉ. */
 .ds-panel{display:none;position:fixed;left:0;right:0;bottom:calc(var(--nav) + var(--safe-b) + 84px);max-width:100%;max-height:56vh;max-height:56dvh;z-index:319;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.16);flex-direction:column;overflow:hidden}
 .ds-panel.open{display:flex}
 @media(min-width:768px){.ds-panel{bottom:calc(var(--safe-b) + 88px);left:auto;right:24px;width:420px;border-radius:16px}}
@@ -1867,7 +1857,7 @@ body.co-thanh-ds .filter-float{bottom:calc(var(--nav) + var(--safe-b) + 96px)}
 .oohx-pin--sang .oohx-rich{transform:scale(1.06);box-shadow:0 0 0 3px var(--bl),0 6px 18px rgba(0,0,0,.2)}
 .sc-card.ex-the-sang{box-shadow:0 0 0 2px var(--bl),var(--sh3)}
 /* Sidebar: mobile-first — bottom sheet 60dvh, inline on desktop.
-   `dvh` chứ không `vh`: xem lý do ở `.map-panel.open`. Ngăn này không có
+   `dvh` chứ không `vh`: xem lý do ở `.ex-panel.open`. Ngăn này không có
    bản đồ phía sau nên nó giữ nguyên 60%, chỉ đổi 60% của cái gì. */
 .sidebar{display:none;width:100%;background:#fff;overflow:hidden}
 .sidebar.open{display:flex;flex-direction:column;position:fixed;bottom:var(--nav);left:0;right:0;top:auto;height:60vh;height:60dvh;z-index:300;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.12);transition:height .26s var(--ease)}
@@ -1886,7 +1876,8 @@ body.co-thanh-ds .filter-float{bottom:calc(var(--nav) + var(--safe-b) + 96px)}
 .filter-float.hidden{opacity:0;pointer-events:none;transform:translateX(-50%) translateY(20px)}
 @media(min-width:1024px){.filter-float{display:none}}
 
-/* Drawer drag bar — mobile only (mirrors .mp-drag) */
+/* Tay nắm ngăn kéo — chỉ dưới 1024px. Cùng hình dạng với `.ex-panel-tay`
+   và `.ex-ct-tay`; `.mp-drag` của `/map` gỡ ngày 22/10/2026 cùng trang đó. */
 .drawer-drag{display:none;padding:12px 0 8px;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none}
 .drawer-drag-bar{width:36px;height:4px;border-radius:2px;background:var(--ln);margin:0 auto}
 .sidebar.open .drawer-drag{display:block}
@@ -2113,9 +2104,6 @@ input[type=range]{width:100%;accent-color:var(--bl);cursor:pointer}
 .detail-layout .mpin{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center}
 .detail-layout .mpc{width:42px;height:42px;border-radius:12px;background:var(--bl);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(42,79,246,.4)}
 .detail-layout .mpc::after{content:'';width:10px;height:10px;background:var(--bl);clip-path:polygon(0 0,100% 0,50% 100%);margin-top:-2px}
-.map-chip{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:#fff;border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:6px;box-shadow:var(--sh3);white-space:nowrap;font-size:12px;font-weight:600;color:var(--t1);max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
-@media(min-width:768px){.map-chip{padding:10px 16px;font-size:13px;gap:8px;bottom:16px}}
-.map-chip svg{width:14px;height:14px;color:var(--bl)}
 .dist-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 @media(min-width:480px){.dist-grid{grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px}}
 .dist-box{padding:10px 12px;background:var(--bg2);border-radius:10px;text-align:center}
@@ -2221,43 +2209,29 @@ input[type=range]{width:100%;accent-color:var(--bl);cursor:pointer}
 .sim-pu{font-size:10px;color:var(--t4);font-weight:500}
 @media(min-width:768px){.sim-pu{font-size:11px}}
 .mcta{display:none}
-.mc-price{font-size:17px;font-weight:800;color:var(--t1);letter-spacing:-.5px;flex:1}
-@media(min-width:768px){.mc-price{font-size:20px}}
-.mc-sub{font-size:10px;color:var(--t4);font-weight:500}
-@media(min-width:768px){.mc-sub{font-size:11px}}
 @media(max-width:767px){body.page-detail .similar-section{padding-bottom:calc(28px + 68px + var(--nav))}}
 
 
-/* ── 14. MAP PAGE SPECIFIC ── */
-
-body.page-map{overflow:hidden}
-.map-layout{display:flex;flex-direction:column;height:calc(100vh - var(--hdr) - var(--nav));overflow:hidden}
-@media(min-width:768px){.map-layout{height:calc(100vh - var(--hdr));flex-direction:row}}
-.map-panel{display:none;width:100%;background:#fff;border-top:1px solid var(--ln2);overflow:hidden}
-@media(min-width:1024px){.map-panel{display:flex;width:380px;flex-shrink:0;flex-direction:column;border-top:none;border-right:1px solid var(--ln2)}}
-/* Chiều cao ngăn danh sách: chừa chỗ cho bản đồ trước, lấy phần còn lại.
-   (20/10/2026)
-
-   Trước: `height:60vh` cố định. Đo ở viewport 742px thì ngăn chiếm 445px và
-   bản đồ **chỉ còn 245px** — trên một trang mà bản đồ LÀ nội dung.
-
-   Trên điện thoại thật còn hẹp hơn thế: `vh` tính theo viewport khi thanh
-   địa chỉ **ẩn**, nên khi thanh ấy hiện, 60vh chiếm tới ~73% vùng nhìn thấy.
-   `dvh` theo vùng nhìn thật, nên 60% là 60% thật. Dòng `vh` đứng trước làm
-   dự phòng cho trình duyệt không biết `dvh`.
-
-   `clamp` đọc từ giữa ra: lấy phần còn lại sau khi chừa 300px cho bản đồ,
-   nhưng không bao giờ dưới 40dvh (ngăn quá thấp thì không đọc được danh
-   sách) và không quá 60dvh (ngăn quá cao thì quay về đúng lỗi này). */
-.map-panel.open{display:flex;flex-direction:column;position:fixed;bottom:var(--nav);left:0;right:0;top:auto;height:60vh;height:clamp(40dvh,calc(100dvh - var(--hdr) - 300px),60dvh);z-index:300;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.12);transition:height .26s var(--ease)}
-@media(min-width:1024px){.map-panel.open{position:static;height:auto;border-radius:0;box-shadow:none;transition:none}}
-.mp-drag{display:none;padding:12px 0 8px;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none}
+/* ── 14. BẢN ĐỒ: phần còn lại sau khi `/map` khai tử ──────────────────────
+ *
+ * Mục này từng là "MAP PAGE SPECIFIC" — bố cục hai cột, ngăn danh sách
+ * 380px, thanh công cụ nổi, thẻ trong panel, dropdown tỉnh thành: 92 dòng
+ * phục vụ đúng một trang. Lát 7 (22/10/2026) gỡ chúng cùng `/map`, cùng
+ * `ScreenMap.tsx` (398 dòng) và `BoLocThongMinh.tsx` (330 dòng).
+ *
+ * Còn lại ở đây là phần **dùng chung** với `/explore?view=map`: vạch tay
+ * nắm, khung bản đồ, nút thu phóng, popup pin. Chúng sống tiếp vì nay có
+ * hai chỗ dựng chúng — `BanDoKetQua` và `BanDoTrangChu`.
+ *
+ * Chú thích dài về chiều cao `clamp` của `.map-panel.open` đi theo quy tắc
+ * nó giải thích; cùng phép tính ấy nay ở `.ex-panel.open`, có chú thích
+ * riêng tại chỗ.
+ */
 .mp-drag-bar{width:36px;height:4px;border-radius:2px;background:var(--ln);margin:0 auto}
-@media(max-width:1023px){.map-panel.open .mp-drag{display:block}}
 
 /* ═══ Hai bậc của ngăn kéo lên (21/10/2026) ═══
 
-   Tay nắm hình viên thuốc ở đỉnh `.map-panel.open` và `.sidebar.open` là ký
+   Tay nắm hình viên thuốc ở đỉnh `.sidebar.open` và `.ex-panel.open` là ký
    hiệu quy ước của một bottom sheet kéo được. Từ lát 6 tới hôm qua nó **chỉ
    đóng khi bấm**: kéo xuống không có gì xảy ra, kéo lên cũng không. Giao diện
    hứa một cử chỉ rồi không làm — lỗi đã ghi trong lộ trình.
@@ -2282,16 +2256,9 @@ body.page-map{overflow:hidden}
    `.sidebar.open.sheet-rong` (3 class) sẽ **thắng** `.sidebar.open`
    (2 class) nếu không khoanh lại. */
 @media(max-width:1023px){
-.map-panel.open.sheet-rong,.sidebar.open.sheet-rong,.ex-panel.open.sheet-rong,.ex-ct.sheet-rong{height:max(120px,calc(100vh - var(--hdr) - var(--nav) - 12px));height:max(120px,calc(100dvh - var(--hdr) - var(--nav) - 12px))}
-.map-panel.open.sheet-keo,.sidebar.open.sheet-keo,.ex-panel.open.sheet-keo,.ex-ct.sheet-keo{transition:none;user-select:none}
+.sidebar.open.sheet-rong,.ex-panel.open.sheet-rong,.ex-ct.sheet-rong{height:max(120px,calc(100vh - var(--hdr) - var(--nav) - 12px));height:max(120px,calc(100dvh - var(--hdr) - var(--nav) - 12px))}
+.sidebar.open.sheet-keo,.ex-panel.open.sheet-keo,.ex-ct.sheet-keo{transition:none;user-select:none}
 }
-.mp-head{padding:12px 18px;border-bottom:1px solid var(--ln2);flex-shrink:0}
-.mp-search{display:flex;align-items:center;background:var(--bg2);border-radius:10px;overflow:hidden;padding:0 12px;margin-bottom:12px}
-.mp-search svg{width:16px;height:16px;color:var(--t4);flex-shrink:0}
-.mp-search input{flex:1;height:40px;border:none;outline:none;background:transparent;font-family:var(--font);font-size:14px;color:var(--t1);padding:0 10px}
-.mp-search input::placeholder{color:var(--t4)}
-.mp-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
-.mp-chips::-webkit-scrollbar{display:none}
 .mpc-chip{flex-shrink:0;padding:5px 12px;border-radius:980px;font-size:12px;font-weight:600;border:1.5px solid var(--ln2);background:#fff;color:var(--t3);white-space:nowrap;cursor:pointer;transition:all 140ms}
 .mpc-chip:hover,.mpc-chip.on{background:var(--bl);border-color:var(--bl);color:#fff}
 /* ═══ Smart Filter Component (.sft-*) ═══ */
@@ -2328,40 +2295,10 @@ body.page-map{overflow:hidden}
   .sft-chip-count{font-size:10px}
   .sft-label{font-size:11px}
 }
-.mp-count{font-size:13px;font-weight:600;color:var(--t2);padding:12px 18px;border-bottom:1px solid var(--ln2);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
-.mp-count strong{color:var(--bl)}
-.mp-filter-toggle{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--ln2);background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);transition:all 140ms;flex-shrink:0}
-.mp-filter-toggle:hover,.mp-filter-toggle.on{border-color:var(--bl);color:var(--bl);background:rgba(42,79,246,.04)}
-.mp-filters{padding:14px 18px;border-bottom:1px solid var(--ln2);background:var(--bg2)}
-.mp-filter-section{margin-bottom:12px}
-.mp-list{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px}
-.mp-card{display:flex;gap:12px;padding:12px;border-radius:12px;cursor:pointer;transition:all 140ms;border:1px solid transparent;margin-bottom:8px;min-width:0}
-.mp-card:hover,.mp-card.on{background:var(--bl-lt);border-color:rgba(42,79,246,.15)}
-.mp-card-img{width:72px;height:72px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--bg2)}
-.mp-card-img img{width:100%;height:100%;object-fit:cover}
-.mp-card-info{min-width:0;flex:1}
-.mp-card-nm{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:3px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mp-card-lc{font-size:11px;color:var(--t4);margin-bottom:6px;display:flex;align-items:center;gap:3px}
-.mp-card-lc svg{width:11px;height:11px;color:var(--bl)}
-.mp-card-pr{font-size:15px;font-weight:800;color:var(--t1);letter-spacing:-.3px}
-.mp-card-pr span{font-size:11px;color:var(--t4);font-weight:400}
-.mp-card-pr-quote{font-size:13px;font-weight:700;color:var(--bl);background:var(--bl-lt);padding:4px 8px;border-radius:6px;display:inline-block}
 /* Site grouping in map panel */
-.mp-site-group{border-bottom:1px solid var(--ln2)}
-.mp-site-header{padding:10px 18px 6px;cursor:pointer;transition:background 120ms}
-.mp-site-header:hover{background:var(--bg2)}
-.mp-site-name{font-size:14px;font-weight:700;color:var(--t1)}
-.mp-site-meta{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t4);margin-top:2px}
-.mp-site-badge{padding:1px 6px;border-radius:4px;background:var(--bl);color:#fff;font-weight:700;font-size:10px}
-.mp-card-nested{padding-left:32px;border-bottom:none}
-.mp-card-nested+.mp-card-nested{border-top:1px solid var(--ln2)}
-.mp-site-more{padding:6px 18px 10px 32px;font-size:11px;color:var(--bl);font-weight:600}
-.map-area{flex:1;position:relative;background:#e8ecf0;overflow:hidden;min-height:0}
 #leaflet-map{position:absolute;inset:0;z-index:0}
 #leaflet-map .leaflet-control-zoom{display:none}
 .leaflet-container{font-family:var(--font)}
-.map-layout .mpin{position:absolute;transform:translate(-50%,-100%);cursor:pointer;display:flex;flex-direction:column;align-items:center;transition:transform 200ms var(--spring);filter:none}
-.map-layout .mpin:hover{transform:translate(-50%,-100%) scale(1.12)}
 .mpin-box{border-radius:10px;padding:6px 10px;font-size:12px;font-weight:700;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.2);display:flex;align-items:center;gap:4px;white-space:nowrap}
 .mpin-box svg{width:12px;height:12px}
 .mpin-arrow{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid transparent;margin-top:-1px}
@@ -2378,30 +2315,6 @@ body.page-map{overflow:hidden}
 .mc-btn{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);box-shadow:var(--sh2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;font-weight:700;color:var(--t1);transition:all 140ms;border:none;font-family:var(--font)}
 @media(min-width:768px){.mc-btn{width:40px;height:40px}}
 .mc-btn:hover{background:#fff}
-.map-toolbar{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:6px;z-index:10;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:4px}
-.map-toolbar::-webkit-scrollbar{display:none}
-@media(min-width:1024px){.map-toolbar{left:16px;right:auto;top:14px;gap:8px;overflow:visible}}
-.mt-btn{padding:7px 12px;border-radius:980px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);box-shadow:var(--sh2);font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;border:none;font-family:var(--font);display:flex;align-items:center;gap:5px;white-space:nowrap;transition:all 140ms;flex-shrink:0}
-@media(min-width:768px){.mt-btn{padding:8px 14px;font-size:13px;gap:6px}}
-.mt-btn svg{width:13px;height:13px}
-@media(min-width:768px){.mt-btn svg{width:14px;height:14px}}
-.mt-btn:hover{background:rgba(255,255,255,1)}
-.mt-btn.on{background:var(--bl);color:#fff}
-.mt-btn-count{font-size:10px;font-weight:700;opacity:.55;margin-left:2px}
-.mt-btn.on .mt-btn-count{opacity:.8}
-.mt-top-chips{display:flex;gap:6px;flex-shrink:0}
-@media(min-width:768px){.mt-top-chips{gap:8px}}
-.mt-more{position:relative;flex-shrink:0}
-.mt-more-trigger{gap:3px !important}
-.mt-dropdown{display:none;position:absolute;top:calc(100% + 6px);right:0;width:220px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:20;overflow:hidden}
-.mt-dropdown.open{display:block}
-.mt-dd-head{padding:10px 14px 6px;font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.5px}
-.mt-dd-list{max-height:240px;overflow-y:auto;padding:4px 6px 8px}
-.mt-dd-item{display:flex;align-items:center;justify-content:space-between;width:100%;padding:8px 10px;border:none;background:transparent;font-size:13px;font-weight:500;color:var(--t2);cursor:pointer;border-radius:8px;transition:all 120ms;text-align:left;font-family:var(--font)}
-.mt-dd-item:hover{background:rgba(42,79,246,.06);color:var(--bl)}
-.mt-dd-item.on{background:var(--bl);color:#fff}
-.mt-dd-item.on .mt-dd-count{color:rgba(255,255,255,.7)}
-.mt-dd-count{font-size:11px;color:var(--t4);font-weight:600;flex-shrink:0}
 .map-popup{position:absolute;left:12px;right:12px;bottom:56px;width:auto;max-width:340px;background:#fff;border-radius:14px;box-shadow:var(--sh4);overflow:hidden;animation:pop-in .2s var(--spring) both;z-index:250}
 @media(min-width:1024px){.map-popup{left:auto;right:16px;bottom:20px;width:320px;max-width:none;border-radius:16px}}
 @keyframes pop-in{from{opacity:0;transform:scale(.9) translateY(8px)}to{opacity:1;transform:none}}
@@ -2409,16 +2322,11 @@ body.page-map{overflow:hidden}
 .mpop-close:hover{background:rgba(0,0,0,.6)}
 .mpop-img{aspect-ratio:16/9;overflow:hidden;position:relative;background:var(--bg2)}
 .mpop-img img{width:100%;height:100%;object-fit:cover;display:block}
-.mpop-avail{position:absolute;bottom:8px;left:8px;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);padding:3px 8px;border-radius:980px;font-size:11px;font-weight:700;color:#1a7d37}
-.mpop-avail-dot{width:6px;height:6px;border-radius:50%;background:var(--grn)}
 .map-popup .mpop-body{padding:12px 14px 0}
 .mpop-bc{font-size:11px;color:var(--t4);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mpop-bc:empty{display:none}
-.mpop-bc-sep{margin:0 3px;color:var(--ln)}
 .map-popup .mpop-name{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .mpop-loc{font-size:12px;color:var(--t3);display:flex;align-items:center;gap:4px;margin-bottom:5px}
-.mpop-specs{font-size:11px;color:var(--t4);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mpop-specs:empty{display:none}
 .mpop-product{margin-bottom:6px}
 .mpop-product a{font-size:11px;font-weight:700;color:var(--bl);text-decoration:none;display:flex;align-items:center;gap:4px;padding:5px 10px;background:rgba(42,79,246,.05);border:1px solid rgba(42,79,246,.12);border-radius:8px}
 .mpop-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid var(--ln2)}
@@ -2429,22 +2337,9 @@ body.page-map{overflow:hidden}
 .mpop-list{border-top:1px solid var(--ln2);max-height:280px;display:flex;flex-direction:column;overflow:hidden}
 .mpop-list-title{padding:10px 14px 6px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
 .mpop-list-body{overflow-y:auto;flex:1;padding:0 6px 6px}
-.mpop-list-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;text-decoration:none;color:inherit;transition:background 100ms;margin:2px 0}
-.mpop-list-item:hover{background:var(--bg2)}
-.mpop-list-thumb{width:44px;height:44px;border-radius:8px;overflow:hidden;background:var(--bg2);flex-shrink:0}
-.mpop-list-thumb img{width:100%;height:100%;object-fit:cover}
-.mpop-list-info{flex:1;min-width:0}
-.mpop-list-name{font-size:12px;font-weight:700;color:var(--t1);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mpop-list-meta{font-size:10px;color:var(--t4);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mpop-list-price{font-size:12px;font-weight:700;color:var(--bl);white-space:nowrap;text-align:right;flex-shrink:0}
-.mpop-list-price span{font-size:10px;color:var(--t4);font-weight:500;margin-left:2px}
-.mpop-list-arr{width:14px;height:14px;flex-shrink:0}
 .panel-toggle{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:var(--t1);color:#fff;border-radius:980px;padding:10px 18px;font-size:13px;font-weight:700;box-shadow:var(--sh3);cursor:pointer;border:none;font-family:var(--font);display:flex;align-items:center;gap:7px;z-index:200;white-space:nowrap}
 .panel-toggle svg{width:15px;height:15px}
 @media(min-width:1024px){.panel-toggle{display:none}}
-.map-count-badge{position:absolute;top:46px;right:56px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-radius:8px;padding:6px 10px;box-shadow:var(--sh2);font-size:11px;font-weight:600;color:var(--t2);z-index:10}
-@media(min-width:768px){.map-count-badge{top:14px;right:62px;border-radius:10px;padding:8px 14px;font-size:13px}}
-.map-count-badge strong{color:var(--bl)}
 
 
 /* ── 15. BOOKING PAGE SPECIFIC ── */

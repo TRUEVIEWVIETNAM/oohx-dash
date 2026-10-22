@@ -33,7 +33,8 @@ import {
  * Kiểu lưới đặt dải chip trên lưới; kiểu bản đồ đặt đúng dải đó vào đầu panel
  * danh sách. Hai chỗ, một component — vì `/explore` và `/map` vừa gộp lại
  * chính vì chúng đã có **hai** bộ lọc trôi khỏi nhau (`BoLocKho` 405 dòng và
- * `BoLocThongMinh` 330 dòng, cho cùng một kho 104 vị trí). Dựng bộ thứ ba cho
+ * `BoLocThongMinh` 330 dòng — gỡ 22/10/2026 — cho cùng một kho 104 vị trí).
+ * Dựng bộ thứ ba cho
  * kiểu xem bản đồ là lặp lại đúng cái lỗi vừa sửa.
  *
  * ══ `<details>` chứ không phải nút + state ══

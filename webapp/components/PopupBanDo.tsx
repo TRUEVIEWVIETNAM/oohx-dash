@@ -13,7 +13,8 @@ import { kyTuNhan } from '@/lib/ke-hoach';
  * màn hình trong site) và phải đứng yên khi bản đồ di chuyển. Giữ nguyên cách
  * đó, nhưng nội dung là JSX nên không có chuỗi HTML nào phải tự thoát.
  *
- * Tách khỏi `ScreenMap` ngày 19/10/2026 (lát 3): bản đồ cạnh danh sách cần
+ * Tách khỏi `ScreenMap` ngày 19/10/2026 (lát 3; `ScreenMap` gỡ 22/10/2026
+ * cùng `/map`): bản đồ cạnh danh sách cần
  * đúng cái popup này, và chép sang là tạo hai popup sẽ trôi khỏi nhau.
  *
  * `.map-popup` định vị **tuyệt đối** theo khung cha, nên nơi đặt nó phải là

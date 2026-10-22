@@ -939,59 +939,6 @@ const TRANG = [
         ],
     },
     {
-        path: '/map',
-        ten: 'bản đồ kho',
-        co: [
-            // Lát 6 — bố cục hai cột
-            'class="map-layout"',
-            'class="map-panel"',
-            'class="map-area"',
-            'class="map-canvas"',
-
-            // Lát 6 — bộ lọc thông minh trong panel trái
-            'class="sft"',
-            'class="sft-search"',
-            'class="sft-search-input"',
-            'class="sft-chips"',
-            'class="sft-chip"',
-            'class="sft-adv-toggle"',
-
-            // Lát 6 — danh sách và bộ đếm
-            'class="mp-drag"',
-            'class="mp-drag-bar"',
-            'class="mp-count"',
-            'class="mp-list"',
-
-            // Lát 6 — thanh thành phố, bộ đếm nổi, nút thu phóng
-            'class="map-toolbar"',
-            'class="mt-btn on"', // nút "Tất cả" sáng lúc mở trang
-            'class="mt-top-chips"',
-            'class="map-count-badge"',
-            'class="map-controls"',
-            'class="mc-btn"',
-            'class="panel-toggle"',
-
-            // `h1` vẫn có mặt cho công cụ tìm kiếm, chỉ ẩn khỏi mắt
-            'class="visually-hidden"',
-        ],
-        khong: [
-            // Bố cục cũ của bản Next: một `pg-hero` cao rồi bản đồ bên dưới.
-            'class="pg-hero"',
-
-            // `sft-chips-wrap` là móc `querySelectorAll` của bản Blade, không
-            // có định nghĩa CSS nào; `.sft-chips` đã `flex-wrap: wrap`.
-            'sft-chips-wrap',
-
-            // `#leaflet-map` là id, và CSS theo id buộc mọi nơi dùng lại khối
-            // này phải đặt đúng id đó. Bản Next dùng `.map-canvas`.
-            'id="leaflet-map"',
-
-            // JSON-LD KHÔNG thuộc trang này: `/explore` đã khai cùng dữ liệu,
-            // và hai trang cùng được index là tự tạo nội dung trùng.
-            'application/ld+json',
-        ],
-    },
-    {
         path: '/products/goi-mot',
         ten: 'chi tiết gói',
         co: [
@@ -1148,6 +1095,45 @@ function kiemKhongRong() {
     }
 }
 
+/**
+ * `/map` phải trả **301** sang `/explore?view=map` — lát 7 (22/10/2026).
+ *
+ * Trang `/map` trước đây có 23 khẳng định ở bảng trên. Chúng đi cùng trang.
+ * Thay vào đó là ca này, và nó canh ba thứ mà một `redirects()` sai sẽ làm
+ * hỏng im lặng:
+ *
+ *  - **301, không 308.** `permanent: true` của Next phát 308; plan chốt 301,
+ *    nên `next.config.ts` khai `statusCode` thẳng. Một lần sửa cấu hình
+ *    "cho gọn" sẽ đổi mã mà không ai thấy.
+ *  - **Đích giữ `?view=map`.** Ném người bấm backlink về bản đồ vào kiểu
+ *    lưới là lấy mất thứ họ nhắm tới.
+ *  - **Không còn trang `/map` thật.** Nếu một ngày có ai dựng lại
+ *    `app/map/page.tsx`, nó sẽ thắng `redirects()` và trả 200 — hai đường
+ *    tới cùng một kho quay lại, đúng cái bệnh việc gộp vừa chữa.
+ */
+async function kiemChuyenHuongMap(base) {
+    const res = await fetch(base + '/map', { redirect: 'manual' });
+
+    if (res.status !== 301) {
+        loi.push(`/map trả ${res.status}, không phải 301 — xem \`redirects()\` ở next.config.ts`);
+
+        return;
+    }
+
+    const dich = res.headers.get('location') ?? '';
+
+    if (!dich.includes('/explore')) {
+        loi.push(`/map chuyển hướng tới "${dich}", không phải /explore`);
+    }
+
+    if (!dich.includes('view=map')) {
+        loi.push(
+            `/map chuyển hướng tới "${dich}" — mất \`view=map\`, nên người bấm một backlink `
+                + 'về bản đồ rơi vào kiểu lưới',
+        );
+    }
+}
+
 async function chay() {
     const { server, port: apiPort } = await startStubApi();
     const apiBase = `http://127.0.0.1:${apiPort}/api/v2`;
@@ -1196,6 +1182,8 @@ async function chay() {
         kiemKhongRong();
 
         for (const trang of TRANG) await kiemTrang(base, trang);
+
+        await kiemChuyenHuongMap(base);
     } finally {
         next.kill();
         server.close();

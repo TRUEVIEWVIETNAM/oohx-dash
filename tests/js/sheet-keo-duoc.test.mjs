@@ -1,8 +1,8 @@
 // ════════════════════════════════════════════════════════════════════════════
 // Ngăn kéo lên phải kéo được thật (21/10/2026).
 //
-// Lỗi được sửa: tay nắm hình viên thuốc ở đỉnh `.map-panel.open` (`/map`) và
-// `.sidebar.open` (`/explore`, `/products`) là ký hiệu quy ước của một bottom
+// Lỗi được sửa: tay nắm hình viên thuốc ở đỉnh `.map-panel.open` (`/map`, gỡ
+// 22/10/2026) và `.sidebar.open` (`/products`) là ký hiệu quy ước của một bottom
 // sheet kéo được, nhưng từ lát 6 tới 20/10/2026 nó **chỉ đóng ngăn khi bấm**.
 // Kéo xuống: không gì xảy ra. Kéo lên: không gì xảy ra.
 //
@@ -156,7 +156,7 @@ test('màn hình thấp: hai bậc trùng nhau, ngăn chỉ còn mở và đóng
 test('bậc rộng trong CSS dùng đúng CAO_TOI_THIEU và KHE_TREN của JS', () => {
     const than = thanQuyTac(
         doc('resources/css/frontpage.css'),
-        '.map-panel.open.sheet-rong,.sidebar.open.sheet-rong,.ex-panel.open.sheet-rong,.ex-ct.sheet-rong',
+        '.sidebar.open.sheet-rong,.ex-panel.open.sheet-rong,.ex-ct.sheet-rong',
     );
 
     assert.ok(than, 'Không tìm thấy quy tắc `.sheet-rong` cho hai ngăn kéo lên.');
@@ -189,7 +189,7 @@ test('bậc rộng chỉ áp dụng dưới 1024px', () => {
     const css = doc('resources/css/frontpage.css');
 
     assert.match(
-        mediaTruocDo(css, '.map-panel.open.sheet-rong') ?? '',
+        mediaTruocDo(css, '.sidebar.open.sheet-rong') ?? '',
         /max-width:\s*1023px/,
         'Quy tắc `.sheet-rong` nằm ngoài khối `@media(max-width:1023px)`. Ba class thắng hai '
             + 'class, nên để trần thì nó đè `height:auto` của cột tĩnh ở desktop — cột lọc và '
@@ -200,7 +200,7 @@ test('bậc rộng chỉ áp dụng dưới 1024px', () => {
 test('ngăn đo theo vùng nhìn thật, và có dự phòng cho trình duyệt không biết dvh', () => {
     const than = thanQuyTac(
         doc('resources/css/frontpage.css'),
-        '.map-panel.open.sheet-rong,.sidebar.open.sheet-rong,.ex-panel.open.sheet-rong,.ex-ct.sheet-rong',
+        '.sidebar.open.sheet-rong,.ex-panel.open.sheet-rong,.ex-ct.sheet-rong',
     );
 
     assert.match(
@@ -217,7 +217,7 @@ test('ngăn đo theo vùng nhìn thật, và có dự phòng cho trình duyệt 
 test('hai tay nắm nhận được cử chỉ kéo thay vì cuộn trang', () => {
     const css = doc('resources/css/frontpage.css');
 
-    for (const sel of ['.mp-drag', '.drawer-drag', '.ex-panel-tay', '.ex-ct-tay']) {
+    for (const sel of ['.drawer-drag', '.ex-panel-tay', '.ex-ct-tay']) {
         const than = thanQuyTac(css, sel);
 
         assert.ok(than, `Không tìm thấy quy tắc \`${sel}\`.`);
@@ -235,7 +235,7 @@ test('hai tay nắm nhận được cử chỉ kéo thay vì cuộn trang', () =
 test('ngăn trượt tới điểm nghỉ, và đứng im trong lúc ngón tay còn trên kính', () => {
     const css = doc('resources/css/frontpage.css');
 
-    for (const sel of ['.map-panel.open', '.sidebar.open', '.ex-panel.open', '.ex-ct']) {
+    for (const sel of ['.sidebar.open', '.ex-panel.open', '.ex-ct']) {
         assert.match(
             thanQuyTac(css, sel) ?? '',
             /transition:height/,
@@ -245,7 +245,7 @@ test('ngăn trượt tới điểm nghỉ, và đứng im trong lúc ngón tay c
     }
 
     assert.match(
-        thanQuyTac(css, '.map-panel.open.sheet-keo,.sidebar.open.sheet-keo,.ex-panel.open.sheet-keo,.ex-ct.sheet-keo') ?? '',
+        thanQuyTac(css, '.sidebar.open.sheet-keo,.ex-panel.open.sheet-keo,.ex-ct.sheet-keo') ?? '',
         /transition:\s*none/,
         'Mất `.sheet-keo{transition:none}`. Để nguyên transition trong lúc kéo thì ngăn đuổi '
             + 'theo ngón tay chậm một nhịp 260ms, và cử chỉ thành ra nhão.',
@@ -256,7 +256,12 @@ test('ngăn trượt tới điểm nghỉ, và đứng im trong lúc ngón tay c
 
 test('mọi ngăn kéo lên đều gắn hook, không chỉ có hook nằm đó', () => {
     for (const [tep, lop] of [
-        ['webapp/components/ScreenMap.tsx', 'mp-drag'],
+        // `ScreenMap.tsx` rời bảng này ngày 22/10/2026 (lát 7): `/map` khai
+        // tử, và component 398 dòng của nó gỡ cùng trang. Cử chỉ thì ở lại —
+        // nó nay có BỐN chỗ dùng dưới đây thay vì ba.
+        //
+        // Đây là lần nới duy nhất của tệp này, và nó nới vì phần tử biến mất,
+        // không vì phép kiểm phiền.
         // `BoLocKho.tsx` rời bảng này ngày 22/10/2026 (lát 3 của việc gộp bản
         // đồ): bộ lọc `/explore` không còn là ngăn kéo lên nào cả — nó là một
         // dải chip nằm trong mạch nội dung, mở ra bảng rớt. Không có tay nắm

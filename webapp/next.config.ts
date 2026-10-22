@@ -21,6 +21,41 @@ const nextConfig: NextConfig = {
     // không đổi theo thì build đỏ.
     typescript: { ignoreBuildErrors: false },
 
+    /**
+     * `/map` khai tử — lát 7 của `docs/PLAN-GOP-EXPLORE-BAN-DO.md`.
+     *
+     * Bản đồ không còn là một trang riêng: nó là kiểu xem thứ hai của
+     * `/explore` (lát 2). Giữ hai đường tới cùng một kho là giữ đúng cái bệnh
+     * việc gộp vừa chữa — hai bộ lọc, hai bản đồ, hai cách bày danh sách.
+     *
+     * Docblock trên tệp này nói "không `redirects()` nào **tự ý**". Cái này
+     * không tự ý: nó là một đường dẫn cũ được khai tử có chủ đích, và nó
+     * **giữ nguyên** mọi đường dẫn khác.
+     *
+     * **301, không 308.** `permanent: true` của Next phát 308; ở đây khai
+     * `statusCode` thẳng vì plan chốt 301, và 301 là mã mọi công cụ SEO cũ
+     * đều hiểu. Khác biệt kỹ thuật duy nhất — 308 giữ nguyên method khi
+     * chuyển hướng POST — không áp dụng cho một trang công khai chỉ nhận GET.
+     *
+     * **Đích là `?view=map`, không phải `/explore` trần** như plan viết.
+     * Người bấm một backlink về bản đồ tới để xem bản đồ; ném họ vào lưới là
+     * lấy mất thứ họ nhắm tới. Giá trị SEO vẫn dồn về `/explore` vì
+     * `buildMetadata({ path: '/explore' })` đặt canonical là `/explore` cho
+     * mọi tham số truy vấn.
+     *
+     * Next ghép thêm tham số truy vấn cũ vào đích, nên `/map?city=hcm` ra
+     * `/explore?city=hcm&view=map` — bộ lọc trong backlink sống sót.
+     *
+     * Đường dẫn vẫn phải đi qua Next (OpenLiteSpeed vẫn chuyển `/map` sang
+     * đây), nên `/map` **ở lại** trong `TRONG_APP`. Bỏ nó khỏi đó là để
+     * Laravel nhận `/map` và trả 404 thay vì chuyển hướng.
+     */
+    async redirects() {
+        return [
+            { source: '/map', destination: '/explore?view=map', statusCode: 301 },
+        ];
+    },
+
     // Không khai `eslint` ở đây: Next 16 đã bỏ khoá đó khỏi `NextConfig` và
     // cảnh báo "Unrecognized key(s)". Lint là việc của lệnh riêng.
 
