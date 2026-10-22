@@ -10,6 +10,7 @@ import {
     type CumSite,
     type MapPin,
 } from './ban-do';
+import { canNapLai, tomTatKhung, type Khung, type TomTat } from './khung-nhin';
 
 /**
  * Lõi dùng chung của mọi bản đồ đọc `GET /api/v2/screens/map`.
@@ -102,7 +103,31 @@ export function useBanDoPin({
     const [meta, setMeta] = useState<MetaPin | null>(null);
     const [loi, setLoi] = useState<string | null>(null);
 
+    /** Khung nhìn mà tập pin đang có được nạp từ đó. */
+    const khungDaNapRef = useRef<Khung | null>(null);
+
+    /** Lần nạp trước có chạm trần 500 pin không — xem `canNapLai`. */
+    const daCatRef = useRef(false);
+
+    /** Người dùng đã kéo ra khỏi vùng dữ liệu: hiện nút "Tìm trong khu vực này". */
+    const [capNhat, setCapNhat] = useState(false);
+
     const cums = useMemo(() => gomTheoSite(pins), [pins]);
+
+    /**
+     * Bốn con số của khung nhìn — `null` cho tới khi nạp được một lần.
+     *
+     * Khoá theo `meta`, không theo `pins`: `meta` chỉ khác `null` sau một
+     * phản hồi 200. Nạp hỏng mà vẫn tính thì dải tổng quan in **"0 vị trí"**,
+     * tức nói với người mua rằng vùng này không có màn hình nào — trong khi
+     * sự thật là chưa hỏi được. Đo thấy ngay ở máy, nơi `next start` không
+     * rewrite `/api/v2` nên mọi lời gọi pin đều 404.
+     *
+     * Lần nạp sau hỏng thì `meta` giữ giá trị tốt cuối cùng, nên dải vẫn hiện
+     * số của lần nạp gần nhất thay vì trống đi — cùng tập pin đang vẽ trên
+     * bản đồ, nên hai bên vẫn khớp nhau.
+     */
+    const tomTat = useMemo(() => (meta ? tomTatKhung(pins, meta) : null), [pins, meta]);
 
     /**
      * Bộ lọc dưới dạng **chuỗi**, và deps của `napPin` là chuỗi đó.
@@ -126,11 +151,18 @@ export function useBanDoPin({
             const bounds = map.getBounds();
             const seq = ++seqRef.current;
 
+            const khung: Khung = {
+                north: bounds.getNorth(),
+                south: bounds.getSouth(),
+                east: bounds.getEast(),
+                west: bounds.getWest(),
+            };
+
             const params = new URLSearchParams(truyVan);
-            params.set('north', String(bounds.getNorth()));
-            params.set('south', String(bounds.getSouth()));
-            params.set('east', String(bounds.getEast()));
-            params.set('west', String(bounds.getWest()));
+            params.set('north', String(khung.north));
+            params.set('south', String(khung.south));
+            params.set('east', String(khung.east));
+            params.set('west', String(khung.west));
 
             try {
                 const res = await fetch(`/api/v2/screens/map?${params.toString()}`, {
@@ -156,6 +188,12 @@ export function useBanDoPin({
                 setPins(body.data);
                 setMeta(body.meta);
                 setLoi(null);
+
+                // Ghi lại khung nhìn mà tập pin này đến từ đó, và trần có bị
+                // chạm không. Hai thứ đó là toàn bộ đầu vào của `canNapLai`.
+                khungDaNapRef.current = khung;
+                daCatRef.current = body.meta?.truncated ?? false;
+                setCapNhat(false);
 
                 const cluster = clusterRef.current;
                 if (!cluster) return;
@@ -191,9 +229,29 @@ export function useBanDoPin({
         [truyVan],
     );
 
+    /**
+     * `napPin` **mới nhất**, giữ trong ref.
+     *
+     * Lỗi sửa ngày 22/10/2026, đo được trên production: effect dựng bản đồ có
+     * deps `[]`, nên trình xử lý `moveend` đóng kín lời gọi `napPin` của lượt
+     * render ĐẦU TIÊN — tức bộ lọc lúc trang mới mở. Mở
+     * `/explore?screen_type=lcd&view=map`, danh sách ra 20 thẻ LCD, rồi thu
+     * nhỏ bản đồ: lời gọi đi ra **không có** `screen_type=lcd` và bản đồ vẽ
+     * lại 95 pin toàn kho. Một URL, hai tập dữ liệu, không có lỗi nào để lần
+     * ra.
+     *
+     * Lát này gỡ `napPin` khỏi `moveend`, nên đường đó khép lại theo. Nhưng
+     * ref vẫn phải có: `napLai()` của nút "Tìm trong khu vực này" đi qua đây,
+     * và lần sau có ai gắn thêm một việc vào `moveend` thì nó đã đúng sẵn.
+     */
+    const napRef = useRef(napPin);
+
+    useEffect(() => {
+        napRef.current = napPin;
+    });
+
     useEffect(() => {
         let huy = false;
-        let hen: ReturnType<typeof setTimeout> | undefined;
 
         void (async () => {
             const L = (await import('leaflet')).default;
@@ -259,26 +317,61 @@ export function useBanDoPin({
             mapRef.current = map;
             clusterRef.current = cluster;
 
-            // Leaflet đo container ngay trong `L.map()`. Bản đồ nằm trong một
-            // khung có chiều cao tính theo khung nhìn, và nếu trình duyệt chưa
-            // xong layout tại thời điểm đó thì map có kích thước 0 — không xin
-            // tile nào và `getBounds()` trả một khung vô nghĩa. Đo lại ở frame
-            // sau.
-            requestAnimationFrame(() => map.invalidateSize());
-
-            // Hoãn 300ms: kéo bản đồ sinh hàng chục sự kiện `moveend`, và gọi
-            // API cho từng cái là tự làm cạn hạn mức tần suất của chính mình.
+            /*
+             * Kéo bản đồ KHÔNG nạp lại — nó chỉ bật nút "Tìm trong khu vực
+             * này" (lát 4, 22/10/2026).
+             *
+             * Lý do là lý do của Google Maps: nạp theo mỗi cú kéo làm danh
+             * sách nhảy dưới tay người đang đọc nó. Người mua rà một tuyến
+             * đường kéo bản đồ hàng chục lần, và mỗi lần là một tập thẻ khác
+             * — không ai đọc xong được một thẻ nào.
+             *
+             * Hệ quả phụ, và nó đáng kể: trước đây mỗi `moveend` là một lời
+             * gọi API (hoãn 300ms, nhưng vẫn là một lời gọi cho mỗi cú kéo).
+             * Giờ là **không lời gọi nào** cho tới khi người dùng yêu cầu.
+             *
+             * Phép quyết định nằm ở `canNapLai` và được chốt bằng số ở
+             * `tests/js/khung-nhin.test.mjs` — ở đây chỉ còn đọc toạ độ.
+             */
             map.on('moveend', () => {
-                if (hen) clearTimeout(hen);
-                hen = setTimeout(() => void napPin(map), 300);
+                const b = map.getBounds();
+
+                setCapNhat(
+                    canNapLai(
+                        khungDaNapRef.current,
+                        {
+                            north: b.getNorth(),
+                            south: b.getSouth(),
+                            east: b.getEast(),
+                            west: b.getWest(),
+                        },
+                        daCatRef.current,
+                    ),
+                );
             });
 
-            void napPin(map);
+            /*
+             * Đo lại kích thước RỒI mới nạp lần đầu — hai việc, đúng thứ tự.
+             *
+             * Leaflet đo container ngay trong `L.map()`. Bản đồ nằm trong một
+             * khung cao theo khung nhìn, và nếu trình duyệt chưa xong layout
+             * tại thời điểm đó thì map có kích thước 0: không xin tile nào và
+             * `getBounds()` trả một khung vô nghĩa.
+             *
+             * Trước lát 4 thứ tự ngược lại — nạp ngay rồi `invalidateSize()`
+             * ở frame sau — và lượt nạp thật là lượt `moveend` theo sau cú đo
+             * lại. Giờ `moveend` không nạp nữa, nên nếu giữ thứ tự cũ thì
+             * khung nhìn ghi vào `khungDaNapRef` là khung 0×0, và nút "Tìm
+             * trong khu vực này" bật ngay khi trang vừa mở.
+             */
+            requestAnimationFrame(() => {
+                map.invalidateSize();
+                void napRef.current(map);
+            });
         })();
 
         return () => {
             huy = true;
-            if (hen) clearTimeout(hen);
             mapRef.current?.remove();
             mapRef.current = null;
             clusterRef.current = null;
@@ -322,6 +415,12 @@ export function useBanDoPin({
         mapRef.current?.invalidateSize();
     }, []);
 
+    /** Nút "Tìm trong khu vực này": nạp pin cho khung nhìn đang xem. */
+    const napLai = useCallback(() => {
+        const map = mapRef.current;
+        if (map) void napPin(map);
+    }, [napPin]);
+
     return {
         containerRef,
         mapRef,
@@ -329,11 +428,16 @@ export function useBanDoPin({
         pins,
         cums,
         meta,
+        tomTat,
         loi,
+        capNhat,
+        napLai,
         thuPhong,
         vuaKhung,
         doLai,
     };
 }
+
+export type { TomTat };
 
 export type { CumSite, MapPin };

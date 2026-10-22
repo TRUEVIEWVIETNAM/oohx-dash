@@ -4,8 +4,10 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link';
 import { KhoiKetQua } from '@/components/KhoiKetQua';
 import { BanDoKetQua } from '@/components/BanDoKetQua';
+import { DaiTongQuan } from '@/components/DaiTongQuan';
 import { ThanhDanhSach } from '@/components/ThanhDanhSach';
 import { dungKeoSheet } from '@/lib/dung-keo-sheet';
+import type { TomTat } from '@/lib/khung-nhin';
 
 /**
  * Khung của `/explore` — **một** đường dẫn, hai kiểu xem (lát 2, 22/10/2026).
@@ -273,6 +275,18 @@ function KhungBanDo({
     const dongPanel = useCallback(() => setMoPanel(false), [setMoPanel]);
 
     /**
+     * Bốn con số của khung nhìn, do `BanDoKetQua` đẩy lên.
+     *
+     * Dải tổng quan là anh em của khung bản đồ chứ không nằm trong nó — nó
+     * đứng ở đầu panel danh sách, nơi nó còn nhìn thấy được khi người dùng
+     * đang kéo bản đồ. `khiDoiTomTat` phải là `useCallback`: hàm mới mỗi
+     * lượt render thì effect bên kia chạy lại mỗi lượt và hai bên setState
+     * vào nhau không dừng.
+     */
+    const [tomTat, setTomTat] = useState<TomTat | null>(null);
+    const nhanTomTat = useCallback((t: TomTat | null) => setTomTat(t), []);
+
+    /**
      * Cùng ngăn kéo hai bậc với `/map` và cột lọc (#145), không phải bản thứ
      * ba. Trên desktop CSS cho panel về thẻ nổi tĩnh và tay nắm ẩn, nên hook
      * vẫn gắn nhưng không có gì để kéo.
@@ -314,6 +328,7 @@ function KhungBanDo({
                     thamSo={query}
                     slugSang={slugSang}
                     khiChonCum={chonCum}
+                    khiDoiTomTat={nhanTomTat}
                     hien
                 />
 
@@ -341,6 +356,17 @@ function KhungBanDo({
                         {oTim}
 
                         <div className="ex-panel-loc">{boLoc}</div>
+
+                        {/*
+                          Dải tổng quan ở ĐẦU panel, không trong vùng cuộn.
+
+                          Nó trả lời "vùng này có gì" và câu trả lời đổi mỗi
+                          lần người dùng bấm "Tìm trong khu vực này" — để nó
+                          cuộn khuất là để người dùng bỏ lỡ đúng cái thay đổi
+                          họ vừa yêu cầu. Giá phải trả: đầu panel cao thêm
+                          ~48px, và trên mobile ngăn kéo còn hai bậc để bù.
+                        */}
+                        {tomTat ? <DaiTongQuan tomTat={tomTat} /> : null}
                     </div>
 
                     <div

@@ -487,6 +487,12 @@ const TRANG = [
             // Đường có JS đi qua `duongDanLoc` và được canh riêng ở
             // `tests/js/loc-url.test.mjs`.
             'name="view"',
+
+            // Khung bản đồ CÓ trong HTML máy chủ, chỉ tile và pin thì không.
+            // Đây là mốc để hai khẳng định `khong` bên dưới có nghĩa: chúng
+            // nói "thứ này vắng mặt vì nó chờ dữ liệu thật", không phải "cả
+            // component bản đồ biến mất".
+            'class="map-controls"',
         ],
         khong: [
             // Hero chiếm 120px chiều cao — đúng thứ đẩy bản đồ xuống dưới nếp
@@ -499,6 +505,24 @@ const TRANG = [
 
             // Bản đồ vẫn dựng ở trình duyệt, không ở máy chủ.
             'leaflet',
+
+            // ── Lát 4 (22/10/2026) ────────────────────────────────────────
+            //
+            // Dải tổng quan đọc tập pin đang hiện, mà pin chỉ có sau khi
+            // trình duyệt gọi `/api/v2/screens/map`. Thấy nó trong HTML máy
+            // chủ nghĩa là có ai đó đang đoán nội dung một khung nhìn chưa
+            // tồn tại — máy chủ không biết người dùng sẽ kéo bản đồ tới đâu.
+            'class="ex-tq"',
+
+            // Nút "Tìm trong khu vực này" chỉ hiện SAU khi người dùng kéo ra
+            // khỏi vùng dữ liệu. Có nó ngay lúc trang mở là nút nhấp nháy mà
+            // người ta học cách không nhìn.
+            'class="ex-tim-lai"',
+
+            // Badge đếm cũ gỡ cùng lát 4: nó đếm cụm (81) trong khi danh
+            // sách đếm màn hình (83) — hai con số cho một câu hỏi, cách nhau
+            // 400px. `/map` vẫn dùng lớp này, nên nó còn trong CSS.
+            'map-count-badge',
 
             'class="ds-thanh"',
         ],

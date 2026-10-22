@@ -1452,6 +1452,45 @@ ul{list-style:none}
 .ex-panel .sc-spec{justify-content:flex-start;gap:5px;font-size:11.5px}
 .ex-panel .sc-foot{padding:8px 12px 10px;margin-top:8px;border-top:0}
 
+/* ── "Tìm trong khu vực này" + dải tổng quan (lát 4, 22/10/2026) ──────────
+ *
+ * Nút nổi giữa trên vùng bản đồ, hiện **sau khi** người dùng kéo ra khỏi
+ * vùng dữ liệu đang có. Trước lát này bản đồ tự nạp theo mỗi cú kéo, và danh
+ * sách nhảy dưới tay người đang đọc nó.
+ *
+ * Căn giữa theo `.ex-app` chứ không theo phần bản đồ còn thấy: panel 400px
+ * che mép trái, nên tâm thật của vùng bản đồ ở 1440px là x≈928. Nút ở x=720
+ * vẫn nằm gọn bên phải panel (mép panel là 416px) và nó ở đúng chỗ Google
+ * Maps đặt nút cùng tên. Dưới 1024px panel là ngăn kéo đáy, nên tâm là tâm.
+ *
+ * `z-index` 290: trên bản đồ và popup pin, dưới panel 300 — kéo ngăn lên bậc
+ * rộng thì nút khuất sau ngăn, đúng thứ tự người dùng đang thao tác.
+ */
+.ex-tim-lai{position:absolute;left:50%;transform:translateX(-50%);top:12px;z-index:290;display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 16px;border-radius:980px;border:1px solid var(--ln);background:#fff;box-shadow:var(--sh2);font-family:var(--font);font-size:13px;font-weight:700;color:var(--bl);cursor:pointer;white-space:nowrap}
+.ex-tim-lai:hover{background:var(--bl-lt)}
+.ex-tim-lai svg{width:15px;height:15px;fill:currentColor;flex-shrink:0}
+
+/* Bốn ô số liệu ở đầu panel. `minmax(0,1fr)` chứ không `1fr`: một khoảng giá
+   dài (`1,2tr–40tr`) kéo cột của nó rộng ra và ba ô kia teo lại. */
+.ex-tq{margin-top:10px}
+.ex-tq-hang{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.ex-tq-o{display:flex;flex-direction:column;gap:1px;min-width:0;padding:6px 8px;border-radius:9px;background:var(--bg2)}
+.ex-tq-so{font-size:14px;font-weight:700;color:var(--t1);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ex-tq-nhan{font-size:10px;font-weight:600;color:var(--t4);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Ô chưa có dữ liệu thật: nhạt đi, KHÔNG biến mất. Một ô trống nói rằng sàn
+   biết số đó nên có; bỏ nó đi thì người mua không biết là mình đang thiếu. */
+.ex-tq-o-mo .ex-tq-so{color:var(--t4);font-weight:600}
+.ex-tq-cat{margin:6px 0 0;font-size:11px;font-weight:600;color:var(--org)}
+/* Dưới 1024px panel là ngăn kéo đáy cao 492px, và đầu panel đã lấy 201px của
+   nó — danh sách còn 267px, tức một thẻ rưỡi. Nén dải lại lấy về ~16px. Phần
+   còn lại là việc của ngăn kéo hai bậc (#145): kéo lên là 780px. */
+@media(max-width:1023px){
+  .ex-tq{margin-top:8px}
+  .ex-tq-o{padding:4px 7px}
+  .ex-tq-so{font-size:13px}
+  .ex-tq-cat{margin-top:4px;font-size:10.5px}
+}
+
 /* Nút mở panel trên mobile — đúng vai `.panel-toggle` của `/map`. */
 .ex-mo-panel{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--nav) + var(--safe-b) + 16px);z-index:290;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 18px;border-radius:980px;border:1px solid var(--ln);background:#fff;box-shadow:var(--sh2);font-family:var(--font);font-size:13px;font-weight:700;color:var(--t1);cursor:pointer}
 @media(min-width:1024px){.ex-mo-panel{display:none}}
