@@ -207,7 +207,7 @@ export function KhoiExplore({
                       kết quả, nên nó thuộc về chỗ ngay trên tập đó. Ở kiểu
                       lưới nó đếm thật — xem docblock của `BangViTri`.
                     */}
-                    <BangViTri trangThai={viTri} dem />
+                    <BangViTri trangThai={viTri} query={query} dem />
 
                     <div
                         ref={kqRef}

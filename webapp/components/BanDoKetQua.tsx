@@ -113,6 +113,7 @@ export function BanDoKetQua({
         tomTat,
         loi,
         capNhat,
+        sanSang,
         napLai,
         bayToi,
         veToanQuoc,
@@ -143,7 +144,12 @@ export function BanDoKetQua({
     const khoaViTri = viTri ? `${viTri.lat},${viTri.lng}` : '';
 
     useEffect(() => {
-        if (!viTri) return;
+        // `sanSang` là điều kiện, không phải chi tiết: `bayToi` đọc
+        // `mapRef.current`, và ở lượt render đầu ref đó còn `null` vì map
+        // dựng trong một effect bất đồng bộ. Thiếu nó thì hiệu ứng này chạy
+        // một lần lúc mount, thấy null, thoát — và bản đồ ở nguyên khung cả
+        // nước trong khi toạ độ người dùng đã có từ lâu. Đo thấy ở máy.
+        if (!viTri || !sanSang) return;
 
         let huy = false;
 
@@ -168,7 +174,7 @@ export function BanDoKetQua({
             huy = true;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [khoaViTri, bayToi, veToanQuoc]);
+    }, [khoaViTri, sanSang, bayToi, veToanQuoc]);
 
     useEffect(() => {
         if (hien) doLai();

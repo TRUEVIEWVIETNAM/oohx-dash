@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { BAN_KINH_KM, khungQuanh } from '@/lib/vi-tri';
+import { layPin, truyVanPin } from '@/lib/pin-api';
 import type { TrangThaiViTri } from '@/lib/dung-vi-tri';
 
 /**
@@ -31,14 +32,47 @@ import type { TrangThaiViTri } from '@/lib/dung-vi-tri';
  */
 export function BangViTri({
     trangThai,
+    query,
     dem = false,
 }: {
     trangThai: TrangThaiViTri;
+
+    /**
+     * Bộ lọc đang bật.
+     *
+     * Con số phải đếm ĐÚNG tập người dùng đang xem. Bản đầu bỏ qua bộ lọc,
+     * nên với `?screen_type=lcd` dòng này nói "104 vị trí quanh bạn" trong
+     * khi danh sách ngay dưới có 20 — hai con số cho hai câu hỏi khác nhau,
+     * cách nhau một dòng, và không gì nói ra điều đó.
+     */
+    query?: Record<string, string | undefined>;
 
     /** Có hỏi API đếm số vị trí quanh đó không (chỉ kiểu lưới). */
     dem?: boolean;
 }) {
     const [so, setSo] = useState<number | null>(null);
+
+    /**
+     * Lời gọi đếm hỏng.
+     *
+     * Đo ở máy: `next start` không rewrite `/api/v2`, nên lời gọi 404 và
+     * dòng chữ **kẹt mãi** ở "Đang đếm vị trí quanh bạn…". Một dòng loading
+     * không bao giờ kết thúc còn tệ hơn không có dòng nào: nó nói với người
+     * dùng rằng trang vẫn đang làm việc gì đó.
+     *
+     * Hỏng thì dòng này biến mất. Lưới ngay dưới đã là toàn kho — không có
+     * gì để sửa lời, và không có gì để xin lỗi.
+     */
+    const [hong, setHong] = useState(false);
+
+    /**
+     * Bộ lọc dưới dạng chuỗi, và deps của effect là chuỗi đó.
+     *
+     * `query` là một object mới ở mỗi lượt render của cha. Lấy thẳng nó làm
+     * deps là đếm lại sau mỗi lượt render — cùng cái bẫy `truyVan` của
+     * `useBanDoPin` đã chặn.
+     */
+    const khoaLoc = truyVanPin(query);
 
     const lat = trangThai.pha === 'co' ? trangThai.lat : null;
     const lng = trangThai.pha === 'co' ? trangThai.lng : null;
@@ -48,34 +82,28 @@ export function BangViTri({
 
         const huy = new AbortController();
 
+        setSo(null);
+        setHong(false);
+
         void (async () => {
             try {
-                const k = khungQuanh(lat, lng);
-                const p = new URLSearchParams({
-                    north: String(k.north),
-                    south: String(k.south),
-                    east: String(k.east),
-                    west: String(k.west),
-                });
+                const body = await layPin(khungQuanh(lat, lng), truyVanPin(query), huy.signal);
 
-                const res = await fetch(`/api/v2/screens/map?${p.toString()}`, {
-                    headers: { Accept: 'application/json' },
-                    signal: huy.signal,
-                });
+                if (!body) {
+                    setHong(true);
 
-                if (!res.ok) return;
-
-                const body = (await res.json()) as { meta?: { total?: number } };
+                    return;
+                }
 
                 setSo(body.meta?.total ?? 0);
-            } catch {
-                // Hỏng thì dòng này không hiện con số nào. Nó là phần thêm,
-                // không phải nội dung của trang.
+            } catch (e) {
+                // Huỷ vì đổi bộ lọc thì không phải hỏng — lượt mới đang chạy.
+                if ((e as Error)?.name !== 'AbortError') setHong(true);
             }
         })();
 
         return () => huy.abort();
-    }, [dem, lat, lng]);
+    }, [dem, lat, lng, khoaLoc]);
 
     if (trangThai.pha === 'tat') return null;
 
@@ -96,7 +124,7 @@ export function BangViTri({
         return <p className="ex-vt ex-vt-mo">Không lấy được vị trí — đang hiện toàn bộ kho.</p>;
     }
 
-    if (!dem) return null;
+    if (!dem || hong) return null;
 
     if (so === null) {
         return <p className="ex-vt">Đang đếm vị trí quanh bạn…</p>;
