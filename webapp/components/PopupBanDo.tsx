@@ -19,9 +19,35 @@ import { OTick } from '@/components/OTick';
  * một phần tử `position: relative` — ở `/map` là `.map-area`, ở `/explore` là
  * `.ex-map-nen`.
  */
-export function PopupBanDo({ cum, dong }: { cum: CumSite; dong: () => void }) {
+export function PopupBanDo({
+    cum,
+    dong,
+    khiMoChiTiet,
+}: {
+    cum: CumSite;
+    dong: () => void;
+
+    /**
+     * Mở thẻ chi tiết cạnh danh sách thay vì rời trang (lát 5, 22/10/2026).
+     *
+     * `undefined` ở `/map`, nơi không có thẻ nào để mở — ở đó hai liên kết
+     * dưới đây vẫn là liên kết thật và dẫn sang trang đầy đủ. Vì thế chúng
+     * giữ nguyên `href`: chặn cú bấm là một lớp phủ lên hành vi gốc, không
+     * phải thay nó, nên bấm giữa hay Ctrl+bấm vẫn mở tab mới như mọi liên
+     * kết khác trên sàn.
+     */
+    khiMoChiTiet?: (slug: string) => void;
+}) {
     const gia = giaCum(cum);
     const dau = cum.manHinh[0];
+
+    const bam = (slug: string | undefined) => (e: React.MouseEvent) => {
+        if (!khiMoChiTiet || !slug) return;
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+
+        e.preventDefault();
+        khiMoChiTiet(slug);
+    };
 
     return (
         <div className="map-popup">
@@ -59,7 +85,7 @@ export function PopupBanDo({ cum, dong }: { cum: CumSite; dong: () => void }) {
                         <div className="mpop-list-title">{cum.manHinh.length} màn hình tại đây</div>
                         <div className="mpop-list-body">
                             {cum.manHinh.slice(0, 5).map((p) => (
-                                <Link key={p.slug} href={`/explore/${p.slug}`} className="mpop-product">
+                                <Link key={p.slug} href={`/explore/${p.slug}`} className="mpop-product" onClick={bam(p.slug)}>
                                     {p.name}
                                 </Link>
                             ))}
@@ -87,7 +113,7 @@ export function PopupBanDo({ cum, dong }: { cum: CumSite; dong: () => void }) {
                         />
                     ) : null}
 
-                    <Link href={`/explore/${dau?.slug ?? ''}`} className="btn btn-p btn-sm">
+                    <Link href={`/explore/${dau?.slug ?? ''}`} className="btn btn-p btn-sm" onClick={bam(dau?.slug)}>
                         Xem chi tiết
                     </Link>
                 </div>

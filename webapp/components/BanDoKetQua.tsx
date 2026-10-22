@@ -42,6 +42,7 @@ export function BanDoKetQua({
     slugSang,
     khiChonCum,
     khiDoiTomTat,
+    khiMoChiTiet,
     hien = true,
 }: {
     /** Tham số lọc của danh sách — truyền thẳng, không lọc bớt. */
@@ -66,6 +67,12 @@ export function BanDoKetQua({
      * không effect bên dưới chạy lại mỗi lượt render và cha setState vô tận.
      */
     khiDoiTomTat?: (t: TomTat | null) => void;
+
+    /**
+     * Bấm "Xem chi tiết" trong popup mở thẻ cạnh danh sách, không rời trang
+     * (lát 5, 22/10/2026). Truyền thẳng xuống `PopupBanDo`.
+     */
+    khiMoChiTiet?: (slug: string) => void;
 
     /**
      * Khung có đang hiện không.
@@ -215,7 +222,13 @@ export function BanDoKetQua({
 
             {loi ? <div className="ex-map-loi">{loi}</div> : null}
 
-            {dangChon ? <PopupBanDo cum={dangChon} dong={() => setDangChon(null)} /> : null}
+            {dangChon ? (
+                <PopupBanDo
+                    cum={dangChon}
+                    dong={() => setDangChon(null)}
+                    khiMoChiTiet={khiMoChiTiet}
+                />
+            ) : null}
         </div>
     );
 }

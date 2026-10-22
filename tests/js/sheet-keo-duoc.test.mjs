@@ -156,7 +156,7 @@ test('màn hình thấp: hai bậc trùng nhau, ngăn chỉ còn mở và đóng
 test('bậc rộng trong CSS dùng đúng CAO_TOI_THIEU và KHE_TREN của JS', () => {
     const than = thanQuyTac(
         doc('resources/css/frontpage.css'),
-        '.map-panel.open.sheet-rong,.sidebar.open.sheet-rong,.ex-panel.open.sheet-rong',
+        '.map-panel.open.sheet-rong,.sidebar.open.sheet-rong,.ex-panel.open.sheet-rong,.ex-ct.sheet-rong',
     );
 
     assert.ok(than, 'Không tìm thấy quy tắc `.sheet-rong` cho hai ngăn kéo lên.');
@@ -200,7 +200,7 @@ test('bậc rộng chỉ áp dụng dưới 1024px', () => {
 test('ngăn đo theo vùng nhìn thật, và có dự phòng cho trình duyệt không biết dvh', () => {
     const than = thanQuyTac(
         doc('resources/css/frontpage.css'),
-        '.map-panel.open.sheet-rong,.sidebar.open.sheet-rong,.ex-panel.open.sheet-rong',
+        '.map-panel.open.sheet-rong,.sidebar.open.sheet-rong,.ex-panel.open.sheet-rong,.ex-ct.sheet-rong',
     );
 
     assert.match(
@@ -217,7 +217,7 @@ test('ngăn đo theo vùng nhìn thật, và có dự phòng cho trình duyệt 
 test('hai tay nắm nhận được cử chỉ kéo thay vì cuộn trang', () => {
     const css = doc('resources/css/frontpage.css');
 
-    for (const sel of ['.mp-drag', '.drawer-drag', '.ex-panel-tay']) {
+    for (const sel of ['.mp-drag', '.drawer-drag', '.ex-panel-tay', '.ex-ct-tay']) {
         const than = thanQuyTac(css, sel);
 
         assert.ok(than, `Không tìm thấy quy tắc \`${sel}\`.`);
@@ -235,7 +235,7 @@ test('hai tay nắm nhận được cử chỉ kéo thay vì cuộn trang', () =
 test('ngăn trượt tới điểm nghỉ, và đứng im trong lúc ngón tay còn trên kính', () => {
     const css = doc('resources/css/frontpage.css');
 
-    for (const sel of ['.map-panel.open', '.sidebar.open', '.ex-panel.open']) {
+    for (const sel of ['.map-panel.open', '.sidebar.open', '.ex-panel.open', '.ex-ct']) {
         assert.match(
             thanQuyTac(css, sel) ?? '',
             /transition:height/,
@@ -245,7 +245,7 @@ test('ngăn trượt tới điểm nghỉ, và đứng im trong lúc ngón tay c
     }
 
     assert.match(
-        thanQuyTac(css, '.map-panel.open.sheet-keo,.sidebar.open.sheet-keo,.ex-panel.open.sheet-keo') ?? '',
+        thanQuyTac(css, '.map-panel.open.sheet-keo,.sidebar.open.sheet-keo,.ex-panel.open.sheet-keo,.ex-ct.sheet-keo') ?? '',
         /transition:\s*none/,
         'Mất `.sheet-keo{transition:none}`. Để nguyên transition trong lúc kéo thì ngăn đuổi '
             + 'theo ngón tay chậm một nhịp 260ms, và cử chỉ thành ra nhão.',
@@ -269,6 +269,10 @@ test('mọi ngăn kéo lên đều gắn hook, không chỉ có hook nằm đó'
         // `/explore?view=map` là ngăn kéo thứ tư, và nó dùng lại hook chứ
         // không phải bản sao thứ hai của cử chỉ.
         ['webapp/components/KhoiExplore.tsx', 'ex-panel-tay'],
+        // Lát 5 (22/10/2026): thẻ chi tiết là ngăn kéo thứ năm. Dưới 1024px
+        // nó chồng lên panel danh sách, cùng hình dạng và cùng cử chỉ hai
+        // bậc — không phải một bản kéo viết lại.
+        ['webapp/components/TheChiTiet.tsx', 'ex-ct-tay'],
     ]) {
         const ma = doc(tep);
 

@@ -524,6 +524,20 @@ const TRANG = [
             // 400px. `/map` vẫn dùng lớp này, nên nó còn trong CSS.
             'map-count-badge',
 
+            // ── Lát 5 (22/10/2026) ────────────────────────────────────────
+            //
+            // Thẻ chi tiết chỉ mở sau một cú bấm, và nội dung nó gọi từ
+            // trình duyệt. Thấy nó trong HTML của `/explore?view=map` nghĩa
+            // là trang danh sách đang mang theo nội dung của một màn hình cụ
+            // thể mà chưa ai chọn — và nếu nó mang theo nội dung đầy đủ thì
+            // `/explore?view=map` và `/explore/{slug}` thành hai URL cùng
+            // một nội dung, tức tự tạo trang trùng.
+            //
+            // Đường mà công cụ tìm kiếm đi — `/explore/{slug}` do máy chủ
+            // dựng — không đổi một dòng nào ở lát 5, và nó có bộ khẳng định
+            // riêng ngay dưới đây.
+            'class="ex-ct',
+
             'class="ds-thanh"',
         ],
     },
