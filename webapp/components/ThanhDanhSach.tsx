@@ -6,6 +6,7 @@ import { bo, demTheoNhom, TOI_DA, xoaHet } from '@/lib/danh-sach-rut-gon';
 import { dungDanhSach } from '@/lib/dung-danh-sach';
 import { dungCsv, tenTep } from '@/lib/tep-csv';
 import { taiTep } from '@/lib/tai-tep';
+import { BangKeHoach } from '@/components/BangKeHoach';
 
 /**
  * Thanh đáy của danh sách rút gọn, và ngăn kéo xem lại (lát 4).
@@ -134,6 +135,18 @@ export function ThanhDanhSach() {
                 </div>
 
                 <div className="ds-panel-than">
+                    {/*
+                      Bảng tổng kế hoạch (lát 6, 22/10/2026) đứng TRÊN danh
+                      sách, trong cùng vùng cuộn.
+
+                      Cùng một ngăn kéo chứ không phải panel thứ ba: ngăn này
+                      đã có bộ đếm, nút mở/đóng và danh sách bỏ được từng
+                      dòng — ba trong năm thứ plan liệt kê cho bảng tổng. Và
+                      nó hiện ở cả hai kiểu xem, còn chỗ `left:428px` mà plan
+                      vẽ thì chỉ tồn tại trong kiểu bản đồ.
+                    */}
+                    <BangKeHoach ds={ds} />
+
                     {ds.map((m) => (
                         <div className="ds-dong" key={m.slug}>
                             <Link href={`/explore/${m.slug}`} className="ds-dong-ten">

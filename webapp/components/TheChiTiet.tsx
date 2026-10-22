@@ -198,6 +198,10 @@ export function TheChiTiet({ slug, dong }: { slug: string; dong: () => void }) {
                                         ten: man.name ?? slug,
                                         thanhPho: thanhPho ?? undefined,
                                         owner: man.owner?.name ?? undefined,
+                                        quan: man.location?.district ?? undefined,
+                                        loaiHinh: man.screen_type_label ?? undefined,
+                                        gia: man.pricing?.io_rate?.amount ?? undefined,
+                                        ky: man.pricing?.io_rate?.unit ?? undefined,
                                     }}
                                     nhan={`Thêm ${man.name ?? 'vị trí này'} vào danh sách`}
                                 />
