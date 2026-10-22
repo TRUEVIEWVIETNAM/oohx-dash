@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { mauPin, soVN, type CumSite } from '@/lib/ban-do';
 import { OTick } from '@/components/OTick';
+import { kyTuNhan } from '@/lib/ke-hoach';
 
 /**
  * Popup của bản đồ — dùng chung cho `/map` và cột bản đồ của `/explore`.
@@ -40,6 +41,7 @@ export function PopupBanDo({
 }) {
     const gia = giaCum(cum);
     const dau = cum.manHinh[0];
+    const kyGia = kyTuNhan(dau?.price?.unit);
 
     const bam = (slug: string | undefined) => (e: React.MouseEvent) => {
         if (!khiMoChiTiet || !slug) return;
@@ -102,12 +104,25 @@ export function PopupBanDo({
                       trên để bấm sang từng cái.
                     */}
                     {dau?.slug ? (
+                        /*
+                          `ky` suy từ NHÃN giá, không từ một mã: `MapPin`
+                          mang `display_price_unit` (`màn hình/tháng`), khác
+                          `ScreenSummary` vốn mang mã (`month`). Và khi nhãn
+                          là `CPM` thì `kyTuNhan` trả `null`, nên vị trí đó
+                          vào kế hoạch **không kèm giá** — giá CPM là tiền
+                          cho 1.000 lượt hiển thị, nhân với số tháng ra một
+                          con số vô nghĩa nằm giữa một bảng ngân sách trông
+                          đứng đắn.
+                        */
                         <OTick
                             muc={{
                                 slug: dau.slug,
                                 ten: dau.name ?? dau.slug,
                                 thanhPho: cum.city ?? undefined,
                                 owner: cum.ownerName ?? undefined,
+                                loaiHinh: dau.screen_type_label ?? undefined,
+                                gia: kyGia ? (dau.price?.amount ?? undefined) : undefined,
+                                ky: kyGia ?? undefined,
                             }}
                             nhan={`Thêm ${dau.name ?? 'vị trí này'} vào danh sách`}
                         />

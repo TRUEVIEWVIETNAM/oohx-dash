@@ -103,12 +103,24 @@ export function ScreenCard({
         >
             <div className="sc-photo">
                 {choPhepChon ? (
+                    /*
+                      Bốn trường cuối thêm 22/10/2026 (lát 6): bảng tổng kế
+                      hoạch cộng chi phí và đếm độ phủ từ chính danh sách
+                      này, không gọi lại API. Thiếu chúng ở MỘT chỗ thêm thì
+                      cùng một màn hình khoanh từ thẻ có giá, khoanh từ popup
+                      bản đồ không có — và bảng nói hai con số khác nhau tuỳ
+                      người dùng bấm ở đâu.
+                    */
                     <OTick
                         muc={{
                             slug: screen.slug,
                             ten: screen.name ?? screen.slug,
                             thanhPho: screen.location?.city ?? undefined,
                             owner: screen.owner?.name ?? undefined,
+                            quan: screen.location?.district ?? undefined,
+                            loaiHinh: screen.screen_type_label ?? undefined,
+                            gia: screen.pricing?.io_rate?.amount ?? undefined,
+                            ky: screen.pricing?.io_rate?.unit ?? undefined,
                         }}
                         nhan={`Thêm ${screen.name ?? 'vị trí này'} vào danh sách`}
                     />

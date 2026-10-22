@@ -44,6 +44,28 @@ export type MucDaChon = {
     ten: string;
     thanhPho?: string;
     owner?: string;
+
+    /*
+     * Bốn trường thêm 22/10/2026 — lát 6 của `docs/PLAN-GOP-EXPLORE-BAN-DO.md`.
+     *
+     * Bảng tổng kế hoạch cộng chi phí và đếm độ phủ **không gọi API**: nó đọc
+     * đúng danh sách này. Lý do giống lý do lưu `ten` ở trên — người dùng mở
+     * bảng ở trang nào cũng thấy đủ số, và bảng không chờ 50 lời gọi chi tiết.
+     *
+     * Tất cả đều **tuỳ chọn**, và đó là chủ ý: `hopLe()` chỉ đòi `slug` và
+     * `ten`, nên những mục người dùng đã khoanh TRƯỚC hôm nay vẫn đọc được —
+     * chúng chỉ không góp vào phần chi phí, và bảng nói ra bao nhiêu mục như
+     * thế. Xoá sạch localStorage của người dùng để đổi hình dạng dữ liệu là
+     * lấy mất danh sách họ đang làm dở.
+     *
+     * `gia` là `io_rate` (thuê theo kỳ), không phải `floor_cpm`: đo trên
+     * production ngày 22/10/2026 thì `floor_cpm` có **0/104** bản ghi, còn
+     * `io_rate` có 19/104. Cộng một trường rỗng ra một bảng rỗng.
+     */
+    quan?: string;
+    loaiHinh?: string;
+    gia?: number;
+    ky?: 'week' | 'month';
 };
 
 export type KetQuaThem =

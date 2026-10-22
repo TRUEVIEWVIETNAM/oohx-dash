@@ -1748,6 +1748,46 @@ body.co-thanh-ds .filter-float{bottom:calc(var(--nav) + var(--safe-b) + 96px)}
 .ds-panel-nut{display:flex;gap:6px;margin-left:auto}
 .ds-panel-dong{background:none;border:none;font-size:22px;line-height:1;color:var(--t4);cursor:pointer;min-width:44px;min-height:44px}
 .ds-panel-than{overflow-y:auto;padding:4px 0}
+
+/* ── Bảng tổng kế hoạch (lát 6, 22/10/2026) ───────────────────────────────
+ *
+ * Nằm TRONG ngăn kéo danh sách, trên danh sách bỏ-từng-dòng, cùng vùng
+ * cuộn. Plan vẽ nó ở `left:428px` cạnh thẻ chi tiết; đổi chỗ vì ngăn này đã
+ * có sẵn bộ đếm, nút mở/đóng và danh sách — ba trong năm thứ plan liệt kê —
+ * và vì nó hiện ở **cả hai** kiểu xem, còn chỗ kia chỉ có trong kiểu bản đồ.
+ *
+ * Bản đồ vẫn thấy được: từ 768px `.ds-panel` là thẻ 420px nổi bên phải.
+ *
+ * Bốn ô dùng bộ class riêng `.kh-o` chứ không `.ex-tq-o` của dải tổng quan:
+ * hai thứ trả lời hai câu khác nhau (một là khung nhìn, một là kế hoạch) và
+ * sống trong hai khung rộng khác nhau — gộp class là buộc chúng phải đổi
+ * cùng nhau mãi mãi. Hình thì cố ý giống. */
+.kh{padding:12px 16px 14px;border-bottom:1px solid var(--ln2)}
+.kh-hang{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+@media(min-width:420px){.kh-hang{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.kh-o{display:flex;flex-direction:column;gap:1px;min-width:0;padding:6px 8px;border-radius:9px;background:var(--bg2)}
+.kh-o-so{font-size:14px;font-weight:700;color:var(--t1);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kh-o-nhan{font-size:10px;font-weight:600;color:var(--t4);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kh-o-mo .kh-o-so{color:var(--t4);font-weight:600}
+.kh-nhap{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.kh-o-nhap{display:flex;flex-direction:column;gap:3px;min-width:0}
+.kh-lbl{font-size:10.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--t4)}
+.kh-inp{width:100%;min-height:36px;padding:0 10px;border-radius:8px;border:1.5px solid var(--ln2);background:#fff;font-family:var(--font);font-size:13px;color:var(--t2);outline:none}
+.kh-inp:focus{border-color:var(--bl)}
+.kh-ghi{margin-top:10px;display:flex;flex-direction:column;gap:5px}
+.kh-canh{font-size:11.5px;font-weight:600;color:var(--org);margin:0}
+.kh-canh-do{color:var(--red)}
+.kh-canh-xanh{color:var(--grn)}
+/* Hai dòng cuối là chú thích, không phải cảnh báo — nhạt đi nhưng KHÔNG ẩn:
+   chúng nói ra điều con số bên trên không nói được. */
+.kh-mo{font-size:11px;line-height:1.5;color:var(--t4);margin:0}
+.kh-nhom{margin-top:12px}
+.kh-nhom-ten{font-size:10.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--t4);margin-bottom:5px}
+.kh-dai{display:flex;align-items:center;gap:8px;padding:2px 0;font-size:12px}
+.kh-dai-ten{flex:0 0 38%;min-width:0;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kh-dai-vach{flex:1;min-width:0;height:6px;border-radius:980px;background:var(--bg2);overflow:hidden}
+.kh-dai-day{display:block;height:100%;border-radius:980px;background:var(--bl)}
+.kh-dai-so{flex-shrink:0;font-weight:700;color:var(--t3);font-variant-numeric:tabular-nums}
 .ds-dong{display:flex;align-items:center;gap:10px;padding:8px 16px;min-height:44px}
 .ds-dong:hover{background:var(--bg1)}
 .ds-dong-ten{flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--t1);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
