@@ -2265,3 +2265,203 @@ cái cần đo.
 Ngăn "xem lại" (`.ds-panel`) **cố ý** ở ngoài #145: nó không có tay nắm, nên
 không hứa cử chỉ nào. Thêm cử chỉ vào đó là một quyết định thiết kế mới, không
 phải trả nợ một lời hứa cũ.
+
+---
+
+## Ngày 22/10/2026 — gộp `/explore` và `/map` làm một trang (#147 → #157)
+
+Mười một PR trong một ngày: một plan, bảy lát của plan đó, và ba bản sửa lỗi
+do chính bảy lát kia đẻ ra. Plan đầy đủ ở `docs/PLAN-GOP-EXPLORE-BAN-DO.md`;
+mục này ghi cái plan không biết trước.
+
+| PR | Việc | Đổi |
+|---|---|---|
+| #147 | Plan gộp bản đồ, 274 dòng | — |
+| #148 | Lát 1 — pin mang loại hình và kích thước | +285/−57 |
+| #149 | Lát 2 — một trang, hai kiểu xem | +520/−153 |
+| #150 | Lát 3 — bộ lọc thành dải chip | +818/−309 |
+| #151 | *sửa* — chip đang lọc nằm ngoài tầm nhìn | +123/−4 |
+| #152 | Lát 4 — "Tìm trong khu vực này" + dải tổng quan | +842/−31 |
+| #153 | *sửa* — ô khoảng giá bị cắt mất đầu trên | +55/−5 |
+| #154 | Lát 5 — thẻ chi tiết mở cạnh danh sách | +647/−11 |
+| #155 | Lát 6 — bảng tổng kế hoạch | +754 |
+| #156 | Lát 7 — khai tử `/map`, dọn 1.040 dòng | +212/−1.040 |
+| #157 | *sửa* — canary deploy chấp nhận đường đã khai tử | +164/−2 |
+
+Bộ chốt: `test:js` **289 → 334 ca**, chốt shell **102 → 108**, chốt đọc HTML
+389 → 406 rồi về **380** khi trang `/map` biến mất cùng 26 khẳng định của nó.
+
+### Vì sao gộp, nói lại bằng con số
+
+Cùng một kho 104 vị trí được nhìn qua hai trang, với **hai** bộ lọc
+(`BoLocKho` 405 dòng, `BoLocThongMinh` 330 dòng), **hai** bản đồ
+(`BanDoKetQua` và `ScreenMap` 398 dòng) và hai cách bày danh sách. Mỗi
+lần thêm một chiều lọc là sửa hai chỗ, và hai chỗ đó đã trôi khỏi nhau:
+`/map` có thanh tỉnh thành, `/explore` có trạng thái giá, không bên nào đủ.
+
+Đo `/explore` ở 1440×900 trước khi bắt đầu: bọc nội dung 1176px chia thành
+lọc 260 (22%, **cao 1358px**) · kết quả 528 (45%, hai thẻ 255px) · bản đồ 340.
+Nội dung chính nhận chưa tới một nửa chiều ngang.
+
+Sau bảy lát, cũng ở 1440×900: dải chip **40px**, lưới **4 thẻ 280px**, và
+kiểu xem bản đồ có canvas trải hết với panel 400px nổi bên trái.
+
+### Dữ liệu thật quyết định ba ô của bảng tổng, không phải bản vẽ
+
+Lát 4 và lát 6 đều vẽ những con số mà kho hôm nay không có. Đo trên
+production, **cả 104 bản ghi**:
+
+| Trường | Có | Hệ quả |
+|---|---|---|
+| `location.district` | **0/104** | không đếm được quận/huyện |
+| `pricing.floor_cpm` | **0/104** | không có CPM nào để gộp |
+| lượt xem/ngày | **không có trường** | không có mẫu số cho CPM |
+| `pricing.io_rate` | **19/104** | chi phí tính được, cho 19 vị trí |
+| `location.city` chứa `>` | 21/104 | `"Thái Nguyên > Phường Bắc Kạn"` |
+
+Nên bảng tổng đổi hai ô (**tỉnh thành** thay quận/huyện, **chi phí** thay CPM
+gộp) và để một ô nói thật là chưa có số đo.
+
+**Và một chỗ tôi cố ý làm khác plan.** Plan viết ô lượt xem "để chữ xám —
+tổng của những số ước tính". Khảo lại nguồn thì `daily_footfall` đến từ
+`app/Console/Commands/SeedInsightsDefaults.php` — một **bảng hằng số viết
+tay** theo loại điểm đặt. Cộng 83 con số seed được `2.075.000 lượt/ngày`:
+chính xác tới hàng nghìn, đứng trên trang bán hàng, không một phép đo nào
+đằng sau. Chữ xám không cứu được điều đó; nó chỉ làm con số bớt to.
+
+### Ba lỗi của tôi đã lên production, và cách chúng bị bắt
+
+Cả ba đều do **soát production sau khi deploy**, không do test.
+
+**Chip đang lọc nằm ngoài tầm nhìn (#151).** Dưới 1024px và trong panel bản
+đồ, dải chip cuộn ngang. Mở `/explore?owner=kim-ngan-adv&view=map`: dải dài
+898px trong khung 372px, khung cuộn ở 0, chip đang lọc ở offset **541**. Danh
+sách bị cắt từ 104 xuống 83 vị trí, màn hình không có một dấu hiệu nào. Sửa:
+cuộn tới chip **trái nhất** đang lọc mỗi khi bộ lọc đã áp dụng đổi.
+
+**Ô khoảng giá bị cắt (#153).** Khoảng giá thật của kho là `54,2tr–729,2tr` —
+96px trong một ô 73px, ra màn hình là `54,2tr–7…`. Mất đúng đầu trên của
+khoảng. Hai nguyên nhân: bốn cột chia đều (hai ô đếm chỉ chứa số ba chữ số),
+và số lẻ giữ ở mọi bậc (phần lẻ của `729,2tr` là **0,03%** giá trị). Fixture
+có `5tr–40tr` nên vừa thoải mái — đây đúng là thứ tôi đã ghi "chưa đo bằng
+pin thật" trong risks của #152.
+
+**Canary deploy đỏ (#157).** Trên VPS có một canary đòi **mọi** context đã
+khai trả 200. Lát 7 đổi `/map` thành 301 nhưng `/map` vẫn phải là context của
+Next (bỏ khỏi conf thì Laravel trả 404 và backlink cũ chết). Log liệt kê bốn
+nguyên nhân khả dĩ, không cái nào đúng — nguyên nhân thứ năm chưa có tên: một
+đường được khai tử có chủ đích.
+
+> Bài học chung của cả ba: tôi soát `TRONG_APP`, soát file conf, soát test —
+> nhưng **không soát bảng kỳ vọng của một script chạy ở nơi khác**, và không
+> đo bằng dữ liệu có hình dạng của kho thật.
+
+### Một lỗi nặng hơn, có từ trước, chỉ lộ ra khi đo
+
+Trước lát 4, trình xử lý `moveend` đóng kín `napPin` của lượt render **đầu
+tiên** — tức bộ lọc lúc trang mới mở. Tái hiện trên production:
+
+| Bước | Kết quả |
+|---|---|
+| Mở `/explore?view=map` | 95 pin |
+| Tick `Loại hình = LCD`, Áp dụng | danh sách 20 thẻ LCD, bản đồ 13 pin |
+| Thu nhỏ bản đồ hai nấc | 2 lời gọi `/screens/map`, **cả hai mất** `screen_type=lcd` |
+| | bản đồ vẽ lại **95 pin toàn kho**, danh sách vẫn 20 thẻ LCD |
+
+Một URL, hai tập dữ liệu, không có gì đỏ lên. Lát 4 khép đường đó vì `moveend`
+không gọi API nữa; `napRef` giữ bản mới nhất cho bất cứ ai gắn thêm việc vào
+`moveend` sau này.
+
+### Cú bấm phải chặn ở pha CAPTURE
+
+Lát 5 cần bấm một thẻ mà **không** rời trang bản đồ. Bản đầu gắn `onClick`
+lên khung cuộn và nó không chạy kịp: thẻ là một `<Link>` của Next, `Link` gắn
+`onClick` lên chính thẻ `<a>`, và React gọi handler của con trước của cha —
+nên lúc cú bấm tới nơi thì Next đã bắt đầu điều hướng. Bấm một thẻ là cả
+trang bản đồ biến mất.
+
+`onClickCapture` + `stopPropagation()` cắt đường tới `onClick` của `Link`.
+Ba thứ **không** chặn: bấm giữa, bấm kèm Ctrl/Cmd/Shift/Alt, và cú bấm rơi
+vào ô tick lồng trong thẻ.
+
+Đột biến sau khi commit cho thấy một lỗ: đổi `onClickCapture` về `onClick` —
+đúng cái lỗi vừa sửa — **không làm đỏ test nào**. Phải thêm
+`tests/js/the-chi-tiet.test.mjs` (7 ca) mới có người canh.
+
+### Cách chốt dùng cả ngày: tách phép quyết định ra khỏi DOM
+
+Bốn tệp `lib` mới, mỗi tệp là một phép quyết định gọi được bằng số:
+
+| Tệp | Quyết định | Ca |
+|---|---|---|
+| `loc-url.ts` | URL của bộ lọc; `view` phải đi qua nguyên vẹn | 13 |
+| `khung-nhin.ts` | khi nào dữ liệu bản đồ cũ đi; bốn số của dải tổng quan | 21 |
+| `ke-hoach.ts` | cộng tiền kế hoạch; làm tròn kỳ; tỉnh từ chuỗi địa điểm | 15 |
+| `the-chi-tiet` (chốt nối dây) | ba dòng cơ chế của thẻ chi tiết | 7 |
+
+Kèm theo là **chốt nối dây** — hàm có thật sự được gọi không — vì một phép
+quyết định đúng mà không ai gọi thì không sửa được lỗi nào.
+
+Đột biến đã thử trong ngày, tất cả đều đỏ đúng chỗ: bỏ `view` khỏi URL (2),
+gỡ bộ lọc khỏi panel (4), cho `moveend` gọi lại API (1), lấy nhóm đơn vị đầu
+thay vì đông nhất (2), `onClickCapture` → `onClick` (1), `pushState` →
+`router.push` (1), làm tròn kỳ `ceil` → `round` (2), cộng mục chưa báo giá
+như 0 (2), `kyTuNhan('CPM')` trả `'month'` (1), xoá chữ "reach thô" (1), gõ
+sai đích chuyển hướng (1).
+
+### Dọn CSS theo từng quy tắc, không theo khối
+
+Lát 7 gỡ 129 dòng CSS. Lớp sống nằm **xen giữa** lớp chết: `.map-canvas`,
+`.map-controls`, `.mc-btn`, `.map-popup`, `.mpop-*`, `.mp-drag-bar` đều còn
+hai chỗ dùng. Nên phép dọn quét từng selector, đối chiếu với toàn bộ
+`webapp/`, `resources/views/` và `tests/`, và chỉ bỏ quy tắc mà **mọi**
+selector đều chết.
+
+Một cái bẫy phải xử: `.on`, `.open`, `.sheet-rong` là lớp **trạng thái**, có
+mặt trên nhiều phần tử. Bản đầu coi chúng là bằng chứng còn sống, nên
+`.mp-card:hover,.mp-card.on` bị tỉa thành `.mp-card.on` thay vì bỏ hẳn.
+
+Và chốt thì **đổi mục tiêu, không nới lỏng**: ca chiều cao `clamp` chuyển từ
+`.map-panel.open` sang `.ex-panel.open` và `.ex-ct` (cùng công thức); ca thanh
+đầu đổi `['/map']` thành `['/explore?view=map']` vì nó canh *đường đi* chứ
+không canh tên đường dẫn; `SeoBaselineTest` không chỉ bớt `/map` khỏi vòng lặp
+mà **thêm một khẳng định ngược** — `/map` phải không còn trong sitemap.
+
+### Bốn cái bẫy nhỏ, ghi lại để không đạp lại
+
+- **`git checkout --` xoá cả thay đổi chưa commit.** Sập **hai lần** trong
+  ngày khi hoàn nguyên một đột biến: `next.config.ts` và
+  `oohx-sync-proxy.sh` đều mất khối mới viết. Commit trước khi đột biến, hoặc
+  copy sang scratchpad.
+- **Quên tạo nhánh**, hai commit của lát 5 rơi thẳng lên `main` cục bộ. Chưa
+  push nên không ảnh hưởng ai; tách bằng `git branch` rồi `git reset --hard
+  origin/main`.
+- **Heredoc dài trong Bash tool làm hỏng dấu gạch chéo ngược** của regex —
+  viết tệp `.mjs` bằng công cụ Write rồi `node <tệp>`.
+- **`next build` gọi bằng `npx` từ `webapp/`** dò gốc workspace ra gốc repo và
+  đẻ một thư mục `.next` lạc ở đó. Dùng `npm run build`.
+
+### Còn mở sau ngày 22/10
+
+| Việc | Chặn bởi |
+|---|---|
+| **Cài `oohx-sync-proxy` v8 trên VPS** | Cần một lệnh `install` chạy as root; tôi không có SSH. Tới lúc đó bước đồng bộ proxy còn đỏ ở mọi deploy — ứng dụng không ảnh hưởng |
+| **Lát định vị** — xin quyền vị trí khi mở `/explore` | Chủ dự án đã chốt *"xin quyền khi mở trang"*; chưa làm |
+| **Plan gộp chưa sửa cho quy mô 10.000 vị trí** | Gom cụm ở máy chủ, bỏ phân trang sâu, chỉ mục không gian cho sắp xếp theo khoảng cách |
+| **Plan nhập 10.000 vị trí từ API đối tác** | Cần biết đối tác nào, tài liệu API, kéo hay đẩy, có toạ độ không, có môi trường thử không |
+| **Kế hoạch còn ở `localStorage`** | Lên máy chủ là một PR riêng có CSDL và đăng nhập |
+| **Nút chữ cạnh giá thay ô tick 24px** (phần còn lại của lát 6) | Thay đổi markup `ScreenCard`, dùng ở bốn trang |
+| **Dải chip chưa có dấu hiệu "còn chip bên phải"** | Quyết định thị giác, không phải lỗi |
+| **Chi phí chỉ phủ 19/104 vị trí** | Chờ media owner báo giá |
+| **Hai ô chờ dữ liệu**: CPM gộp, lượt xem | Chờ Data Engine và `location.district` được đổ thật |
+| `owner.name` có dấu cách thừa; `site.city` chứa đường dẫn phường | Dữ liệu, không phải mã |
+
+Những việc còn mở từ các ngày trước — `OOHX_LED_LCU_LAI_CHAU`, đường gửi yêu
+cầu thật, cử chỉ kéo bằng ngón tay thật, `/api/v1` trên production, nhãn
+tiếng Việt trên bản đồ, `price_per_slot_vnd` mang `floor_cpm` — vẫn nguyên.
+
+Hai định nghĩa CSS trùng **vẫn còn cả hai**, dù lát 7 có dọn CSS: `.loc-item`
+(dòng 631 và 2945) và `.mpop-price` (dòng 968 và 2333). Phép dọn của lát 7
+chỉ bỏ quy tắc **không còn ai dùng**; hai cặp này thì cả hai bản đều có chỗ
+dùng, nên chúng là việc của một lần dọn khác — và lần đó phải đọc xem bản nào
+đang thắng ở đâu, chứ không xoá bớt một bản.
