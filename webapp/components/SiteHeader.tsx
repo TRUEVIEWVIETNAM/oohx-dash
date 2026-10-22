@@ -84,7 +84,13 @@ export function SiteHeader({ active = '' }: { active?: NavKey }) {
                     <NavLink href="/explore" active={active === 'explore'}>
                         Khám phá
                     </NavLink>
-                    <NavLink href="/map" active={active === 'map'}>
+                    {/*
+                      Trỏ thẳng `?view=map`, không `/map` (lát 7, 22/10/2026).
+                      `/map` còn sống nhưng chỉ để chuyển hướng 301; để thanh
+                      đầu đi qua nó là bắt mọi người dùng trong site trả thêm
+                      một vòng mạng cho một đường đã khai tử.
+                    */}
+                    <NavLink href="/explore?view=map" active={active === 'map'}>
                         Bản đồ
                     </NavLink>
                     {/*

@@ -30,7 +30,7 @@ import { join } from 'node:path';
 /**
  * Hai thư mục, không một.
  *
- * Ngày 19/10/2026 lõi bản đồ chuyển từ `ScreenMap.tsx` sang
+ * Ngày 19/10/2026 lõi bản đồ chuyển từ `ScreenMap.tsx` (gỡ 22/10/2026) sang
  * `webapp/lib/dung-ban-do.ts` để `/map` và `/explore` dùng chung. Nếu phạm vi
  * quét vẫn chỉ là `components` thì cả hai luật dưới đây tiếp tục xanh trong
  * khi đoạn mã chúng canh đã đi chỗ khác — tức là chốt tự tắt mình trong im

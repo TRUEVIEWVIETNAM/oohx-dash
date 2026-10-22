@@ -16,6 +16,9 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
  *
  * ══ Khác `ScreenMap` ở điểm gì, và vì sao không dùng lại nó ══
  *
+ * (`ScreenMap.tsx` gỡ ngày 22/10/2026 cùng trang `/map` — lát 7. Đoạn dưới
+ * giữ lại vì nó giải thích vì sao thành phần này tồn tại riêng.)
+ *
  * `ScreenMap` là bản đồ toàn trang của `/map`: cao 70vh, nạp theo khung nhìn
  * mỗi lần người dùng kéo, kèm dòng trạng thái về việc bị cắt ở 500 pin. Khối
  * này là một **ô xem trước** trong một mục của trang chủ: chiều cao do

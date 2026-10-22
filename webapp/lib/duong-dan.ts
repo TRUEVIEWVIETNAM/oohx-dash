@@ -37,6 +37,10 @@ export const TRONG_APP: Set<string> = new Set([
     '/explore',
     '/owners',
     '/products',
+    // `/map` giữ lại ở đây dù trang đã khai tử (lát 7, 22/10/2026): nó nay
+    // là chuyển hướng 301 sang `/explore?view=map`, và Next phải nhận được
+    // yêu cầu thì mới chuyển hướng được. Bỏ nó khỏi đây là để Laravel nhận
+    // `/map` và trả 404 — mọi backlink cũ chết im lặng.
     '/map',
     '/agency',
 

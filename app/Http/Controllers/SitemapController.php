@@ -18,7 +18,14 @@ class SitemapController extends Controller
             // Static pages
             $urls->push(['loc' => url('/'), 'priority' => '1.0', 'changefreq' => 'daily']);
             $urls->push(['loc' => url('/explore'), 'priority' => '0.9', 'changefreq' => 'daily']);
-            $urls->push(['loc' => url('/map'), 'priority' => '0.8', 'changefreq' => 'daily']);
+            // `/map` gỡ khỏi sitemap 22/10/2026 (lát 7 của
+            // `docs/PLAN-GOP-EXPLORE-BAN-DO.md`): nó nay là một chuyển hướng
+            // 301 sang `/explore?view=map`. Liệt kê một đường chuyển hướng
+            // trong sitemap là bảo công cụ tìm kiếm đi một vòng thừa, và
+            // Search Console báo nó thành lỗi "Page with redirect".
+            //
+            // `/explore` ngay trên đã là đích thật — `?view=map` chung
+            // canonical với nó.
             $urls->push(['loc' => url('/owners'), 'priority' => '0.8', 'changefreq' => 'weekly']);
             $urls->push(['loc' => url('/products'), 'priority' => '0.8', 'changefreq' => 'daily']);
             $urls->push(['loc' => url('/agency'), 'priority' => '0.6', 'changefreq' => 'monthly']);

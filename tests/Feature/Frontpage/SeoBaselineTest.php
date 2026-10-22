@@ -125,7 +125,19 @@ class SeoBaselineTest extends TestCase
         );
     }
 
-    public function test_sitemap_co_sau_trang_tinh(): void
+    /**
+     * Năm trang tĩnh, không sáu: `/map` rời sitemap ngày 22/10/2026.
+     *
+     * Lát 7 của `docs/PLAN-GOP-EXPLORE-BAN-DO.md` khai tử trang đó — nó nay
+     * là một chuyển hướng 301 sang `/explore?view=map`. Liệt kê một đường
+     * chuyển hướng trong sitemap là bảo công cụ tìm kiếm đi một vòng thừa,
+     * và Search Console báo nó thành lỗi "Page with redirect".
+     *
+     * Ca dưới có thêm một khẳng định **ngược**: `/map` phải KHÔNG còn trong
+     * sitemap. Chỉ bớt một phần tử khỏi vòng lặp thì ngày mai ai đó thêm lại
+     * `/map` vào `SitemapController` và không có gì đỏ lên.
+     */
+    public function test_sitemap_co_nam_trang_tinh_va_khong_con_map(): void
     {
         $body = $this->get($this->url('/sitemap.xml'))->assertOk()->getContent();
 
@@ -135,13 +147,21 @@ class SeoBaselineTest extends TestCase
         // `http://oohx.test` KHÔNG có dấu gạch cuối, còn chuỗi tôi ghép thì
         // có. Ca test đỏ vì khác một ký tự định dạng, không vì sitemap thiếu
         // trang nào — tức nó đo sai thứ nó định đo.
-        foreach (['/', '/explore', '/map', '/owners', '/products', '/agency'] as $path) {
+        foreach (['/', '/explore', '/owners', '/products', '/agency'] as $path) {
             $this->assertStringContainsString(
                 '<loc>' . url($path) . '</loc>',
                 $body,
                 "sitemap thiếu trang tĩnh {$path}.",
             );
         }
+
+        $this->assertStringNotContainsString(
+            '<loc>' . url('/map') . '</loc>',
+            $body,
+            '`/map` quay lại sitemap. Nó là chuyển hướng 301 sang '
+                . '`/explore?view=map` từ 22/10/2026; liệt kê nó là bảo công cụ tìm kiếm đi '
+                . 'một vòng thừa, và Search Console đếm nó thành lỗi "Page with redirect".',
+        );
     }
 
     public function test_sitemap_co_trang_chi_tiet_cua_man_hinh_owner_san_pham(): void

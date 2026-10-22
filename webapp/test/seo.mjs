@@ -92,7 +92,16 @@ const TRANG = [
     { path: '/owners/owner-mot', ogType: 'profile', jsonLd: 'Organization' },
     { path: '/products', ogType: 'website' },
     { path: '/products/goi-mot', ogType: 'product', jsonLd: 'Product', coGia: true },
-    { path: '/map', ogType: 'website' },
+    // `/map` rời danh sách này 22/10/2026 (lát 7): nó không còn là một trang
+    // mà là chuyển hướng 301 sang `/explore?view=map`. Một trang chuyển
+    // hướng không có thẻ `<meta>` nào để đo, và `fetch` ở đây đi theo chuyển
+    // hướng nên nó sẽ lặng lẽ đo lại `/explore`.
+    //
+    // Chính cú 301 được canh ở `webapp/test/khoi-giao-dien.mjs`
+    // (`kiemChuyenHuongMap`), nơi `redirect: 'manual'` đọc được mã thật.
+    //
+    // `/map` **vẫn** ở trong `TRONG_APP`: OpenLiteSpeed còn phải chuyển nó
+    // sang Next, nếu không Laravel nhận và trả 404 thay vì chuyển hướng.
 
     // Chính sách. `og:type` là `article`, không `website`: đây là một văn bản
     // có phiên bản và ngày hiệu lực, không phải một trang của site.

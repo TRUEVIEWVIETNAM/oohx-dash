@@ -1076,7 +1076,10 @@ test('thanh đầu dẫn tới đủ năm khu vực công khai', () => {
 
     for (const [duong, viSao] of [
         ['/explore', 'kho màn hình'],
-        ['/map', 'bản đồ vị trí'],
+        // `/explore?view=map`: trang `/map` khai tử 22/10/2026 (lát 7), nhưng
+        // KHU VỰC thì vẫn phải có đường tới. Ca này canh đường đi, không canh
+        // tên đường dẫn — nên nó đổi mục tiêu chứ không bị bỏ.
+        ['/explore?view=map', 'bản đồ vị trí'],
         ['/products', 'gói chiến dịch — thiếu trong thanh đầu cho tới 18/10/2026'],
         ['/owners', 'danh sách media owner'],
         ['/agency', 'khu đại lý'],
@@ -1519,7 +1522,10 @@ test('thanh đầu có điều hướng ở mọi bề ngang, kể cả dưới 
     for (const [duong, viSao] of [
         ['/', 'trang chủ'],
         ['/explore', 'kho màn hình'],
-        ['/map', 'bản đồ vị trí'],
+        // `/explore?view=map`: trang `/map` khai tử 22/10/2026 (lát 7), nhưng
+        // KHU VỰC thì vẫn phải có đường tới. Ca này canh đường đi, không canh
+        // tên đường dẫn — nên nó đổi mục tiêu chứ không bị bỏ.
+        ['/explore?view=map', 'bản đồ vị trí'],
         ['/products', 'gói chiến dịch'],
         ['/owners', 'danh sách media owner'],
         ['/agency', 'khu đại lý'],
