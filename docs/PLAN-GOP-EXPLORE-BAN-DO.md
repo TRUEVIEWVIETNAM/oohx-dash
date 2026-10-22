@@ -384,11 +384,12 @@ xuống vài trăm — rồi mới tính khoảng cách trên phần còn lại.
 `webapp/lib/vi-tri.ts` đã có đúng phép tính đó, kể cả cái sàn cho `cos(lat)`;
 phía máy chủ cần bản sinh đôi của nó.
 
-**Đổi ngữ nghĩa, nên cần chốt:** hôm nay `sort=distance` trả *toàn bộ* tập
-khớp bộ lọc, gần nhất trước, nên nó **không bao giờ rỗng** — trang đầu luôn là
-24 cái gần nhất, dù cái cuối cách 1.148km (số đo thật ngày 22/10). Có bán kính
-thì nó rỗng được, và giao diện phải nói ra (lưới an toàn số 2 của lát định vị
-đã có sẵn cách nói).
+**Đổi ngữ nghĩa, và chủ dự án đã loại ngả này 22/10/2026.** Hôm nay
+`sort=distance` trả *toàn bộ* tập khớp bộ lọc, gần nhất trước, nên nó **không
+bao giờ rỗng** — trang đầu luôn là 24 cái gần nhất, dù cái cuối cách 1.148km
+(số đo thật ngày 22/10). Một bán kính cứng làm nó rỗng được, và đó là cái bị
+loại. Xem mục "Đã chốt" ở dưới: bản lát B này chết, thay bằng **khung nới
+dần** nếu lát 0 đo ra là cần.
 
 ## Giả thuyết 3 — `whereHas` không cho optimizer bắt đầu từ `sites`
 
@@ -441,15 +442,32 @@ Dòng cuối đáng chú ý riêng. Ở 104 bản ghi, phân trang là một cá
 MySQL bỏ qua 9.600 hàng đã sắp. Không ai bò tới đó trừ công cụ tìm kiếm, và
 đúng chỗ đó là chỗ nó chậm nhất.
 
-## Việc chủ dự án cần chốt
+## Đã chốt 22/10/2026
 
-| Việc | Hai ngả |
+| Việc | Chốt |
 |---|---|
-| **`sort=distance` có bán kính không** | Giữ như hôm nay: không bao giờ rỗng, nhưng thẻ cuối trang đầu có thể cách 1.148km · hoặc thêm `near_km`: đúng chữ "quanh tôi" và dùng được chỉ mục, nhưng danh sách rỗng được ở vùng chưa có kho |
-| **Thứ tự làm** | Lát 0 trước, rồi quyết theo số đo · hoặc làm thẳng lát A vì nó sửa một chỗ **sai**, không phải một chỗ chậm |
+| **`sort=distance` có bán kính không** | **Giữ như hôm nay.** Danh sách không bao giờ rỗng; chấp nhận thẻ cuối trang đầu có thể cách 1.148km |
+| **Thứ tự làm** | **Lát 0 trước**, rồi quyết theo số đo. Lát A vẫn làm bất kể số đo ra sao |
 
-Khuyến nghị của tôi: **lát 0 trước, trừ lát A**. Lát A đáng làm kể cả khi số
-đo nói mọi thứ đủ nhanh — nó không sửa tốc độ, nó sửa việc bản đồ trả lời sai.
+### Quyết định thứ nhất tháo mất lý do tồn tại của lát B như đã viết
+
+Lát B dùng khung chữ nhật để **cắt** tập trước khi tính khoảng cách. Cắt tập
+thì đổi kết quả, và đổi kết quả là đúng thứ vừa bị loại. Nên bản lát B ở trên
+chết, và cần nói thẳng điều đó thay vì để nó nằm đó trông như vẫn dùng được.
+
+Thứ còn sống là một cách khác đạt cùng mục đích mà **không** đổi ngữ nghĩa:
+tìm theo **khung nới dần**. Thử khung 25km; nếu chưa đủ một trang thì nới 50,
+100, rồi bỏ khung hẳn. Đường đi phổ biến — người dùng ở thành phố — dùng được
+chỉ mục `(lat, lon)` và chỉ tính khoảng cách trên vài trăm hàng; người dùng ở
+vùng chưa có kho rơi xuống nhánh cuối, tức đúng hành vi hôm nay, không rỗng.
+
+Cái giá là **nhiều lượt truy vấn cho một yêu cầu**, và tổng số trang phải đếm
+riêng. Nên nó chỉ đáng làm nếu lát 0 đo ra rằng Haversine trên 10.000 hàng
+thật sự chậm. **Không viết dòng mã nào của nó trước khi có số đo** — đây đúng
+là loại tối ưu phức tạp mà người ta làm vì nó nghe hay, không vì nó cần.
+
+Nếu lát 0 đo ra rằng mọi thứ đủ nhanh ở 10.000 thì lát B **không làm**, và
+câu đó được ghi vào đây kèm con số.
 
 ## Rủi ro
 
@@ -459,6 +477,6 @@ Khuyến nghị của tôi: **lát 0 trước, trừ lát A**. Lát A đáng là
 | Dữ liệu giả không giống kho thật, số đo vô nghĩa | Toạ độ dồn cục quanh đô thị; tỉ lệ có giá và dạng `city` chép từ kho thật |
 | Gom cụm máy chủ đổi hình dạng phản hồi, vỡ client | Phản hồi nói rõ chế độ; chốt đọc HTML và chốt JS canh cả hai chế độ |
 | Thêm join làm cột nhập nhằng, trả 500 như #160 | Mọi cột trong truy vấn bản đồ viết đủ tiền tố bảng |
-| Bán kính làm danh sách rỗng ở vùng chưa có kho | Lưới an toàn số 2 của lát định vị đã có cách nói |
+| Khung nới dần làm một yêu cầu thành nhiều lượt truy vấn | Chỉ viết nếu lát 0 đo ra là cần; đếm tổng số trang riêng và chốt lại con số đó |
 | 10.000 bản ghi nhập vào mà `district` vẫn rỗng | Việc của plan nhập đối tác, không phải của plan này |
 | Lệnh `oohx:gia-lap-kho` chạy nhầm vào production | Lệnh tự chặn khi `DB_HOST` không phải máy cục bộ, không chỉ dựa vào người gõ cẩn thận |
