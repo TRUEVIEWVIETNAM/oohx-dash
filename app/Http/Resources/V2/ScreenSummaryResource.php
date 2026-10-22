@@ -94,6 +94,21 @@ class ScreenSummaryResource extends JsonResource
             ],
 
             'photo_url' => $this->display_photo,
+
+            /*
+             * Khoảng cách tới toạ độ người gọi gửi lên, km — thêm 22/10/2026.
+             *
+             * `whenNotNull` chứ không luôn có mặt: cột này chỉ tồn tại khi
+             * truy vấn chạy với `sort=distance`, và trả `null` ở mọi lượt
+             * khác là thêm một trường rỗng vào **mọi** phản hồi danh sách.
+             *
+             * Nó là khoảng cách đường chim bay từ toạ độ người dùng tới
+             * **site**, không phải quãng đường đi. Giao diện gọi nó là "cách
+             * X km", không phải "X km lái xe".
+             */
+            'distance_km' => $this->whenNotNull(
+                isset($this->khoang_cach_km) ? (float) $this->khoang_cach_km : null,
+            ),
         ];
     }
 

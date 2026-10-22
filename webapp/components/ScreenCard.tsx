@@ -173,6 +173,26 @@ export function ScreenCard({
                             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" />
                         </svg>
                         {screen.location.city}
+
+                        {/*
+                          Khoảng cách, chỉ khi API trả về — tức chỉ khi danh
+                          sách được sắp theo khoảng cách (22/10/2026). Nó
+                          đứng cạnh tên thành phố vì đó là chỗ người đọc đang
+                          hỏi *"chỗ này ở đâu"*.
+
+                          "cách", không phải "lái xe": đây là đường chim bay
+                          từ toạ độ người dùng tới site, không phải quãng
+                          đường đi.
+                        */}
+                        {typeof screen.distance_km === 'number' ? (
+                            <span className="sc-xa">
+                                · cách{' '}
+                                {new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(
+                                    screen.distance_km,
+                                )}
+                                km
+                            </span>
+                        ) : null}
                     </div>
                 ) : null}
 

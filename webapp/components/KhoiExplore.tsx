@@ -8,6 +8,7 @@ import { DaiTongQuan } from '@/components/DaiTongQuan';
 import { TheChiTiet } from '@/components/TheChiTiet';
 import { ThanhDanhSach } from '@/components/ThanhDanhSach';
 import { BangViTri } from '@/components/BangViTri';
+import { DanhSachGan } from '@/components/DanhSachGan';
 import { dungKeoSheet } from '@/lib/dung-keo-sheet';
 import { dungViTri, type TrangThaiViTri } from '@/lib/dung-vi-tri';
 import type { TomTat } from '@/lib/khung-nhin';
@@ -306,6 +307,25 @@ function KhungBanDo({
     const dongPanel = useCallback(() => setMoPanel(false), [setMoPanel]);
 
     /**
+     * Danh sách gần người dùng nhất, thay cho danh sách máy chủ dựng.
+     *
+     * Lỗi nó sửa, đo trên production 22/10/2026: bản đồ bay tới Hà Nội với 13
+     * vị trí quanh người dùng, còn thẻ đầu tiên trong danh sách bên cạnh ở
+     * **Thái Nguyên**. Hai tập dữ liệu cạnh nhau trên một màn hình.
+     *
+     * `hongGan` là đường lùi: lời gọi hỏng thì cha dựng lại `children` —
+     * danh sách toàn kho do máy chủ dựng. Một danh sách trống vì lời gọi
+     * hỏng là mất nội dung; toàn kho thì chỉ là không sắp theo khoảng cách.
+     */
+    const [tongGan, setTongGan] = useState<number | null>(null);
+    const [hongGan, setHongGan] = useState(false);
+
+    const nhanSoGan = useCallback((n: number | null) => setTongGan(n), []);
+    const nhanHongGan = useCallback(() => setHongGan(true), []);
+
+    const dungDanhSachGan = Boolean(toaDo) && !hongGan;
+
+    /**
      * Bốn con số của khung nhìn, do `BanDoKetQua` đẩy lên.
      *
      * Dải tổng quan là anh em của khung bản đồ chứ không nằm trong nó — nó
@@ -489,6 +509,10 @@ function KhungBanDo({
                           gọi API thừa cho một con số đã có trên màn hình.
                         */}
                         <BangViTri trangThai={viTri} />
+
+                        {dungDanhSachGan && tongGan !== null ? (
+                            <p className="ex-vt">Danh sách đang sắp theo khoảng cách tới bạn.</p>
+                        ) : null}
                     </div>
 
                     <div
@@ -499,14 +523,30 @@ function KhungBanDo({
                         onClickCapture={bamThe}
                     >
                         <KhoiKetQua
-                            tong={tong}
+                            tong={dungDanhSachGan && tongGan !== null ? tongGan : tong}
                             sort={sort}
                             basePath="/explore"
                             query={query}
                             kieuXem={false}
                             nutThem={<DoiKieuXem query={query} kieuXem="map" />}
                         >
-                            {children}
+                            {/*
+                              Thẻ của máy chủ vẫn nằm trong HTML đầu tiên —
+                              hàng rào SEO của lát 2 không đổi. Chúng chỉ bị
+                              THAY ở trình duyệt, sau khi người dùng cho phép
+                              định vị.
+                            */}
+                            {dungDanhSachGan && toaDo ? (
+                                <DanhSachGan
+                                    lat={toaDo.lat}
+                                    lng={toaDo.lng}
+                                    query={query}
+                                    soMoi={nhanSoGan}
+                                    khiHong={nhanHongGan}
+                                />
+                            ) : (
+                                children
+                            )}
                         </KhoiKetQua>
 
                         {pagination}

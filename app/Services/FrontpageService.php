@@ -1124,7 +1124,18 @@ class FrontpageService
             ->when($request->filled('q'), function ($q) use ($request) {
                 $search = $request->input('q');
                 $q->where(function ($sub) use ($search) {
-                    $sub->where('name', 'LIKE', "%{$search}%")
+                    // `screens.name`, không phải `name` trần.
+                    //
+                    // Cột này luôn có nghĩa là tên màn hình, nhưng từ
+                    // 22/10/2026 `sort=distance` join thêm `sites as
+                    // sort_site` — và `sites` cũng có cột `name`. MySQL từ
+                    // chối cả truy vấn với *Column 'name' in where clause is
+                    // ambiguous*, nên `?q=…&sort=distance` trả **500**.
+                    //
+                    // Ca `test_bo_loc_van_chay_cung_voi_sap_theo_khoang_cach`
+                    // bắt được điều này; không có nó thì lỗi chỉ lộ ra khi có
+                    // người vừa gõ tìm kiếm vừa sắp theo khoảng cách.
+                    $sub->where('screens.name', 'LIKE', "%{$search}%")
                         ->orWhereHas('site', fn ($sq) => $sq->where('address', 'LIKE', "%{$search}%")
                             ->orWhere('city', 'LIKE', "%{$search}%"));
                 });
@@ -1409,9 +1420,56 @@ class FrontpageService
         return "(CASE WHEN {$table}.floor_cpm_currency = 'USD' THEN {$table}.floor_cpm * ? ELSE {$table}.floor_cpm END)";
     }
 
+    /**
+     * Khoảng cách Haversine từ một toạ độ tới `sites`, đơn vị **km**.
+     *
+     * `LEAST(1, …)` không phải thừa: tích các cosin có thể vượt 1 một chút vì
+     * sai số dấu phẩy động khi hai điểm trùng nhau, và `ACOS` của một số lớn
+     * hơn 1 trả `NULL` trong MySQL. Không kẹp thì màn hình **ở đúng chỗ người
+     * dùng đứng** rơi xuống cuối danh sách — đúng cái nó phải đứng đầu.
+     *
+     * Ba tham số gắn theo thứ tự: lat, lng, lat.
+     */
+    private static function khoangCachSql(string $alias = 'sort_site'): string
+    {
+        return '(6371 * ACOS(LEAST(1, '
+            . "COS(RADIANS(?)) * COS(RADIANS({$alias}.lat)) "
+            . "* COS(RADIANS({$alias}.lon) - RADIANS(?)) "
+            . "+ SIN(RADIANS(?)) * SIN(RADIANS({$alias}.lat))"
+            . ')))';
+    }
+
     private function applySort($query, Request $request)
     {
         $sort = $request->input('sort');
+
+        /*
+         * Sắp theo khoảng cách (22/10/2026).
+         *
+         * Toạ độ nằm ở `sites`, không ở `screens`, nên phải join. `leftJoin`
+         * chứ không `join`: một màn hình chưa gắn site, hoặc site chưa có toạ
+         * độ, vẫn phải còn trong kết quả — biến mất khỏi danh sách vì thiếu
+         * một cột là một lỗi im lặng, và đo trên production thì vẫn có màn
+         * hình chưa đủ dữ liệu vị trí.
+         *
+         * `ORDER BY (lat IS NULL)` đứng TRƯỚC: trong MySQL `NULL` xếp đầu ở
+         * thứ tự tăng dần, nên không có vế này thì mọi màn hình **không có
+         * toạ độ** đứng trên cùng của một danh sách "gần tôi nhất".
+         */
+        if ($sort === 'distance' && $request->filled('near_lat') && $request->filled('near_lng')) {
+            $lat = (float) $request->input('near_lat');
+            $lng = (float) $request->input('near_lng');
+
+            return $query
+                ->leftJoin('sites as sort_site', 'screens.site_id', '=', 'sort_site.id')
+                ->select('screens.*')
+                ->selectRaw(
+                    'ROUND(' . self::khoangCachSql() . ', 2) as khoang_cach_km',
+                    [$lat, $lng, $lat],
+                )
+                ->orderByRaw('(sort_site.lat IS NULL OR sort_site.lon IS NULL)')
+                ->orderByRaw(self::khoangCachSql() . ' asc', [$lat, $lng, $lat]);
+        }
 
         if ($sort === 'price_asc' || $sort === 'price_desc') {
             // Sắp xếp theo giá **quy đổi về VND**, không theo số thô.

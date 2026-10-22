@@ -274,7 +274,9 @@ export interface paths {
                     min_price?: number;
                     max_price?: number;
                     price_status?: ("quoted" | "unquoted")[];
-                    sort?: "price_asc" | "price_desc" | "newest";
+                    sort?: "price_asc" | "price_desc" | "newest" | "distance";
+                    near_lat?: number;
+                    near_lng?: number;
                 };
                 header?: never;
                 path?: never;
@@ -2935,6 +2937,17 @@ export interface components {
                 };
             };
             photo_url?: string | null;
+            /**
+             * @description Khoảng cách đường chim bay từ toạ độ người gọi gửi lên tới **site**,
+             *     km, làm tròn hai chữ số. Thêm 22/10/2026.
+             *
+             *     CHỈ có mặt khi yêu cầu dùng `sort=distance` kèm `near_lat`/
+             *     `near_lng`. Vắng ở mọi lượt khác — trả `null` ở mọi phản hồi danh
+             *     sách là thêm một trường rỗng vào hàng trăm bản ghi mỗi lượt.
+             *
+             *     Không phải quãng đường đi. Giao diện gọi nó là "cách X km".
+             */
+            distance_km?: number | null;
         };
         /**
          * @description Danh sách trắng. Không bao giờ chứa `revenue_share_pct`, `billing_info`,
