@@ -319,6 +319,118 @@ Rồi bấm giờ **sáu đường**, kèm `EXPLAIN`, và ghi số vào chính t
 **Tiêu chí:** đường nào trên 300ms thì vào danh sách sửa; dưới thì để yên và
 ghi lại con số, kể cả khi nó trông xấu.
 
+### Số đo lát 0 — chạy 22/10/2026
+
+Hai lệnh mới: `oohx:gia-lap-kho` gieo kho dồn cục theo đô thị,
+`oohx:bam-gio-kho` bấm giờ sáu đường và in `EXPLAIN`. Chạy trên MySQL 8 tạm
+trong Docker, lấy **lượt nhanh nhất trong 5 lượt** (tức trạng thái nóng).
+
+| Đường | 10.000 | 50.000 | Dốc |
+|---|---|---|---|
+| `map` · khung cả nước | **97ms** | 474ms | 4,9× |
+| `map` · khung một quận | **10ms** | 27ms | 2,7× |
+| `sort=distance` · trang 1 | **68ms** | 361ms | 5,3× |
+| `sort=distance` · trang cuối (417 / 2.084) | **66ms** | 388ms | 5,9× |
+| `q=…` khớp mọi hàng | **42ms** | 258ms | 6,1× |
+| `filters` · cache nguội | **100ms** | 717ms | 7,2× |
+
+**Ở 10.000 không đường nào vượt 300ms.** Gấp năm dữ liệu thì bốn đường vượt.
+Dốc gần tuyến tính, nên khoảng dư là chừng **3 lần** — quanh 30.000 bản ghi
+là lúc đường đầu tiên chạm ngưỡng.
+
+Nghĩa là: **lát B, C, D không có cớ tốc độ nào để làm hôm nay.** Ghi lại con
+số thay vì làm, đúng như tiêu chí đã đặt ra trước khi đo.
+
+### Giả thuyết 3 SAI — và đó là lý do lát 0 đi trước
+
+Tôi đã viết rằng `whereHas` sinh `EXISTS` tương quan nên MySQL phải chạy từ
+`screens` và không dùng được chỉ mục `(lat, lon)` để cắt tập. `EXPLAIN` nói
+ngược lại:
+
+```
+sites     range   sites_lat_lon_index   hàng=298    Using where; Using index
+screens   ref     idx_screens_active_site  hàng=1   Using where
+owners    eq_ref  PRIMARY               hàng=1      Using where
+```
+
+Optimizer **viết lại `EXISTS` thành semi-join và chọn `sites` làm bảng dẫn**,
+quét khoảng trên đúng chỉ mục `(lat, lon)`, và phủ được truy vấn bằng chính
+chỉ mục đó (`Using index`). Từ 298 site đó nó mới dò sang `screens`.
+
+Đó là lý do khung một quận chỉ mất 10ms và là đường **co giãn tốt nhất** trong
+cả bảng (2,7× khi dữ liệu gấp 5). Đường tôi nghi nhất lại là đường khoẻ nhất.
+
+**Lát C xoá khỏi plan**, không phải hoãn. Đổi `whereHas` thành `join` ở đây sẽ
+là một lần viết lại không mua được gì, trên đúng truy vấn mà #160 đã làm cột
+`name` nhập nhằng và trả 500.
+
+### Giả thuyết 1 đúng, và đo được bằng một con số
+
+```
+trả về 500 / tổng 10000 · bị cắt 9500
+id lớn nhất trong tập trả về đứng thứ 500 / 10.000 theo thứ tự nhập
+→ bản đồ KHÔNG thấy 9.500 màn hình nhập sau đó
+```
+
+Không phải "cắt bớt 9.500 cái nào đó". Phần trả về là **đúng 500 bản ghi nhập
+đầu tiên**, và ranh giới nằm chính xác ở vị trí thứ 500 theo thứ tự nhập — vì
+`orderBy('screens.id')` trên ULID là sắp theo thời gian tạo. Ở 50.000 thì
+49.500 màn hình không tồn tại trên bản đồ cả nước.
+
+Và nó **không chậm**: khung cả nước ở 10.000 mất 97ms. Một người mua rà cả
+nước nhận một câu trả lời nhanh, gọn, và sai.
+
+**Lát A giữ nguyên ưu tiên cao nhất** — nó là lát duy nhất trong plan sửa một
+chỗ sai thay vì một chỗ chậm. Nó cũng sửa luôn đường co giãn tệ thứ hai
+(4,9×) như một tác dụng phụ.
+
+### Giả thuyết 2 đúng về cơ chế, sai về mức nghiêm trọng
+
+```
+screens     ref     idx_screens_active   hàng=24692   Using where; Using temporary; Using filesort
+sort_site   eq_ref  PRIMARY              hàng=1
+```
+
+`Using temporary; Using filesort` trên toàn tập khớp bộ lọc — đúng như dự
+đoán, không chỉ mục nào phục vụ được phép sắp theo Haversine. Nhưng ở 10.000
+nó mất 68ms, và **trang cuối (trang 417) mất 66ms, không chậm hơn trang 1**.
+
+Phỏng đoán "phân trang sâu là chỗ chậm nhất" vì vậy cũng sai: `OFFSET 9.984`
+không thêm gì đáng kể, vì phép sắp toàn tập đã phải chạy dù trang nào. Bảng
+"những con số đã hết hạn" ở trên nói trang 400 bắt MySQL bỏ qua 9.600 hàng —
+đúng, nhưng chi phí đó biến mất bên cạnh `filesort`.
+
+### `filters` là đường co giãn tệ nhất, và nó không có trong ba chỗ tôi nghi
+
+7,2× — dốc nhất bảng, và ở 50.000 thì 717ms. Nó không nằm trong ba giả thuyết
+tôi mang vào lát 0; nó lộ ra chỉ vì bảng đo có cột cho nó.
+
+Nó được `Cache::remember` 1800 giây che, nên một người dùng mỗi 30 phút trả
+giá đó. Nhưng đó cũng nghĩa là **đường đầu tiên chạm 300ms khi kho lớn lên
+không phải bản đồ hay phép sắp, mà là ô bộ lọc** — và cách sửa nó (cache dài
+hơn, hoặc dựng sẵn theo lịch) rẻ hơn mọi lát A–D.
+
+### Số đo này đáng tin tới đâu
+
+Phải nói rõ, vì mọi kết luận "đủ nhanh" ở trên dựa vào nó:
+
+| Điều kiện đo | Lệch về phía nào |
+|---|---|
+| MySQL cùng máy, độ trễ mạng ≈ 0 | **Lạc quan** — production có mạng ở giữa |
+| Không có tải đồng thời | **Lạc quan** |
+| Hàng gieo nhẹ: không `description`, không ảnh, không `products` | **Lạc quan** |
+| `floor_cpm` rỗng 100% (chép production) | Chưa rõ — `filters` bớt việc, nhưng thanh giá cũng vậy |
+| Chỉ 16 tỉnh, kho thật nhiều hơn | **Lạc quan** cho `filters` |
+| `q` khớp **mọi** hàng | **Bi quan** — đã là ca xấu nhất của `LIKE` |
+
+Nên "dưới 300ms ở 10.000" là một **sàn**, không phải một lời hứa. Khoảng dư 3
+lần nên đọc là 2 lần cho an toàn, tức **quanh 20.000 bản ghi thì đo lại**.
+
+### Việc còn lại của lát 0
+
+Chạy lại `oohx:bam-gio-kho` trên chính production sau khi nhập kho thật, và
+ghi số vào đây. Đó là lượt đo duy nhất không mang mấy cái lệch ở bảng trên.
+
 ### Chỉ mục hiện có — không thiếu, nhưng thiếu đúng chỗ
 
 Soát migration trước khi đoán, vì "thiếu index" là chẩn đoán dễ nói nhất và
@@ -370,6 +482,10 @@ mà vẽ thẳng — **hai chế độ**, và hình dạng phản hồi phải n
 
 ## Giả thuyết 2 — phép sắp theo khoảng cách không có chỉ mục nào dùng được
 
+> **ĐÃ ĐO 22/10/2026: đúng cơ chế, sai mức nghiêm trọng.** `Using temporary;
+> Using filesort` đúng như dự đoán, nhưng 68ms ở 10.000 — và trang cuối
+> **không** chậm hơn trang 1. Chưa làm gì cả.
+
 `sort=distance` (#160) tính khoảng cách cho **mọi hàng khớp bộ lọc** rồi sắp.
 Ở 104 hàng thì không đo được gì; ở 10.000 thì mỗi lượt là 10.000 phép lượng
 giác cộng một `filesort`.
@@ -393,6 +509,11 @@ dần** nếu lát 0 đo ra là cần.
 
 ## Giả thuyết 3 — `whereHas` không cho optimizer bắt đầu từ `sites`
 
+> **ĐÃ ĐO 22/10/2026: SAI.** Optimizer viết lại `EXISTS` thành semi-join, chọn
+> `sites` làm bảng dẫn và quét khoảng trên `(lat, lon)`. Đây là đường co giãn
+> **tốt nhất** trong cả bảng đo. **Lát C xoá**, không hoãn. Phần dưới giữ lại
+> để thấy lập luận sai ở đâu — nó đọc rất thuyết phục mà vẫn sai.
+
 `mapPinQuery` lọc khung nhìn bằng `whereHas('site', …)`, sinh ra một
 `EXISTS` tương quan đọc `sites` theo `screens.site_id` rồi mới kiểm hai khoảng
 `lat` / `lon`. MySQL chạy từ `screens` và dò `sites` theo khoá chính cho
@@ -411,6 +532,9 @@ Cẩn thận một chỗ: #160 đã join `sites as sort_site` và làm cột `na
 nhằng, trả 500. Thêm join thứ hai vào cùng truy vấn là đúng chỗ bẫy đó lặp lại.
 
 ## Giả thuyết 4 — ô tìm kiếm chữ
+
+> **ĐÃ ĐO 22/10/2026: 42ms ở 10.000**, với truy vấn khớp *mọi* hàng — tức ca
+> xấu nhất của `LIKE`. **Lát D không làm.**
 
 `q` chạy ba phép khớp chuỗi con, mỗi phép có ký tự đại diện đứng đầu: tên màn
 hình, rồi địa chỉ và tỉnh của site trong một `EXISTS`. Ký tự đại diện đứng đầu
@@ -448,6 +572,17 @@ MySQL bỏ qua 9.600 hàng đã sắp. Không ai bò tới đó trừ công cụ
 |---|---|
 | **`sort=distance` có bán kính không** | **Giữ như hôm nay.** Danh sách không bao giờ rỗng; chấp nhận thẻ cuối trang đầu có thể cách 1.148km |
 | **Thứ tự làm** | **Lát 0 trước**, rồi quyết theo số đo. Lát A vẫn làm bất kể số đo ra sao |
+
+### Lát 0 đã chạy — tình trạng từng lát sau khi có số đo
+
+| Lát | Trạng thái |
+|---|---|
+| **Lát 0** · dựng kho giả và bấm giờ | **Xong.** Hai lệnh `oohx:gia-lap-kho` và `oohx:bam-gio-kho` ở trong repo; số đo ở mục trên |
+| **Lát A** · gom cụm ở máy chủ | **Làm.** Sửa một chỗ trả lời sai: bản đồ cả nước chỉ thấy 500 bản ghi nhập đầu tiên |
+| **Lát B** · khung nới dần | **Không làm.** 68ms ở 10.000. Đo lại quanh 20.000 |
+| **Lát C** · `whereHas` → `join` | **Xoá.** `EXPLAIN` cho thấy optimizer đã chọn đúng đường; giả thuyết sai |
+| **Lát D** · `FULLTEXT` | **Không làm.** 42ms ở ca xấu nhất |
+| *(mới)* · `filters` cache nguội | **Theo dõi.** Dốc nhất bảng (7,2×) và sẽ chạm 300ms trước mọi lát trên |
 
 ### Quyết định thứ nhất tháo mất lý do tồn tại của lát B như đã viết
 
