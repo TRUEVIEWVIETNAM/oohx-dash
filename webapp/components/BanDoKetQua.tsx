@@ -9,7 +9,12 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 
 /**
- * Bản đồ của **tập kết quả đang lọc** — cột phải của `/explore` (lát 3).
+ * Bản đồ của **tập kết quả đang lọc** — nền của `/explore?view=map`.
+ *
+ * Lát 3 (19/10/2026) đặt nó làm cột phải 340px cạnh lưới. Lát 2 của việc gộp
+ * bản đồ (22/10/2026) đổi chỗ chứ không đổi ruột: nó trải hết khung nhìn qua
+ * `.ex-map-nen` và danh sách nổi lên trên — đúng cách Google Maps làm, nơi
+ * canvas không bao giờ co lại vì một panel mở ra.
  *
  * ══ Khác `/map` ở chỗ nào ══
  *
@@ -56,6 +61,7 @@ export function BanDoKetQua({
      * tile.
      */
     hien?: boolean;
+
 }) {
     const [dangChon, setDangChon] = useState<CumSite | null>(null);
 
@@ -130,7 +136,7 @@ export function BanDoKetQua({
     }, [daChon, cums, markerRef]);
 
     return (
-        <div className="ex-map-khung">
+        <div className="ex-map-nen">
             <div
                 ref={containerRef}
                 className="map-canvas"

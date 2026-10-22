@@ -1373,27 +1373,105 @@ ul{list-style:none}
  * khi bật thì nó thay chỗ của lưới chứ không nằm thêm bên dưới — hai cách
  * nhìn cùng một tập dữ liệu, không phải hai khối nội dung.
  */
-.ex-cot-kq{min-width:0}
-.ex-cot-map{display:none;min-width:0}
-.ex-cot-map.hien{display:block;margin-top:14px}
-.ex-an-luoi .inv-grid{display:none}
-.ex-map-khung{position:relative;height:62vh;min-height:320px;border-radius:14px;overflow:hidden;background:#e8ecf0;border:1px solid var(--ln2)}
-.ex-map-loi{position:absolute;left:12px;right:12px;top:12px;z-index:260;background:#fff;border-radius:10px;padding:10px 12px;font-size:12.5px;font-weight:600;color:var(--red);box-shadow:var(--sh2)}
-@media(min-width:1280px){
-  .ex-layout{grid-template-columns:260px minmax(0,1fr) 340px;gap:24px}
-  /* Lưới về hai cột: `.inv-grid` lên bốn cột từ 1200px, và bốn thẻ trong
-     528px là 120px một thẻ. */
-  .ex-layout .inv-grid{grid-template-columns:repeat(2,1fr)}
-  .ex-cot-map{display:block;position:sticky;top:calc(var(--hdr) + 14px)}
-  .ex-cot-map.hien{margin-top:0}
-  .ex-map-khung{height:calc(100vh - var(--hdr) - 44px)}
-  /* Popup rộng 320px + 16px lề phải không lọt cột 340px. Trong cột này nó
-     giãn theo khung thay vì giữ bề ngang cố định của `/map`. */
-  .ex-map-khung .map-popup{left:12px;right:12px;width:auto}
-  /* Có cột riêng rồi thì không còn gì để bật. `.view-btn` đặt `display:flex`
-     ở dưới trong tệp này, nên một selector một lớp thua nó. */
-  .view-btn.ex-nut-map{display:none}
+/* ── `/explore` kiểu xem bản đồ: khung ứng dụng (lát 2, 22/10/2026) ───────
+ *
+ * Gộp `/explore` và `/map` thành một đường dẫn, bố cục lấy từ Google Maps đo
+ * thật ở 1440×900: canvas bản đồ **trải hết khung nhìn và nằm dưới**, danh
+ * sách là một tấm thẻ nổi bên trái rộng 408px. Bản đồ không bao giờ co lại —
+ * panel che bớt chứ không đẩy.
+ *
+ * Ở đây panel rộng 400 thay vì 408 và bắt đầu ở 16px thay vì 72px, vì OOHX
+ * không có rail biểu tượng: thanh điều hướng trên cùng đã làm việc đó, và
+ * dựng thêm một rail là nói cùng một việc hai lần.
+ *
+ * ══ Vì sao `.ex-app` không dùng `.w` ══
+ *
+ * `.w` kẹp nội dung ở `--mw` 1280px và lấy 52px mỗi bên. Đúng cho một trang
+ * đọc; sai cho một trang bản đồ, nơi mọi pixel ngang đều là nội dung. Màn
+ * 1920px mà bản đồ chỉ rộng 1176px là vứt đi 40% màn hình.
+ *
+ * ══ Dưới 1024px panel là ngăn kéo, không phải thẻ nổi ══
+ *
+ * Cùng hình dạng và cùng cử chỉ với `.map-panel.open` — hai bậc, kéo được,
+ * tay nắm hình viên thuốc (#145). Dùng lại `dung-keo-sheet.ts` chứ không viết
+ * ngăn kéo thứ ba: ba bản của cùng một cử chỉ là ba chỗ để chúng trôi khỏi
+ * nhau. Vì thế `.ex-panel.open` có tên trong cả hai quy tắc `.sheet-*` ở dưới
+ * tệp này.
+ *
+ * Chiều cao bậc thu lặp lại đúng phép tính của `.map-panel.open`: chừa 300px
+ * cho bản đồ trước, lấy phần còn lại, kẹp trong 40–60dvh.
+ */
+.ex-app{position:relative;height:calc(100vh - var(--hdr) - var(--nav));height:calc(100dvh - var(--hdr) - var(--nav));min-height:420px;overflow:hidden}
+.ex-map-nen{position:absolute;inset:0;background:#e8ecf0}
+
+.ex-panel{display:none;flex-direction:column;background:#fff;overflow:hidden;z-index:300}
+.ex-panel.open{display:flex;position:fixed;left:0;right:0;bottom:var(--nav);top:auto;height:60vh;height:clamp(40dvh,calc(100dvh - var(--hdr) - 300px),60dvh);border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.12);transition:height .26s var(--ease)}
+@media(min-width:1024px){
+  .ex-panel,.ex-panel.open{display:flex;position:absolute;left:16px;right:auto;top:12px;bottom:12px;width:400px;height:auto;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.17);transition:none}
 }
+.ex-panel-tay{display:none;padding:12px 0 8px;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none}
+.ex-panel.open .ex-panel-tay{display:block}
+@media(min-width:1024px){.ex-panel.open .ex-panel-tay{display:none}}
+.ex-panel-dau{padding:12px 14px;border-bottom:1px solid var(--ln2);flex-shrink:0}
+.ex-panel-cuon{flex:1;overflow-y:auto;padding:0 14px 16px;min-height:0}
+/* Thanh kết quả trong panel hẹp: hai nút đổi kiểu xem lưới/danh sách của
+   `KhoiKetQua` không còn chỗ, và chúng không có nghĩa trong một cột 400px. */
+.ex-panel .results-header{padding:12px 0 10px;border-bottom:1px solid var(--ln2)}
+.ex-panel .inv-grid{grid-template-columns:1fr;gap:12px}
+.ex-panel .view-btn{display:none}
+
+/* Thẻ nằm ngang trong panel.
+ *
+ * Thẻ lưới cao **421px** (đo ở panel 400px): ảnh 180 + thân + chân. Trong
+ * một cột cuộn cao 539px thì vừa **một thẻ rưỡi** — người mua phải cuộn một
+ * màn hình để thấy kết quả thứ hai, trong khi bên cạnh là bản đồ đầy pin.
+ * Danh sách cạnh bản đồ là để quét, nên thẻ phải quét được.
+ *
+ * Ảnh sang trái, chiếm cả hai hàng; thông số về một dòng ngang thay vì cột
+ * nhãn–giá trị, vì 250px không đủ cho hai cột chữ. Không đụng `ScreenCard`:
+ * cùng một thành phần, cùng `data-slug`, chỉ khác cách xếp.
+ */
+.ex-panel .sc-card{display:grid;grid-template-columns:108px minmax(0,1fr);border-radius:12px}
+.ex-panel .sc-card:hover{transform:none;box-shadow:var(--sh2)}
+.ex-panel .sc-photo{grid-row:1/3;width:108px;height:100%;min-height:112px}
+.ex-panel .sc-body{padding:10px 12px 0}
+.ex-panel .sc-title{font-size:13.5px;-webkit-line-clamp:2}
+.ex-panel .sc-specs{margin-top:6px;flex-direction:row;flex-wrap:wrap;gap:3px 12px}
+.ex-panel .sc-spec{justify-content:flex-start;gap:5px;font-size:11.5px}
+.ex-panel .sc-foot{padding:8px 12px 10px;margin-top:8px;border-top:0}
+
+/* Nút mở panel trên mobile — đúng vai `.panel-toggle` của `/map`. */
+.ex-mo-panel{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--nav) + var(--safe-b) + 16px);z-index:290;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 18px;border-radius:980px;border:1px solid var(--ln);background:#fff;box-shadow:var(--sh2);font-family:var(--font);font-size:13px;font-weight:700;color:var(--t1);cursor:pointer}
+@media(min-width:1024px){.ex-mo-panel{display:none}}
+
+/* Đổi kiểu xem: hai liên kết thật, không phải nút JS. Mỗi kiểu xem là một
+   URL, nên quay lại được bằng nút Back và chia sẻ được — thói quen mượn từ
+   Google Maps, nơi bấm một kết quả cũng đổi địa chỉ. */
+.ex-doi-xem{display:inline-flex;gap:2px;background:var(--bg2);padding:3px;border-radius:9px}
+.ex-doi-xem a{font-size:12px;font-weight:600;padding:6px 12px;border-radius:7px;color:var(--t3);text-decoration:none;line-height:1.3}
+.ex-doi-xem a.on{background:#fff;color:var(--t1);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.ex-doi-xem a:hover{color:var(--t1)}
+
+.ex-cot-kq{min-width:0}
+.ex-map-loi{position:absolute;left:12px;right:12px;top:12px;z-index:260;background:#fff;border-radius:10px;padding:10px 12px;font-size:12.5px;font-weight:600;color:var(--red);box-shadow:var(--sh2)}
+
+/* Lưới ba cột, không bốn.
+ *
+ * `.inv-grid` lên bốn cột từ 1200px, hợp với một trang không có cột lọc.
+ * Ở đây cột lọc đã lấy 260px, nên bốn thẻ chia nhau 888px còn **209px** một
+ * thẻ — hẹp hơn cả thẻ ở 520px, mốc hẹp nhất lưới hai cột từng chạy. Ba thẻ
+ * trong 888px là 286px, rộng hơn 255px mà bố cục ba cột cũ cho được.
+ *
+ * Khoanh vào `.ex-cot-kq` chứ không `.listing-layout`: `/products` dùng
+ * chung lớp bọc kia, và thẻ gói không phải thẻ màn hình.
+ */
+@media(min-width:1200px){.ex-cot-kq .inv-grid{grid-template-columns:repeat(3,1fr)}}
+
+/* Khối ba cột `.ex-layout` gỡ 22/10/2026 cùng `.ex-cot-map`, `.ex-an-luoi`,
+   `.ex-map-khung` và `.view-btn.ex-nut-map`. Bản đồ không còn là cột thứ ba
+   của trang danh sách — nó là kiểu xem thứ hai, và nó nằm dưới toàn trang
+   (`.ex-map-nen` ở trên). Giữ lại một bố cục không ai dựng nữa là để người
+   đọc sau tưởng còn hai đường. */
 
 
 /* ── Danh sách rút gọn (lát 4, 19/10/2026) ────────────────────────────────
@@ -1948,8 +2026,8 @@ body.page-map{overflow:hidden}
    `.sidebar.open.sheet-rong` (3 class) sẽ **thắng** `.sidebar.open`
    (2 class) nếu không khoanh lại. */
 @media(max-width:1023px){
-.map-panel.open.sheet-rong,.sidebar.open.sheet-rong{height:max(120px,calc(100vh - var(--hdr) - var(--nav) - 12px));height:max(120px,calc(100dvh - var(--hdr) - var(--nav) - 12px))}
-.map-panel.open.sheet-keo,.sidebar.open.sheet-keo{transition:none;user-select:none}
+.map-panel.open.sheet-rong,.sidebar.open.sheet-rong,.ex-panel.open.sheet-rong{height:max(120px,calc(100vh - var(--hdr) - var(--nav) - 12px));height:max(120px,calc(100dvh - var(--hdr) - var(--nav) - 12px))}
+.map-panel.open.sheet-keo,.sidebar.open.sheet-keo,.ex-panel.open.sheet-keo{transition:none;user-select:none}
 }
 .mp-head{padding:12px 18px;border-bottom:1px solid var(--ln2);flex-shrink:0}
 .mp-search{display:flex;align-items:center;background:var(--bg2);border-radius:10px;overflow:hidden;padding:0 12px;margin-bottom:12px}

@@ -17,7 +17,7 @@ import { OTick } from '@/components/OTick';
  *
  * `.map-popup` định vị **tuyệt đối** theo khung cha, nên nơi đặt nó phải là
  * một phần tử `position: relative` — ở `/map` là `.map-area`, ở `/explore` là
- * `.ex-map-khung`.
+ * `.ex-map-nen`.
  */
 export function PopupBanDo({ cum, dong }: { cum: CumSite; dong: () => void }) {
     const gia = giaCum(cum);

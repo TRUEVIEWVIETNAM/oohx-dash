@@ -271,7 +271,12 @@ const TRANG = [
             'class="ex-hero"',
             'class="ex-top"',
             'class="ex-title"',
-            'class="ph-map-btn"', // nút sang bản đồ
+            // Lát 2 gộp bản đồ (22/10/2026): nút `ph-map-btn` sang `/map` gỡ
+            // đi, thay bằng hai liên kết đổi kiểu xem trong thanh kết quả.
+            // Bản đồ không còn là một trang khác để sang.
+            'class="ex-doi-xem"',
+            '?view=map',
+
             'class="results-header"',
             'class="rh-count"',
             'class="sort-sel"', // ô sắp xếp
@@ -300,7 +305,10 @@ const TRANG = [
             // Canh ở đây chứ không chỉ ở `class-css` vì phép kiểm kia chỉ hỏi
             // "tên class có định nghĩa CSS không" — nó xanh cả khi cột lọc
             // không được gắn vào trang nào.
-            'class="listing-layout ex-layout"',
+            // Lát 2 (22/10/2026): `ex-layout` gỡ đi. Bản đồ không còn là
+            // cột thứ ba của kiểu lưới — nó là kiểu xem thứ hai của trang, và
+            // lưới lấy lại 340px đó cho thẻ.
+            'class="listing-layout"',
             'class="sidebar"',
             'class="sb-card"',
             'class="filter-float"', // nút mở drawer dưới 1024px
@@ -318,13 +326,12 @@ const TRANG = [
             'class="sb-item sb-item-tat"',
             '>LED<',
 
-            // ── Cột bản đồ (lát 3, 19/10/2026) ────────────────────────────
+            // ── Cột kết quả (lát 3, 19/10/2026; sửa lát 2, 22/10/2026) ────
             //
-            // Khung ba cột và nút đổi sang kiểu xem bản đồ có trong HTML máy
-            // chủ trả về — chúng là bố cục, không phải thứ JS dựng ra.
+            // `ex-cot-map` và nút `ex-nut-map` gỡ đi cùng `ex-layout`: ở kiểu
+            // lưới không còn cột bản đồ nào để bật, và đường sang bản đồ là
+            // hai liên kết `ex-doi-xem` canh ở trên.
             'class="ex-cot-kq"',
-            'class="ex-cot-map"',
-            'ex-nut-map',
 
             // `data-slug` trên thẻ: đường duy nhất để pin tìm ra thẻ tương
             // ứng và ngược lại. Thiếu nó thì bản đồ thành trang trí, và
@@ -377,6 +384,59 @@ const TRANG = [
             // sách sống trong localStorage — phía máy chủ không biết gì về
             // nó. Thấy nó trong HTML đầu tiên nghĩa là có ai đó đang đoán
             // trạng thái của người dùng ở máy chủ.
+            'class="ds-thanh"',
+        ],
+    },
+    {
+        // ── Hàng rào quan trọng nhất của việc gộp (lát 2, 22/10/2026) ──────
+        //
+        // `/explore` và `/map` gộp thành một đường dẫn, hai kiểu xem. `/map`
+        // cố ý KHÔNG có danh sách trong HTML máy chủ — docblock của nó nói rõ
+        // vì sao: hai trang cùng dữ liệu mà cùng được index là tự tạo nội
+        // dung trùng.
+        //
+        // Nên kiểu xem bản đồ của trang gộp phải đi đường ngược lại: danh
+        // sách vẫn do máy chủ dựng, nằm sẵn trong HTML, chỉ khác là nó ở
+        // trong một tấm thẻ nổi trên bản đồ. Nếu một ngày nào đó panel chuyển
+        // sang tự gọi API trong trình duyệt, trang danh mục nặng nhất của sàn
+        // biến mất khỏi công cụ tìm kiếm — và không có lỗi nào để lần ra.
+        //
+        // Ca này là thứ duy nhất đỏ lên khi điều đó xảy ra.
+        path: '/explore?view=map',
+        ten: 'danh sách kho, kiểu xem bản đồ',
+        co: [
+            'class="ex-app"',
+            'class="ex-panel',
+            'class="ex-panel-dau"',
+            'class="ex-panel-cuon"',
+
+            // Thẻ, và tên màn hình thật — không chỉ cái khung rỗng.
+            'class="sc-card"',
+            'Màn Hình Có Giá',
+            'Màn Hình Không Giá',
+
+            // `h1` ẩn khỏi mắt nhưng vẫn có: bản đồ cần cả chiều cao khung
+            // nhìn, nhưng trang vẫn phải nói mình là trang gì.
+            'class="visually-hidden"',
+
+            // Đường về kiểu lưới.
+            'class="ex-doi-xem"',
+
+            // Ô tìm kiếm chuyển vào đầu panel.
+            'class="ms-wrap"',
+        ],
+        khong: [
+            // Hero chiếm 120px chiều cao — đúng thứ đẩy bản đồ xuống dưới nếp
+            // gấp, và là lý do bản Blade của `/map` bỏ nó.
+            'class="ex-hero"',
+
+            // Cột lọc dọc là bố cục của kiểu lưới. Lát 3 đưa bộ lọc vào đầu
+            // panel; tới lúc đó kiểu bản đồ chưa có nó.
+            'class="listing-layout"',
+
+            // Bản đồ vẫn dựng ở trình duyệt, không ở máy chủ.
+            'leaflet',
+
             'class="ds-thanh"',
         ],
     },

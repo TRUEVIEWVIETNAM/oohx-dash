@@ -1,86 +1,145 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { KhoiKetQua } from '@/components/KhoiKetQua';
 import { BanDoKetQua } from '@/components/BanDoKetQua';
 import { ThanhDanhSach } from '@/components/ThanhDanhSach';
+import { dungKeoSheet } from '@/lib/dung-keo-sheet';
 
 /**
- * Hai cột phải của `/explore`: kết quả và bản đồ (lát 3).
+ * Khung của `/explore` — **một** đường dẫn, hai kiểu xem (lát 2, 22/10/2026).
  *
- * ══ Vì sao phải có một thành phần bọc, thay vì đặt bản đồ thẳng vào trang ══
+ * ══ Vì sao hai trang gộp lại ══
  *
- * Bản đồ và danh sách phải **nói chuyện với nhau**: rê chuột lên thẻ thì pin
- * sáng, bấm pin thì cuộn tới thẻ. Trạng thái đó sống ở trình duyệt, mà trang
- * `/explore` là server component và phải giữ nguyên như vậy — HTML do máy chủ
- * trả về là toàn bộ lý do giai đoạn 6 tồn tại.
+ * Trước hôm nay cùng một kho được nhìn qua hai trang: `/explore` (ba cột, lọc
+ * 260 · kết quả 528 · bản đồ 340) và `/map` (bản đồ toàn khung + panel trái).
+ * Hai bộ lọc, hai bản đồ, hai cách bày danh sách cho một kho — và hai chỗ đó
+ * đã trôi khỏi nhau: `/map` có thanh tỉnh thành và gom theo site, `/explore`
+ * có trạng thái giá và danh sách rút gọn. Không bên nào có đủ.
  *
- * Nên trang vẫn dựng thẻ ở máy chủ rồi truyền xuống đây qua `children`. Thành
- * phần này chỉ thêm phần cần trình duyệt. Công cụ tìm kiếm đọc được danh sách
- * y như trước.
+ * Bố cục kiểu xem bản đồ lấy từ Google Maps, đo thật ở 1440×900: canvas trải
+ * hết khung nhìn và nằm **dưới**, danh sách là thẻ nổi bên trái. Chi tiết và
+ * lý do ở `docs/PLAN-GOP-EXPLORE-BAN-DO.md`.
+ *
+ * ══ Kiểu xem là một URL, không phải một state ══
+ *
+ * `?view=map`. Hai liên kết thật, không phải hai nút JS: quay lại được bằng
+ * nút Back, chia sẻ được, và chạy cả khi JavaScript chưa tải xong. Đó cũng là
+ * cách Google Maps làm — bấm một kết quả thì địa chỉ đổi theo.
+ *
+ * Mặc định là **lưới** khi không có tham số. Hai lý do, và cả hai đều về
+ * người đến từ công cụ tìm kiếm: kiểu lưới mang theo phân trang và chân trang
+ * — những đường duy nhất để Google bò sang trang 2, 3 và các trang chính sách
+ * — còn kiểu bản đồ thì tải Leaflet, tile và tới 500 pin ngay lần đầu, kể cả
+ * trên 3G. Đổi mặc định là đổi đúng một dòng ở `page.tsx`.
+ *
+ * ══ Thẻ vẫn do máy chủ dựng, ở CẢ HAI kiểu xem ══
+ *
+ * Đây là hàng rào quan trọng nhất của việc gộp. `/map` cố ý không có danh
+ * sách trong HTML máy chủ, vì hai trang cùng dữ liệu mà cùng được index là tự
+ * tạo nội dung trùng. Gộp lại mà để danh sách chờ bản đồ hỏi pin xong mới
+ * hiện thì trang danh mục nặng nhất của sàn biến mất khỏi Google — một cái
+ * giá không thấy lúc xem thiết kế, và thấy sau vài tuần.
+ *
+ * Nên trang vẫn gọi `listScreens()` ở máy chủ và truyền thẻ xuống đây qua
+ * `children`, ở cả hai kiểu xem. Bản đồ chỉ **đổi** danh sách khi người dùng
+ * yêu cầu. `webapp/test/khoi-giao-dien.mjs` canh điều đó cho cả hai URL.
  *
  * ══ Rê chuột bắt bằng uỷ nhiệm, không bằng handler trên từng thẻ ══
  *
  * Thẻ do máy chủ dựng, nên không gắn được `onMouseEnter` lên chúng — hàm
  * không đi qua ranh giới server/client. Thay vào đó `ScreenCard` in
  * `data-slug`, và một handler duy nhất ở đây đọc `closest('[data-slug]')`.
- *
  * Cách này còn rẻ hơn: 24 thẻ là 24 listener, ở đây là một.
- *
- * ══ Bản đồ chỉ mount khi có người xem ══
- *
- * Dưới 1280px bản đồ là một kiểu xem phải bấm mới mở. Mount nó sẵn rồi giấu
- * bằng CSS là tải Leaflet, tile và tới 500 pin cho một người dùng điện thoại
- * chưa hề hỏi tới bản đồ.
- *
- * `matchMedia` đọc **cùng** một mốc với CSS (1280px). Lần render đầu
- * `rong = false` ở cả hai phía, nên không có lệch HTML; giá trị thật vào sau
- * trong `useEffect`.
  */
-
-/** Cùng mốc với `.ex-layout` trong `frontpage.css`. Đổi một chỗ là phải đổi cả hai. */
-const MOC_BA_COT = '(min-width: 1280px)';
 
 /** Thẻ sáng bao lâu sau khi bấm pin, tính bằng mili giây. */
 const SANG_MS = 1600;
 
+export type KieuXem = 'grid' | 'map';
+
+/**
+ * Đường dẫn của kiểu xem kia, giữ nguyên mọi tham số lọc đang có.
+ *
+ * `page` được giữ: đổi cách nhìn không phải đổi tập kết quả, nên bỏ người
+ * dùng về trang 1 là lấy mất chỗ họ đang đứng.
+ */
+function duongDan(query: Record<string, string | undefined>, view: KieuXem): string {
+    const u = new URLSearchParams();
+
+    for (const [k, v] of Object.entries(query)) {
+        if (v && k !== 'view') u.set(k, v);
+    }
+
+    if (view === 'map') u.set('view', 'map');
+
+    const qs = u.toString();
+
+    return qs ? `/explore?${qs}` : '/explore';
+}
+
+function DoiKieuXem({
+    query,
+    kieuXem,
+}: {
+    query: Record<string, string | undefined>;
+    kieuXem: KieuXem;
+}) {
+    return (
+        <div className="ex-doi-xem" role="group" aria-label="Kiểu xem">
+            <Link
+                href={duongDan(query, 'grid')}
+                className={kieuXem === 'grid' ? 'on' : undefined}
+                aria-current={kieuXem === 'grid' ? 'page' : undefined}
+            >
+                Lưới
+            </Link>
+            <Link
+                href={duongDan(query, 'map')}
+                className={kieuXem === 'map' ? 'on' : undefined}
+                aria-current={kieuXem === 'map' ? 'page' : undefined}
+            >
+                Bản đồ
+            </Link>
+        </div>
+    );
+}
+
 export function KhoiExplore({
+    kieuXem,
     tong,
     sort,
     query,
+    boLoc,
+    oTim,
     pagination,
     children,
 }: {
+    kieuXem: KieuXem;
     tong: number;
     sort: string;
-    /** Tham số URL hiện tại — cho ô sắp xếp và cho bản đồ. */
+    /** Tham số URL hiện tại — cho ô sắp xếp, cho bản đồ và cho hai liên kết. */
     query: Record<string, string | undefined>;
+    /** Cột lọc, chỉ dựng ở kiểu lưới. Lát 3 đưa nó vào đầu panel. */
+    boLoc: ReactNode;
+    /** Ô tìm kiếm lớn — ở kiểu bản đồ nó nằm trong đầu panel. */
+    oTim: ReactNode;
     pagination: ReactNode;
     children: ReactNode;
 }) {
-    const [xemBanDo, setXemBanDo] = useState(false);
-    const [rong, setRong] = useState(false);
     const [slugSang, setSlugSang] = useState<string | null>(null);
+    const [moPanel, setMoPanel] = useState(false);
 
     const kqRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const mq = window.matchMedia(MOC_BA_COT);
-        const doi = () => setRong(mq.matches);
-
-        doi();
-        mq.addEventListener('change', doi);
-
-        return () => mq.removeEventListener('change', doi);
-    }, []);
 
     /**
      * Bấm pin: cuộn tới thẻ tương ứng và làm nó sáng lên.
      *
      * Một cụm có thể gom nhiều màn hình cùng toà nhà, và bản đồ hiện tới 500
-     * vị trí trong khi lưới chỉ có 24 — nên thử lần lượt từng slug, và nếu
-     * không slug nào có thẻ trên trang thì không làm gì. Popup của bản đồ vẫn
-     * mở, và nó có đường sang trang chi tiết.
+     * vị trí trong khi danh sách chỉ có 24 — nên thử lần lượt từng slug, và
+     * nếu không slug nào có thẻ trên trang thì không làm gì. Popup của bản đồ
+     * vẫn mở, và nó có đường sang trang chi tiết.
      */
     const chonCum = useCallback((slugs: string[]) => {
         const goc = kqRef.current;
@@ -104,60 +163,175 @@ export function KhoiExplore({
         setSlugSang(the?.dataset.slug ?? null);
     }
 
-    // Bản đồ chiếm chỗ của lưới chỉ khi nó KHÔNG có cột riêng. Người dùng mở
-    // bản đồ ở 1100px rồi kéo cửa sổ rộng ra thì ba cột hiện đủ, và lưới phải
-    // quay lại — chứ không biến mất vì một lựa chọn đã hết nghĩa.
-    const anLuoi = xemBanDo && !rong;
+    if (kieuXem === 'grid') {
+        return (
+            <div className="w">
+                <div className="listing-layout">
+                    {boLoc}
+
+                    <div
+                        ref={kqRef}
+                        className="ex-cot-kq"
+                        onMouseOver={reVao}
+                        onMouseLeave={() => setSlugSang(null)}
+                    >
+                        <KhoiKetQua
+                            tong={tong}
+                            sort={sort}
+                            basePath="/explore"
+                            query={query}
+                            nutThem={<DoiKieuXem query={query} kieuXem="grid" />}
+                        >
+                            {children}
+                        </KhoiKetQua>
+
+                        {pagination}
+                    </div>
+                </div>
+
+                {/*
+                  Thanh đáy của danh sách rút gọn (lát 4). Nó tự ẩn khi chưa
+                  chọn gì, nên không có nhánh điều kiện ở đây — và nó nằm
+                  ngoài lưới vì `position: fixed`.
+                */}
+                <ThanhDanhSach />
+            </div>
+        );
+    }
+
+    return (
+        <KhungBanDo
+            tong={tong}
+            sort={sort}
+            query={query}
+            oTim={oTim}
+            pagination={pagination}
+            moPanel={moPanel}
+            setMoPanel={setMoPanel}
+            kqRef={kqRef}
+            reVao={reVao}
+            slugSang={slugSang}
+            setSlugSang={setSlugSang}
+            chonCum={chonCum}
+        >
+            {children}
+        </KhungBanDo>
+    );
+}
+
+/**
+ * Kiểu xem bản đồ — tách ra vì nó gọi `dungKeoSheet`.
+ *
+ * Hook không được gọi có điều kiện, nên nhánh bản đồ phải là component riêng
+ * chứ không phải một nhánh `if` trong thân hàm trên.
+ */
+function KhungBanDo({
+    tong,
+    sort,
+    query,
+    oTim,
+    pagination,
+    moPanel,
+    setMoPanel,
+    kqRef,
+    reVao,
+    setSlugSang,
+    slugSang,
+    chonCum,
+    children,
+}: {
+    tong: number;
+    sort: string;
+    query: Record<string, string | undefined>;
+    oTim: ReactNode;
+    pagination: ReactNode;
+    moPanel: boolean;
+    setMoPanel: (v: boolean) => void;
+    kqRef: React.RefObject<HTMLDivElement | null>;
+    reVao: (e: React.MouseEvent<HTMLDivElement>) => void;
+    setSlugSang: (v: string | null) => void;
+    slugSang: string | null;
+    chonCum: (slugs: string[]) => void;
+    children: ReactNode;
+}) {
+    const dongPanel = useCallback(() => setMoPanel(false), [setMoPanel]);
+
+    /**
+     * Cùng ngăn kéo hai bậc với `/map` và cột lọc (#145), không phải bản thứ
+     * ba. Trên desktop CSS cho panel về thẻ nổi tĩnh và tay nắm ẩn, nên hook
+     * vẫn gắn nhưng không có gì để kéo.
+     */
+    const { refNgan, rong, tay } = dungKeoSheet<HTMLElement>({
+        mo: moPanel,
+        dong: dongPanel,
+        nhan: 'danh sách',
+    });
+
+    /**
+     * Desktop mở sẵn panel, mobile thì không.
+     *
+     * Đọc trong effect chứ không lúc render: máy chủ không có `matchMedia`,
+     * nên đọc lúc render làm HTML hai phía lệch nhau. Một nhịp đầu panel đóng
+     * ở cả hai, rồi mở ra trên desktop — và vì CSS ≥1024px cho `.ex-panel`
+     * hiện bất kể lớp `open`, người dùng desktop không thấy nhịp đó.
+     */
+    useEffect(() => {
+        const mq = window.matchMedia('(min-width: 1024px)');
+        const doi = () => setMoPanel(mq.matches);
+
+        doi();
+        mq.addEventListener('change', doi);
+
+        return () => mq.removeEventListener('change', doi);
+    }, [setMoPanel]);
+
+    const lopPanel = moPanel
+        ? rong
+            ? 'ex-panel open sheet-rong'
+            : 'ex-panel open'
+        : 'ex-panel';
 
     return (
         <>
-            <div
-                ref={kqRef}
-                className={anLuoi ? 'ex-cot-kq ex-an-luoi' : 'ex-cot-kq'}
-                onMouseOver={reVao}
-                onMouseLeave={() => setSlugSang(null)}
-            >
-                <KhoiKetQua
-                    tong={tong}
-                    sort={sort}
-                    basePath="/explore"
-                    query={query}
-                    nutThem={
-                        <button
-                            type="button"
-                            className={xemBanDo ? 'view-btn ex-nut-map on' : 'view-btn ex-nut-map'}
-                            onClick={() => setXemBanDo(!xemBanDo)}
-                            aria-pressed={xemBanDo}
-                            aria-label={xemBanDo ? 'Xem danh sách' : 'Xem bản đồ'}
-                        >
-                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z" />
-                            </svg>
-                        </button>
-                    }
-                >
-                    {children}
-                </KhoiKetQua>
+            <div className="ex-app">
+                <BanDoKetQua
+                    thamSo={query}
+                    slugSang={slugSang}
+                    khiChonCum={chonCum}
+                    hien
+                />
 
-                {anLuoi ? null : pagination}
+                <aside ref={refNgan} className={lopPanel}>
+                    <div className="ex-panel-tay" {...tay}>
+                        <div className="mp-drag-bar" />
+                    </div>
+
+                    <div className="ex-panel-dau">
+                        {oTim}
+                        <DoiKieuXem query={query} kieuXem="map" />
+                    </div>
+
+                    <div
+                        ref={kqRef}
+                        className="ex-panel-cuon"
+                        onMouseOver={reVao}
+                        onMouseLeave={() => setSlugSang(null)}
+                    >
+                        <KhoiKetQua tong={tong} sort={sort} basePath="/explore" query={query} kieuXem={false}>
+                            {children}
+                        </KhoiKetQua>
+
+                        {pagination}
+                    </div>
+                </aside>
+
+                {moPanel ? null : (
+                    <button type="button" className="ex-mo-panel" onClick={() => setMoPanel(true)}>
+                        Danh sách · {new Intl.NumberFormat('vi-VN').format(tong)}
+                    </button>
+                )}
             </div>
 
-            <div className={xemBanDo ? 'ex-cot-map hien' : 'ex-cot-map'}>
-                {rong || xemBanDo ? (
-                    <BanDoKetQua
-                        thamSo={query}
-                        slugSang={slugSang}
-                        khiChonCum={chonCum}
-                        hien={xemBanDo || rong}
-                    />
-                ) : null}
-            </div>
-
-            {/*
-              Thanh đáy của danh sách rút gọn (lát 4). Nó tự ẩn khi chưa chọn
-              gì, nên không có nhánh điều kiện ở đây — và nó nằm ngoài hai
-              cột vì `position: fixed`.
-            */}
             <ThanhDanhSach />
         </>
     );
