@@ -182,8 +182,9 @@ export default async function ExplorePage({
 
             {/*
               Một khung, hai kiểu xem — `KhoiExplore` dựng lớp bọc cho cả hai.
-              Kiểu lưới: cột lọc 260px + lưới thẻ, từ 1024px. Kiểu bản đồ:
-              canvas trải hết khung nhìn, danh sách là thẻ nổi 400px bên trái.
+              Kiểu lưới: dải chip lọc trên một lưới rộng hết bọc (4 thẻ 280px
+              từ 1200px). Kiểu bản đồ: canvas trải hết khung nhìn, danh sách
+              là thẻ nổi 400px bên trái, cùng dải chip đó ở đầu panel.
 
               Thẻ do **máy chủ** dựng ở cả hai kiểu và đi xuống qua
               `children`. Đó là hàng rào của việc gộp: `/map` cố ý không có

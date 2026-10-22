@@ -257,7 +257,13 @@ test('ngăn trượt tới điểm nghỉ, và đứng im trong lúc ngón tay c
 test('mọi ngăn kéo lên đều gắn hook, không chỉ có hook nằm đó', () => {
     for (const [tep, lop] of [
         ['webapp/components/ScreenMap.tsx', 'mp-drag'],
-        ['webapp/components/BoLocKho.tsx', 'drawer-drag'],
+        // `BoLocKho.tsx` rời bảng này ngày 22/10/2026 (lát 3 của việc gộp bản
+        // đồ): bộ lọc `/explore` không còn là ngăn kéo lên nào cả — nó là một
+        // dải chip nằm trong mạch nội dung, mở ra bảng rớt. Không có tay nắm
+        // thì không có cử chỉ nào để canh.
+        //
+        // `/products` thì vẫn là cột lọc dọc + ngăn kéo, nên `BoLocGoi` ở
+        // lại. Đó cũng là lý do `.sidebar.open.sheet-rong` còn tên trong CSS.
         ['webapp/components/BoLocGoi.tsx', 'drawer-drag'],
         // Lát 2 của việc gộp bản đồ (22/10/2026): panel danh sách của
         // `/explore?view=map` là ngăn kéo thứ tư, và nó dùng lại hook chứ
