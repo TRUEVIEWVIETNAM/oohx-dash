@@ -96,11 +96,25 @@ test('bán kính đổi thì khung đổi theo, tuyến tính', () => {
     assert.ok(Math.abs((b.north - 10.8) / (a.north - 10.8) - 2) < 0.001);
 });
 
-test('sát cực không ra Infinity — một NaN lọt vào khung nhìn là bản đồ trống im lặng', () => {
-    const k = vt.khungQuanh(89.999, 0, 15);
+test('sát cực khung vẫn có độ rộng dùng được, không phình ra số vô nghĩa', () => {
+    // Ca này từng chỉ đo `Number.isFinite`, và một đột biến **bỏ hẳn sàn
+    // `cos`** vẫn làm nó xanh: ở cực `cos` không ra 0 mà ra 6,1e-17, nên phép
+    // chia cho ra 2,2e15 — hữu hạn, và hoàn toàn vô nghĩa. Đo độ rộng mới
+    // bắt được.
+    for (const lat of [89.999, 90, -90]) {
+        const k = vt.khungQuanh(lat, 0, 15);
 
-    for (const [ten, gt] of Object.entries(k)) {
-        assert.ok(Number.isFinite(gt), `${ten} không hữu hạn: ${gt}`);
+        for (const [ten, gt] of Object.entries(k)) {
+            assert.ok(Number.isFinite(gt), `lat ${lat}: ${ten} không hữu hạn (${gt})`);
+        }
+
+        const rong = k.east - k.west;
+
+        assert.ok(
+            rong > 0 && rong <= 30,
+            `lat ${lat}: khung rộng ${rong}° — sàn \`cos\` đã mất. Một khung nhìn vô lý gửi `
+                + 'lên API là một 422 im lặng và một bản đồ trống không ai lần ra nguyên nhân.',
+        );
     }
 });
 

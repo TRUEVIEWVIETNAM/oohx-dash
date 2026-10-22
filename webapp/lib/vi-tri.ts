@@ -34,9 +34,16 @@ const KM_MOI_DO_VI = 111.32;
  * 15km thật. Bỏ phép chia đó thì ở Hà Nội (21°) khung rộng hơn mong muốn 7%,
  * và ở Bắc Âu thì gấp đôi.
  *
- * Sàn `0.01` cho `cos`: ở sát cực nó tiến tới 0 và phép chia nổ ra vô cực.
- * Không có màn hình nào ở đó, nhưng một `NaN` lọt vào tham số khung nhìn thì
- * API trả 422 và bản đồ trống trơn — im lặng, và rất khó lần ra.
+ * Sàn `0.01` cho `cos`: ở sát cực nó tiến tới 0 và khung đông–tây phình ra
+ * những con số vô nghĩa. Không phải `Infinity` — đo thật ở vĩ độ 89,999 thì
+ * `cos` còn 1,7e-5 và khung rộng **7,7°**; ở đúng 90° nó là 6,1e-17 và khung
+ * rộng **2,2e15 độ**. Cả hai đều hữu hạn, nên một phép kiểm `isFinite` không
+ * bắt được gì — đột biến bỏ sàn này đi lọt qua bộ chốt của chính tôi cho tới
+ * khi ca test đổi sang đo **độ rộng**.
+ *
+ * Sàn 0,01 chặn khung ở ~13,5° đông–tây. Không có màn hình nào ở Bắc Cực,
+ * nhưng một khung nhìn vô lý gửi lên API là một 422 im lặng và một bản đồ
+ * trống không ai lần ra nguyên nhân.
  */
 export function khungQuanh(lat: number, lng: number, km: number = BAN_KINH_KM): Khung {
     const doVi = km / KM_MOI_DO_VI;
