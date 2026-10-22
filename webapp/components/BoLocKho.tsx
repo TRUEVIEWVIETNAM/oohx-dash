@@ -11,6 +11,7 @@ import {
     demChon,
     docChon,
     duongDanLoc,
+    khoaLocDauTien,
 } from '@/lib/loc-url';
 
 /**
@@ -222,6 +223,7 @@ export function BoLocKho({
 }) {
     const router = useRouter();
     const refForm = useRef<HTMLFormElement>(null);
+    const refChips = useRef<HTMLDivElement>(null);
 
     /** Nhóm nào đang mở bảng rớt; `null` là đóng hết. */
     const [moNhom, setMoNhom] = useState<KhoaLoc | null>(null);
@@ -245,6 +247,34 @@ export function BoLocKho({
 
     useEffect(() => {
         setChon(docChon(params));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [khoaUrl]);
+
+    /**
+     * Dải chip cuộn tới chip đang lọc.
+     *
+     * Dưới 1024px và trong panel bản đồ, dải chip là một hàng cuộn ngang. Đo
+     * trên production ngày 22/10/2026 ngay sau khi lát 3 lên: panel rộng
+     * 372px, dải chip dài 898px, và chip `Media owner` đang lọc nằm ở offset
+     * **541** — ngoài tầm nhìn. Danh sách đã bị cắt từ 104 xuống 83 vị trí mà
+     * trên màn hình không có một dấu hiệu nào nói vì sao.
+     *
+     * Chạy theo `khoaUrl`, tức theo bộ lọc **đã áp dụng**, không theo bản
+     * nháp: cuộn dải chip trong lúc người dùng đang tick là giật thứ họ đang
+     * chạm. Hàng không cuộn được (desktop, chip xuống hàng) thì không làm gì.
+     */
+    useEffect(() => {
+        const dai = refChips.current;
+
+        if (!dai || dai.scrollWidth <= dai.clientWidth) return;
+
+        const khoa = khoaLocDauTien(docChon(params));
+        const chip = khoa ? dai.querySelector<HTMLElement>(`[data-khoa="${khoa}"]`) : null;
+
+        // `offsetLeft` đo từ `.ex-loc` (`position:relative`), và dải chip là
+        // con trực tiếp không lề của nó — nên hai gốc trùng nhau. 8px chừa ra
+        // để chip không dính sát mép trái.
+        dai.scrollLeft = chip ? Math.max(0, chip.offsetLeft - 8) : 0;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [khoaUrl]);
 
@@ -311,13 +341,14 @@ export function BoLocKho({
                 apDung();
             }}
         >
-            <div className="ex-loc-chips">
+            <div className="ex-loc-chips" ref={refChips}>
                 {nhoms.map((nhom) => {
                     const tap = chon[nhom.khoa];
 
                     return (
                         <details
                             key={nhom.khoa}
+                            data-khoa={nhom.khoa}
                             className="ex-loc-nhom"
                             open={moHet || moNhom === nhom.khoa}
                         >

@@ -1514,7 +1514,11 @@ ul{list-style:none}
 .ex-loc-chips{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .ex-loc-chips::-webkit-scrollbar{display:none}
 .ex-loc-nhom{position:static;flex-shrink:0}
-.ex-loc-nhom>summary{min-height:38px;list-style:none;position:relative}
+/* Chiều cao ghim, không để nội dung quyết định: nút gỡ 28px trong chip đang
+   lọc đẩy chip lên 47px trong khi chip thường là 40px, và cả hàng nhảy 7px
+   đúng lúc người dùng vừa áp dụng bộ lọc. `padding-block:0` tắt 8px trên
+   dưới của `.fchip`; 16px hai bên giữ nguyên. */
+.ex-loc-nhom>summary{height:40px;padding-block:0;list-style:none;position:relative}
 .ex-loc-nhom>summary::-webkit-details-marker{display:none}
 .ex-loc-nhom>summary::before{content:"";position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:44px;z-index:-1}
 .ex-loc-nhom[open]>summary{border-color:var(--bl);color:var(--bl)}
@@ -1524,8 +1528,8 @@ ul{list-style:none}
 .ex-chip-xoa svg{width:13px;height:13px;fill:currentColor}
 .ex-chip-xoa:hover{background:rgba(0,0,0,.09)}
 .fchip.on .ex-chip-xoa:hover{background:rgba(255,255,255,.22)}
-.ex-loc-het{min-height:38px;font-family:var(--font)}
-.ex-loc-xoa{min-height:38px;padding:0 6px;border:0;background:transparent;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--t3);text-decoration:underline;cursor:pointer;flex-shrink:0}
+.ex-loc-het{height:40px;padding-block:0;font-family:var(--font)}
+.ex-loc-xoa{height:40px;padding:0 6px;border:0;background:transparent;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--t3);text-decoration:underline;cursor:pointer;flex-shrink:0}
 .ex-loc-xoa:hover{color:var(--t1)}
 .ex-loc-rot{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:60;max-height:min(360px,60vh);overflow-y:auto;background:#fff;border:1px solid var(--ln2);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.14);padding:12px}
 .ex-loc-rot .sb-title{font-size:11.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--t4);margin-bottom:8px}
