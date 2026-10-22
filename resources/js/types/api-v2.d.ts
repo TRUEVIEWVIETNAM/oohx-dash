@@ -3280,6 +3280,27 @@ export interface components {
              *     pin một màu.
              */
             venue_type?: string | null;
+            /**
+             * @description Nhãn người đọc của loại màn hình (`Billboard` / `LED` / `LCD`).
+             *     Thêm 22/10/2026 cho trang gộp `/explore`: panel dựng lại thẻ **từ
+             *     pin** sau mỗi lần bấm "Tìm trong khu vực này", và thẻ in loại hình.
+             *
+             *     Cùng bảng chữ với `ScreenSummary.screen_type_label` — cả hai DTO
+             *     dùng chung trait `SuyRaLoaiManHinh`, nên không có hai ngưỡng 300cm
+             *     viết rời.
+             *
+             *     Chỉ có **nhãn**, không có mã: không chỗ nào hiển thị mã, và lọc thì
+             *     lọc ở máy chủ.
+             */
+            screen_type_label?: string;
+            /**
+             * @description Kích thước vật lý, mét. Thêm 22/10/2026 cùng `screen_type_label`.
+             *     `null` nghĩa là chưa đo, khác `0` nghĩa là đã đo và bằng không.
+             */
+            size?: {
+                width_m: number | null;
+                height_m: number | null;
+            };
             owner?: {
                 slug?: string | null;
                 name?: string | null;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V2;
 
+use App\Http\Resources\V2\Concerns\SuyRaLoaiManHinh;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,10 +18,14 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class MapPinResource extends JsonResource
 {
+    use SuyRaLoaiManHinh;
+
     public static $wrap = null;
 
     public function toArray(Request $request): array
     {
+        $loai = $this->resolveScreenType();
+
         return [
             'slug' => $this->slug,
             'name' => $this->name,
@@ -55,6 +60,27 @@ class MapPinResource extends JsonResource
             ] : null,
 
             'venue_type' => $this->inventory?->venue_type,
+
+            // Hai trường thêm 22/10/2026 — lát 1 của
+            // `docs/PLAN-GOP-EXPLORE-BAN-DO.md`.
+            //
+            // Trang gộp dựng thẻ trong panel **từ pin** sau mỗi lần người dùng
+            // bấm "Tìm trong khu vực này". Thẻ hôm nay in loại hình và kích
+            // thước; thiếu hai trường này thì danh sách nghèo đi đúng lúc
+            // người dùng vừa thao tác — ngược chiều kỳ vọng, và không có lỗi
+            // nào để lần ra.
+            //
+            // Giá phải trả: hai trường × tối đa 500 pin. Chấp nhận được vì cả
+            // hai đọc từ `spec`, vốn **đã** nằm trong `with()` của
+            // `getMapPins()` kèm đúng hai cột `width_cm, height_cm` — không
+            // thêm truy vấn, không thêm cột.
+            //
+            // Cố ý **không** thêm `screen_type` (mã): không chỗ nào hiển thị
+            // mã, lọc thì lọc ở máy chủ. DTO này vẫn gọn.
+            'screen_type_label' => self::SCREEN_TYPE_LABELS[$loai] ?? $loai,
+
+            'size' => $this->kichThuocMet(),
+
             'owner'    => [
                 'slug' => $this->owner?->slug,
                 'name' => $this->owner?->name,

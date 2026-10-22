@@ -28,8 +28,11 @@ class NhanLoaiManHinhTest extends TestCase
     /** Ba nhánh của `resolveScreenType()`, đọc từ chính mã nguồn. */
     private function maTrongResolve(): array
     {
+        // Phép suy chuyển sang trait ngày 22/10/2026 để `MapPinResource` dùng
+        // chung — xem `SuyRaLoaiManHinh`. Bộ dò đi theo nó; hằng số vẫn đọc
+        // qua `ScreenSummaryResource` vì trait cho phép thế.
         $nguon = file_get_contents(
-            base_path('app/Http/Resources/V2/ScreenSummaryResource.php'),
+            base_path('app/Http/Resources/V2/Concerns/SuyRaLoaiManHinh.php'),
         );
 
         $than = substr($nguon, strpos($nguon, 'private function resolveScreenType'));
