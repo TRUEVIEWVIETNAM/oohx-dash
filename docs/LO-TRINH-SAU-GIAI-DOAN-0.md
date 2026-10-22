@@ -2465,3 +2465,136 @@ Hai định nghĩa CSS trùng **vẫn còn cả hai**, dù lát 7 có dọn CSS:
 chỉ bỏ quy tắc **không còn ai dùng**; hai cặp này thì cả hai bản đều có chỗ
 dùng, nên chúng là việc của một lần dọn khác — và lần đó phải đọc xem bản nào
 đang thắng ở đâu, chứ không xoá bớt một bản.
+
+---
+
+## Ngày 22/10/2026, chiều — định vị, và một chỗ lệch nó làm lộ ra (#159, #160)
+
+| PR | Việc | Đổi |
+|---|---|---|
+| #159 | Xin vị trí khi mở `/explore`, hiện màn hình quanh người dùng | +877/−50 |
+| #160 | Sắp danh sách theo khoảng cách (`sort=distance`) | +608/−6 |
+
+Chủ dự án chốt **xin quyền khi mở trang**, không sau một cú bấm.
+
+### Ba lưới an toàn của việc hỏi quyền lúc trang vừa mở
+
+Hỏi quyền trước khi người dùng làm gì là cách nhanh nhất để bị bấm "Chặn", và
+trình duyệt **nhớ** cú chặn đó cho tới khi người dùng tự vào cài đặt site mà
+gỡ. Một lần hỏi sai thời điểm là mất tính năng vĩnh viễn với người đó.
+
+1. **Hỏi đúng MỘT lần cho mỗi trình duyệt.** Cái bẫy không nằm ở "Chặn" mà ở
+   **bỏ qua**: người dùng bấm ra ngoài hộp thoại thì trạng thái vẫn là
+   `prompt` *mãi mãi*. Không nhớ thì hộp thoại bật ở mọi lượt tải trang —
+   đúng hành vi làm Chrome tự chặn quyền của cả site. Đo: lượt tải thứ hai,
+   quyền vẫn `prompt`, cờ đã hỏi `=1` → không hộp thoại, không dòng nào.
+2. **Chặn hay quanh đó trống thì trang không đổi gì.** Đo: khung quanh người
+   dùng trả `total: 0` → bản đồ lùi về khung cả nước và nói ra.
+3. **HTML máy chủ không phụ thuộc vị trí.** Máy chủ không biết người dùng ở
+   đâu và không được đoán; có khẳng định canh.
+
+`enableHighAccuracy: false`: tính năng chỉ cần biết người dùng ở thành phố
+nào. Trên một trang công khai, xin ít hơn mức có thể xin là mặc định đúng.
+
+### Lời hứa không giữ được: đếm tỉ lệ bấm Chặn
+
+Tôi đã hứa đo con số đó khi thuyết phục rằng hỏi-khi-mở-trang là chấp nhận
+được. **Không làm được**: app không có một đường đo đạc nào (`grep` cho
+gtag/analytics/telemetry ra rỗng), và dựng một endpoint đo đạc chạm quyền
+riêng tư và CSDL — đó là quyết định của chủ dự án, không phải thứ gắn kèm một
+lát giao diện.
+
+Nghĩa là **chúng ta không biết** bao nhiêu người bấm Chặn, mà đó đúng là con
+số đáng lo nhất của quyết định này. Ghi lại ở đây để nó không im lặng trôi đi.
+
+### Chỗ lệch mà định vị làm lộ ra, và nó có từ trước
+
+Soát production sau khi #159 lên: bản đồ bay tới Hà Nội với 13 vị trí quanh
+người dùng, còn **thẻ đầu tiên trong danh sách bên cạnh ở Thái Nguyên**. Hai
+tập dữ liệu cạnh nhau trên một màn hình.
+
+Chỗ lệch đó không mới — danh sách luôn do máy chủ dựng (hàng rào SEO của lát
+2), còn bản đồ luôn theo khung nhìn. Trước đây bản đồ mở ở khung cả nước nên
+hai bên trông khớp. Định vị không tạo ra lỗi; nó làm một giả định cũ hiện ra.
+
+### Toạ độ KHÔNG đi vào URL trang — ràng buộc dẫn dắt #160
+
+Cách rẻ nhất để sắp lại danh sách là đẩy toạ độ vào `/explore?near_lat=…` rồi
+để máy chủ dựng. **Không làm.** URL của một trang công khai rơi vào log máy
+chủ, vào header `Referer` của mọi tài nguyên bên thứ ba, và vào nút chia sẻ.
+Vị trí của một người không thuộc về chỗ đó.
+
+Nên trang do máy chủ dựng vẫn là toàn kho — cũng là thứ giữ cho nó được index
+— và phần sắp theo khoảng cách do **trình duyệt** gọi sau khi người dùng cho
+phép. Hai ca chốt canh: không tệp nào đặt `near_lat` gần một phép điều hướng.
+
+### Một lỗi bị chặn TRƯỚC khi lên production
+
+`?q=…&sort=distance` trả **500**. Join `sites as sort_site` làm cột `name`
+trong bộ lọc tìm kiếm nhập nhằng — `sites` cũng có cột `name`, và MySQL từ
+chối cả truy vấn: *Column 'name' in where clause is ambiguous*.
+
+Ca `test_bo_loc_van_chay_cung_voi_sap_theo_khoang_cach` bắt được nó ở lượt
+chạy đầu tiên. Không có ca đó thì lỗi chỉ lộ ra khi có người **vừa gõ tìm
+kiếm vừa sắp theo khoảng cách** — một tổ hợp không ai thử tay.
+
+Đây là lỗi duy nhất trong ngày bị chặn trước khi deploy. Ba lỗi khác
+(#151, #153, #157) đều phải lên production rồi mới bị soát ra.
+
+### Ba cái bẫy của phép sắp theo khoảng cách
+
+| Bẫy | Hỏng ra sao |
+|---|---|
+| `NULL` xếp **đầu** trong MySQL | Màn hình chưa có toạ độ đứng trên cùng của danh sách "gần tôi nhất" |
+| `ACOS` của số lớn hơn 1 trả `NULL` | Sai số dấu phẩy động khi hai điểm **trùng nhau** đẩy tích cosin vượt 1, nên màn hình ở đúng chỗ người dùng đứng rơi xuống **cuối** |
+| `sort=distance` thiếu toạ độ | Lặng lẽ rơi về thứ tự mặc định = một danh sách sai thứ tự mà trông bình thường → trả **422** |
+
+### Một lỗ trong chốt của chính tôi
+
+Đột biến bỏ sàn `Math.max(0.01, cos(lat))` **không làm đỏ ca nào**. Ở cực
+`cos` không ra 0 mà ra 6,1e-17, nên khung rộng 2,2e15 độ — hữu hạn, và
+`Number.isFinite` xanh. Ca phải đổi sang đo **độ rộng** mới bắt được, và
+docblock cũng phải sửa: cái sàn đó chặn một khung nhìn vô lý, không chặn
+`Infinity`.
+
+### Số đo trên production, với vị trí thật
+
+Chrome có sẵn quyền cho `oohx.net`, nên luồng chạy đủ — lần đầu nó chạy với
+toạ độ thật thay vì `getCurrentPosition` giả lập.
+
+| | |
+|---|---|
+| Kiểu lưới | *"13 vị trí trong 15km quanh bạn · Xem trên bản đồ"* |
+| Kiểu bản đồ | bay tới Hà Nội, pin thật |
+| Danh sách panel | `1,9km` → `2,7km` → `3,1km`, đều Hà Nội |
+| Lọc LCD + sắp | 20 vị trí, đúng loại, `56,8km` → `1.148,6km` |
+| `?q=…&sort=distance` | 200 (ca từng 500) |
+| `sort=distance` thiếu toạ độ | 422 |
+| URL trang | **không có toạ độ** |
+
+### Hai điều đúng nhưng dễ đọc nhầm
+
+**"Sắp theo khoảng cách" không phải "quanh tôi".** Lọc LCD xong, thẻ xa nhất
+của trang đầu cách **1.148km**. Phép sắp trả toàn bộ tập khớp bộ lọc, gần
+nhất trước, nên trang đầu luôn là 24 cái gần nhất và không bao giờ rỗng. Một
+bán kính cứng đúng chữ "xung quanh" hơn nhưng có thể trả về trống.
+
+**Hai con số cạnh nhau trả lời hai câu khác nhau.** Dải tổng quan nói
+`13 Vị trí` (trong khung nhìn bản đồ), thanh kết quả nói `Hiển thị 104 vị
+trí` (toàn bộ khớp bộ lọc). Mỗi cái có nhãn riêng và đều đúng, nhưng chúng
+cách nhau 40px.
+
+### Còn mở sau chiều 22/10
+
+| Việc | Chặn bởi |
+|---|---|
+| **Không biết tỉ lệ bấm Chặn** | Không có đường đo đạc nào; dựng nó là một quyết định riêng |
+| **Chưa bấm "Cho phép" thật trong một phiên sạch** | Hộp thoại quyền là giao diện trình duyệt; công cụ tự động không chạm được. Phiên đo dùng quyền Chrome đã lưu sẵn |
+| **Danh sách không theo khung nhìn** | Kéo bản đồ đi nơi khác thì danh sách vẫn "gần bạn nhất" |
+| **Haversine chạy trên từng hàng** | Ở 104 bản ghi không đo được gì; ở 10.000 cần lọc thô bằng bounding box trước |
+| **Hai lượt nạp pin** khi vào thẳng `?view=map` có vị trí | Khung cả nước rồi khung người dùng |
+| `.ds-panel` vs dải tổng quan: hai con số cạnh nhau | Xem mục trên |
+
+Mọi việc còn mở của buổi sáng vẫn nguyên, trừ **lát định vị** (xong) và
+**cài `oohx-sync-proxy` v8** — chủ dự án báo đã chạy lệnh `install` trên VPS
+chiều 22/10; lượt deploy kế tiếp sẽ in ra phiên bản script và xác nhận.
