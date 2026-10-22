@@ -411,9 +411,19 @@ const TRANG = [
             'class="ex-panel-cuon"',
 
             // Thẻ, và tên màn hình thật — không chỉ cái khung rỗng.
+            //
+            // Tên phải nằm TRONG thẻ, không chỉ đâu đó trong trang. Đột biến
+            // ngày 22/10/2026 cho thấy vì sao: bỏ `{children}` khỏi panel thì
+            // thẻ biến mất khỏi HTML, nhưng hai cái tên vẫn còn — Next nhúng
+            // payload RSC vào một thẻ `<script>`, và payload mang theo cả
+            // những phần tử đã dựng mà không được render. Một khẳng định tìm
+            // tên trần vẫn xanh trong khi danh sách đã rỗng.
+            //
+            // Payload dùng `className`, HTML đã render dùng `class=` — nên
+            // gắn tên vào đúng chuỗi `class="sc-title">` là cách phân biệt.
             'class="sc-card"',
-            'Màn Hình Có Giá',
-            'Màn Hình Không Giá',
+            'class="sc-title">Màn Hình Có Giá',
+            'class="sc-title">Màn Hình Không Giá',
 
             // `h1` ẩn khỏi mắt nhưng vẫn có: bản đồ cần cả chiều cao khung
             // nhìn, nhưng trang vẫn phải nói mình là trang gì.
