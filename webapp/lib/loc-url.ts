@@ -57,6 +57,26 @@ export function docChon(params: ThamSoLoc): ChonLoc {
     return chon;
 }
 
+/**
+ * Chiều lọc **đầu tiên** đang có giá trị, theo thứ tự chip hiện ra.
+ *
+ * Dùng để cuộn dải chip tới chỗ người dùng cần thấy. Đo trên production
+ * ngày 22/10/2026 trong panel bản đồ: dải chip rộng 898px trong một khung
+ * 372px, và chip `Media owner` đang lọc nằm ở offset **541** — tức hoàn toàn
+ * ngoài tầm nhìn khi khung cuộn ở 0. Bộ lọc đang bật, danh sách đã bị cắt từ
+ * 104 xuống 83, và trên màn hình không có một dấu hiệu nào.
+ *
+ * Trả `null` khi chưa lọc gì, và chỗ gọi cuộn về đầu — không giữ lại vị trí
+ * cuộn của bộ lọc vừa gỡ.
+ */
+export function khoaLocDauTien(chon: ChonLoc): KhoaLoc | null {
+    for (const khoa of KHOA_LOC) {
+        if (chon[khoa]?.size) return khoa;
+    }
+
+    return null;
+}
+
 /** Tổng số giá trị đang được chọn trên cả năm chiều. */
 export function demChon(chon: ChonLoc): number {
     let tong = 0;

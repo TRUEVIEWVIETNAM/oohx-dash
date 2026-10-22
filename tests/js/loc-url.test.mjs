@@ -23,6 +23,11 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve, join } from 'node:path';
+
+const GOC = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 // Node 24 bóc chú thích kiểu ngay khi nạp, nên module TypeScript mà Next dựng
 // lên production chạy được ở đây mà không cần bước biên dịch nào.
@@ -62,6 +67,29 @@ test('đọc đúng năm chiều, không nhận thêm chiều nào', () => {
 test('đếm gộp cả năm chiều', () => {
     assert.equal(lu.demChon(chon()), 0);
     assert.equal(lu.demChon(chon({ city: ['hcm', 'hanoi'], owner: ['abc'] })), 3);
+});
+
+test('chiều lọc đầu tiên theo đúng thứ tự chip, để cuộn dải chip tới đó', () => {
+    // Lỗi đo được trên production ngày 22/10/2026, ngay sau khi lát 3 lên:
+    // trong panel bản đồ dải chip dài 898px nằm trong khung 372px, và chip
+    // `Media owner` đang lọc ở offset **541** — ngoài tầm nhìn. Danh sách đã
+    // bị cắt từ 104 xuống 83 vị trí mà màn hình không nói vì sao.
+    assert.equal(lu.khoaLocDauTien(chon()), null);
+    assert.equal(lu.khoaLocDauTien(chon({ owner: ['abc'] })), 'owner');
+
+    // Thứ tự là thứ tự CHIP, không phải thứ tự người dùng tick: cuộn tới chip
+    // trái nhất đang lọc thì mọi chip trước nó cũng nằm trong tầm nhìn.
+    assert.equal(
+        lu.khoaLocDauTien(chon({ owner: ['abc'], city: ['hcm'] })),
+        'city',
+    );
+    assert.equal(
+        lu.khoaLocDauTien(chon({ owner: ['abc'], price_status: ['quoted'] })),
+        'price_status',
+    );
+
+    // Tập rỗng không tính là đang lọc — đó là trạng thái sau khi bấm nút gỡ.
+    assert.equal(lu.khoaLocDauTien({ ...chon({ city: ['hcm'] }), city: new Set() }), null);
 });
 
 // ── Dựng URL ────────────────────────────────────────────────────────────────
@@ -145,4 +173,40 @@ test('thứ tự khoá cố định, nên cùng một bộ lọc cho cùng một
 
     assert.equal(a, b);
     assert.equal(a, '/explore?screen_type=led&city=hcm&owner=abc');
+});
+
+// ── Việc nối dây ────────────────────────────────────────────────────────────
+//
+// Cùng lý do `sheet-keo-duoc.test.mjs` có mục này: một hàm quyết định đúng mà
+// không ai gọi thì không sửa được lỗi nào, và không có gì đỏ lên. Lỗi 22/10
+// chính là dải chip cuộn ở 0 trong khi chip đang lọc nằm ở offset 541.
+//
+// `khoi-giao-dien.mjs` không canh được chỗ này: nó đọc HTML máy chủ trả về,
+// còn `scrollLeft` chỉ có nghĩa sau khi trình duyệt dựng xong bố cục. Số đo
+// thật nằm trong mô tả PR.
+
+test('dải chip thực sự cuộn tới chip đang lọc, không chỉ có hàm nằm đó', () => {
+    const ma = readFileSync(join(GOC, 'webapp/components/BoLocKho.tsx'), 'utf8');
+
+    assert.match(ma, /khoaLocDauTien\(/, 'BoLocKho không gọi `khoaLocDauTien`.');
+
+    assert.match(
+        ma,
+        /scrollLeft\s*=/,
+        'BoLocKho không ghi `scrollLeft`. Biết chip nào đang lọc mà không cuộn tới nó thì '
+            + 'người dùng vẫn thấy một danh sách bị cắt và không có lời giải thích nào.',
+    );
+
+    assert.match(
+        ma,
+        /data-khoa=\{nhom\.khoa\}/,
+        'Chip mất `data-khoa`, nên hiệu ứng cuộn không còn tìm ra phần tử để cuộn tới.',
+    );
+
+    assert.match(
+        ma,
+        /scrollWidth <= [a-z]+\.clientWidth/,
+        'Mất phép bỏ qua khi hàng chip KHÔNG cuộn được. Từ 1024px chip xuống hàng chứ không '
+            + 'cuộn, và ghi `scrollLeft` ở đó là một lệnh vô nghĩa chạy mỗi lần lọc.',
+    );
 });
