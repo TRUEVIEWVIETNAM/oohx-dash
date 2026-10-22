@@ -391,6 +391,18 @@ const TRANG = [
             // lại một trong hai là hai bảng khoảng cách chồng nhau.
             'ex-results',
 
+            // ── Lưới an toàn số 3 của lát định vị (22/10/2026) ────────────
+            //
+            // HTML máy chủ **không phụ thuộc vị trí**. Máy chủ không biết
+            // người dùng ở đâu và không được đoán: công cụ tìm kiếm, người
+            // chặn quyền, và người chưa trả lời hộp thoại phải nhận cùng một
+            // trang — toàn kho.
+            //
+            // Thấy `.ex-vt` ở đây nghĩa là có ai đó đã dựng dòng định vị
+            // phía máy chủ, và khi đó trang đầu tiên người dùng thấy nói một
+            // điều về họ mà máy chủ không thể biết.
+            'class="ex-vt',
+
             // Bản đồ KHÔNG nằm trong HTML máy chủ render, và đó là chủ ý.
             // Hai lý do: trang không chờ Leaflet mới hiện được danh sách, và
             // `/explore` với `/map` không cùng đem một tập pin đi index.

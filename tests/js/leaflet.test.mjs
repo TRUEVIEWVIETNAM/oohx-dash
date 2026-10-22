@@ -95,7 +95,13 @@ test('endpoint pin bản đồ chỉ gọi từ những chỗ đã khai', () => 
 
     assert.deepEqual(
         goi,
-        ['webapp/components/BanDoTrangChu.tsx', 'webapp/lib/dung-ban-do.ts'],
+        // `dung-ban-do.ts` rời danh sách này 22/10/2026 (lát định vị): lời
+        // gọi chuyển vào `pin-api.ts`, vì kiểu xem **lưới** cũng cần đếm vị
+        // trí quanh người dùng và ở đó không có Leaflet, không có hook.
+        //
+        // Danh sách vẫn đóng, và vẫn hai phần tử — chỉ là cái thứ hai nay là
+        // một module nhỏ hơn, không phải cả một hook dựng bản đồ.
+        ['webapp/components/BanDoTrangChu.tsx', 'webapp/lib/pin-api.ts'],
         'Bản đồ của một tập lọc phải đi qua `useBanDoPin`, không tự gọi. ' +
             'Thấy ở: ' + (goi.join(', ') || 'không chỗ nào'),
     );

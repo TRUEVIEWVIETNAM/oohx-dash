@@ -7,7 +7,9 @@ import { BanDoKetQua } from '@/components/BanDoKetQua';
 import { DaiTongQuan } from '@/components/DaiTongQuan';
 import { TheChiTiet } from '@/components/TheChiTiet';
 import { ThanhDanhSach } from '@/components/ThanhDanhSach';
+import { BangViTri } from '@/components/BangViTri';
 import { dungKeoSheet } from '@/lib/dung-keo-sheet';
+import { dungViTri, type TrangThaiViTri } from '@/lib/dung-vi-tri';
 import type { TomTat } from '@/lib/khung-nhin';
 
 /**
@@ -140,6 +142,21 @@ export function KhoiExplore({
     const [slugSang, setSlugSang] = useState<string | null>(null);
     const [moPanel, setMoPanel] = useState(false);
 
+    /**
+     * Vị trí người dùng, xin khi mở trang (lát định vị, 22/10/2026).
+     *
+     * Gọi ở **đây**, không trong nhánh bản đồ: lưới là kiểu xem mặc định của
+     * `/explore`, và chủ dự án chốt hỏi khi mở trang chứ không khi mở riêng
+     * kiểu bản đồ. Hook không gọi có điều kiện được, nên nó phải nằm trên
+     * câu lệnh rẽ nhánh kiểu xem phía dưới.
+     *
+     * Ba lưới an toàn nằm trong `dung-vi-tri.ts` và `vi-tri.ts`, có chốt
+     * riêng ở `tests/js/vi-tri.test.mjs`.
+     */
+    const { trangThai: viTri } = dungViTri();
+
+    const toaDo = viTri.pha === 'co' ? { lat: viTri.lat, lng: viTri.lng } : null;
+
     const kqRef = useRef<HTMLDivElement>(null);
 
     /**
@@ -184,6 +201,13 @@ export function KhoiExplore({
                 */}
                 <div className="listing-layout ex-mot-cot">
                     {boLoc}
+
+                    {/*
+                      Dòng định vị đứng giữa bộ lọc và lưới: nó nói về tập
+                      kết quả, nên nó thuộc về chỗ ngay trên tập đó. Ở kiểu
+                      lưới nó đếm thật — xem docblock của `BangViTri`.
+                    */}
+                    <BangViTri trangThai={viTri} query={query} dem />
 
                     <div
                         ref={kqRef}
@@ -230,6 +254,8 @@ export function KhoiExplore({
             slugSang={slugSang}
             setSlugSang={setSlugSang}
             chonCum={chonCum}
+            viTri={viTri}
+            toaDo={toaDo}
         >
             {children}
         </KhungBanDo>
@@ -256,6 +282,8 @@ function KhungBanDo({
     setSlugSang,
     slugSang,
     chonCum,
+    viTri,
+    toaDo,
     children,
 }: {
     tong: number;
@@ -271,6 +299,8 @@ function KhungBanDo({
     setSlugSang: (v: string | null) => void;
     slugSang: string | null;
     chonCum: (slugs: string[]) => void;
+    viTri: TrangThaiViTri;
+    toaDo: { lat: number; lng: number } | null;
     children: ReactNode;
 }) {
     const dongPanel = useCallback(() => setMoPanel(false), [setMoPanel]);
@@ -412,6 +442,7 @@ function KhungBanDo({
                     khiChonCum={chonCum}
                     khiDoiTomTat={nhanTomTat}
                     khiMoChiTiet={moChiTiet}
+                    viTri={toaDo}
                     hien
                 />
 
@@ -450,6 +481,14 @@ function KhungBanDo({
                           ~48px, và trên mobile ngăn kéo còn hai bậc để bù.
                         */}
                         {tomTat ? <DaiTongQuan tomTat={tomTat} /> : null}
+
+                        {/*
+                          Ở kiểu bản đồ, dòng này KHÔNG đếm: bản đồ đã tự bay
+                          tới người dùng và dải tổng quan ngay trên đã nói
+                          khung nhìn có bao nhiêu vị trí. Đếm lại là một lời
+                          gọi API thừa cho một con số đã có trên màn hình.
+                        */}
+                        <BangViTri trangThai={viTri} />
                     </div>
 
                     <div

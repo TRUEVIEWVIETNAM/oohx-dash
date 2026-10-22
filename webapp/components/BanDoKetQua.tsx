@@ -43,6 +43,7 @@ export function BanDoKetQua({
     khiChonCum,
     khiDoiTomTat,
     khiMoChiTiet,
+    viTri,
     hien = true,
 }: {
     /** Tham số lọc của danh sách — truyền thẳng, không lọc bớt. */
@@ -75,6 +76,16 @@ export function BanDoKetQua({
     khiMoChiTiet?: (slug: string) => void;
 
     /**
+     * Toạ độ người dùng, khi họ đã cho phép (lát định vị, 22/10/2026).
+     *
+     * `null` ở mọi trường hợp còn lại — chưa hỏi, đang hỏi, bị chặn, lỗi —
+     * và khi đó khung bản đồ **không đổi gì**: nó vẫn mở ở khung cả nước như
+     * trước. Đó là lưới an toàn số 2 của lát này: định vị chỉ *thêm* một
+     * đường, không thay đường cũ.
+     */
+    viTri?: { lat: number; lng: number } | null;
+
+    /**
      * Khung có đang hiện không.
      *
      * Dưới 1280px khung bị `display:none` cho tới khi người dùng bấm nút "Bản
@@ -102,7 +113,10 @@ export function BanDoKetQua({
         tomTat,
         loi,
         capNhat,
+        sanSang,
         napLai,
+        bayToi,
+        veToanQuoc,
         thuPhong,
         vuaKhung,
         doLai,
@@ -110,6 +124,57 @@ export function BanDoKetQua({
         thamSo,
         khiChonCum: chonCum,
     });
+
+    /**
+     * Quanh người dùng trống thì lùi về cả nước, và **nói ra**.
+     *
+     * `null` = chưa thử hoặc tìm thấy; chuỗi = câu giải thích. Một bản đồ tự
+     * nhảy về khung cả nước mà không nói gì trông như một lỗi tải.
+     */
+    const [khongCoGiQuanhDay, setKhongCoGiQuanhDay] = useState<string | null>(null);
+
+    /**
+     * Bay tới vị trí người dùng, đúng MỘT lần cho mỗi toạ độ.
+     *
+     * Khoá theo toạ độ chứ không theo object: `viTri` là một object mới ở
+     * mỗi lượt render của cha, nên lấy thẳng nó làm deps là kéo bản đồ về
+     * chỗ người dùng sau **mỗi** lần họ tick một ô lọc — tức cướp mất khung
+     * nhìn họ vừa chọn.
+     */
+    const khoaViTri = viTri ? `${viTri.lat},${viTri.lng}` : '';
+
+    useEffect(() => {
+        // `sanSang` là điều kiện, không phải chi tiết: `bayToi` đọc
+        // `mapRef.current`, và ở lượt render đầu ref đó còn `null` vì map
+        // dựng trong một effect bất đồng bộ. Thiếu nó thì hiệu ứng này chạy
+        // một lần lúc mount, thấy null, thoát — và bản đồ ở nguyên khung cả
+        // nước trong khi toạ độ người dùng đã có từ lâu. Đo thấy ở máy.
+        if (!viTri || !sanSang) return;
+
+        let huy = false;
+
+        void (async () => {
+            const meta = await bayToi(viTri.lat, viTri.lng);
+
+            if (huy || !meta) return;
+
+            if (meta.total === 0) {
+                // Lưới an toàn: không có gì quanh đây thì trả lại toàn kho
+                // thay vì để người dùng nhìn một bản đồ trống.
+                setKhongCoGiQuanhDay(
+                    'Chưa có vị trí nào quanh bạn — đang hiện toàn bộ kho.',
+                );
+                await veToanQuoc();
+            } else {
+                setKhongCoGiQuanhDay(null);
+            }
+        })();
+
+        return () => {
+            huy = true;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [khoaViTri, sanSang, bayToi, veToanQuoc]);
 
     useEffect(() => {
         if (hien) doLai();
@@ -221,6 +286,20 @@ export function BanDoKetQua({
             </div>
 
             {loi ? <div className="ex-map-loi">{loi}</div> : null}
+
+            {!loi && khongCoGiQuanhDay ? (
+                <div className="ex-map-bao">{khongCoGiQuanhDay}</div>
+            ) : null}
+
+            {/*
+              KHÔNG có chấm "bạn đang ở đây", và đó là một lựa chọn.
+
+              Một chấm đặt giữa khung bằng CSS chỉ đúng chừng nào bản đồ còn
+              ở nguyên chỗ nó vừa bay tới — kéo một cái là nó thành lời nói
+              dối, chỉ vào một nơi người dùng không ở. Làm đúng thì phải là
+              một marker Leaflet thật, neo theo toạ độ; đó là việc của một
+              lát riêng, không phải một `<div>` thêm vào đây.
+            */}
 
             {dangChon ? (
                 <PopupBanDo

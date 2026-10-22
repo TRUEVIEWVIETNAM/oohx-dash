@@ -11,6 +11,7 @@ import {
     type MapPin,
 } from './ban-do';
 import { canNapLai, tomTatKhung, type Khung, type TomTat } from './khung-nhin';
+import { layPin, truyVanPin } from './pin-api';
 
 /**
  * Lõi dùng chung của mọi bản đồ đọc `GET /api/v2/screens/map`.
@@ -45,22 +46,10 @@ export const VIETNAM = {
 
 export type MetaPin = { returned: number; total: number; truncated: boolean };
 
-/**
- * Tham số của danh sách **không** gửi cho endpoint bản đồ.
- *
- * `page` vì bản đồ không phân trang — nó hiện mọi pin khớp bộ lọc trong khung
- * nhìn, tới giới hạn cứng 500. `sort` vì thứ tự không có nghĩa với một tập
- * điểm, nhưng nó đi vào `ORDER BY` và do đó quyết định **500 pin nào** còn lại
- * khi bị cắt; một bản đồ đổi tập điểm vì người dùng đổi ô sắp xếp là thứ không
- * ai đoán được.
- *
- * Danh sách **đen**, không phải trắng, và đó là một lựa chọn. Hệ quả của nó:
- * tham số lạ trong URL (`utm_source`, một cache-buster) cũng được gửi kèm, và
- * API bỏ qua chúng. Hệ quả của danh sách trắng thì nặng hơn: thêm một bộ lọc
- * mà quên khai ở đây là bản đồ lặng lẽ không lọc theo nó — đúng cái lát này
- * sinh ra để chặn.
- */
-const BO_QUA = new Set(['page', 'sort']);
+// Danh sách tham số bị bỏ (`BO_QUA_PIN`) chuyển sang `pin-api.ts`
+// ngày 22/10/2026: kiểu xem lưới cũng cần nó để đếm vị trí quanh người
+// dùng, và hai bản của cùng một danh sách đen là hai bộ lọc sẽ trôi khỏi
+// nhau.
 
 export function useBanDoPin({
     thamSo,
@@ -112,6 +101,20 @@ export function useBanDoPin({
     /** Người dùng đã kéo ra khỏi vùng dữ liệu: hiện nút "Tìm trong khu vực này". */
     const [capNhat, setCapNhat] = useState(false);
 
+    /**
+     * Leaflet đã dựng xong map và nạp xong lượt đầu.
+     *
+     * Người gọi cần nó. `bayToi` đọc `mapRef.current`, và ở lượt render đầu
+     * ref đó còn `null`: map dựng trong một effect bất đồng bộ, sau
+     * `await import("leaflet")`. Đo ở máy: hiệu ứng "bay tới vị trí người
+     * dùng" chạy một lần lúc mount, thấy `null`, thoát — và bản đồ ở nguyên
+     * khung cả nước trong khi toạ độ người dùng đã có từ lâu.
+     *
+     * Đặt `true` SAU lượt nạp đầu, không trước: trước thì `bayToi` và lượt
+     * nạp đầu chạy chồng nhau và `seqRef` bỏ một trong hai.
+     */
+    const [sanSang, setSanSang] = useState(false);
+
     const cums = useMemo(() => gomTheoSite(pins), [pins]);
 
     /**
@@ -135,18 +138,18 @@ export function useBanDoPin({
      * `thamSo` là một object mới ở mỗi lượt render của cha. Lấy thẳng nó làm
      * deps là gọi lại API mỗi lần cha render, kể cả khi không bộ lọc nào đổi.
      */
-    const truyVan = useMemo(() => {
-        const p = new URLSearchParams();
+    const truyVan = useMemo(() => truyVanPin(thamSo), [thamSo]);
 
-        for (const [k, v] of Object.entries(thamSo ?? {})) {
-            if (v && !BO_QUA.has(k)) p.set(k, v);
-        }
-
-        return p.toString();
-    }, [thamSo]);
-
+    /**
+     * Nạp pin cho khung nhìn hiện tại.
+     *
+     * Trả `meta` của lượt nạp, hoặc `null` khi lượt này bị bỏ (khung nhìn
+     * không hợp lệ, lỗi mạng, hoặc một lượt mới đã chồng lên). Người gọi cần
+     * nó: `bayToi` phải biết quanh người dùng có bao nhiêu vị trí để quyết
+     * định có lùi về toàn quốc không.
+     */
     const napPin = useCallback(
-        async (map: LeafletMap) => {
+        async (map: LeafletMap): Promise<MetaPin | null> => {
             const L = (await import('leaflet')).default;
             const bounds = map.getBounds();
             const seq = ++seqRef.current;
@@ -158,32 +161,19 @@ export function useBanDoPin({
                 west: bounds.getWest(),
             };
 
-            const params = new URLSearchParams(truyVan);
-            params.set('north', String(khung.north));
-            params.set('south', String(khung.south));
-            params.set('east', String(khung.east));
-            params.set('west', String(khung.west));
-
             try {
-                const res = await fetch(`/api/v2/screens/map?${params.toString()}`, {
-                    headers: { Accept: 'application/json' },
-                });
+                // `layPin` là nơi DUY NHẤT biết endpoint này — xem docblock của
+                // `webapp/lib/pin-api.ts`. Nó trả `null` cho mọi phản hồi
+                // không-OK, gồm cả 422 (khung nhìn chưa hợp lệ vì Leaflet chưa
+                // đo xong container; lần `moveend` sau sẽ gọi lại).
+                const body = await layPin(khung, truyVan);
 
-                // 422 nghĩa là khung nhìn không hợp lệ — xảy ra khi bản đồ chưa
-                // đo xong kích thước container. Bỏ qua, lần `moveend` sau sẽ
-                // gọi lại với khung nhìn thật.
-                if (!res.ok) {
-                    if (res.status !== 422) setLoi('Không tải được dữ liệu bản đồ.');
-
-                    return;
-                }
-
-                const body = (await res.json()) as { data: MapPin[]; meta: MetaPin };
+                if (!body) return null;
 
                 // `seqRef` chống kết quả về trễ: kéo bản đồ nhanh thì có vài
                 // lời gọi chồng nhau, và lời gọi cũ về sau sẽ vẽ lại pin của
                 // vùng đã rời khỏi.
-                if (seq !== seqRef.current) return;
+                if (seq !== seqRef.current) return null;
 
                 setPins(body.data);
                 setMeta(body.meta);
@@ -196,7 +186,7 @@ export function useBanDoPin({
                 setCapNhat(false);
 
                 const cluster = clusterRef.current;
-                if (!cluster) return;
+                if (!cluster) return body.meta;
 
                 cluster.clearLayers();
                 markerRef.current.clear();
@@ -221,10 +211,14 @@ export function useBanDoPin({
                 });
 
                 cluster.addLayers(lop);
+
+                return body.meta;
             } catch (e) {
-                if (seq !== seqRef.current) return;
+                if (seq !== seqRef.current) return null;
                 setLoi(e instanceof Error ? e.message : 'Không nạp được pin bản đồ.');
             }
+
+            return null;
         },
         [truyVan],
     );
@@ -366,7 +360,7 @@ export function useBanDoPin({
              */
             requestAnimationFrame(() => {
                 map.invalidateSize();
-                void napRef.current(map);
+                void napRef.current(map).then(() => setSanSang(true));
             });
         })();
 
@@ -421,6 +415,43 @@ export function useBanDoPin({
         if (map) void napPin(map);
     }, [napPin]);
 
+    /**
+     * Kéo bản đồ tới một toạ độ rồi nạp pin ở đó — dùng cho "quanh tôi".
+     *
+     * `animate: false` là cố ý: Leaflet bắn `moveend` **ngay** khi không có
+     * hoạt ảnh, nên `setCapNhat(true)` của trình xử lý đó và `setCapNhat(false)`
+     * của lượt nạp rơi vào cùng một nhịp render của React. Để hoạt ảnh thì
+     * nút "Tìm trong khu vực này" nhấp nháy một lần trong lúc bản đồ đang
+     * bay — một cái nút tự bật rồi tự tắt là thứ người ta học cách không
+     * nhìn.
+     *
+     * Trả `meta` để người gọi biết quanh đó có gì. `null` nghĩa là không nạp
+     * được, khác `total: 0` nghĩa là nạp được và quanh đó trống.
+     */
+    const bayToi = useCallback(
+        async (lat: number, lng: number, zoom = 12): Promise<MetaPin | null> => {
+            const map = mapRef.current;
+
+            if (!map) return null;
+
+            map.setView([lat, lng], zoom, { animate: false });
+
+            return napPin(map);
+        },
+        [napPin],
+    );
+
+    /** Về khung nhìn cả nước — lưới an toàn khi quanh người dùng trống. */
+    const veToanQuoc = useCallback(async (): Promise<MetaPin | null> => {
+        const map = mapRef.current;
+
+        if (!map) return null;
+
+        map.setView(VIETNAM.center, VIETNAM.zoom, { animate: false });
+
+        return napPin(map);
+    }, [napPin]);
+
     return {
         containerRef,
         mapRef,
@@ -431,7 +462,10 @@ export function useBanDoPin({
         tomTat,
         loi,
         capNhat,
+        sanSang,
         napLai,
+        bayToi,
+        veToanQuoc,
         thuPhong,
         vuaKhung,
         doLai,
