@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { soVN, type CumSite } from '@/lib/ban-do';
-import { useBanDoPin } from '@/lib/dung-ban-do';
+import { type CumSite } from '@/lib/ban-do';
+import { useBanDoPin, type TomTat } from '@/lib/dung-ban-do';
 import { dungDanhSach } from '@/lib/dung-danh-sach';
 import { PopupBanDo } from '@/components/PopupBanDo';
 import 'leaflet/dist/leaflet.css';
@@ -41,6 +41,7 @@ export function BanDoKetQua({
     thamSo,
     slugSang,
     khiChonCum,
+    khiDoiTomTat,
     hien = true,
 }: {
     /** Tham số lọc của danh sách — truyền thẳng, không lọc bớt. */
@@ -51,6 +52,20 @@ export function BanDoKetQua({
 
     /** Bấm pin: trả về mọi slug trong cụm để cha tìm thẻ tương ứng. */
     khiChonCum?: (slugs: string[]) => void;
+
+    /**
+     * Bốn con số của khung nhìn, đẩy lên cha (lát 4, 22/10/2026).
+     *
+     * Dải tổng quan nằm ở **đầu panel danh sách**, là anh em của khung bản đồ
+     * chứ không nằm trong nó — nên con số phải đi lên một cấp. Cách còn lại
+     * là nhấc cả `useBanDoPin` lên `KhungBanDo` và truyền năm ref xuống đây;
+     * một callback rẻ hơn, và nó giữ cho component này vẫn tự chạy được một
+     * mình ở bất cứ trang nào khác.
+     *
+     * Hàm này PHẢI ổn định giữa các lượt render của cha (`useCallback`), nếu
+     * không effect bên dưới chạy lại mỗi lượt render và cha setState vô tận.
+     */
+    khiDoiTomTat?: (t: TomTat | null) => void;
 
     /**
      * Khung có đang hiện không.
@@ -73,7 +88,18 @@ export function BanDoKetQua({
         [khiChonCum],
     );
 
-    const { containerRef, markerRef, cums, meta, loi, thuPhong, vuaKhung, doLai } = useBanDoPin({
+    const {
+        containerRef,
+        markerRef,
+        cums,
+        tomTat,
+        loi,
+        capNhat,
+        napLai,
+        thuPhong,
+        vuaKhung,
+        doLai,
+    } = useBanDoPin({
         thamSo,
         khiChonCum: chonCum,
     });
@@ -81,6 +107,10 @@ export function BanDoKetQua({
     useEffect(() => {
         if (hien) doLai();
     }, [hien, doLai]);
+
+    useEffect(() => {
+        khiDoiTomTat?.(tomTat);
+    }, [tomTat, khiDoiTomTat]);
 
     /**
      * Pin sáng theo thẻ đang rê chuột.
@@ -144,16 +174,25 @@ export function BanDoKetQua({
                 role="application"
             />
 
-            <div className="map-count-badge">
-                <strong>{soVN(cums.length)}</strong> vị trí trên bản đồ
-                {meta?.truncated ? (
-                    // Nói ra khi API đã cắt. Im lặng ở đây là để người dùng
-                    // tin rằng vùng này chỉ có chừng ấy màn hình.
-                    <span style={{ display: 'block', fontSize: 11, color: 'var(--org)' }}>
-                        Đã cắt ở {soVN(meta.returned)}/{soVN(meta.total)} — thu nhỏ vùng xem
-                    </span>
-                ) : null}
-            </div>
+            {/*
+              Badge "n vị trí trên bản đồ" gỡ 22/10/2026 cùng lát 4.
+
+              Nó đếm **cụm** (`cums.length`, một cụm là một toà nhà) trong
+              khi dải tổng quan ở đầu panel đếm **màn hình** (`meta.total`).
+              Hai con số khác nhau cho cùng một câu hỏi, cách nhau 400px trên
+              một màn hình: đo trên production ngày 22/10 thì badge nói 81
+              còn danh sách nói 83. Dải tổng quan giữ câu hỏi đó, và lời cảnh
+              báo "đã cắt ở 500" đi theo nó.
+            */}
+
+            {capNhat ? (
+                <button type="button" className="ex-tim-lai" onClick={napLai}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                    </svg>
+                    Tìm trong khu vực này
+                </button>
+            ) : null}
 
             <div className="map-controls">
                 <button type="button" className="mc-btn" onClick={() => thuPhong(1)} aria-label="Phóng to">
