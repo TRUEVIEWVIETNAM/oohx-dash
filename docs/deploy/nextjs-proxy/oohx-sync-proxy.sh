@@ -83,6 +83,22 @@ set -e
 # ("đường tôi khai có chạy không"), nên một luật bắt-tất-cả nuốt `/api/v1`,
 # `/cart` và `/sitemap.xml` vẫn làm canary xanh hết.
 #
+# v8 = v7 + bảng `CHUYEN_HUONG`: đường đã khai nhưng cố ý không trả 200.
+#
+# Lỗi thật, 22/10/2026. Lát 7 của `docs/PLAN-GOP-EXPLORE-BAN-DO.md` khai tử
+# trang `/map` — nó thành chuyển hướng 301 sang `/explore?view=map`, nhưng
+# **vẫn phải** là context của Next (bỏ khỏi conf thì Laravel nhận và trả 404,
+# và mọi backlink cũ chết).
+#
+# Canary v7 đòi MỌI context đã khai trả 200, nên nó làm đỏ một deploy hoàn
+# toàn đúng: Laravel và Next lên xong, conf không đổi, chỉ bảng kỳ vọng là cũ.
+# Log nói "canary đỏ TRONG KHI conf không đổi" và liệt kê bốn nguyên nhân khả
+# dĩ — không nguyên nhân nào đúng, vì nguyên nhân thứ năm chưa có tên: một
+# đường được khai tử có chủ đích.
+#
+# Bảng mới đòi hai thứ, không phải một: đúng mã VÀ đúng đích. Chỉ canh 301 thì
+# một luật rewrite lạc ở tầng khác cũng qua được.
+#
 # v7 = v6 + canary chạy cả khi conf KHÔNG đổi.
 #
 # v6 thoát sớm ở bước [2/7] khi hai conf khớp repo, nên năm phép kiểm 404 nó
@@ -94,7 +110,7 @@ set -e
 # lần khi KHÔNG NỐI ĐƯỢC (canary giờ chạy mọi lượt deploy, nên một lần curl
 # hỏng tạm sẽ làm đỏ một deploy đúng), và nhánh không-đổi KHÔNG lùi lại khi đỏ
 # (không có lần dán nào để lùi).
-VERSION=7
+VERSION=8
 
 # In số phiên bản rồi thoát — `deploy.sh` dùng cái này để so với bản trong repo.
 # Không cần quyền gì, nên để trước mọi phép kiểm khác.
@@ -583,6 +599,64 @@ ma() {
 # sẽ bị báo "luật không có tác dụng" trong khi luật hoàn toàn đúng. Thân rỗng
 # không phân biệt được với trang không chứa `/_next/static`, nên thử lại khi
 # rỗng là cách duy nhất tách hai trường hợp đó.
+# ─────────────────────────────────────────────────────────────────────────────
+# Đường ĐÃ KHAI nhưng cố ý KHÔNG trả 200.
+#
+# Thêm 22/10/2026, sau một deploy đỏ. Lát 7 của
+# `docs/PLAN-GOP-EXPLORE-BAN-DO.md` khai tử trang `/map`: nó nay là chuyển
+# hướng 301 sang `/explore?view=map`. Nhưng `/map` **vẫn phải** là một context
+# của Next — bỏ nó đi thì Laravel nhận và trả 404, và mọi backlink cũ chết.
+#
+# Canary thì đòi mọi context đã khai trả 200, nên nó làm đỏ một deploy hoàn
+# toàn đúng: Laravel và Next lên xong, conf không đổi, chỉ cái bảng kỳ vọng
+# này là cũ.
+#
+# Hai điều kiện, không phải một — cùng tinh thần với phần kiểm 200 ở dưới:
+# chỉ canh mã 301 là chưa đủ, vì một luật rewrite lạc ở tầng khác cũng trả
+# 301. Phải đúng **đích** nữa. Thân phản hồi 301 rỗng nên `la_next` không
+# dùng được ở đây; header `Location` là bằng chứng thay thế, và nó cũng là
+# thứ người dùng thật sự đi theo.
+#
+# Định dạng mỗi dòng: `<đường> <mã mong đợi> <đích mong đợi>`.
+CHUYEN_HUONG=(
+    "/map 301 /explore?view=map"
+)
+
+# In `<mã> <đích>` nếu `$1` nằm trong bảng trên; trả mã 1 nếu không.
+dich_chuyen_huong() {
+    local duong="$1" d p ma dich
+
+    for d in "${CHUYEN_HUONG[@]}"; do
+        read -r p ma dich <<< "$d"
+
+        if [ "$p" = "$duong" ]; then
+            printf '%s %s' "$ma" "$dich"
+
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+# Header `Location` của một phản hồi, đã bỏ phần scheme + host nếu có.
+#
+# Next phát `Location` tương đối (`/explore?view=map`); một proxy ở giữa có
+# thể viết lại thành tuyệt đối. Cắt tiền tố để phép so không phụ thuộc vào
+# việc tầng nào trả lời.
+vi_tri() {
+    local loc
+
+    loc=$(curl -s -k -I --max-time 15 --resolve "oohx.net:443:127.0.0.1" \
+        "https://oohx.net$1" 2>/dev/null \
+        | tr -d '\r' | awk 'tolower($1) == "location:" { print $2; exit }') || loc=""
+
+    loc=${loc#https://oohx.net}
+    loc=${loc#http://oohx.net}
+
+    printf '%s' "$loc"
+}
+
 la_next() {
     local than
     than=$(curl -s -k --max-time 15 --resolve "oohx.net:443:127.0.0.1" \
@@ -673,12 +747,34 @@ canary() {
     # rewrite. Bản v2 chỉ duyệt `context`, nên một luật rewrite không có tác
     # dụng vẫn qua được canary — trang chủ lặng lẽ ra Laravel và deploy báo
     # xanh. Đó đúng là loại hỏng im lặng mà canary tồn tại để bắt.
-    local duong
+    local duong kh ma_mong dich_mong loc
     while read -r duong; do
         [ -z "$duong" ] && continue
         [ "$duong" = "/_next" ] && continue
 
         m=$(ma "$duong")
+
+        # Đường đã khai tử: đòi đúng mã VÀ đúng đích, rồi đi tiếp. Xem bảng
+        # `CHUYEN_HUONG` ở trên về việc vì sao chúng vẫn là context của Next.
+        if kh=$(dich_chuyen_huong "$duong"); then
+            read -r ma_mong dich_mong <<< "$kh"
+
+            if [ "$m" != "$ma_mong" ]; then
+                echo "   LỖI canary: $duong trả $m, cần $ma_mong (đường đã khai tử)." >&2
+                loi=$((loi + 1))
+                continue
+            fi
+
+            loc=$(vi_tri "$duong")
+
+            if [ "$loc" != "$dich_mong" ]; then
+                echo "   LỖI canary: $duong chuyển hướng tới '$loc', cần '$dich_mong'." >&2
+                loi=$((loi + 1))
+            fi
+
+            continue
+        fi
+
         if [ "$m" != "200" ]; then
             echo "   LỖI canary: $duong trả $m, cần 200." >&2
             loi=$((loi + 1))
