@@ -1675,6 +1675,7 @@ ul{list-style:none}
  * `.ex-map-bao` là bản của nó trên nền bản đồ, nên nó phải có nền riêng —
  * chữ xám trên ảnh vệ tinh thì không ai đọc được. Dùng lại đúng hình dạng
  * của `.ex-map-loi` ngay trên, chỉ khác màu: đây là tin, không phải lỗi. */
+.ex-gan-trong{padding:24px 4px;text-align:center;font-size:13px;color:var(--t4)}
 .ex-vt{margin:0 0 12px;font-size:12.5px;line-height:1.5;color:var(--t2)}
 .ex-vt strong{color:var(--bl);font-weight:700}
 .ex-vt-mo{color:var(--t4)}
@@ -2651,6 +2652,7 @@ input[type=range]{width:100%;accent-color:var(--bl);cursor:pointer}
    thì chuỗi ấy không xuống dòng được, `overflow:hidden` cắt phũ giữa chữ và
    KHÔNG có dấu "…" — đo ở khung 390px: nội dung 307px trong ô 197px. */
 .sc-title{font-size:15px;font-weight:700;color:var(--t1);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.sc-xa{color:var(--t4);font-weight:500}
 .sc-loc{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--bl);margin-top:4px}
 .sc-loc-icon{width:12px;height:12px;flex-shrink:0}
 .sc-specs{margin-top:10px;display:flex;flex-direction:column;gap:4px}

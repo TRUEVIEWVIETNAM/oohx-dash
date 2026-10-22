@@ -180,3 +180,64 @@ test('cả hai kiểu xem đều có đường tới "quanh tôi"', () => {
             + 'kiểu mặc định của `/explore`.',
     );
 });
+
+// ── Toạ độ không được rời khỏi lời gọi API ─────────────────────────────────
+//
+// Vị trí của một người không thuộc về URL của một trang công khai: URL rơi
+// vào log máy chủ, vào header `Referer` của mọi tài nguyên bên thứ ba, và vào
+// nút chia sẻ. Cách rẻ nhất để sắp danh sách theo khoảng cách lại đúng là
+// cách đó — đẩy `near_lat` vào `/explore?…` rồi để máy chủ dựng — nên luật
+// này cần một người canh, không chỉ một chú thích.
+
+test('không chỗ nào đẩy toạ độ vào URL của trang', () => {
+    const tep = [
+        'webapp/components/KhoiExplore.tsx',
+        'webapp/components/BangViTri.tsx',
+        'webapp/components/DanhSachGan.tsx',
+        'webapp/lib/loc-url.ts',
+        'webapp/lib/dung-vi-tri.ts',
+    ];
+
+    for (const t of tep) {
+        const ma = readFileSync(join(GOC, t), 'utf8');
+
+        // `router.push` / `pushState` / `<Link href>` mang theo toạ độ.
+        for (const xau of ['near_lat', 'near_lng']) {
+            const viTri = ma.indexOf(xau);
+
+            if (viTri < 0) continue;
+
+            const quanh = ma.slice(Math.max(0, viTri - 400), viTri + 200);
+
+            assert.doesNotMatch(
+                quanh,
+                /router\.push|pushState|href=/,
+                `${t} đặt \`${xau}\` gần một phép điều hướng. Toạ độ chỉ được đi trong lời gọi `
+                    + 'API cùng nguồn gốc; URL của trang công khai rơi vào log máy chủ, header '
+                    + '`Referer` và nút chia sẻ.',
+            );
+        }
+    }
+});
+
+test('danh sách gần gọi API với toạ độ, và tôn trọng bộ lọc', () => {
+    const ma = readFileSync(join(GOC, 'webapp/components/DanhSachGan.tsx'), 'utf8');
+
+    assert.match(ma, /p\.set\('sort', 'distance'\)/, '`DanhSachGan` không xin sắp theo khoảng cách.');
+    assert.match(ma, /p\.set\('near_lat'/, 'Không gửi `near_lat`.');
+
+    assert.match(
+        ma,
+        /truyVanPin\(query\)/,
+        'Danh sách gần bỏ qua bộ lọc đang bật — đúng cái lỗi dòng "n vị trí quanh bạn" đã mắc '
+            + 'ở bản đầu của lát định vị: hai con số cho hai câu hỏi khác nhau, cách nhau một '
+            + 'dòng, và không gì nói ra điều đó.',
+    );
+
+    assert.match(
+        ma,
+        /khiHong\?\.\(\)/,
+        'Không có đường lùi khi lời gọi hỏng. Một danh sách trống vì lời gọi hỏng là mất nội '
+            + 'dung; danh sách toàn kho thì chỉ là không sắp theo khoảng cách.',
+    );
+});
