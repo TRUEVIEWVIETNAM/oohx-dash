@@ -272,3 +272,193 @@ là một PR riêng có CSDL, không nên gánh vào lát 6.
 
 Lát 1 chạy được ngay. Hai câu hỏi ở mục trên chỉ chặn lát 2 và lát 6, không
 chặn lát 1.
+
+---
+
+# Phần bổ sung: quy mô 10.000 vị trí
+
+Viết 22/10/2026, sau khi bảy lát trên đã merge.
+
+Chủ dự án cho biết kho thật có **hơn 10.000 billboard trải dài toàn quốc**,
+vào qua API đối tác. Mọi con số trong plan trên đo trên **104 bản ghi** của
+production hôm nay — gấp 96 lần là một bậc khác, không phải một con số lớn hơn.
+
+## Thứ tôi KHÔNG biết, và nó quan trọng hơn thứ tôi biết
+
+**Không có bộ dữ liệu 10.000 nào để đo.** Mọi chẩn đoán dưới đây là **giả
+thuyết đọc từ mã nguồn**, không phải phép đo. Vài cái sẽ sai.
+
+Nên lát đầu tiên không sửa gì cả — nó dựng chỗ để đo. Tối ưu một truy vấn
+chưa ai bấm giờ là cách chắc chắn nhất để sửa đúng thứ không đau và bỏ qua
+thứ đau.
+
+### Lát 0 — dựng 10.000 bản ghi giả và bấm giờ
+
+Một lệnh artisan `oohx:gia-lap-kho {so=10000}` đổ dữ liệu vào **CSDL tạm của
+Docker**, không bao giờ chạm production (công thức ở
+`docs/audit-5-vung-2026-09-23/REPRODUCE-CLAUDE.md`). Phân bố phải giống kho
+thật, không phải phân bố đều:
+
+- toạ độ **dồn cục quanh vài đô thị** — đó là hình dạng làm gom cụm khó, phân
+  bố đều thì không;
+- ~18% có giá (hôm nay 19/104);
+- ~20% có `city` dạng `"Tỉnh > Phường"` (hôm nay 21/104);
+- `district` rỗng hết, như hôm nay.
+
+Rồi bấm giờ **sáu đường**, kèm `EXPLAIN`, và ghi số vào chính tệp này:
+
+| Đường | Vì sao nó đáng ngờ |
+|---|---|
+| `/screens/map` khung cả nước | trần 500 + `countMapPins` chạy thêm một `COUNT(*)` trên cùng bộ lọc |
+| `/screens/map` khung một quận | `whereHas('site')` có cho optimizer dùng `(lat,lon)` để **cắt** không |
+| `/screens?sort=distance` trang 1 | Haversine trên mọi hàng khớp bộ lọc |
+| `/screens?sort=distance` trang cuối | Haversine + `OFFSET` sâu |
+| `/screens?q=…` | ba phép khớp chuỗi con, hai trong một `EXISTS` tương quan |
+| `/filters` lần đầu (cache nguội) | các phép gộp trên toàn bảng |
+
+**Tiêu chí:** đường nào trên 300ms thì vào danh sách sửa; dưới thì để yên và
+ghi lại con số, kể cả khi nó trông xấu.
+
+### Chỉ mục hiện có — không thiếu, nhưng thiếu đúng chỗ
+
+Soát migration trước khi đoán, vì "thiếu index" là chẩn đoán dễ nói nhất và
+hay sai nhất. Thực tế đã có:
+
+| Bảng | Chỉ mục |
+|---|---|
+| `sites` | `(lat, lon)`, `city`, `(owner_id, status)`, `province_id`, `commune_id` |
+| `screens` | `active`, `(active, site_id)`, `(owner_id, active, updated_at)`, `(owner_id, site_id)` |
+| `screen_inventory` | `(screen_id, venue_type)`, `(screen_id, floor_cpm)`, `floor_cpm` |
+
+Nên lọc theo tỉnh (khớp tiền tố trên `sites.city` — dùng được index) và lọc
+theo loại địa điểm đều đã có đường. **Chỗ trống đúng là ba chỗ:** không chỉ
+mục nào phục vụ được phép sắp theo Haversine, `whereHas` không cho `(lat,lon)`
+lái truy vấn bản đồ, và phép khớp chuỗi con của ô tìm kiếm thì không index nào
+giúp được.
+
+## Giả thuyết 1 — cái sai NẶNG nhất không phải chậm, mà là SAI
+
+`getMapPins` cắt bằng `orderBy('screens.id')` rồi `limit(500)`
+(`CatalogController::MAX_MAP_PINS = 500`).
+
+Ở 104 bản ghi, 500 không bao giờ chạm tới. Ở 10.000, một người mở bản đồ ở
+khung cả nước nhận về **500 bản ghi có id nhỏ nhất** — tức 500 vị trí **nhập
+vào sớm nhất**. Không phải 500 cái gần nhất, không phải 500 cái tiêu biểu,
+không phải một mẫu ngẫu nhiên. Kho mới nhập **không tồn tại** trên bản đồ cho
+tới khi người dùng thu nhỏ khung nhìn xuống.
+
+`meta.truncated` có nói là đã cắt. Nó **không** nói rằng phần bị cắt có hệ
+thống. Một người mua rà cả nước sẽ kết luận sai về độ phủ của sàn, và không
+có gì trên màn hình nói cho họ biết.
+
+> Đây là loại lỗi tệ nhất trong cả danh sách: nó không chậm, không đỏ, không
+> có dòng log nào. Nó chỉ trả lời sai.
+
+**Lát A — gom cụm ở máy chủ.** Dưới một mức thu phóng ngưỡng, endpoint trả
+**ô lưới** chứ không trả pin: gom theo toạ độ đã làm tròn tới `n` chữ số thập
+phân với `n` theo mức thu phóng, mỗi ô một tâm và một số đếm. Không còn gì bị
+cắt, vì không còn trả về từng pin — và `countMapPins` biến mất, số đếm là tổng
+các ô.
+
+Trên ngưỡng đó thì trả pin như hôm nay. Trần 500 ở lại, nhưng ở mức thu phóng
+gần thì 500 là một con số người ta không chạm tới.
+
+Hệ quả phải xử: `gomTheoSite` (`webapp/lib/dung-ban-do.ts`) đang gom pin thành
+cụm site ở phía trình duyệt. Khi máy chủ trả ô lưới thì client không gom nữa
+mà vẽ thẳng — **hai chế độ**, và hình dạng phản hồi phải nói rõ nó đang ở chế
+độ nào, không để client đoán theo số lượng.
+
+## Giả thuyết 2 — phép sắp theo khoảng cách không có chỉ mục nào dùng được
+
+`sort=distance` (#160) tính khoảng cách cho **mọi hàng khớp bộ lọc** rồi sắp.
+Ở 104 hàng thì không đo được gì; ở 10.000 thì mỗi lượt là 10.000 phép lượng
+giác cộng một `filesort`.
+
+`sites` **đã có** chỉ mục `(lat, lon)`. Nó không giúp gì cho việc sắp theo
+Haversine — không chỉ mục B-tree nào giúp được — nhưng nó phục vụ tốt một
+**lọc thô bằng khung chữ nhật** đặt trước.
+
+**Lát B — khung chữ nhật trước, khoảng cách sau.** Thêm `near_km` (mặc định ví
+dụ 50): lọc `lat BETWEEN` và `lon BETWEEN` trước — dùng chỉ mục, cắt 10.000
+xuống vài trăm — rồi mới tính khoảng cách trên phần còn lại. `khungQuanh` ở
+`webapp/lib/vi-tri.ts` đã có đúng phép tính đó, kể cả cái sàn cho `cos(lat)`;
+phía máy chủ cần bản sinh đôi của nó.
+
+**Đổi ngữ nghĩa, nên cần chốt:** hôm nay `sort=distance` trả *toàn bộ* tập
+khớp bộ lọc, gần nhất trước, nên nó **không bao giờ rỗng** — trang đầu luôn là
+24 cái gần nhất, dù cái cuối cách 1.148km (số đo thật ngày 22/10). Có bán kính
+thì nó rỗng được, và giao diện phải nói ra (lưới an toàn số 2 của lát định vị
+đã có sẵn cách nói).
+
+## Giả thuyết 3 — `whereHas` không cho optimizer bắt đầu từ `sites`
+
+`mapPinQuery` lọc khung nhìn bằng `whereHas('site', …)`, sinh ra một
+`EXISTS` tương quan đọc `sites` theo `screens.site_id` rồi mới kiểm hai khoảng
+`lat` / `lon`. MySQL chạy từ `screens` và dò `sites` theo khoá chính cho
+**từng** hàng — tức `(lat, lon)` chỉ được dùng để *kiểm tra*, không để *cắt*
+tập.
+
+Lọc theo địa lý mà quét bảng màn hình là ngược chiều: `sites` ít hàng hơn
+`screens` và có chỉ mục không gian sẵn.
+
+**Lát C — đổi `whereHas` thành `join`** cho riêng đường bản đồ, để optimizer
+có thể bắt đầu từ `sites`. Lát 0 phải chạy `EXPLAIN` trước và sau; **nếu kế
+hoạch truy vấn không đổi thì đừng đổi mã** — một lần viết lại không có số đo
+đi kèm chỉ là thay một hình dạng bằng một hình dạng khác.
+
+Cẩn thận một chỗ: #160 đã join `sites as sort_site` và làm cột `name` nhập
+nhằng, trả 500. Thêm join thứ hai vào cùng truy vấn là đúng chỗ bẫy đó lặp lại.
+
+## Giả thuyết 4 — ô tìm kiếm chữ
+
+`q` chạy ba phép khớp chuỗi con, mỗi phép có ký tự đại diện đứng đầu: tên màn
+hình, rồi địa chỉ và tỉnh của site trong một `EXISTS`. Ký tự đại diện đứng đầu
+làm mọi chỉ mục B-tree vô dụng, và hai phép trong `EXISTS` chạy lại cho từng
+hàng `screens`. Ở 10.000 có thể vẫn chấp nhận được; lát 0 trả lời.
+
+**Lát D — chỉ làm nếu lát 0 đo ra quá 300ms.** Cách sửa là `FULLTEXT` trên
+`screens.name` cộng `sites.address`, và nó **đổi cách khớp**: fulltext khớp
+theo từ, khớp chuỗi con thì không. Gõ `nguyen` sẽ không còn khớp `nguyenvan`.
+Đó là một quyết định về sản phẩm, không phải một lần tối ưu — và với tiếng
+Việt có dấu thì cần kiểm bộ phân tách từ của MySQL trước khi hứa.
+
+## Những con số của plan trên đã hết hạn
+
+Bảy lát ở trên lập luận bằng dữ liệu 104 bản ghi. Ở 10.000 thì **phải đo
+lại**, và vài quyết định có thể đảo chiều:
+
+| Chỗ | Con số đã dùng | Vì sao nó có thể đảo |
+|---|---|---|
+| Bảng tổng: ô **quận/huyện** đổi thành **tỉnh thành** | `location.district` 0/104 | Kho đối tác có thể có quận; nếu có thì ô cũ đúng hơn |
+| Ô **CPM gộp** để trống | `floor_cpm` 0/104 | như trên |
+| Dải chip **cuộn ngang dưới 1024px** | 5 nhóm, 6 chip | Nhiều tỉnh hơn làm nhóm "Tỉnh thành" dài hơn, không đổi số chip — chỗ này giữ |
+| **Mặc định Lưới** | — | Không liên quan tới số lượng — giữ |
+| Phân trang 24/trang | 104 bản ghi = 5 trang | 10.000 = **417 trang** |
+
+Dòng cuối đáng chú ý riêng. Ở 104 bản ghi, phân trang là một cách duyệt kho.
+Ở 10.000 nó không còn là cách duyệt nào cả — bộ lọc và bản đồ mới là, và
+`PhanTrangOnDinh::phanTrang()` dùng `LIMIT`/`OFFSET` thường, nên trang 400 bắt
+MySQL bỏ qua 9.600 hàng đã sắp. Không ai bò tới đó trừ công cụ tìm kiếm, và
+đúng chỗ đó là chỗ nó chậm nhất.
+
+## Việc chủ dự án cần chốt
+
+| Việc | Hai ngả |
+|---|---|
+| **`sort=distance` có bán kính không** | Giữ như hôm nay: không bao giờ rỗng, nhưng thẻ cuối trang đầu có thể cách 1.148km · hoặc thêm `near_km`: đúng chữ "quanh tôi" và dùng được chỉ mục, nhưng danh sách rỗng được ở vùng chưa có kho |
+| **Thứ tự làm** | Lát 0 trước, rồi quyết theo số đo · hoặc làm thẳng lát A vì nó sửa một chỗ **sai**, không phải một chỗ chậm |
+
+Khuyến nghị của tôi: **lát 0 trước, trừ lát A**. Lát A đáng làm kể cả khi số
+đo nói mọi thứ đủ nhanh — nó không sửa tốc độ, nó sửa việc bản đồ trả lời sai.
+
+## Rủi ro
+
+| Rủi ro | Chặn bằng |
+|---|---|
+| Tối ưu mù — sửa thứ không đau | Lát 0 đi trước mọi lát khác trừ A |
+| Dữ liệu giả không giống kho thật, số đo vô nghĩa | Toạ độ dồn cục quanh đô thị; tỉ lệ có giá và dạng `city` chép từ kho thật |
+| Gom cụm máy chủ đổi hình dạng phản hồi, vỡ client | Phản hồi nói rõ chế độ; chốt đọc HTML và chốt JS canh cả hai chế độ |
+| Thêm join làm cột nhập nhằng, trả 500 như #160 | Mọi cột trong truy vấn bản đồ viết đủ tiền tố bảng |
+| Bán kính làm danh sách rỗng ở vùng chưa có kho | Lưới an toàn số 2 của lát định vị đã có cách nói |
+| 10.000 bản ghi nhập vào mà `district` vẫn rỗng | Việc của plan nhập đối tác, không phải của plan này |
+| Lệnh `oohx:gia-lap-kho` chạy nhầm vào production | Lệnh tự chặn khi `DB_HOST` không phải máy cục bộ, không chỉ dựa vào người gõ cẩn thận |
