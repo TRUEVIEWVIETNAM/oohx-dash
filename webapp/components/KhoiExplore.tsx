@@ -121,7 +121,13 @@ export function KhoiExplore({
     sort: string;
     /** Tham số URL hiện tại — cho ô sắp xếp, cho bản đồ và cho hai liên kết. */
     query: Record<string, string | undefined>;
-    /** Cột lọc, chỉ dựng ở kiểu lưới. Lát 3 đưa nó vào đầu panel. */
+    /**
+     * Dải chip lọc — **cả hai** kiểu xem dựng nó (lát 3, 22/10/2026).
+     *
+     * Kiểu lưới đặt nó trên lưới, kiểu bản đồ đặt nó vào đầu panel. Cùng một
+     * `BoLocKho`, vì hai trang này vừa gộp lại chính vì chúng đã có hai bộ
+     * lọc trôi khỏi nhau.
+     */
     boLoc: ReactNode;
     /** Ô tìm kiếm lớn — ở kiểu bản đồ nó nằm trong đầu panel. */
     oTim: ReactNode;
@@ -166,7 +172,14 @@ export function KhoiExplore({
     if (kieuXem === 'grid') {
         return (
             <div className="w">
-                <div className="listing-layout">
+                {/*
+                  Một cột, không hai (lát 3, 22/10/2026).
+                  `.listing-layout` vẫn giữ khoảng cách trên dưới dùng chung
+                  với `/products`, nhưng `.ex-mot-cot` tắt cột lọc 260px: bộ
+                  lọc nay là dải chip nằm ngang phía trên, nên lưới nhận cả
+                  1176px và lên 4 thẻ 280px.
+                */}
+                <div className="listing-layout ex-mot-cot">
                     {boLoc}
 
                     <div
@@ -205,6 +218,7 @@ export function KhoiExplore({
             sort={sort}
             query={query}
             oTim={oTim}
+            boLoc={boLoc}
             pagination={pagination}
             moPanel={moPanel}
             setMoPanel={setMoPanel}
@@ -230,6 +244,7 @@ function KhungBanDo({
     sort,
     query,
     oTim,
+    boLoc,
     pagination,
     moPanel,
     setMoPanel,
@@ -244,6 +259,7 @@ function KhungBanDo({
     sort: string;
     query: Record<string, string | undefined>;
     oTim: ReactNode;
+    boLoc: ReactNode;
     pagination: ReactNode;
     moPanel: boolean;
     setMoPanel: (v: boolean) => void;
@@ -306,9 +322,25 @@ function KhungBanDo({
                         <div className="mp-drag-bar" />
                     </div>
 
+                    {/*
+                      Đầu panel: ô tìm, rồi dải chip lọc (lát 3, 22/10/2026).
+
+                      Trong 400px thì sáu chip không vừa một hàng, nên CSS cho
+                      hàng này cuộn ngang — đúng cách Google Maps bày dải chip
+                      của nó. Bảng rớt thì neo vào `.ex-panel-dau` chứ không
+                      vào từng chip, vì một tấm nổi neo *bên trong* vùng cuộn
+                      ngang sẽ bị chính vùng đó cắt mất.
+
+                      Hai liên kết đổi kiểu xem rời hàng này xuống thanh kết
+                      quả — đo ở 400px: đứng cạnh chip chúng lấy 123px và dải
+                      chip chỉ còn 241, tức **2 chip** nhìn thấy trên năm. Ở
+                      thanh kết quả chúng đứng cùng chỗ với kiểu lưới, nên
+                      người dùng tìm chúng ở một chỗ duy nhất.
+                    */}
                     <div className="ex-panel-dau">
                         {oTim}
-                        <DoiKieuXem query={query} kieuXem="map" />
+
+                        <div className="ex-panel-loc">{boLoc}</div>
                     </div>
 
                     <div
@@ -317,7 +349,14 @@ function KhungBanDo({
                         onMouseOver={reVao}
                         onMouseLeave={() => setSlugSang(null)}
                     >
-                        <KhoiKetQua tong={tong} sort={sort} basePath="/explore" query={query} kieuXem={false}>
+                        <KhoiKetQua
+                            tong={tong}
+                            sort={sort}
+                            basePath="/explore"
+                            query={query}
+                            kieuXem={false}
+                            nutThem={<DoiKieuXem query={query} kieuXem="map" />}
+                        >
                             {children}
                         </KhoiKetQua>
 

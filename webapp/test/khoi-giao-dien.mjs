@@ -308,14 +308,31 @@ const TRANG = [
             // Lát 2 (22/10/2026): `ex-layout` gỡ đi. Bản đồ không còn là
             // cột thứ ba của kiểu lưới — nó là kiểu xem thứ hai của trang, và
             // lưới lấy lại 340px đó cho thẻ.
-            'class="listing-layout"',
-            'class="sidebar"',
-            'class="sb-card"',
-            'class="filter-float"', // nút mở drawer dưới 1024px
-            'class="drawer-drag"',
+            //
+            // Lát 3 (22/10/2026): cột lọc 260px cũng gỡ đi — `.ex-mot-cot`
+            // tắt cột thứ hai của `.listing-layout`, và bộ lọc thành dải chip
+            // nằm ngang. Lưới nhận cả 1176px.
+            'class="listing-layout ex-mot-cot"',
+
+            // ── Dải chip lọc (lát 3, 22/10/2026) ──────────────────────────
+            'class="ex-loc"',
+            'class="ex-loc-chips"',
+            'class="ex-loc-nhom"',
+            'class="fchip"', // chip chưa lọc gì
+            'class="ex-chip-mui"', // mũi xuống của chip
+
+            // Bảng rớt nằm SẴN trong HTML, dù `<details>` đang đóng.
+            //
+            // Đó là lời hứa "lọc được khi JavaScript chưa tải xong": chip là
+            // `<summary>` nên trình duyệt tự mở được nó, và form là `<form
+            // method="GET">` thật nên lượt gửi mang theo mọi hộp đang tick.
+            // Dựng bảng rớt có điều kiện (`{mo && …}`) sẽ phá cả hai mà không
+            // có gì đỏ lên — mọi phép kiểm khác đều chạy với JS bật.
+            'class="ex-loc-rot"',
+            'btn btn-p ex-loc-ap', // nút "Áp dụng" — lượt gửi thật của form
 
             // Nhóm đầu tiên là trạng thái giá, và con số đi kèm. Đây là lý do
-            // cả cột lọc tồn tại: 103/104 vị trí chưa báo giá, nên thanh lọc
+            // cả bộ lọc tồn tại: 103/104 vị trí chưa báo giá, nên thanh lọc
             // giá (`price_range {0, 0}`) không lọc được gì.
             '>Trạng thái giá<',
             '>Đã có giá<',
@@ -380,6 +397,23 @@ const TRANG = [
             'class="ex-map-khung"',
             'leaflet',
 
+            // ── Cột lọc dọc đã gỡ (lát 3, 22/10/2026) ─────────────────────
+            //
+            // Ba tên này là cột lọc 260 × 1358px và ngăn kéo của nó. Chúng
+            // còn sống ở `/products` — và chính vì thế phải canh ở đây: một
+            // lần sửa `/products` mà sơ ý đưa `.sidebar` về `/explore` sẽ
+            // dựng lại hai bộ lọc cho cùng một kho, đúng cái lỗi mà việc gộp
+            // hai trang vừa sửa.
+            'class="sidebar"',
+            'class="filter-float"',
+            'class="drawer-drag"',
+
+            // Kiểu lưới KHÔNG mang input ẩn `view`: nó là kiểu xem mặc định,
+            // nên lượt gửi không-JS không cần nói gì. Thấy nó ở đây nghĩa là
+            // nhánh điều kiện trong `BoLocKho` đã hỏng, và tới lúc đó cái
+            // input kia sẽ ghim mọi người vào kiểu bản đồ.
+            'name="view"',
+
             // Thanh đáy chỉ hiện khi đã chọn ít nhất một vị trí, mà danh
             // sách sống trong localStorage — phía máy chủ không biết gì về
             // nó. Thấy nó trong HTML đầu tiên nghĩa là có ai đó đang đoán
@@ -434,14 +468,33 @@ const TRANG = [
 
             // Ô tìm kiếm chuyển vào đầu panel.
             'class="ms-wrap"',
+
+            // ── Bộ lọc vào đầu panel (lát 3, 22/10/2026) ──────────────────
+            //
+            // Cùng `BoLocKho` với kiểu lưới, không phải bản thứ hai: `/map`
+            // và `/explore` gộp lại chính vì chúng đã có hai bộ lọc trôi
+            // khỏi nhau. Ca này đỏ lên nếu kiểu xem bản đồ lại mọc bộ lọc
+            // riêng, hoặc mất hẳn bộ lọc.
+            'class="ex-panel-loc"',
+            'class="ex-loc"',
+            'class="ex-loc-rot"',
+            '>Trạng thái giá<',
+
+            // Input ẩn giữ kiểu xem qua lượt gửi KHÔNG-JS.
+            //
+            // Thiếu nó thì mỗi lần áp dụng bộ lọc trong kiểu xem bản đồ lại
+            // ném người dùng về kiểu lưới — mất cả khung nhìn họ vừa kéo tới.
+            // Đường có JS đi qua `duongDanLoc` và được canh riêng ở
+            // `tests/js/loc-url.test.mjs`.
+            'name="view"',
         ],
         khong: [
             // Hero chiếm 120px chiều cao — đúng thứ đẩy bản đồ xuống dưới nếp
             // gấp, và là lý do bản Blade của `/map` bỏ nó.
             'class="ex-hero"',
 
-            // Cột lọc dọc là bố cục của kiểu lưới. Lát 3 đưa bộ lọc vào đầu
-            // panel; tới lúc đó kiểu bản đồ chưa có nó.
+            // Bố cục lưới + dải chip trên nó thuộc kiểu xem kia. Ở đây bộ lọc
+            // nằm trong đầu panel, nên lớp bọc này không được có mặt.
             'class="listing-layout"',
 
             // Bản đồ vẫn dựng ở trình duyệt, không ở máy chủ.

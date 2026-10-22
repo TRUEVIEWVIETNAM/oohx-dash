@@ -1357,6 +1357,18 @@ ul{list-style:none}
 .listing-layout{display:block;padding:20px 0 48px}
 @media(min-width:1024px){.listing-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;align-items:start;padding:28px 0 64px}}
 
+/* `/explore` lát 3 (22/10/2026): một cột, không hai.
+ *
+ * Bộ lọc rời cột dọc 260px để thành dải chip nằm ngang, nên bố cục hai cột
+ * không còn cột thứ hai nào để chia. Giữ lại `.listing-layout` chỉ vì khoảng
+ * cách trên dưới — dùng chung một bảng khoảng cách với `/products` thay vì
+ * dựng lớp thứ hai cho cùng hai con số.
+ *
+ * `gap:0` chứ không để 28px: hai hàng của lưới một cột là dải chip và lưới
+ * thẻ, và khoảng cách giữa chúng do `.ex-loc` lo (14px), không phải khe của
+ * bố cục hai cột. */
+@media(min-width:1024px){.listing-layout.ex-mot-cot{grid-template-columns:minmax(0,1fr);gap:0}}
+
 /* ── /explore: cột bản đồ cạnh danh sách (lát 3, 19/10/2026) ──────────────
  *
  * Ba cột chỉ từ **1280px**, không phải 1180px như plan viết. Phép tính, đo
@@ -1452,20 +1464,122 @@ ul{list-style:none}
 .ex-doi-xem a.on{background:#fff;color:var(--t1);box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .ex-doi-xem a:hover{color:var(--t1)}
 
+/* ── Bộ lọc dạng chip (lát 3, 22/10/2026) ─────────────────────────────────
+ *
+ * Thay cột lọc dọc 260 × 1358px bằng một dải chip cao 38px. Phép đo và lý do
+ * nằm ở docblock của `BoLocKho.tsx`; ở đây còn bốn quyết định hình dạng.
+ *
+ * ══ Dùng lại `.fchip` của trang chủ, không đặt bộ class mới ══
+ *
+ * `.fchip` đã là chip pill của sàn: bo 980px, viền `--ln2`, `.on` nền xanh,
+ * `.fchip-count` cho con số. Đặt một bộ `.ex-chip-*` song song là hai loại
+ * chip trông khác nhau trên cùng một trang web, và hai chỗ phải sửa mỗi lần
+ * đổi bán kính bo góc. Ở đây chỉ thêm phần `<summary>` cần.
+ *
+ * ══ Vùng chạm 44px trên một chip cao 38px ══
+ *
+ * Nới bằng `::before` trong suốt chứ không bằng `min-height`: 44px nhìn thấy
+ * làm dải chip cao hơn cả ô tìm kiếm phía trên nó. Pseudo ở `z-index:-1` nên
+ * nó nằm dưới nền chip mà phần tràn ra ngoài vẫn nhận được cú chạm — và nút
+ * gỡ bên trong chip vẫn bấm được vì nó nằm trên.
+ *
+ * Hai hàng chip cách nhau 46px (38 + khe 8), nên hai vùng 44px còn chừa 2px:
+ * không cú chạm nào rơi vào hai chip cùng lúc.
+ *
+ * ══ Bảng rớt nổi lên, trừ khi mở cả năm ══
+ *
+ * Một nhóm mở thì bảng rớt là tấm nổi neo dưới chip. Chip `Bộ lọc n` mở cả
+ * năm, và năm tấm nổi ở năm chỗ thì đè nhau — nên `.tat-ca` đưa chúng về
+ * mạch nội dung, xếp nhóm thành cột và trải ô tick thành pill ngang. Hình
+ * pill đó là `.sb-item-pill` của `/products`, chép số vào đây vì cùng một
+ * `.sb-item` không mang được hai lớp trong hai ngữ cảnh.
+ *
+ * ══ Hẹp thì một hàng cuộn ngang; từ 1024px thì xuống hàng ══
+ *
+ * Đo ở 386px: năm chip cộng `Bộ lọc` xuống **ba hàng**, cao 134px — chừng ấy
+ * khung nhìn dành cho bộ lọc trên một màn hình điện thoại là lấy mất thẻ đầu
+ * tiên. Một hàng cuộn ngang tốn 40px và là cách Google Maps, và gần như mọi
+ * sàn, bày bộ lọc trên điện thoại.
+ *
+ * Từ 1024px thì ngược lại: 1176px đủ cho cả sáu chip trên một hàng, nên để
+ * chúng xuống hàng (khi kho thật có thêm `Media owner`) vẫn rẻ hơn bắt người
+ * dùng cuộn ngang bằng chuột.
+ *
+ * Hệ quả phải xử: `overflow-x` cắt cả chiều dọc, nên bảng rớt neo vào
+ * `.ex-loc` — lớp bọc NGOÀI vùng cuộn — chứ không vào từng chip. Một tấm nổi
+ * chỉ thoát khỏi vùng cắt khi khối chứa nó nằm ngoài vùng đó. Panel bản đồ
+ * giữ kiểu này ở mọi bề ngang, vì 400px không bao giờ đủ cho sáu chip.
+ */
+.ex-loc{position:relative;margin:0 0 14px}
+.ex-loc-chips{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.ex-loc-chips::-webkit-scrollbar{display:none}
+.ex-loc-nhom{position:static;flex-shrink:0}
+.ex-loc-nhom>summary{min-height:38px;list-style:none;position:relative}
+.ex-loc-nhom>summary::-webkit-details-marker{display:none}
+.ex-loc-nhom>summary::before{content:"";position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:44px;z-index:-1}
+.ex-loc-nhom[open]>summary{border-color:var(--bl);color:var(--bl)}
+.ex-loc-nhom[open]>summary.on{color:#fff}
+.ex-chip-mui{width:14px;height:14px;fill:currentColor;flex-shrink:0;opacity:.8}
+.ex-chip-xoa{width:28px;height:28px;margin-right:-8px;padding:0;border:0;border-radius:50%;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:inherit;flex-shrink:0}
+.ex-chip-xoa svg{width:13px;height:13px;fill:currentColor}
+.ex-chip-xoa:hover{background:rgba(0,0,0,.09)}
+.fchip.on .ex-chip-xoa:hover{background:rgba(255,255,255,.22)}
+.ex-loc-het{min-height:38px;font-family:var(--font)}
+.ex-loc-xoa{min-height:38px;padding:0 6px;border:0;background:transparent;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--t3);text-decoration:underline;cursor:pointer;flex-shrink:0}
+.ex-loc-xoa:hover{color:var(--t1)}
+.ex-loc-rot{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:60;max-height:min(360px,60vh);overflow-y:auto;background:#fff;border:1px solid var(--ln2);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.14);padding:12px}
+.ex-loc-rot .sb-title{font-size:11.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--t4);margin-bottom:8px}
+.ex-loc-ap{width:100%;justify-content:center;border-radius:9px;margin-top:10px}
+@media(min-width:1024px){
+  .ex-loc-chips{flex-wrap:wrap;overflow-x:visible}
+  .ex-loc-nhom{position:relative}
+  .ex-loc-rot{right:auto;width:max-content;min-width:244px;max-width:min(320px,calc(100vw - 32px))}
+}
+.ex-loc.tat-ca .ex-loc-chips{flex-wrap:wrap;overflow-x:visible;align-items:flex-start}
+.ex-loc.tat-ca .ex-loc-nhom{width:100%}
+.ex-loc.tat-ca .ex-loc-het{order:-1}
+.ex-loc.tat-ca .ex-loc-rot{position:static;width:auto;min-width:0;max-width:none;max-height:none;overflow:visible;box-shadow:none;margin-top:8px}
+.ex-loc.tat-ca .sb-group{flex-direction:row;flex-wrap:wrap;gap:6px}
+.ex-loc.tat-ca .sb-item{padding:6px 14px;border-radius:980px;border:1.5px solid var(--ln2);gap:0}
+.ex-loc.tat-ca .sb-item.on{background:var(--bl);color:#fff;border-color:var(--bl)}
+.ex-loc.tat-ca .sb-item.on .sb-count{color:rgba(255,255,255,.78)}
+.ex-loc.tat-ca .sb-checkbox{display:none}
+.ex-loc.tat-ca .sb-count{margin-left:6px}
+.ex-loc.tat-ca .ex-loc-nhom .ex-loc-ap{display:none}
+.ex-loc-ap-het{order:99;margin-top:4px}
+
+.ex-panel-loc{margin-top:10px}
+.ex-panel-loc .ex-loc{margin:0}
+.ex-panel .ex-doi-xem{flex-shrink:0}
+.ex-panel .ex-loc-chips{flex-wrap:nowrap;overflow-x:auto}
+.ex-panel .ex-loc-nhom{position:static}
+.ex-panel .ex-loc-rot{right:0;width:auto;min-width:0;max-width:none;max-height:min(300px,40dvh)}
+.ex-panel .ex-loc.tat-ca .ex-loc-chips{flex-wrap:wrap;overflow-x:hidden;overflow-y:auto;max-height:46dvh}
+
+/* Trong panel, ô tìm bỏ hai viên "Tỉnh/Thành" và "Loại hình".
+ *
+ * Lý do nghiệp vụ: dải chip ngay dưới đã hỏi đúng hai câu đó, và hỏi kỹ hơn
+ * (nhiều lựa chọn, có số đếm). Hai đường tới cùng một bộ lọc trên cùng một
+ * panel là hai chỗ để chúng nói hai con số khác nhau.
+ *
+ * Lý do đo được: `.ms-box` là `overflow:hidden`, và hai viên đó là
+ * `flex-shrink:0`. Ở 372px — bề ngang ô tìm trong panel 400px — nút "Tìm
+ * kiếm" bị cắt mất một nửa chữ. Đó là tình trạng từ lát 2 (22/10/2026); lát 3
+ * sửa nó vì nó nằm ngay trên dải chip mới. */
+.ex-panel .ms-pill,.ex-panel .ms-divider{display:none}
+
 .ex-cot-kq{min-width:0}
 .ex-map-loi{position:absolute;left:12px;right:12px;top:12px;z-index:260;background:#fff;border-radius:10px;padding:10px 12px;font-size:12.5px;font-weight:600;color:var(--red);box-shadow:var(--sh2)}
 
-/* Lưới ba cột, không bốn.
+/* Lưới ba cột `@media(min-width:1200px){.ex-cot-kq .inv-grid{repeat(3,1fr)}}`
+ * gỡ 22/10/2026 cùng cột lọc dọc.
  *
- * `.inv-grid` lên bốn cột từ 1200px, hợp với một trang không có cột lọc.
- * Ở đây cột lọc đã lấy 260px, nên bốn thẻ chia nhau 888px còn **209px** một
- * thẻ — hẹp hơn cả thẻ ở 520px, mốc hẹp nhất lưới hai cột từng chạy. Ba thẻ
- * trong 888px là 286px, rộng hơn 255px mà bố cục ba cột cũ cho được.
- *
- * Khoanh vào `.ex-cot-kq` chứ không `.listing-layout`: `/products` dùng
- * chung lớp bọc kia, và thẻ gói không phải thẻ màn hình.
- */
-@media(min-width:1200px){.ex-cot-kq .inv-grid{grid-template-columns:repeat(3,1fr)}}
+ * Nó tồn tại đúng một ngày và vì một phép tính đã hết đúng: khi cột lọc còn
+ * lấy 260px thì bốn thẻ chia nhau 888px, mỗi thẻ **209px** — hẹp hơn cả thẻ ở
+ * 520px, mốc hẹp nhất lưới hai cột từng chạy. Lát 3 gỡ cột lọc, lưới nhận cả
+ * 1176px, nên bốn cột mặc định của `.inv-grid` cho **280px** một thẻ. Giữ
+ * override lại là tự nguyện ở ba thẻ 380px — rộng hơn mọi thẻ khác trên sàn
+ * và lệch khỏi `/products`. */
 
 /* Khối ba cột `.ex-layout` gỡ 22/10/2026 cùng `.ex-cot-map`, `.ex-an-luoi`,
    `.ex-map-khung` và `.view-btn.ex-nut-map`. Bản đồ không còn là cột thứ ba

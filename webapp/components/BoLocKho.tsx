@@ -1,66 +1,78 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Filters } from '@/lib/api';
-import { dungKeoSheet } from '@/lib/dung-keo-sheet';
+import {
+    KHOA_LOC,
+    type ChonLoc,
+    type KhoaLoc,
+    type ThamSoLoc,
+    demChon,
+    docChon,
+    duongDanLoc,
+} from '@/lib/loc-url';
 
 /**
- * Cột lọc của `/explore`, kèm drawer cho mobile.
+ * Bộ lọc kho — một dải **chip**, dùng ở cả hai kiểu xem của `/explore`.
  *
- * ══ Vì sao tệp này tồn tại: trang đọc bộ lọc nhưng không vẽ cái nào ══
+ * ══ Vì sao cột lọc dọc bị gỡ (lát 3, 22/10/2026) ══
  *
- * `/explore` đọc `city`, `venue_type`, `screen_type`, `sort` từ URL và gửi
- * thẳng sang `/api/v2/screens`. Nhưng ngoài ô tìm kiếm lớn, **không có bộ lọc
- * nào hiện ra**: muốn lọc theo owner hay loại hình thì phải tự sửa URL. Cột
- * lọc của `/products` đã có từ lát 3 ngày 14/10/2026; trang kho — trang danh
- * mục chính của sàn — thì chưa.
+ * Đo trên `oohx.net/explore` ở 1440×900 ngày 21/10/2026: bọc nội dung rộng
+ * 1176px, trong đó cột lọc lấy **260px (22%)** và **cao 1358px** — cao hơn cả
+ * khung nhìn. Nó phục vụ 23 ô tick mà người mua chạm vài lần rồi thôi, và nó
+ * lấy chỗ của đúng thứ họ tới để xem: thẻ màn hình, lúc đó còn 2 thẻ 255px.
  *
- * ══ Nhóm đầu tiên là **trạng thái giá**, và đó là lý do cả cột này tồn tại ══
+ * Gỡ cột đi, lưới lấy lại cả 1176px: **4 thẻ 280px** ở 1200px+ thay vì 2 thẻ
+ * 255px. Cùng một bộ lọc, cùng một hợp đồng URL, nhưng xếp ngang thành chip
+ * nên nó cao 38px chứ không 1358px.
  *
- * Đo trên production ngày 18/10/2026: **1 trong 50** bản ghi có giá, và
- * `/api/v2/filters` trả `price_range {min: 0, max: 0}` — thanh lọc giá không
- * lọc được gì. Nên nhóm này hỏi một câu trả lời được (*đã có giá chưa?*) thay
- * cho một câu không trả lời được (*giá nằm trong khoảng nào?*).
+ * ══ Một bộ lọc, hai kiểu xem, một tệp ══
  *
- * Con số đi kèm làm người ta khó chịu, và nó nên thế: *chưa báo giá 103* là
- * sự thật của kho, không phải một lỗi hiển thị.
+ * Kiểu lưới đặt dải chip trên lưới; kiểu bản đồ đặt đúng dải đó vào đầu panel
+ * danh sách. Hai chỗ, một component — vì `/explore` và `/map` vừa gộp lại
+ * chính vì chúng đã có **hai** bộ lọc trôi khỏi nhau (`BoLocKho` 405 dòng và
+ * `BoLocThongMinh` 330 dòng, cho cùng một kho 104 vị trí). Dựng bộ thứ ba cho
+ * kiểu xem bản đồ là lặp lại đúng cái lỗi vừa sửa.
  *
- * ══ Dùng lại bộ class của `/products`, không đặt tên mới ══
+ * ══ `<details>` chứ không phải nút + state ══
  *
- * `.sidebar`, `.sb-card`, `.sb-item`, `.sb-checkbox`, `.sb-count`,
- * `.filter-float`, `.drawer-drag` đã có đủ trong `frontpage.css` và đã chạy ở
- * `/products`. Đặt một bộ `.lk-*` song song là hai cột lọc trông khác nhau
- * trên cùng một trang web, và là hai chỗ phải sửa mỗi lần đổi khoảng cách.
+ * Mỗi chip là một `<summary>`, bảng rớt là phần nội dung của `<details>`. Ba
+ * thứ có sẵn mà không phải viết: mở bằng bàn phím, `aria-expanded` đúng, và
+ * — quan trọng nhất — **mở được khi JavaScript chưa tải xong**. Cột lọc cũ
+ * giữ được lời hứa "submit được không cần JS" nhờ dựng sẵn mọi ô tick trong
+ * HTML; một bảng rớt dựng có điều kiện (`{mo && …}`) sẽ phá lời hứa đó mà
+ * không có gì đỏ lên, vì mọi phép kiểm đều chạy với JS bật.
  *
- * Hệ quả: cột lọc hiện từ **1024px**, không phải 900px như bản kế hoạch viết.
- * `.sidebar` là `display:none` dưới 1024px và chỉ hiện dưới dạng drawer — đổi
- * mốc đó là đổi cả `/products`. Một mốc chung đáng giá hơn 124px.
+ * Trạng thái mở vẫn do React giữ (để đóng cái này khi mở cái kia), nên
+ * `onClick` của `<summary>` gọi `preventDefault()`: cú bấm không còn tự lật
+ * `open`, và thuộc tính đó chỉ đến từ state. Không có JS thì không có handler
+ * nào, và hành vi gốc của trình duyệt làm việc của nó.
  *
- * ══ Lọc đi qua URL ══
+ * ══ Mỗi ô tick xuất hiện ĐÚNG MỘT lần trong tài liệu ══
  *
- * Mỗi bộ lọc là một URL chia sẻ được, quay lại được, index được — đúng cách
- * trang này đang làm. State ở đây chỉ là **bản nháp** cho tới khi bấm "Áp
- * dụng"; nguồn sự thật vẫn là `params` từ máy chủ.
+ * Form vẫn là một `<form method="GET">` thật, nên lượt gửi không-JS mang theo
+ * mọi hộp đang tick. Vì thế chip `Bộ lọc n` **không** dựng một bản sao của
+ * năm nhóm trong một ngăn kéo riêng: nó chỉ mở cả năm `<details>` tại chỗ và
+ * CSS xếp chúng thành cột (`.ex-loc.tat-ca`). Hai bộ input cùng `name` trong
+ * một form là hai giá trị cho cùng một khoá — và khoá đó sẽ chỉ còn giá trị
+ * cuối.
+ *
+ * ══ Lọc vẫn đi qua URL ══
+ *
+ * Mỗi bộ lọc là một URL chia sẻ được, quay lại được, index được. State ở đây
+ * chỉ là **bản nháp** cho tới khi bấm "Áp dụng"; nguồn sự thật vẫn là `params`
+ * từ máy chủ. Luật dựng URL sống ở `@/lib/loc-url` và được chốt bằng
+ * `tests/js/loc-url.test.mjs`.
  */
-
-type ThamSo = Record<string, string | undefined>;
-
-/** `"a,b"` → `Set{a,b}`. Nhận cả `|` vì `FrontpageListingRequest` cũng nhận. */
-function tachDanhSach(gia_tri?: string): Set<string> {
-    if (!gia_tri) return new Set();
-
-    return new Set(
-        gia_tri
-            .split(/[,|]/)
-            .map((s) => s.trim())
-            .filter(Boolean),
-    );
-}
 
 /** Số lượng tối đa mỗi nhóm dài, trước khi cắt. */
 const CAT_TINH = 12;
 const CAT_LOAI_DIEM = 10;
+
+type Muc = { gia_tri: string; nhan: string; so?: number | null };
+
+type Nhom = { khoa: KhoaLoc; nhan: string; muc: Muc[] };
 
 function doiTap(tap: Set<string>, gia_tri: string): Set<string> {
     const moi = new Set(tap);
@@ -130,276 +142,308 @@ function OTick({
     );
 }
 
+/**
+ * Năm nhóm, dựng từ `/api/v2/filters`.
+ *
+ * Nhóm rỗng thì không có chip — một chip mở ra bảng rớt trống là một lời mời
+ * bấm vào chỗ không có gì. Nhưng nhóm có **mục đếm 0** thì vẫn ra chip, vì
+ * mục đếm 0 là thông tin (xem `OTick`).
+ */
+function dungNhom(filters: Filters | null): Nhom[] {
+    const nhoms: Nhom[] = [
+        {
+            khoa: 'price_status',
+            nhan: 'Trạng thái giá',
+            muc: [
+                { gia_tri: 'quoted', nhan: 'Đã có giá', so: filters?.price_status?.quoted },
+                { gia_tri: 'unquoted', nhan: 'Chưa báo giá', so: filters?.price_status?.unquoted },
+            ],
+        },
+    ];
+
+    const loai: Muc[] = (filters?.screen_types ?? []).flatMap((t) =>
+        t.code ? [{ gia_tri: t.code, nhan: t.name ?? t.code, so: t.count }] : [],
+    );
+
+    if (loai.length) nhoms.push({ khoa: 'screen_type', nhan: 'Loại hình', muc: loai });
+
+    /*
+     * `code` chứ không `name`: `/api/v2/screens` nhận slug thành phố và tự mở
+     * ra tên tiếng Việt (`expandCitySlugs`). Gửi tên có dấu thì nó vẫn khớp
+     * nhờ nhánh dự phòng, nhưng URL sinh ra dài gấp ba và không giống URL mà
+     * ô tìm kiếm lớn tạo.
+     */
+    const tinh: Muc[] = (filters?.cities ?? [])
+        .slice(0, CAT_TINH)
+        .flatMap((c) => (c.code ? [{ gia_tri: c.code, nhan: c.name ?? c.code, so: c.count }] : []));
+
+    if (tinh.length) nhoms.push({ khoa: 'city', nhan: 'Tỉnh thành', muc: tinh });
+
+    const diem: Muc[] = (filters?.venue_types ?? [])
+        .slice(0, CAT_LOAI_DIEM)
+        .flatMap((v) => (v.code ? [{ gia_tri: v.code, nhan: v.name ?? v.code, so: v.count }] : []));
+
+    if (diem.length) nhoms.push({ khoa: 'venue_type', nhan: 'Loại điểm đặt', muc: diem });
+
+    const owner: Muc[] = (filters?.owners ?? []).flatMap((o) =>
+        o.slug ? [{ gia_tri: o.slug, nhan: o.name ?? o.slug, so: o.count }] : [],
+    );
+
+    if (owner.length) nhoms.push({ khoa: 'owner', nhan: 'Media owner', muc: owner });
+
+    return nhoms;
+}
+
+/**
+ * Chữ trên chip: tên nhóm khi chưa lọc, **giá trị** khi đã lọc.
+ *
+ * Đó là điểm khác duy nhất đáng kể giữa dải chip này và cột lọc cũ: nhìn một
+ * dòng là đọc được cả bộ lọc đang chạy, thay vì phải cuộn một cột 1358px để
+ * tìm xem ô nào đang tick.
+ *
+ * Giá trị đang chọn có thể **không** nằm trong `muc` — `cities` bị cắt ở 12
+ * và URL thì không. Khi đó in thẳng mã, vì mã vẫn đúng hơn là in tên nhóm và
+ * giả vờ chưa lọc gì.
+ */
+function nhanChip(nhom: Nhom, tap: Set<string>): string {
+    if (!tap.size) return nhom.nhan;
+
+    const dau = nhom.muc.find((m) => tap.has(m.gia_tri))?.nhan ?? [...tap][0];
+
+    return tap.size === 1 ? dau : `${dau} +${tap.size - 1}`;
+}
+
 export function BoLocKho({
     filters,
     params = {},
 }: {
     filters: Filters | null;
-    params?: ThamSo;
+    params?: ThamSoLoc;
 }) {
     const router = useRouter();
+    const refForm = useRef<HTMLFormElement>(null);
 
-    const [mo, setMo] = useState(false);
-    const [giaTrangThai, setGiaTrangThai] = useState<Set<string>>(() =>
-        tachDanhSach(params.price_status),
-    );
-    const [loaiManHinh, setLoaiManHinh] = useState<Set<string>>(() =>
-        tachDanhSach(params.screen_type),
-    );
-    const [tinhThanh, setTinhThanh] = useState<Set<string>>(() => tachDanhSach(params.city));
-    const [loaiDiem, setLoaiDiem] = useState<Set<string>>(() => tachDanhSach(params.venue_type));
-    const [chuSoHuu, setChuSoHuu] = useState<Set<string>>(() => tachDanhSach(params.owner));
+    /** Nhóm nào đang mở bảng rớt; `null` là đóng hết. */
+    const [moNhom, setMoNhom] = useState<KhoaLoc | null>(null);
 
-    const soBoLoc =
-        giaTrangThai.size + loaiManHinh.size + tinhThanh.size + loaiDiem.size + chuSoHuu.size;
+    /** Chip `Bộ lọc n`: mở cả năm nhóm tại chỗ, xếp thành cột. */
+    const [moHet, setMoHet] = useState(false);
 
-    // Khoá cuộn trang khi drawer mở, và trả lại khi đóng hoặc khi component
-    // rời khỏi cây. Thiếu phần dọn thì rời trang trong lúc drawer mở để lại
-    // `overflow:hidden` trên `<body>` và trang sau không cuộn được nữa.
+    const [chon, setChon] = useState<ChonLoc>(() => docChon(params));
+
+    /**
+     * URL đổi thì bản nháp đổi theo.
+     *
+     * Thiếu phần này thì nút Back để lại một dải chip nói sai: địa chỉ về bộ
+     * lọc cũ còn chip vẫn đọc theo lần tick cuối. Ở cột lọc dọc lỗi đó nằm
+     * trong một cột đóng nên không ai thấy; ở đây nó nằm ngay trên lưới.
+     *
+     * Khoá của effect là năm giá trị đã nối chuỗi, không phải cả `params` —
+     * `page` đổi thì bản nháp không có gì phải đổi.
+     */
+    const khoaUrl = KHOA_LOC.map((k) => params[k] ?? '').join('|');
+
     useEffect(() => {
-        if (!mo) return;
+        setChon(docChon(params));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [khoaUrl]);
 
-        const truoc = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
+    /**
+     * Bấm ra ngoài hoặc gõ Esc thì đóng bảng rớt.
+     *
+     * Chỉ đóng `moNhom`, **không** đóng `moHet`: bảng rớt là một tấm nổi đè
+     * lên nội dung, còn `Bộ lọc n` chỉ nở dải chip ra tại chỗ và đẩy lưới
+     * xuống. Thứ nổi lên thì đóng khi bấm ra ngoài; thứ nằm trong mạch nội
+     * dung thì không — đóng nó là lấy mất chỗ người dùng vừa mở ra đọc.
+     */
+    useEffect(() => {
+        if (!moNhom) return;
+
+        const ngoai = (e: Event) => {
+            if (!refForm.current?.contains(e.target as Node)) setMoNhom(null);
+        };
+
+        const phim = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setMoNhom(null);
+        };
+
+        document.addEventListener('pointerdown', ngoai);
+        document.addEventListener('keydown', phim);
 
         return () => {
-            document.body.style.overflow = truoc;
+            document.removeEventListener('pointerdown', ngoai);
+            document.removeEventListener('keydown', phim);
         };
-    }, [mo]);
+    }, [moNhom]);
+
+    const nhoms = dungNhom(filters);
+    const soBoLoc = demChon(chon);
+
+    const bamChip = useCallback((khoa: KhoaLoc) => {
+        setMoHet(false);
+        setMoNhom((cur) => (cur === khoa ? null : khoa));
+    }, []);
+
+    function doiNhom(khoa: KhoaLoc, tap: Set<string>) {
+        setChon((cur) => ({ ...cur, [khoa]: tap }));
+    }
+
+    function di(moi: ChonLoc) {
+        setChon(moi);
+        setMoNhom(null);
+        router.push(duongDanLoc(params, moi));
+    }
 
     function apDung() {
-        const url = new URLSearchParams();
-
-        // `q` thuộc ô tìm kiếm lớn phía trên, không thuộc cột này — giữ
-        // nguyên thay vì xoá, nếu không thì đổi một bộ lọc là lặng lẽ bỏ từ
-        // khoá người dùng đã gõ.
-        if (params.q) url.set('q', params.q);
-
-        if (giaTrangThai.size) url.set('price_status', [...giaTrangThai].join(','));
-        if (loaiManHinh.size) url.set('screen_type', [...loaiManHinh].join(','));
-        if (tinhThanh.size) url.set('city', [...tinhThanh].join(','));
-        if (loaiDiem.size) url.set('venue_type', [...loaiDiem].join(','));
-        if (chuSoHuu.size) url.set('owner', [...chuSoHuu].join(','));
-
-        // `sort` giữ lại: nó thuộc thanh kết quả, không thuộc cột lọc. `page`
-        // thì bỏ — trang 7 của bộ lọc cũ không còn nghĩa gì.
-        if (params.sort) url.set('sort', params.sort);
-
-        const qs = url.toString();
-        setMo(false);
-        router.push(qs ? `/explore?${qs}` : '/explore');
+        setMoNhom(null);
+        setMoHet(false);
+        router.push(duongDanLoc(params, chon));
     }
-
-    function xoaHet() {
-        setGiaTrangThai(new Set());
-        setLoaiManHinh(new Set());
-        setTinhThanh(new Set());
-        setLoaiDiem(new Set());
-        setChuSoHuu(new Set());
-        setMo(false);
-        router.push(params.q ? `/explore?q=${encodeURIComponent(params.q)}` : '/explore');
-    }
-
-    const coBoLoc = soBoLoc > 0;
-
-    const dongDrawer = useCallback(() => setMo(false), []);
-
-    // Tay cầm kéo được: cùng một hook với ngăn danh sách của `/map`, vì đó là
-    // cùng một cử chỉ trên cùng một hình dạng.
-    const { refNgan, rong, tay } = dungKeoSheet<HTMLFormElement>({
-        mo,
-        dong: dongDrawer,
-        nhan: 'bộ lọc',
-    });
 
     return (
-        <>
-            <form
-                ref={refNgan}
-                method="GET"
-                action="/explore"
-                className={mo ? (rong ? 'sidebar open sheet-rong' : 'sidebar open') : 'sidebar'}
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    apDung();
-                }}
-            >
-                {/*
-                  Tay cầm của drawer. CSS chỉ hiện nó khi `.sidebar.open`, và
-                  chỉ dưới 1024px — ở desktop cột lọc là một cột tĩnh.
-                */}
-                <div className="drawer-drag" {...tay}>
-                    <div className="drawer-drag-bar" />
-                </div>
+        <form
+            ref={refForm}
+            method="GET"
+            action="/explore"
+            className={moHet ? 'ex-loc tat-ca' : 'ex-loc'}
+            onSubmit={(e) => {
+                e.preventDefault();
+                apDung();
+            }}
+        >
+            <div className="ex-loc-chips">
+                {nhoms.map((nhom) => {
+                    const tap = chon[nhom.khoa];
 
-                <div className="sidebar-scroll">
-                    {/*
-                      Trạng thái giá đứng ĐẦU, trên cả tỉnh thành. Với 103/104
-                      vị trí chưa báo giá, đây là câu hỏi đầu tiên của bất kỳ
-                      người mua nào — và là câu duy nhất mà thanh lọc giá cũ
-                      không trả lời được.
-                    */}
-                    <div className="sb-card">
-                        <div className="sb-title">Trạng thái giá</div>
-                        <div className="sb-group">
-                            <OTick
-                                ten="price_status"
-                                gia_tri="quoted"
-                                nhan="Đã có giá"
-                                so={filters?.price_status?.quoted}
-                                tap={giaTrangThai}
-                                dat={setGiaTrangThai}
-                            />
-                            <OTick
-                                ten="price_status"
-                                gia_tri="unquoted"
-                                nhan="Chưa báo giá"
-                                so={filters?.price_status?.unquoted}
-                                tap={giaTrangThai}
-                                dat={setGiaTrangThai}
-                            />
-                        </div>
-                    </div>
-
-                    {filters?.screen_types?.length ? (
-                        <div className="sb-card">
-                            <div className="sb-title">Loại hình</div>
-                            <div className="sb-group">
-                                {filters.screen_types.map((t) =>
-                                    t.code ? (
-                                        <OTick
-                                            key={t.code}
-                                            ten="screen_type"
-                                            gia_tri={t.code}
-                                            nhan={t.name ?? t.code}
-                                            so={t.count}
-                                            tap={loaiManHinh}
-                                            dat={setLoaiManHinh}
-                                        />
-                                    ) : null,
-                                )}
-                            </div>
-                        </div>
-                    ) : null}
-
-                    {filters?.cities?.length ? (
-                        <div className="sb-card">
-                            <div className="sb-title">Tỉnh thành</div>
-                            <div className="sb-group">
-                                {/*
-                                  `code` chứ không `name`: `/api/v2/screens`
-                                  nhận slug thành phố và tự mở ra tên tiếng
-                                  Việt (`expandCitySlugs`). Gửi tên có dấu thì
-                                  nó vẫn khớp nhờ nhánh dự phòng, nhưng URL
-                                  sinh ra dài gấp ba và không giống URL mà ô
-                                  tìm kiếm lớn tạo.
-                                */}
-                                {filters.cities.slice(0, CAT_TINH).map((c) =>
-                                    c.code ? (
-                                        <OTick
-                                            key={c.code}
-                                            ten="city"
-                                            gia_tri={c.code}
-                                            nhan={c.name ?? c.code}
-                                            so={c.count}
-                                            tap={tinhThanh}
-                                            dat={setTinhThanh}
-                                        />
-                                    ) : null,
-                                )}
-                            </div>
-                        </div>
-                    ) : null}
-
-                    {filters?.venue_types?.length ? (
-                        <div className="sb-card">
-                            <div className="sb-title">Loại điểm đặt</div>
-                            <div className="sb-group">
-                                {filters.venue_types.slice(0, CAT_LOAI_DIEM).map((v) =>
-                                    v.code ? (
-                                        <OTick
-                                            key={v.code}
-                                            ten="venue_type"
-                                            gia_tri={v.code}
-                                            nhan={v.name ?? v.code}
-                                            so={v.count}
-                                            tap={loaiDiem}
-                                            dat={setLoaiDiem}
-                                        />
-                                    ) : null,
-                                )}
-                            </div>
-                        </div>
-                    ) : null}
-
-                    {filters?.owners?.length ? (
-                        <div className="sb-card">
-                            <div className="sb-title">Media owner</div>
-                            <div className="sb-group">
-                                {filters.owners.map((o) =>
-                                    o.slug ? (
-                                        <OTick
-                                            key={o.slug}
-                                            ten="owner"
-                                            gia_tri={o.slug}
-                                            nhan={o.name ?? o.slug}
-                                            so={o.count}
-                                            tap={chuSoHuu}
-                                            dat={setChuSoHuu}
-                                        />
-                                    ) : null,
-                                )}
-                            </div>
-                        </div>
-                    ) : null}
-
-                    {/* Giữ hai thứ không thuộc cột này qua lượt gửi không-JS. */}
-                    <input type="hidden" name="q" value={params.q ?? ''} />
-                    <input type="hidden" name="sort" value={params.sort ?? ''} />
-
-                    <button
-                        type="submit"
-                        className="btn btn-p"
-                        style={{ width: '100%', justifyContent: 'center', borderRadius: 10 }}
-                    >
-                        Áp dụng
-                    </button>
-
-                    {coBoLoc ? (
-                        <button
-                            type="button"
-                            className="btn btn-s"
-                            style={{
-                                width: '100%',
-                                justifyContent: 'center',
-                                borderRadius: 10,
-                                marginTop: 6,
-                            }}
-                            onClick={xoaHet}
+                    return (
+                        <details
+                            key={nhom.khoa}
+                            className="ex-loc-nhom"
+                            open={moHet || moNhom === nhom.khoa}
                         >
-                            Xoá bộ lọc
-                        </button>
-                    ) : null}
-                </div>
-            </form>
+                            {/*
+                              `preventDefault()` tắt hành vi lật `open` của
+                              trình duyệt, nên thuộc tính đó chỉ đến từ state
+                              và mở nhóm này là đóng nhóm kia. Không có JS thì
+                              không có handler, và hành vi gốc làm việc của nó
+                              — đó là cả lý do chip là `<summary>`.
+                            */}
+                            <summary
+                                className={tap.size ? 'fchip on' : 'fchip'}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    bamChip(nhom.khoa);
+                                }}
+                            >
+                                <span>{nhanChip(nhom, tap)}</span>
 
-            {/*
-              Nút nổi, chỉ hiện dưới 1024px. Nằm trong `.listing-layout`
-              nhưng `position:fixed`, nên nó không chiếm một ô của lưới hai
-              cột — xem chú thích dài hơn ở `BoLocGoi`.
-            */}
-            <button
-                className={mo ? 'filter-float hidden' : 'filter-float'}
-                type="button"
-                onClick={() => setMo(true)}
-                aria-expanded={mo}
-            >
-                <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
-                    <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" />
-                </svg>
-                Bộ lọc
-                {coBoLoc ? <span className="filter-float-count">{soBoLoc}</span> : null}
-            </button>
-        </>
+                                {tap.size ? (
+                                    /*
+                                      Nút gỡ nằm TRONG `<summary>`, nên cú bấm
+                                      vào nó phải chặn cả hai đường: nổi bọt
+                                      lên handler trên (`stopPropagation`) và
+                                      hành vi lật `open` của trình duyệt
+                                      (`preventDefault`). Thiếu một trong hai
+                                      thì gỡ bộ lọc cũng mở bảng rớt.
+
+                                      28px, không 44px: nó ngồi *bên trong*
+                                      một vùng chạm 44px, và nới nó ra 44 là
+                                      ăn gần hết bề ngang của chip — chạm vào
+                                      chữ sẽ thành gỡ bộ lọc. 28px vẫn trên
+                                      mức 24px tối thiểu của WCAG 2.5.8.
+                                    */
+                                    <button
+                                        type="button"
+                                        className="ex-chip-xoa"
+                                        aria-label={`Gỡ bộ lọc ${nhom.nhan}`}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            di({ ...chon, [nhom.khoa]: new Set<string>() });
+                                        }}
+                                    >
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M18.3 5.7 12 12l-6.3-6.3-1.4 1.4L10.6 13.4l-6.3 6.3 1.4 1.4L12 14.8l6.3 6.3 1.4-1.4-6.3-6.3 6.3-6.3z" />
+                                        </svg>
+                                    </button>
+                                ) : (
+                                    <svg className="ex-chip-mui" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M7 10l5 5 5-5z" />
+                                    </svg>
+                                )}
+                            </summary>
+
+                            <div className="ex-loc-rot">
+                                <div className="sb-title">{nhom.nhan}</div>
+
+                                <div className="sb-group">
+                                    {nhom.muc.map((m) => (
+                                        <OTick
+                                            key={m.gia_tri}
+                                            ten={nhom.khoa}
+                                            gia_tri={m.gia_tri}
+                                            nhan={m.nhan}
+                                            so={m.so}
+                                            tap={tap}
+                                            dat={(t) => doiNhom(nhom.khoa, t)}
+                                        />
+                                    ))}
+                                </div>
+
+                                <button type="submit" className="btn btn-p ex-loc-ap">
+                                    Áp dụng
+                                </button>
+                            </div>
+                        </details>
+                    );
+                })}
+
+                <button
+                    type="button"
+                    className={soBoLoc ? 'fchip on ex-loc-het' : 'fchip ex-loc-het'}
+                    onClick={() => {
+                        setMoNhom(null);
+                        setMoHet((v) => !v);
+                    }}
+                    aria-expanded={moHet}
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true" className="ex-chip-mui">
+                        <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" />
+                    </svg>
+                    {moHet ? 'Thu gọn' : 'Bộ lọc'}
+                    {soBoLoc ? <span className="fchip-count">{soBoLoc}</span> : null}
+                </button>
+
+                {soBoLoc ? (
+                    <button type="button" className="ex-loc-xoa" onClick={() => di(docChon({}))}>
+                        Xoá bộ lọc
+                    </button>
+                ) : null}
+
+                {/*
+                  Mở cả năm nhóm thì có MỘT nút áp dụng, không năm.
+                  Mỗi bảng rớt mang nút của riêng nó vì khi nổi lên một mình
+                  nó là cả biểu mẫu người dùng đang nhìn; xếp cả năm thành cột
+                  thì năm nút giống hệt nhau chồng lên nhau, và chúng lấy
+                  176px chiều cao để nói đúng một việc. CSS ẩn chúng trong
+                  `.tat-ca`.
+                */}
+                {moHet ? (
+                    <button type="submit" className="btn btn-p ex-loc-ap ex-loc-ap-het">
+                        Áp dụng bộ lọc
+                    </button>
+                ) : null}
+
+                {/*
+                  Giữ ba thứ không thuộc bộ lọc qua lượt gửi KHÔNG-JS. Với JS
+                  thì `duongDanLoc` lo việc này; không có JS thì form gửi
+                  thẳng, và thiếu `view` ở đây là mỗi lần áp dụng bộ lọc trong
+                  kiểu xem bản đồ lại bị ném về kiểu lưới.
+                */}
+                <input type="hidden" name="q" value={params.q ?? ''} />
+                <input type="hidden" name="sort" value={params.sort ?? ''} />
+                {params.view === 'map' ? <input type="hidden" name="view" value="map" /> : null}
+            </div>
+        </form>
     );
 }
