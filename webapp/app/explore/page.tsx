@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { listScreens, getFilters, getLocations, type Filters, type Region } from '@/lib/api';
 import { MegaSearch } from '@/components/MegaSearch';
 import { buildMetadata, OgType } from '@/lib/seo';
@@ -52,7 +51,28 @@ type SearchParams = {
      */
     price_status?: string;
     sort?: string;
+
+    /**
+     * `map` để xem kiểu bản đồ; mọi giá trị khác (kể cả thiếu) là kiểu lưới.
+     *
+     * Thêm 22/10/2026 khi `/explore` và `/map` gộp làm một — lát 2 của
+     * `docs/PLAN-GOP-EXPLORE-BAN-DO.md`. Kiểu xem là một URL chứ không phải
+     * một state, nên nó chia sẻ được và nút Back quay lại được.
+     */
+    view?: string;
 };
+
+/**
+ * Kiểu xem khi URL không nói gì.
+ *
+ * **Lưới**, và lý do là người đến từ công cụ tìm kiếm: kiểu lưới mang theo
+ * phân trang và chân trang — những đường duy nhất để Google bò sang trang 2,
+ * 3 và các trang chính sách — còn kiểu bản đồ tải Leaflet, tile và tới 500
+ * pin ngay lần đầu, kể cả trên 3G.
+ *
+ * Đổi mặc định là đổi đúng dòng này.
+ */
+const KIEU_XEM_MAC_DINH = 'grid' as const;
 
 export default async function ExplorePage({
     searchParams,
@@ -62,6 +82,8 @@ export default async function ExplorePage({
     const params = await searchParams;
 
     const page = Math.max(1, Number.parseInt(params.page ?? '1', 10) || 1);
+
+    const kieuXem = params.view === 'map' ? 'map' : KIEU_XEM_MAC_DINH;
 
     /*
      * Ba lời gọi song song, và `allSettled` chứ không `all`.
@@ -104,23 +126,32 @@ export default async function ExplorePage({
 
             <main>
 
+            {/*
+              Hero chỉ có ở kiểu lưới.
+
+              Kiểu bản đồ cần cả chiều cao khung nhìn cho bản đồ; một khối
+              tiêu đề 120px đẩy nó xuống dưới nếp gấp, đúng lý do bản Blade
+              cho `/map` bỏ hero. Nhưng `h1` vẫn phải có cho công cụ tìm kiếm
+              và trình đọc màn hình, nên nó ẩn khỏi mắt chứ không biến mất.
+            */}
+            {kieuXem === 'map' ? (
+                <h1 className="visually-hidden">Khám phá Inventory trên bản đồ</h1>
+            ) : (
             <div className="ex-hero">
                 <div className="w">
                     <div className="ex-top">
                         <h1 className="ex-title">Khám phá Inventory</h1>
 
                         {/*
-                          Nút sang bản đồ, đúng chỗ bản Blade đặt nó. Hai trang
-                          nhìn cùng một kho theo hai cách, nên mỗi bên phải có
-                          đường sang bên kia; thiếu nó thì `/map` chỉ đến được
-                          từ thanh điều hướng.
+                          Nút `ph-map-btn` sang `/map` gỡ ngày 22/10/2026.
+                          Bản đồ không còn là một trang khác để sang: nó là
+                          kiểu xem thứ hai của chính trang này, và hai liên
+                          kết đổi kiểu xem nằm trong thanh kết quả — đúng chỗ
+                          người dùng đang nhìn danh sách.
+
+                          Giữ cả hai là có hai cái nút cùng làm một việc, và
+                          một trong hai sẽ trôi khỏi cái kia.
                         */}
-                        <Link href="/map" className="ph-map-btn" aria-label="Xem kho trên bản đồ">
-                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z" />
-                            </svg>
-                            <span className="ph-map-btn-txt">Bản đồ</span>
-                        </Link>
                     </div>
                     {/*
                       Ô tìm kiếm lớn, biến thể `compact` — đúng chỗ bản Blade
@@ -147,29 +178,35 @@ export default async function ExplorePage({
                     />
                 </div>
             </div>
+            )}
 
             {/*
-              Ba cột: lọc · kết quả · bản đồ.
+              Một khung, hai kiểu xem — `KhoiExplore` dựng lớp bọc cho cả hai.
+              Kiểu lưới: cột lọc 260px + lưới thẻ, từ 1024px. Kiểu bản đồ:
+              canvas trải hết khung nhìn, danh sách là thẻ nổi 400px bên trái.
 
-              Cột lọc hiện từ 1024px (`.listing-layout` của `/products`, xem
-              docblock của `BoLocKho`); cột bản đồ từ 1280px (`.ex-layout`).
-              Dưới mốc đó bản đồ là một kiểu xem bật bằng nút trong thanh kết
-              quả — ba cột trong 1136px còn lại cho lưới khoảng 150px một thẻ,
-              tức một bố cục đủ cột mà không đọc được gì.
-
-              Trước 19/10/2026 trang này đọc `city`, `venue_type`,
-              `screen_type` từ URL nhưng **không vẽ bộ lọc nào**: muốn lọc thì
-              phải tự sửa URL. Và vị trí — chiều duy nhất dữ liệu đủ 100% —
-              chỉ xem được ở một trang khác.
+              Thẻ do **máy chủ** dựng ở cả hai kiểu và đi xuống qua
+              `children`. Đó là hàng rào của việc gộp: `/map` cố ý không có
+              danh sách trong HTML, và nếu trang gộp cũng thế thì trang danh
+              mục nặng nhất của sàn biến mất khỏi công cụ tìm kiếm.
             */}
-            <div className="w">
-                <div className="listing-layout ex-layout">
-                <BoLocKho filters={filters} params={params} />
-
                 <KhoiExplore
+                    kieuXem={kieuXem}
                     tong={meta.total ?? 0}
                     sort={params.sort ?? ''}
                     query={params}
+                    boLoc={<BoLocKho filters={filters} params={params} />}
+                    oTim={
+                        kieuXem === 'map' ? (
+                            <MegaSearch
+                                variant="compact"
+                                target="/explore"
+                                regions={regions}
+                                categories={filters?.categories_networks ?? []}
+                                params={params}
+                            />
+                        ) : null
+                    }
                     pagination={<Pagination basePath="/explore" params={params} meta={meta} />}
                 >
                     {screens.length === 0 ? (
@@ -189,8 +226,6 @@ export default async function ExplorePage({
                         ))
                     )}
                 </KhoiExplore>
-                </div>
-                </div>
             </main>
         </>
     );
