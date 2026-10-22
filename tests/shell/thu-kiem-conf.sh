@@ -768,6 +768,60 @@ KICH_BAN=',<link href=/_next/static/x.css>'
 thu_rt_next than-rong-thu-lai-roi-duoc 1 2
 unset -f curl
 rm -rf "$N" "$TMP.nn" "$TMP.rt"
+
+# ── PHẦN 7: bảng đường đã khai tử (`CHUYEN_HUONG`) ─────────────────────────
+#
+# Thêm 22/10/2026, sau một deploy đỏ. Lát 7 của
+# `docs/PLAN-GOP-EXPLORE-BAN-DO.md` đổi `/map` thành chuyển hướng 301, nhưng
+# canary vẫn đòi mọi context đã khai trả 200 — nên nó làm đỏ một deploy hoàn
+# toàn đúng: Laravel và Next lên xong, conf không đổi, chỉ bảng kỳ vọng là cũ.
+#
+# Hai thứ canh ở đây, và cả hai đều là thứ hỏng im lặng:
+#
+#   • bảng **có** `/map`, kèm đúng mã và đúng đích. Gõ nhầm đích thì canary
+#     xanh với một chuyển hướng dẫn đi đâu cũng được.
+#   • đường KHÔNG trong bảng thì hàm trả mã 1, để canary quay về luật 200.
+#     Một hàm trả rỗng-mà-thành-công sẽ biến mọi context thành "được phép
+#     chuyển hướng".
+
+echo
+echo "── PHẦN 7: bảng đường đã khai tử ──"
+
+TMP4="${TMPDIR:-/tmp}/chuyen-huong-$.sh"
+{
+    sed -n '/^CHUYEN_HUONG=(/,/^)/p' "$SRC"
+    sed -n '/^dich_chuyen_huong() {/,/^}/p' "$SRC"
+} > "$TMP4"
+
+bash -n "$TMP4" || { echo "HAM TRICH RA KHONG HOP LE"; exit 1; }
+# shellcheck disable=SC1090
+. "$TMP4"
+
+thu_ch() {
+    local duong="$1" mong="$2" duoc
+    duoc=$(dich_chuyen_huong "$duong") || duoc="(khong-co)"
+
+    if [ "$duoc" = "$mong" ]; then
+        printf '  OK    %-34s %s\n' "$duong" "$duoc"
+        so_dung=$((so_dung + 1))
+    else
+        printf '  SAI   %-34s duoc "%s", can "%s"\n' "$duong" "$duoc" "$mong"
+        so_sai=$((so_sai + 1))
+    fi
+}
+
+thu_ch /map "301 /explore?view=map"
+
+# Mọi context còn lại phải RƠI RA KHỎI bảng, nếu không canary thôi đòi 200 ở
+# đó — tức mất đúng phép kiểm nó sinh ra để làm.
+thu_ch /explore "(khong-co)"
+thu_ch /owners "(khong-co)"
+thu_ch /products "(khong-co)"
+thu_ch / "(khong-co)"
+thu_ch /mapp "(khong-co)"
+
+rm -f "$TMP4"
+
 echo
 echo "── tổng: $so_dung đúng, $so_sai sai ──"
 rm -rf "$D" "$TMP"

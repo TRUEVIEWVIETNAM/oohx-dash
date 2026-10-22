@@ -193,6 +193,18 @@ Phép đếm `con` đóng vòng lại: nếu **mọi** đường thử đều b�
 
 `tests/shell/thu-kiem-conf.sh` phần 4 kiểm `bi_phu` (17 trường hợp, gồm đúng cái bẫy trên), phần 5 chạy chính hàm `canary` với phần mạng thay bằng bản giả — một ca xanh và bốn ca phải đỏ, vì một canary luôn xanh vô dụng hơn không có canary.
 
+#### Đường đã khai nhưng cố ý không trả 200 (v8)
+
+Lỗi thật, 22/10/2026. Lát 7 của `docs/PLAN-GOP-EXPLORE-BAN-DO.md` khai tử trang `/map`: nó thành chuyển hướng **301** sang `/explore?view=map`. Nhưng `/map` **vẫn phải** là một context của Next — bỏ nó khỏi conf thì Laravel nhận và trả 404, và mọi backlink cũ chết.
+
+Canary v7 đòi **mọi** context đã khai trả 200, nên nó làm đỏ một deploy hoàn toàn đúng. Log nói *"canary đỏ TRONG KHI conf không đổi"* và liệt kê bốn nguyên nhân khả dĩ — không nguyên nhân nào đúng, vì nguyên nhân thứ năm chưa có tên: **một đường được khai tử có chủ đích**.
+
+v8 thêm bảng `CHUYEN_HUONG`, mỗi dòng là `<đường> <mã> <đích>`. Canary đòi **hai** thứ chứ không một: đúng mã *và* đúng `Location`. Chỉ canh 301 thì một luật rewrite lạc ở tầng khác cũng qua được; và thân phản hồi 301 rỗng nên `la_next` không dùng được, `Location` là bằng chứng thay thế — nó cũng là thứ người dùng thật sự đi theo.
+
+Đường **không** trong bảng vẫn chịu luật 200 như cũ. `tests/shell/thu-kiem-conf.sh` phần 7 canh cả hai mặt: `/map` ra đúng cặp mã–đích, và năm đường khác phải rơi ra khỏi bảng — một hàm trả rỗng-mà-thành-công sẽ biến mọi context thành "được phép chuyển hướng".
+
+> **Cài lại trên VPS.** `/usr/local/sbin/oohx-sync-proxy` **không** tự cập nhật theo repo (xem mục quyền ở dưới). Cho tới khi có người cài bản v8 as root, bước đồng bộ proxy còn đỏ ở mọi lượt deploy — Laravel và Next vẫn lên bình thường.
+
 #### Canary chạy cả khi conf KHÔNG đổi (v7)
 
 v6 thoát sớm ở bước `[2/7]` khi cả hai conf khớp repo, nên **năm phép kiểm 404 nó vừa thêm nằm yên không chạy lần nào** — conf proxy ít khi đổi. Một lớp bảo vệ chỉ chạy khi có người sửa đúng file nó canh thì gần như không chạy.
