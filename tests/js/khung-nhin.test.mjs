@@ -285,3 +285,23 @@ test('nhãn đơn vị rút cho vừa một ô 90px, và không mất chữ phâ
     assert.equal(kn.nhanDonVi('mỗi ngày'), 'Giá mỗi ngày');
     assert.equal(kn.nhanDonVi(null), 'Khoảng giá');
 });
+
+test('số lẻ bỏ đi từ 100 trở lên — nó không mang thông tin mà vẫn lấy chỗ', () => {
+    // Đo trên production 22/10/2026 ngay sau khi lát 4 lên: khoảng giá thật
+    // của toàn kho là `54,2tr–729,2tr`, cần 96px trong một ô 73px, nên nó ra
+    // màn hình là `54,2tr–7…` — mất hẳn đầu trên của khoảng.
+    //
+    // Số lẻ của `729,2tr` là 0,03% giá trị; của `54,2tr` là 0,4% và phân
+    // biệt được 54 với 55.
+    assert.equal(kn.gonTien(729_200_000, 'VND'), '729tr');
+    assert.equal(kn.gonTien(54_200_000, 'VND'), '54,2tr');
+
+    // Ngưỡng nằm ở 100 sau khi chia, không ở 100 triệu.
+    assert.equal(kn.gonTien(99_900_000, 'VND'), '99,9tr');
+    assert.equal(kn.gonTien(100_400_000, 'VND'), '100tr');
+
+    // Cùng luật ở bậc nghìn và bậc tỷ.
+    assert.equal(kn.gonTien(729_200, 'VND'), '729k');
+    assert.equal(kn.gonTien(54_200, 'VND'), '54,2k');
+    assert.equal(kn.gonTien(2_500_000_000, 'VND'), '2,5 tỷ');
+});

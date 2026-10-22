@@ -1473,7 +1473,16 @@ ul{list-style:none}
 /* Bốn ô số liệu ở đầu panel. `minmax(0,1fr)` chứ không `1fr`: một khoảng giá
    dài (`1,2tr–40tr`) kéo cột của nó rộng ra và ba ô kia teo lại. */
 .ex-tq{margin-top:10px}
-.ex-tq-hang{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+/* Bốn cột KHÔNG bằng nhau.
+ *
+ * Bản đầu chia đều, và đo trên production ngay sau khi lát 4 lên cho thấy vì
+ * sao nó sai: ô khoảng giá cần **96px** cho `54,2tr–729,2tr` trong khi một
+ * phần tư của 372px cho nó 73px — giá trị ra màn hình là `54,2tr–7…`, tức
+ * mất hẳn đầu trên của khoảng.
+ *
+ * Hai ô đếm chứa số có ba chữ số là cùng, và ô thứ tư chứa một gạch ngang.
+ * Chia đều là chia theo số ô, không theo thứ nằm trong ô. */
+.ex-tq-hang{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr) minmax(0,1.5fr) minmax(0,.7fr);gap:6px}
 .ex-tq-o{display:flex;flex-direction:column;gap:1px;min-width:0;padding:6px 8px;border-radius:9px;background:var(--bg2)}
 .ex-tq-so{font-size:14px;font-weight:700;color:var(--t1);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ex-tq-nhan{font-size:10px;font-weight:600;color:var(--t4);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

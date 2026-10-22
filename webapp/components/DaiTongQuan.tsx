@@ -60,7 +60,13 @@ export function DaiTongQuan({ tomTat }: { tomTat: TomTat }) {
                   mo={!khoangGia}
                 />
 
-                <O nhan="Lượt xem/ngày" gt="—" mo chuThich="chưa có số đo" />
+                {/*
+                  Nhãn `chưa đo`, không `chưa có số đo`: ô này là ô hẹp nhất
+                  của dải (0,7fr) vì nó chỉ chứa một gạch ngang, và nhãn dài
+                  hơn thì chính nó bị cắt — một ô nói "chưa có số đ…" còn tệ
+                  hơn một ô trống. `title` giữ câu đầy đủ cho ai rê chuột.
+                */}
+                <O nhan="Lượt xem/ngày" gt="—" mo chuThich="chưa đo" />
             </div>
 
             {daCat ? (
@@ -87,7 +93,7 @@ function O({
     chuThich?: string;
 }) {
     return (
-        <div className={mo ? 'ex-tq-o ex-tq-o-mo' : 'ex-tq-o'}>
+        <div className={mo ? 'ex-tq-o ex-tq-o-mo' : 'ex-tq-o'} title={`${nhan}: ${gt}`}>
             <span className="ex-tq-so">{gt}</span>
             <span className="ex-tq-nhan">{chuThich ?? nhan}</span>
         </div>

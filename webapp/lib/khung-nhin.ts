@@ -82,14 +82,29 @@ export function canNapLai(daNap: Khung | null, hienTai: Khung, daCat = false): b
  * Làm tròn ở đây là làm tròn để **đọc**, không phải để tính: đây là khoảng
  * giá tham khảo của một khung nhìn, không phải một con số trên hoá đơn. Mọi
  * phép tính tiền thật vẫn ở máy chủ, bằng VND số nguyên.
+ *
+ * ══ Số lẻ chỉ giữ khi nó còn mang thông tin ══
+ *
+ * Đo trên production ngày 22/10/2026, ngay sau khi lát 4 lên: khoảng giá
+ * thật của toàn kho là `54,2tr–729,2tr` — **96px** trong một ô rộng 73px,
+ * nên nó ra màn hình dưới dạng `54,2tr–7…`.
+ *
+ * Số lẻ của `729,2tr` là 0,03% giá trị: nó không nói gì mà vẫn lấy hai ký
+ * tự. Của `54,2tr` thì là 0,4% và phân biệt được 54 với 55. Nên từ 100 trở
+ * lên thì bỏ phần lẻ.
  */
 export function gonTien(so: number, tienTe: string | null): string {
     if ((tienTe || 'VND') !== 'VND') {
         return `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(so)} ${tienTe}`;
     }
 
-    const rut = (chia: number, hau: string) =>
-        `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(so / chia)}${hau}`;
+    const rut = (chia: number, hau: string) => {
+        const gt = so / chia;
+
+        return `${new Intl.NumberFormat('vi-VN', {
+            maximumFractionDigits: gt >= 100 ? 0 : 1,
+        }).format(gt)}${hau}`;
+    };
 
     if (so >= 1_000_000_000) return rut(1_000_000_000, ' tỷ');
     if (so >= 1_000_000) return rut(1_000_000, 'tr');
