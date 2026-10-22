@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V2;
 
+use App\Http\Resources\V2\Concerns\SuyRaLoaiManHinh;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -21,43 +22,21 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class ScreenSummaryResource extends JsonResource
 {
     /**
-     * Nhãn người đọc cho `screen_type`.
+     * `SCREEN_TYPE_LABELS`, `NGUONG_BILLBOARD_CM`, `VENUE_NGOAI_TROI` và
+     * `resolveScreenType()` đến từ đây.
      *
-     * Đặt ở đây chứ không trên model, vì `screen_type` **không phải một cột**
-     * — nó suy ra từ kích thước và `venue_type` ngay dưới, trong
-     * `resolveScreenType()`. Nhãn phải nằm cạnh chỗ sinh ra mã, nếu không thì
-     * thêm một nhánh ở đó mà quên thêm nhãn sẽ ra một mã thô trên trang.
-     *
-     * Vì sao API trả nhãn thay vì để Next tự map: nhãn là một bảng chữ, và
-     * bảng chữ chép sang client là bản thứ hai của cùng một enum — đúng thứ
-     * `NhanEnumMotNoiTest` tồn tại để chống. Ngày 18/10/2026 thẻ màn hình
-     * trên production in `lcd` ra mặt người dùng vì không ai có bảng này.
+     * Chuyển sang trait ngày 22/10/2026 để `MapPinResource` dùng **cùng** phép
+     * suy, thay vì chép ngưỡng 300cm sang tệp thứ hai. Hằng số của trait vẫn
+     * gọi được qua tên lớp này, nên mọi chỗ đang viết
+     * `ScreenSummaryResource::SCREEN_TYPE_LABELS` không đổi.
      */
-    public const SCREEN_TYPE_LABELS = [
-        'billboard' => 'Billboard',
-        'led'       => 'LED',
-        'lcd'       => 'LCD',
-    ];
-
-    /**
-     * Từ cạnh này trở lên thì gọi là billboard, tính bằng **xăng-ti-mét**.
-     *
-     * Hằng số công khai vì `FrontpageService::applyScreenTypeFilter()` phải
-     * dựng **cùng** ngưỡng bằng SQL. Hai con số 300 viết rời ở hai tệp thì
-     * sửa một chỗ là đủ để nhãn trên thẻ và bộ lọc nói hai chuyện khác nhau
-     * — và không có gì đỏ lên, vì mỗi bên tự nhất quán với chính nó.
-     */
-    public const NGUONG_BILLBOARD_CM = 300;
-
-    /** Giá trị `venue_type` tách LED khỏi LCD. Cùng lý do như hằng số trên. */
-    public const VENUE_NGOAI_TROI = 'outdoor';
+    use SuyRaLoaiManHinh;
 
     public static $wrap = null;
 
     public function toArray(Request $request): array
     {
         $inventory = $this->inventory;
-        $spec      = $this->spec;
         $loai      = $this->resolveScreenType();
 
         return [
@@ -85,10 +64,7 @@ class ScreenSummaryResource extends JsonResource
                 'name' => $this->site->network->name,
             ] : null,
 
-            'size' => [
-                'width_m'  => $spec?->width_cm ? round($spec->width_cm / 100, 2) : null,
-                'height_m' => $spec?->height_cm ? round($spec->height_cm / 100, 2) : null,
-            ],
+            'size' => $this->kichThuocMet(),
 
             // Giá công khai, **kèm đơn vị tiền**.
             //
@@ -139,27 +115,4 @@ class ScreenSummaryResource extends JsonResource
         return $number === floor($number) ? (int) $number : $number;
     }
 
-    /**
-     * Ba nhóm, và **mọi** màn hình rơi vào đúng một nhóm.
-     *
-     * Không có dòng `screen_specs` thì hai cạnh là 0, nên nó không phải
-     * billboard — nó vẫn là LED hoặc LCD, không phải "không phân loại được".
-     * Đó là hành vi cố ý: 20/104 bản ghi trên production không có spec, và
-     * một thẻ không nói nổi mình là loại gì thì vô dụng với người mua.
-     *
-     * `FrontpageService::applyScreenTypeFilter()` phải nhận đúng ba tập này.
-     * Ngày 19/10/2026 nó không: cả ba nhánh của nó đều đòi có spec, nên 20
-     * bản ghi kia mang nhãn "LCD" trên thẻ trong khi bộ lọc LCD trả 0.
-     */
-    private function resolveScreenType(): string
-    {
-        $widthCm  = $this->spec?->width_cm ?? 0;
-        $heightCm = $this->spec?->height_cm ?? 0;
-
-        if ($widthCm >= self::NGUONG_BILLBOARD_CM || $heightCm >= self::NGUONG_BILLBOARD_CM) {
-            return 'billboard';
-        }
-
-        return ($this->inventory?->venue_type === self::VENUE_NGOAI_TROI) ? 'led' : 'lcd';
-    }
 }

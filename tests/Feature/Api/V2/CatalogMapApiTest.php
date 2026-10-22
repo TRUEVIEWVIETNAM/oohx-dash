@@ -386,6 +386,103 @@ class CatalogMapApiTest extends TestCase
         $this->assertSame(['name'], array_keys($pin['site']));
     }
 
+    // ── Loại hình và kích thước trên pin (lát 1, 22/10/2026) ───────────────
+    //
+    // Trang gộp dựng lại thẻ trong panel **từ pin** sau mỗi lần người dùng bấm
+    // "Tìm trong khu vực này". Thẻ in loại hình và kích thước, nên thiếu hai
+    // trường này thì danh sách nghèo đi đúng lúc người dùng vừa thao tác — và
+    // không có lỗi nào để lần ra.
+
+    public function test_pin_mang_loai_hinh_va_kich_thuoc(): void
+    {
+        $this->screenAt(21.0, 105.8);
+
+        $pin = $this->getJson('/api/v2/screens/map?' . self::HANOI)
+            ->assertOk()
+            ->json('data.0');
+
+        // 400cm ≥ ngưỡng 300cm nên là billboard, và nhãn là chữ người đọc —
+        // không phải mã `billboard`.
+        $this->assertSame('Billboard', $pin['screen_type_label']);
+
+        // Cột lưu xăng-ti-mét, DTO trả mét.
+        //
+        // `assertEquals` chứ không `assertSame`: `round(400/100, 2)` là float
+        // 4.0 trong PHP, nhưng JSON không phân biệt 4.0 với 4 nên nó về đây
+        // thành int. So kiểu ở đây là canh một chi tiết của JSON, không phải
+        // canh hành vi.
+        $this->assertEquals(4, $pin['size']['width_m']);
+        $this->assertEquals(2, $pin['size']['height_m']);
+    }
+
+    public function test_nhan_va_kich_thuoc_tren_pin_giong_het_trong_danh_sach(): void
+    {
+        // Ca quan trọng nhất của lát này. Trước 22/10/2026 phép suy loại màn
+        // hình chỉ sống trong `ScreenSummaryResource`; chép ngưỡng 300cm sang
+        // DTO bản đồ là cách chắc chắn nhất để hai trang nói hai chuyện khác
+        // nhau về **cùng một màn hình**, mà không có gì đỏ lên vì mỗi bên tự
+        // nhất quán với chính nó.
+        //
+        // Hai DTO nay dùng chung trait `SuyRaLoaiManHinh`. Ca này canh điều đó
+        // từ bên ngoài: cùng một bản ghi, hai endpoint, cùng câu trả lời.
+        $screen = $this->screenAt(21.0, 105.8);
+
+        $pin = $this->getJson('/api/v2/screens/map?' . self::HANOI)
+            ->assertOk()
+            ->json('data.0');
+
+        $the = collect($this->getJson('/api/v2/screens')->assertOk()->json('data'))
+            ->firstWhere('slug', $screen->slug);
+
+        $this->assertNotNull($the, 'Màn hình phải có mặt trong cả hai endpoint.');
+
+        $this->assertSame(
+            $the['screen_type_label'],
+            $pin['screen_type_label'],
+            'Nhãn loại hình lệch giữa danh sách và bản đồ — hai phép suy đã trôi khỏi nhau.',
+        );
+
+        $this->assertSame($the['size'], $pin['size'], 'Kích thước lệch giữa danh sách và bản đồ.');
+    }
+
+    public function test_chua_do_kich_thuoc_thi_tra_null_chu_khong_phai_khong(): void
+    {
+        // 20/104 bản ghi trên production không có dòng `screen_specs`. `null`
+        // nghĩa là **chưa đo**; `0` nghĩa là đã đo và bằng không. Giao diện
+        // in "—" cho cái đầu và "0m" cho cái sau, nên trộn hai thứ là nói sai.
+        $owner = Owner::factory()->create(['status' => 'active']);
+        $site  = Site::factory()->create([
+            'owner_id' => $owner->id,
+            'city'     => 'Hà Nội',
+            'status'   => 'active',
+            'lat'      => 21.0,
+            'lon'      => 105.8,
+        ]);
+        $screen = Screen::factory()->create([
+            'owner_id' => $owner->id,
+            'site_id'  => $site->id,
+            'active'   => true,
+        ]);
+        ScreenInventory::create([
+            'screen_id'              => $screen->id,
+            'pricing_model'          => 'io',
+            'io_rate'                => 1_000_000,
+            'io_rate_unit'           => 'month',
+            'share_of_voice_max_pct' => 100,
+        ]);
+
+        $pin = $this->getJson('/api/v2/screens/map?' . self::HANOI)
+            ->assertOk()
+            ->json('data.0');
+
+        $this->assertNull($pin['size']['width_m']);
+        $this->assertNull($pin['size']['height_m']);
+
+        // Không có spec thì hai cạnh là 0, nên không phải billboard — nhưng
+        // vẫn phải có nhãn, không được rỗng.
+        $this->assertSame('LCD', $pin['screen_type_label']);
+    }
+
     // ── Bản đồ của `/explore` dùng chung bộ lọc với danh sách ───────────────
     //
     // Lát 3 đặt một bản đồ cạnh danh sách `/explore`. Nó không có bộ lọc
