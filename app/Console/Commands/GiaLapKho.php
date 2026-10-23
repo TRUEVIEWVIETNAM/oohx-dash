@@ -195,7 +195,7 @@ class GiaLapKho extends Command
         $lo          = [];
 
         for ($i = 0; $i < $so; $i++) {
-            [$ten, $lat, $lon, , $banKinh] = self::DO_THI[$bangTrongSo[random_int(0, 99)]];
+            [$ten, $lat, $lon, , $banKinh] = self::DO_THI[$bangTrongSo[random_int(0, count($bangTrongSo) - 1)]];
 
             $ulid  = (string) Str::ulid();
             $owner = $idChu[random_int(0, count($idChu) - 1)];
@@ -293,8 +293,15 @@ class GiaLapKho extends Command
     }
 
     /**
-     * Bảng tra 100 ô: ô thứ n chứa chỉ số đô thị, lặp theo trọng số. Rút một
-     * số 0–99 là rút theo đúng phân bố, không cần luỹ tích.
+     * Bảng tra: ô thứ n chứa chỉ số đô thị, lặp lại theo trọng số. Rút một ô
+     * bất kỳ là rút theo đúng phân bố, không cần luỹ tích.
+     *
+     * **Rút theo `count()` của bảng, không theo 0–99.** Bản đầu rút
+     * `random_int(0, 99)` vì bảng trọng số hiện tại tình cờ tổng đúng 100. Một
+     * lần đột biến đổi trọng số (22/10/2026) làm bảng co lại 16 ô và lệnh chết
+     * giữa đường vì chỉ số không tồn tại — ở một chỗ ngẫu nhiên, sau khi đã
+     * ghi vài nghìn hàng. Ai sửa bảng đô thị mà không cộng lại cho đủ 100 sẽ
+     * gặp đúng cái đó, nên con số 100 không được xuất hiện ở đây.
      *
      * @return list<int>
      */
