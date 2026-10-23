@@ -133,7 +133,49 @@ khai (`matchMedia('(pointer: coarse)')`), không suy từ user agent.
 **Chốt:** ca cho danh sách trắng, ca cho phép cộng dồn (hai lượt gửi cùng
 khoá ra `so_luot = 2`, không phải hai hàng), ca cho hạn mức.
 
-### Lát 2 — client gửi năm kết quả và mẫu số
+### Lát 2 — client gửi năm kết quả và mẫu số — **XONG 23/10/2026**
+
+> `webapp/lib/do-dac.ts` + nối dây ở `dung-vi-tri.ts`. 19 ca mới (378 ca cả
+> bộ JS). Sáu đột biến, cả sáu cho tín hiệu.
+>
+> **Chủ dự án chốt: bật đo đạc, không ghi mục vào chính sách bảo mật.**
+> Quyết định thứ hai đứng được vì thân request mang **đúng ba trường** và
+> không gì định danh người gửi. Nhưng đó là một phát biểu về *hình dạng của
+> thứ gửi đi*, nên nó đúng chỉ chừng nào hình dạng ấy còn nguyên — thêm một
+> trường thứ tư thì máy chủ vẫn trả 204 và bảng vẫn không có cột nào nhận nó,
+> trong khi dữ liệu đã vào **nhật ký truy cập của OpenLiteSpeed** và sống
+> ngoài mọi lời hứa của plan này. Nên có một ca canh đúng điều đó, và nó là ca
+> duy nhất canh một quyết định đã chốt.
+>
+> **Hai nhánh KHÔNG được đếm**, và plan trên giấy không nói ra:
+>
+> - **`granted`** — người đã đồng ý từ trước; ở nhánh này *không hộp thoại nào
+>   bật*. Đếm nó thì mỗi lượt họ quay lại cộng thêm một `hoi` và một
+>   `cho_phep`, nên tỉ lệ cho phép **tiến dần tới 100%** theo số lượt truy cập
+>   của chính những người đã đồng ý. Con số trông càng lúc càng đẹp mà không
+>   có ai mới đồng ý — kiểu sai tệ nhất, vì nó xác nhận đúng cái quyết định
+>   đang cần kiểm chứng.
+> - **nút "Thử lại"** — hỏi *sau* cú bấm của người dùng có tỉ lệ cho phép cao
+>   hơn hẳn, và câu hỏi cần trả lời là *"hỏi khi mở trang có đáng không"*.
+>
+> **Hai thứ về đường mạng:** `credentials: 'omit'` (mặc định của `fetch` cùng
+> nguồn gốc là gửi cookie phiên, tức mỗi lượt đếm mang danh tính người dùng
+> vào nhật ký máy chủ dù không vào bảng) và `keepalive: true` (`chua_tra_loi`
+> gửi sau 12 giây, và người bỏ qua hộp thoại thường là người đang rời trang —
+> không có `keepalive` thì ô quan trọng nhất là ô hụt nhiều nhất, hụt theo
+> chiều làm tính năng trông đỡ tệ hơn thực tế).
+>
+> **Hàm dọn của `useEffect` cố ý KHÔNG huỷ hẹn giờ:** hộp thoại quyền thuộc về
+> *tab*, không thuộc về component. Nó vẫn đứng đó sau khi người dùng chuyển
+> trang trong cùng ứng dụng, và callback vẫn chạy để huỷ hẹn giờ nếu họ trả
+> lời. Huỷ ở hàm dọn là bỏ mất đúng những lượt do dự lâu nhất.
+>
+> **Ca đáng kể nhất** đọc `DoDacService::CHO_PHEP` thẳng từ PHP và đòi mọi giá
+> trị client gửi phải khớp. Gửi `'tu-choi'` thay vì `'tu_choi'` thì máy chủ
+> trả 422, `fetch` nuốt lỗi, và ô đó **vĩnh viễn bằng 0** trên `/admin` mà
+> không gì đỏ — rủi ro rất thực, vì `dung-vi-tri.ts` có `pha: 'tu-choi'`
+> (gạch ngang, cho giao diện) nằm ngay cạnh `ghiDoDac('tu_choi')` (gạch dưới).
+> Đột biến đúng cái đó làm đỏ **ba** ca.
 
 Gắn vào `webapp/lib/dung-vi-tri.ts`, nơi đã có đủ cả năm nhánh. Ba điều kiện:
 
@@ -200,10 +242,12 @@ chỉ là thêm dữ liệu không ai đọc.
 
 ## Hai việc chủ dự án cần chốt
 
-| Việc | Hai ngả |
+**Đã chốt 23/10/2026.**
+
+| Việc | Chốt |
 |---|---|
-| **Có bật đo đạc không** | Bảng đếm gộp không chứa dữ liệu cá nhân, nhưng nó **vẫn là quan sát hành vi người dùng**. Bật · hoặc không bật và chấp nhận rằng quyết định "hỏi khi mở trang" sẽ không bao giờ được kiểm chứng |
-| **Có ghi vào chính sách bảo mật không** | Khuyến nghị của tôi: **có**, một câu nói sàn đếm số lượt gộp và không gắn với cá nhân. Nó rẻ, và nó là thứ người ta kiểm tra được |
+| **Có bật đo đạc không** | **Bật.** |
+| **Có ghi vào chính sách bảo mật không** | **Không.** Khuyến nghị của tôi là *có*; chủ dự án chốt *không*, và điều đó đứng được vì thiết kế cố ý không thu dữ liệu cá nhân — thân request có đúng ba trường và bảng đích không có cột nào nhận một định danh. Nhưng nó là một lời hứa về **hình dạng** chứ không phải một ghi chép ai cũng đọc được, nên nó cần người canh: ca `thân request có ĐÚNG ba trường` (lát 2), ca `không lưu gì nhận dạng được dù client gửi thêm` (lát 1), và ca `tổng hợp không đọc cột nào định danh được` (lát 3). Ngày nào một trong ba ca ấy bị sửa cho qua, quyết định này cần được xem lại — không phải quyết định sai, mà là tiền đề của nó đã đổi |
 
 Tôi **không** khuyến nghị gì về mặt pháp lý — tôi không đủ thẩm quyền. Thiết
 kế trên cố ý tránh dữ liệu cá nhân để câu hỏi pháp lý không phát sinh; nếu
@@ -230,7 +274,27 @@ chuyên môn pháp lý xem.
   câu hỏi đang cần trả lời.
 - **Không** đo gì khác ngoài quyền vị trí cho tới khi lát 3 chạy.
 
-## Bắt đầu
+## Đứng ở đâu — 23/10/2026
 
-Lát 1 chạy được ngay và không đụng giao diện. Hai câu hỏi ở mục trên chặn
-**lát 2** — tức chặn việc gửi dữ liệu thật — chứ không chặn lát 1.
+| Lát | Trạng thái |
+|---|---|
+| 1 — bảng đếm và đường nhận | **xong**, trên production |
+| 3 — ô trên `/admin` | **xong**, trên production |
+| 2 — client gửi thật | **xong** |
+| 4 — sự kiện khác | chưa, và chỉ làm khi lát 3 trả lời được câu hỏi ban đầu |
+
+Đường đo đạc giờ **nối liền**: client gửi → bảng cộng dồn → ô trên `/admin`
+đọc. Nhưng nó chưa trả lời gì, vì ngưỡng là **100 lượt hỏi cho mỗi loại thiết
+bị** và hôm nay bảng rỗng.
+
+**Câu hỏi ban đầu chỉ được trả lời sau khi đủ số liệu.** Đừng đọc tỉ lệ sớm
+hơn thế, và đừng nới ngưỡng để đọc sớm hơn — plan này tồn tại vì một tỉ lệ
+tính trên quá ít lượt là một con số sẽ bị mang đi quyết định.
+
+Khi số đã đủ, ba kết quả dẫn tới ba việc khác nhau:
+
+| Thấy gì | Việc |
+|---|---|
+| tỉ lệ cho phép cao (~70%) | quyết định "hỏi khi mở trang" đúng, không cần bàn lại. Sang lát 4 |
+| `tu_choi` cao | trình duyệt đã khoá những người đó **vĩnh viễn** — bàn lại cách hỏi, nhưng với những người mới, không cứu được người cũ |
+| `chua_tra_loi` cao | ô duy nhất **còn cứu được**: lần sau vẫn hỏi lại được. Câu trả lời không phải "bỏ tính năng" mà là "hỏi ở thời điểm khác" |
