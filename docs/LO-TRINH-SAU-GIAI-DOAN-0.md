@@ -2598,3 +2598,170 @@ cách nhau 40px.
 Mọi việc còn mở của buổi sáng vẫn nguyên, trừ **lát định vị** (xong) và
 **cài `oohx-sync-proxy` v8** — chủ dự án báo đã chạy lệnh `install` trên VPS
 chiều 22/10; lượt deploy kế tiếp sẽ in ra phiên bản script và xác nhận.
+
+---
+
+## Ngày 23/10/2026 — đo trước khi sửa, và ba giả thuyết sai (#163, #165)
+
+| PR | Việc | Đổi |
+|---|---|---|
+| #163 | Plan cho quy mô 10.000 vị trí + lát 0 (dựng kho giả và bấm giờ) | +446/−8 |
+| #165 | Lát A — bản đồ gom cụm ở máy chủ | +1.003/−81 |
+
+Hai quyết định chủ dự án chốt sáng 23/10: **`sort=distance` giữ nguyên ngữ
+nghĩa** (không bán kính, danh sách không bao giờ rỗng) và **làm lát 0 trước**.
+
+### Vì sao lát 0 không sửa gì cả
+
+Kho thật có hơn 10.000 billboard; mọi con số của plan gộp đo trên **104 bản
+ghi** production. Tôi mang vào ba giả thuyết đọc từ mã nguồn — và nói thẳng
+trong plan rằng đó là giả thuyết, không phải phép đo, nên lát đầu tiên dựng
+chỗ để đo chứ không tối ưu.
+
+Hai lệnh mới: `oohx:gia-lap-kho` gieo kho **dồn cục theo đô thị** (30% Hà Nội,
+28% TP.HCM), `oohx:bam-gio-kho` bấm giờ sáu đường kèm `EXPLAIN`.
+
+Phân bố dồn cục không phải chi tiết trang trí. Toạ độ rải đều cho số đo **lạc
+quan sai**: mọi ô lưới có số đếm gần như nhau nên gom cụm trông dễ, và mọi
+khung nhìn cắt theo tỉ lệ diện tích nên lọc trông chọn lọc tốt. Có một ca chốt
+canh điều đó, và nó đỏ nếu ai đó làm phẳng bảng trọng số.
+
+### Số đo
+
+| Đường | 10.000 | 50.000 | Dốc |
+|---|---|---|---|
+| `map` cả nước | 97ms | 474ms | 4,9× |
+| `map` một quận | **10ms** | 27ms | 2,7× |
+| `sort=distance` trang 1 | 68ms | 361ms | 5,3× |
+| `sort=distance` trang cuối (417) | 66ms | 388ms | 5,9× |
+| `q` khớp mọi hàng | 42ms | 258ms | 6,1× |
+| `filters` cache nguội | 100ms | **717ms** | **7,2×** |
+
+**Ở 10.000 không đường nào vượt 300ms.** Khoảng dư chừng 3 lần; đọc là 2 lần
+cho an toàn, tức quanh 20.000 thì đo lại.
+
+### Ba giả thuyết của tôi sai
+
+**`whereHas` chặn chỉ mục `(lat, lon)` — SAI.** `EXPLAIN` cho thấy optimizer
+viết lại `EXISTS` thành semi-join, chọn `sites` làm **bảng dẫn**, quét khoảng
+trên đúng chỉ mục đó và phủ được truy vấn bằng nó (`Using index`). Từ 298 site
+nó mới dò sang `screens`. Đường tôi nghi nhất lại là đường **co giãn tốt nhất**
+cả bảng. Lát C xoá khỏi plan, không hoãn.
+
+**"Phân trang sâu là chỗ chậm nhất" — SAI.** Trang 417 mất 66ms, không chậm
+hơn trang 1: `OFFSET 9.984` không thêm gì đáng kể vì phép sắp toàn tập đã phải
+chạy dù trang nào.
+
+**"Thiếu chỉ mục" — SAI.** Soát migration trước khi đoán: `sites` đã có
+`(lat, lon)` và `city`, `screens` đã có `(active, site_id)`,
+`screen_inventory` đã có `(screen_id, floor_cpm)`. Chỗ trống đúng là ba chỗ,
+không phải "thiếu index".
+
+Và một đường **không có trong ba giả thuyết** lại dốc nhất: `filters` cache
+nguội, 7,2×. Nó lộ ra chỉ vì bảng đo có cột cho nó.
+
+> Đó là toàn bộ lý do lát 0 tồn tại. Nếu làm thẳng lát B/C/D theo trực giác thì
+> ba trong bốn lát sửa thứ không đau, và thứ sẽ đau trước tiên thì không ai
+> nhìn.
+
+### Cái sai NẶNG nhất không phải chậm, mà là sai (lát A)
+
+`getMapPins()` cắt bằng `orderBy('screens.id')->limit()`. ULID tăng theo thời
+gian tạo, nên "500 pin" là **500 màn hình nhập vào sớm nhất**:
+
+```
+trả về 500 / tổng 10000 · bị cắt 9500
+id lớn nhất trong tập trả về đứng thứ 500 / 10.000 theo thứ tự nhập
+→ bản đồ KHÔNG thấy 9.500 màn hình nhập sau đó
+```
+
+Ranh giới nằm **chính xác** ở vị trí thứ 500 theo thứ tự nhập. `meta.truncated`
+có nói là đã cắt, nhưng không nói rằng phần bị cắt có hệ thống. Người mua rà cả
+nước nhận một câu trả lời nhanh (97ms), gọn, và sai — không log, không gì đỏ.
+
+**Lát A là lát duy nhất trong plan đáng làm kể cả khi số đo nói mọi thứ đủ
+nhanh**, vì nó không sửa tốc độ.
+
+Cách sửa: hai chế độ, `meta.mode` nói rõ chế độ nào. Trong ngân sách pin thì
+trả pin (không giấu gì), trên ngân sách thì trả ô lưới có số đếm (không cắt
+gì). **Ngưỡng là mật độ thật trong khung nhìn, không phải một mức thu phóng** —
+zoom là một phỏng đoán về mật độ, đếm thì không.
+
+`data` và `clusters` là hai khoá riêng, có chủ ý: một client cũ chưa biết
+`clusters` vẽ **bản đồ trống** — hỏng thấy được ngay — thay vì vẽ 500 pin thiên
+lệch và trông như đã xong.
+
+| Đường | 10.000 | 50.000 | Truy vấn |
+|---|---|---|---|
+| `map` cả nước — pin (trước) | 143ms | 548ms | 7 |
+| `map` cả nước — **cụm** (sau) | **24ms** | **151ms** | **1** |
+
+Một `GROUP BY` thay cho `COUNT(*)` + 500 pin + 8 lượt nạp quan hệ. Và vì tổng
+`count` của các ô *chính là* con số `countMapPins()` trả về, hai truy vấn thành
+một — quan trọng hơn: hai con số không thể trôi khỏi nhau nữa vì chỉ còn một.
+
+### Bốn chỗ suýt sập, không chỗ nào thấy bằng mắt
+
+**1. Phóng to vào giữa vùng đã nạp không nạp lại.** Luật `canNapLai` là "chứa
+trong", và khung mới nằm gọn trong khung cũ — nên bản đồ **kẹt ở cụm mãi mãi**
+dù người dùng phóng tới sát mặt đường. Cờ `daCat` (bật khi chạm trần 500) đổi
+thành `chuaDayDu` (bật ở chế độ cụm): cùng một lưới an toàn, đổi điều kiện bật.
+
+**2. Một ca chốt xanh một cách rỗng.** `test_cat_co_thu_tu_xac_dinh` so hai tập
+pin bị cắt. Ở chế độ cụm `data` rỗng nên phép so thành `[] === []` — nó **ngừng
+canh gì cả mà không đỏ**. Chuyển sang so thứ tự cụm, và thêm `ORDER BY` xác
+định vào truy vấn gom.
+
+**3. Thang ô lưới cạn ở đầu mịn.** Dừng ở 0,002° nên khung 0,0045° (≈500m) chỉ
+ra **4,5 ô ngang**. Ca chốt bắt, không phải mắt tôi. Nối tới 0,0001° (≈11m).
+
+**4. Đột biến `AVG` → `MIN` cho tâm cụm: cả 30 ca vẫn xanh.** Tâm cụm là trung
+bình toạ độ chứ không phải tâm ô — một lựa chọn đã ghi trong docblock mà
+**không có gì giữ**. Thêm ca, đột biến lại thì đúng một ca đỏ.
+
+### Hai lần đột biến cho tín hiệu RỖNG
+
+Đáng ghi riêng, vì cả hai lần tôi suýt báo cáo "ca này có canh":
+
+- Làm phẳng bảng trọng số đô thị làm ca phân bố đỏ — nhưng **vì một ngoại
+  lệ**: `bangTrongSo()` rút `random_int(0, 99)` vì bảng tình cờ tổng đúng 100,
+  nên bảng co lại 16 ô và lệnh chết giữa đường sau khi đã ghi vài nghìn hàng.
+  Sửa (rút theo `count()`) rồi đột biến lại mới có tín hiệu thật.
+- Đổi tâm cụm sang tâm ô làm sai số binding và **vỡ SQL**, nên 25 ca đỏ vì
+  truy vấn crash chứ không vì ngữ nghĩa. Bản đột biến hợp lệ (`AVG`→`MIN`) mới
+  lộ ra lỗ ở mục 4 trên.
+
+Bài học: một đột biến làm đỏ **không** đủ. Phải đọc *vì sao* nó đỏ.
+
+### Số đo trên production sau deploy
+
+104 bản ghi, ngân sách 300, nên chế độ mặc định **không bao giờ vào nhánh
+cụm**. Buộc bằng `limit` thấp để chạy thật nhánh đó:
+
+| | Mặc định | `limit=10` |
+|---|---|---|
+| `mode` | `pin` | `cluster` |
+| `data` | 104 pin | 0 |
+| `clusters` | 0 | **16 cụm, tổng `count` = 104** |
+| `cell_deg` | `null` | `1` |
+
+Tổng `count` bằng đúng 104 — không mất một màn hình nào, đúng tính chất mà
+đường pin cũ vi phạm khi kho lớn. Cụm dày nhất **55 ở `10.785, 106.680`**
+(TP.HCM), rồi Hà Nội 13, Đà Nẵng 9 — khớp phân bố thật, và tâm cụm chỉ vào chỗ
+dày chứ không vào tâm ô. Khoá của một cụm đúng là `["lat","lng","count"]`.
+
+### Còn mở sau 23/10
+
+| Việc | Chặn bởi |
+|---|---|
+| **`filters` cache nguội** — dốc nhất bảng (7,2×) | Chưa làm. Sẽ chạm 300ms **trước** mọi lát còn lại, và cách sửa rẻ hơn lát A nhiều |
+| **Cú bấm vào vòng tròn cụm chưa ai bấm bằng chuột** | Production không vào nhánh cụm ở chế độ mặc định; chỉ có chốt tĩnh và chốt API canh |
+| **Lát B** (khung nới dần) | Không làm — 68ms ở 10.000. Đo lại quanh 20.000 |
+| **Lát D** (`FULLTEXT`) | Không làm — 42ms ở ca xấu nhất của `LIKE` |
+| **Ba lớp chặn production của `oohx:gia-lap-kho` chưa đột biến được** | Auto mode classifier chặn mọi lần sửa dòng chốt chặn, cả chiều nới lẫn chiều siết |
+| **`oohx:bam-gio-kho` chưa chạy trên production** | Lượt đo duy nhất không mang mấy cái lệch của Docker cùng máy |
+| **`meta.truncated` là khoá luôn `false`** | Đã đánh `deprecated` trong OpenAPI, chưa gỡ vì là hợp đồng cũ |
+
+Mọi việc còn mở của 22/10 vẫn nguyên, trừ **Haversine chạy trên từng hàng** —
+nay đã đo: 68ms ở 10.000, nên không còn là việc phải làm, chỉ là việc phải đo
+lại khi kho lớn hơn.
