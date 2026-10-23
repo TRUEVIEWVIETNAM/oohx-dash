@@ -99,10 +99,57 @@ class DoDacService
      */
     public const MUI_GIO = 'Asia/Ho_Chi_Minh';
 
-    public function hopLe(string $suKien, string $giaTri, string $thietBi): bool
-    {
-        return in_array($thietBi, self::THIET_BI, true)
-            && in_array($giaTri, self::CHO_PHEP[$suKien] ?? [], true);
+    /**
+     * Lỗi đầu tiên của một bộ ba, hoặc `null` nếu hợp lệ.
+     *
+     * Trả về `[tên trường, thông báo]` chứ không phải `bool`: phía gọi cần
+     * nói cho người gửi biết **trường nào** sai, và một `false` trơ không
+     * nói được điều đó. Nếu trả `bool` thì `GhiDoDacRequest` sẽ phải tự tra
+     * lại danh sách để đoán ra trường — tức viết luật lần thứ hai, và hai
+     * bản luật sẽ lệch (CLAUDE.md mục 1). Bản đầu của lát này đúng là như
+     * thế, và hệ quả là hàm kiểm của service thành mã chết không ai gọi.
+     *
+     * ══ Vì sao có tham số `$choPhep` ══
+     *
+     * Chỉ để **chốt tiêm được một bảng giả**. Danh sách thật hôm nay có đúng
+     * một sự kiện, nên không ca nào dựng nổi bộ ba *(sự kiện hợp lệ, giá trị
+     * thuộc sự kiện khác)* — đúng cái tính chất "theo cặp" này tồn tại để
+     * bảo vệ.
+     *
+     * Điều đó không phải suy đoán: ngày 23/10/2026 một lần đột biến nới phép
+     * kiểm từ theo-cặp sang kiểm-rời (`array_merge` mọi giá trị) và **không
+     * ca nào đỏ**, 12/12 vẫn xanh. Lỗ sẽ mở ra thật khi lát 4 thêm sự kiện
+     * thứ hai, tức đúng lúc không ai còn nhớ chỗ này.
+     *
+     * Tham số mặc định `null`, nên production không bao giờ truyền gì vào và
+     * không có đường nào nới danh sách từ bên ngoài.
+     *
+     * @param  array<string, list<string>>|null  $choPhep
+     * @return array{0: string, 1: string}|null
+     */
+    public function loiDauTien(
+        string $suKien,
+        string $giaTri,
+        string $thietBi,
+        ?array $choPhep = null,
+    ): ?array {
+        $choPhep ??= self::CHO_PHEP;
+
+        if (! array_key_exists($suKien, $choPhep)) {
+            return ['su_kien', 'Sự kiện không nằm trong danh sách được đếm.'];
+        }
+
+        if (! in_array($thietBi, self::THIET_BI, true)) {
+            return ['thiet_bi', 'Loại thiết bị không hợp lệ.'];
+        }
+
+        // Tra trong danh sách CỦA RIÊNG sự kiện đó, không phải trong một
+        // bảng gộp mọi giá trị: `cho_phep` chỉ có nghĩa dưới `quyen_vi_tri`.
+        if (! in_array($giaTri, $choPhep[$suKien], true)) {
+            return ['gia_tri', 'Giá trị không thuộc sự kiện `' . $suKien . '`.'];
+        }
+
+        return null;
     }
 
     /**

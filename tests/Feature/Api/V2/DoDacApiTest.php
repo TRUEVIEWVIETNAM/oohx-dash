@@ -134,15 +134,12 @@ class DoDacApiTest extends TestCase
     }
 
     /**
-     * Danh sách trắng kiểm theo CẶP, không theo hai trường rời.
+     * Hoán vị hai trường: cả hai chuỗi đều hợp lệ ở đâu đó, cặp thì không.
      *
-     * Đây là ca mà `Rule::in()` trên từng trường sẽ **xanh một cách sai**:
-     * cả `su_kien` lẫn `gia_tri` đều là giá trị hợp lệ ở đâu đó, nhưng cặp
-     * này vô nghĩa. Hôm nay chỉ có một sự kiện nên ca phải dựng một sự kiện
-     * giả để kiểm — và nó đáng dựng, vì lát 4 sẽ thêm sự kiện thật và lúc đó
-     * lỗ này mới mở ra.
+     * Ca này đi qua nhánh `su_kien` — `'tu_choi'` không phải một sự kiện.
+     * Nó **không** canh tính chất "theo cặp"; ca dưới mới canh.
      */
-    public function test_gia_tri_dung_nhung_thuoc_su_kien_khac_bi_tu_choi(): void
+    public function test_hoan_vi_su_kien_va_gia_tri_bi_tu_choi(): void
     {
         $this->assertLoiTruong(
             $this->gui(['su_kien' => 'tu_choi', 'gia_tri' => 'quyen_vi_tri', 'thiet_bi' => 'mobile']),
@@ -150,6 +147,72 @@ class DoDacApiTest extends TestCase
         );
 
         $this->assertSame(0, DB::table('do_dac_ngay')->count());
+    }
+
+    /**
+     * Danh sách trắng tra theo CẶP, không gộp mọi giá trị lại.
+     *
+     * Ca này tồn tại vì một đột biến ngày 23/10/2026: nới phép kiểm từ
+     * `CHO_PHEP[$suKien]` sang `array_merge(...array_values(CHO_PHEP))` —
+     * tức chấp nhận bất kỳ giá trị nào của bất kỳ sự kiện nào — và **không
+     * ca nào đỏ**. Mọi ca khác vẫn xanh, 12/12.
+     *
+     * Lý do lỗ không lộ: danh sách thật hôm nay có đúng **một** sự kiện, nên
+     * không gửi được bộ ba *(sự kiện hợp lệ, giá trị thuộc sự kiện khác)* —
+     * đúng cái duy nhất phân biệt hai cách viết. Lỗ sẽ mở ra thật khi lát 4
+     * thêm sự kiện thứ hai, tức đúng lúc không ai còn nhớ chỗ này.
+     *
+     * Nên ca gọi thẳng service với một bảng **giả** hai sự kiện. Đó là lý do
+     * `loiDauTien()` nhận tham số `$choPhep`, và docblock của nó nói thế.
+     */
+    public function test_gia_tri_dung_nhung_thuoc_su_kien_khac_bi_tu_choi(): void
+    {
+        $gia = [
+            'su_kien_a' => ['x'],
+            'su_kien_b' => ['y'],
+        ];
+
+        $doDac = app(DoDacService::class);
+
+        $this->assertNull(
+            $doDac->loiDauTien('su_kien_a', 'x', 'mobile', $gia),
+            'Cặp đúng lại bị từ chối.',
+        );
+
+        $loi = $doDac->loiDauTien('su_kien_a', 'y', 'mobile', $gia);
+
+        $this->assertNotNull(
+            $loi,
+            'Giá trị `y` thuộc `su_kien_b` lại được nhận dưới `su_kien_a` — danh sách trắng '
+            . 'đang gộp mọi giá trị thay vì tra theo cặp.',
+        );
+        $this->assertSame('gia_tri', $loi[0]);
+    }
+
+    /**
+     * Luật danh sách trắng sống ở service, không ở FormRequest.
+     *
+     * Bản đầu của `GhiDoDacRequest` tự tra `CHO_PHEP` và tự dựng lại cùng ba
+     * phép kiểm — hai bản luật cho một thứ, và `DoDacService::hopLe()` thành
+     * mã chết không ai gọi. Ca trên chỉ canh được service; ca này canh rằng
+     * đường HTTP thật sự đi qua đúng service ấy.
+     */
+    public function test_form_request_goi_service_chu_khong_tu_viet_luat(): void
+    {
+        $ma = php_strip_whitespace(app_path('Http/Requests/GhiDoDacRequest.php'));
+
+        $this->assertStringContainsString(
+            'loiDauTien(',
+            $ma,
+            'FormRequest không gọi `DoDacService::loiDauTien()` nữa.',
+        );
+
+        $this->assertStringNotContainsString(
+            'CHO_PHEP[',
+            $ma,
+            'FormRequest lại tự tra danh sách trắng — đó là bản luật thứ hai, và hai bản '
+            . 'sẽ lệch.',
+        );
     }
 
     public function test_thieu_truong_thi_422(): void
@@ -233,22 +296,18 @@ class DoDacApiTest extends TestCase
     }
 
     /**
-     * Danh sách trắng sống ở MỘT chỗ.
+     * Không chỗ nào ngoài service biết các giá trị hợp lệ.
      *
-     * `GhiDoDacRequest` đọc từ `DoDacService::CHO_PHEP`. Nếu ai đó chép bảng
-     * đó sang FormRequest thì sẽ có hai danh sách, và chúng sẽ lệch — đúng
+     * Ca `test_form_request_goi_service_chu_khong_tu_viet_luat` ở trên canh
+     * *luật*; ca này canh *dữ liệu*. Hai thứ chép được độc lập: ai đó có thể
+     * vẫn gọi `loiDauTien()` mà đồng thời viết thêm một `in_array($giaTri,
+     * ['hoi', 'cho_phep', …])` cho "nhanh", và bản thứ hai ấy sẽ lệch — đúng
      * loại lỗi mà `InventoryController` với `FrontpageService` đã mắc một lần
      * (CLAUDE.md mục 1).
      */
-    public function test_danh_sach_trang_chi_dinh_nghia_mot_cho(): void
+    public function test_khong_chep_gia_tri_ra_ngoai_service(): void
     {
         $ma = php_strip_whitespace(app_path('Http/Requests/GhiDoDacRequest.php'));
-
-        $this->assertStringContainsString(
-            'DoDacService::CHO_PHEP',
-            $ma,
-            'FormRequest không còn đọc danh sách trắng từ service.',
-        );
 
         foreach (DoDacService::CHO_PHEP[DoDacService::SU_KIEN_QUYEN_VI_TRI] as $giaTri) {
             $this->assertStringNotContainsString(
