@@ -1071,15 +1071,15 @@ test('stylesheet cân ngoặc và không sót dấu xung đột', () => {
 // quảng cáo, media owner đi tìm người mua. Khi cả hai dùng chung một danh
 // sách liên kết thì không nhóm nào tìm thấy đường của mình.
 
-test('thanh đầu dẫn tới đủ năm khu vực công khai', () => {
+test('thanh đầu dẫn tới đủ bốn khu vực công khai', () => {
     const s = readFileSync(resolve(GOC, 'webapp/components/SiteHeader.tsx'), 'utf8');
 
+    // Bốn, không còn năm: bản đồ thôi là một khu vực từ 23/10/2026 — nó là
+    // kiểu xem thứ hai của `/explore`. Đường tới nó có ca riêng ở dưới
+    // ('gỡ mục Bản đồ khỏi menu thì …'), vì nó nay nằm trong trang chứ không
+    // nằm trên thanh điều hướng.
     for (const [duong, viSao] of [
-        ['/explore', 'kho màn hình'],
-        // `/explore?view=map`: trang `/map` khai tử 22/10/2026 (lát 7), nhưng
-        // KHU VỰC thì vẫn phải có đường tới. Ca này canh đường đi, không canh
-        // tên đường dẫn — nên nó đổi mục tiêu chứ không bị bỏ.
-        ['/explore?view=map', 'bản đồ vị trí'],
+        ['/explore', 'kho màn hình — cả lưới lẫn bản đồ'],
         ['/products', 'gói chiến dịch — thiếu trong thanh đầu cho tới 18/10/2026'],
         ['/owners', 'danh sách media owner'],
         ['/agency', 'khu đại lý'],
@@ -1087,6 +1087,64 @@ test('thanh đầu dẫn tới đủ năm khu vực công khai', () => {
         assert.ok(
             s.includes(`href="${duong}"`),
             `Thanh đầu không còn dẫn tới \`${duong}\` (${viSao}).`,
+        );
+    }
+});
+
+/**
+ * Ca này là lưới an toàn của chính việc gộp menu (23/10/2026).
+ *
+ * Gỡ mục "Bản đồ" khỏi thanh đầu và menu trượt chỉ đúng vì cặp liên kết
+ * "Lưới · Bản đồ" trong thanh kết quả hiện ở MỌI bề ngang. Nếu một ngày nào
+ * đó ai đó ẩn cặp ấy dưới một ngưỡng — một dòng `display:none` trong media
+ * query là đủ — thì người dùng điện thoại **mất hẳn** đường tới bản đồ, và
+ * không có gì khác đỏ: thanh đầu vẫn đủ bốn mục, trang vẫn dựng, mọi ca khác
+ * vẫn xanh.
+ *
+ * Nên ca canh hai điều: cặp liên kết còn đó, và `.ex-doi-xem` không bị ẩn ở
+ * bất kỳ đâu trong CSS.
+ */
+test('gỡ mục Bản đồ khỏi menu thì đường tới bản đồ phải còn trong trang', () => {
+    const ex = readFileSync(resolve(GOC, 'webapp/components/KhoiExplore.tsx'), 'utf8');
+
+    assert.match(
+        ex,
+        /className="ex-doi-xem"/,
+        'Cặp liên kết "Lưới · Bản đồ" biến mất khỏi `KhoiExplore`. Từ 23/10/2026 ' +
+            'đó là đường DUY NHẤT tới kiểu xem bản đồ — thanh đầu không còn mục nào.',
+    );
+
+    assert.match(
+        ex,
+        /duongDan\(query,\s*'map'\)/,
+        'Liên kết "Bản đồ" không còn trỏ tới `?view=map`.',
+    );
+
+    // Hai mục của thanh đầu phải KHÔNG còn, nếu không thì việc gộp chưa xong
+    // mà ca trên vẫn xanh.
+    const hdr = readFileSync(resolve(GOC, 'webapp/components/SiteHeader.tsx'), 'utf8');
+    const menu = readFileSync(resolve(GOC, 'webapp/components/MenuTruot.tsx'), 'utf8');
+
+    assert.doesNotMatch(
+        hdr,
+        /href="\/explore\?view=map"/,
+        'Thanh đầu lại có mục riêng cho bản đồ — "Khám phá" và "Bản đồ" là một trang.',
+    );
+    assert.doesNotMatch(
+        menu,
+        /duong: '\/explore\?view=map'/,
+        'Menu trượt lại có mục riêng cho bản đồ — xem docblock của `SiteHeader`.',
+    );
+
+    // `.ex-doi-xem` không được ẩn ở bất kỳ bề ngang nào. Quét mọi khối luật
+    // mang tên class đó và tìm `display:none`.
+    const css = readFileSync(resolve(GOC, 'resources/css/frontpage.css'), 'utf8');
+
+    for (const m of css.matchAll(/[^{}]*\.ex-doi-xem[^{}]*\{([^}]*)\}/g)) {
+        assert.ok(
+            !/display\s*:\s*none/.test(m[1]),
+            'Có luật CSS ẩn `.ex-doi-xem`: `' + m[0].trim().slice(0, 120) + '`. ' +
+                'Ẩn nó ở bề ngang nào thì người dùng ở bề ngang đó mất hẳn đường tới bản đồ.',
         );
     }
 });
@@ -1102,6 +1160,70 @@ test('chân trang tách đường của người mua và của media owner', () 
         s,
         /<h4>Khám phá<\/h4>/,
         'Cột "Khám phá" gom chung hai vai đã được tách — đừng gộp lại.',
+    );
+});
+
+/**
+ * Logo chân trang bị giãn ngang 1,45 lần trên production tới 23/10/2026.
+ *
+ * `<img width="128" height="32">` mang tỉ lệ 4:1 trong thuộc tính HTML. CSS
+ * đặt `height` mà không đặt `width`, nên trình duyệt giữ 128px của thuộc
+ * tính và ép cao 22px — đo trên production ra đúng 128×22, tức 5,82:1.
+ *
+ * Loại lỗi này không ai thấy bằng mắt trong một lượt soát: logo vẫn đọc
+ * được, chỉ bè ra. Thấy được khi đặt cạnh logo thanh đầu, mà hai cái không
+ * bao giờ ở cùng một khung nhìn. Nên nó phải là một ca chốt.
+ */
+test('logo chân trang giữ đúng tỉ lệ', () => {
+    const css = readFileSync(resolve(GOC, 'resources/css/frontpage.css'), 'utf8');
+
+    const luat = css.match(/\.ft-logo img\{([^}]*)\}/);
+    assert.ok(luat, 'Không còn luật cho `.ft-logo img`.');
+
+    assert.match(
+        luat[1],
+        /width\s*:\s*auto/,
+        'CSS đặt chiều cao cho logo chân trang mà không đặt `width:auto`, nên ' +
+            'trình duyệt giữ `width="128"` của thuộc tính HTML và logo giãn ngang. ' +
+            '`.hdr-logo img` đã có `width:auto` — hai chỗ phải giống nhau.',
+    );
+});
+
+/**
+ * Chân trang bản Next có BỐN khối, `.ft-g` khai SÁU cột.
+ *
+ * Hệ quả đo được trên production 23/10/2026 ở 1440px: lưới 1176px, bốn khối
+ * dùng 716px, bỏ trống 460px bên phải — trong khi cột "Chính sách" bị nén
+ * còn 130px và nhãn dài nhất vỡ làm ba dòng.
+ *
+ * Ca này canh rằng bản Next KHÔNG quay về lưới cột cứng. Nó không canh con
+ * số nào, vì cả vấn đề là ở chỗ có một con số: mọi con số cột ở đây đều là
+ * một giả định về số khối, và nó đã sai im lặng một lần.
+ */
+test('chân trang bản Next chia theo số khối thật, không theo số cột khai sẵn', () => {
+    const tsx = readFileSync(resolve(GOC, 'webapp/components/SiteFooter.tsx'), 'utf8');
+    const css = readFileSync(resolve(GOC, 'resources/css/frontpage.css'), 'utf8');
+
+    assert.match(
+        tsx,
+        /className="ft-g ft-tu-chia"/,
+        'Chân trang bản Next mất lớp `ft-tu-chia`, nên nó rơi về lưới sáu cột của ' +
+            'bản Blade và bỏ trống hai rãnh cuối.',
+    );
+
+    assert.match(
+        css,
+        /\.ft-tu-chia\s*\{[^}]*display\s*:\s*flex/,
+        '`.ft-tu-chia` không còn là flex. Grid khai cột trước khi biết có bao nhiêu ' +
+            'con, nên nó không tự chia được theo số khối.',
+    );
+
+    // Bản Blade phải giữ nguyên grid sáu cột: nó CÓ sáu khối, và flex với
+    // cùng `basis` làm khối thứ sáu rớt xuống hàng hai (đo được 23/10/2026).
+    assert.match(
+        css,
+        /\.footer-grid,\.ft-g\{[^}]*grid-template-columns/,
+        '`.ft-g` mất lưới cột — bản Blade ở khu người mua vẫn dùng nó với sáu khối.',
     );
 });
 
@@ -1516,16 +1638,15 @@ test('thanh đầu có điều hướng ở mọi bề ngang, kể cả dưới 
         );
     }
 
-    // Menu trượt phải dẫn tới đủ NĂM khu vực công khai như thanh đầu, cộng
+    // Menu trượt phải dẫn tới đủ BỐN khu vực công khai như thanh đầu, cộng
     // trang chủ. Thiếu một mục ở đây nghĩa là người dùng điện thoại không tới
     // được khu đó bằng bất kỳ đường nào.
+    //
+    // Bản đồ không có trong danh sách từ 23/10/2026 — nó là kiểu xem của
+    // `/explore`, và ca 'gỡ mục Bản đồ khỏi menu thì …' canh đường tới nó.
     for (const [duong, viSao] of [
         ['/', 'trang chủ'],
-        ['/explore', 'kho màn hình'],
-        // `/explore?view=map`: trang `/map` khai tử 22/10/2026 (lát 7), nhưng
-        // KHU VỰC thì vẫn phải có đường tới. Ca này canh đường đi, không canh
-        // tên đường dẫn — nên nó đổi mục tiêu chứ không bị bỏ.
-        ['/explore?view=map', 'bản đồ vị trí'],
+        ['/explore', 'kho màn hình — cả lưới lẫn bản đồ'],
         ['/products', 'gói chiến dịch'],
         ['/owners', 'danh sách media owner'],
         ['/agency', 'khu đại lý'],

@@ -54,7 +54,18 @@ function NavLink({ href, active, children }: {
     );
 }
 
-export type NavKey = 'home' | 'explore' | 'map' | 'products' | 'owners' | 'agency' | '';
+/**
+ * Không còn `'map'`.
+ *
+ * Nó đã là một khoá chết từ lát 2 (22/10/2026): `/explore?view=map` render
+ * `<SiteHeader active="explore">`, nên **không trang nào** từng truyền
+ * `'map'` vào. Mục "Bản đồ" ở thanh đầu chưa bao giờ sáng lên — kể cả khi
+ * người dùng đang đứng trong kiểu xem bản đồ, mục sáng là "Khám phá".
+ *
+ * Tức giao diện đã coi đây là MỘT khu vực từ hôm đó; chỉ có danh sách mục là
+ * còn hai. Gộp menu chỉ là nói ra điều đã đúng.
+ */
+export type NavKey = 'home' | 'explore' | 'products' | 'owners' | 'agency' | '';
 
 export function SiteHeader({ active = '' }: { active?: NavKey }) {
     return (
@@ -81,17 +92,32 @@ export function SiteHeader({ active = '' }: { active?: NavKey }) {
                 </LogoLink>
 
                 <nav className="hdr-nav">
+                    {/*
+                      MỘT mục cho cả lưới lẫn bản đồ (23/10/2026).
+                      ──────────────────────────────────────────────────────
+                      Tới lát 2 (22/10) bản đồ thôi là một trang riêng và
+                      thành kiểu xem thứ hai của chính trang này. Thanh đầu
+                      vẫn giữ hai mục thêm một ngày, và hai mục cho một trang
+                      nói sai hai lần:
+
+                       · "Bản đồ" trông như một khu vực khác, nên người dùng
+                         mất bộ lọc đang đặt mới dám bấm — thật ra không mất
+                         gì, `?view=map` giữ nguyên mọi tham số;
+                       · bấm "Bản đồ" rồi bấm "Khám phá" trông như đi hai nơi,
+                         trong khi đó là một nút bật tắt của cùng một trang.
+
+                      Đường tới bản đồ KHÔNG mất: nó là cặp liên kết
+                      "Lưới · Bản đồ" trong thanh kết quả (`.ex-doi-xem` ở
+                      `KhoiExplore`), hiện ở mọi bề ngang kể cả 360px, và
+                      nằm cạnh kết quả thay vì cách đó một thanh điều hướng.
+
+                      Đánh đổi, nói thẳng: từ một trang KHÁC (ví dụ
+                      `/owners`) tới bản đồ nay mất hai cú bấm thay vì một.
+                      Đổi lại không còn ai hiểu nhầm rằng bấm sang bản đồ là
+                      mất chỗ đang đứng.
+                    */}
                     <NavLink href="/explore" active={active === 'explore'}>
                         Khám phá
-                    </NavLink>
-                    {/*
-                      Trỏ thẳng `?view=map`, không `/map` (lát 7, 22/10/2026).
-                      `/map` còn sống nhưng chỉ để chuyển hướng 301; để thanh
-                      đầu đi qua nó là bắt mọi người dùng trong site trả thêm
-                      một vòng mạng cho một đường đã khai tử.
-                    */}
-                    <NavLink href="/explore?view=map" active={active === 'map'}>
-                        Bản đồ
                     </NavLink>
                     {/*
                       `/products` chưa từng có trong thanh đầu: trang gói chỉ

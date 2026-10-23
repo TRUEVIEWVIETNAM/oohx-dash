@@ -44,7 +44,14 @@ export function SiteFooter() {
     return (
         <footer className="footer">
             <div className="w">
-                <div className="ft-g">
+                {/*
+                  `ft-tu-chia` — bản Next có BỐN khối, bản Blade có sáu.
+                  `.ft-g` khai sáu cột cứng, nên bốn khối này chỉ dùng 61%
+                  chiều rộng và bỏ trống 460px bên phải ở 1440px. Lớp thêm
+                  đổi sang flex để lưới chia theo số khối thật. Chi tiết ở
+                  `resources/css/frontpage.css`, ngay dưới `.ft-g`.
+                */}
+                <div className="ft-g ft-tu-chia">
                     <div className="ft-br">
                         <div className="ft-logo">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -95,8 +102,19 @@ export function SiteFooter() {
                             <li>
                                 <AppLink href="/products">Gói chiến dịch</AppLink>
                             </li>
+                            {/*
+                              `/explore?view=map`, không `/map`: đường cũ
+                              chỉ còn là chuyển hướng 301 từ lát 7, nên mỗi
+                              cú bấm ở đây tốn thêm một vòng mạng. Dòng này
+                              sót lại khi thanh đầu được sửa ngày 22/10.
+
+                              Giữ mục ở chân trang dù thanh đầu đã bỏ: chân
+                              trang là nơi người ta tìm một đường CỤ THỂ, còn
+                              thanh đầu là nơi liệt kê KHU VỰC — và bản đồ
+                              không còn là một khu vực.
+                            */}
                             <li>
-                                <AppLink href="/map">Bản đồ vị trí</AppLink>
+                                <AppLink href="/explore?view=map">Bản đồ vị trí</AppLink>
                             </li>
                         </ul>
                     </div>

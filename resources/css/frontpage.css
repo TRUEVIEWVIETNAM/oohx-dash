@@ -414,10 +414,45 @@ ul{list-style:none}
 .footer-grid,.ft-g{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:36px}
 @media(min-width:768px){.footer-grid,.ft-g{grid-template-columns:2fr 1fr 1fr;gap:32px}}
 @media(min-width:1024px){.footer-grid,.ft-g{grid-template-columns:2.5fr 1fr 1fr 1fr 1fr 1.3fr;gap:32px}}
+/* ── Chân trang tự chia theo SỐ KHỐI THẬT ────────────────────────────────
+ *
+ * Sáu cột ở trên đúng cho bản Blade (`ft-br` + năm `ft-col`), và bản Blade
+ * vẫn sống ở khu người mua qua `frontpage/layouts/app.blade.php`. Bản Next
+ * có BỐN khối: docblock của `SiteFooter` giải thích vì sao cột "Thị trường"
+ * và mấy mục `href="#"` không được chép sang.
+ *
+ * Nên ở bản Next hai rãnh cuối rỗng. Đo trên production 23/10/2026 ở 1440px:
+ * lưới 1176px, bốn khối dùng 716px — bỏ trống 460px bên phải, trong khi cột
+ * "Chính sách" bị nén còn 130px và nhãn dài nhất vỡ làm ba dòng.
+ *
+ * Vì sao flex chứ không sửa con số cột: grid khai cột TRƯỚC khi biết có bao
+ * nhiêu con, nên mọi con số ở đây đều là một giả định về số khối, và giả
+ * định đó vừa sai im lặng một lần rồi. `repeat(auto-fit, …)` sẽ tự đếm
+ * nhưng KHÔNG hợp lệ khi trộn với `fr` — thử trên trang thật thì trình duyệt
+ * bỏ qua cả khai báo. Flex phân phối theo con thật, nên thêm hay bớt một cột
+ * không cần ai nhớ sửa dòng này.
+ *
+ * Lớp riêng chứ không áp thẳng lên `.ft-g`: với sáu khối của Blade, `flex`
+ * cùng `basis` này làm khối thứ sáu rớt xuống hàng hai (đo được). Bản Blade
+ * giữ nguyên grid sáu cột, không đổi một pixel. */
+@media(min-width:1024px){
+    .ft-tu-chia{display:flex;flex-wrap:wrap}
+    .ft-tu-chia>.ft-br{flex:2.2 1 280px}
+    .ft-tu-chia>.ft-col{flex:1 1 150px}
+}
 .footer-brand,.ft-br{grid-column:span 2}
 @media(min-width:768px){.footer-brand,.ft-br{grid-column:span 1}}
 .footer-logo,.ft-logo{margin-bottom:12px}
-.footer-logo img,.ft-logo img{height:22px}
+/* `width:auto` — KHÔNG phải chi tiết trang trí.
+   `<img width="128" height="32">` mang tỉ lệ 4:1 trong thuộc tính HTML. Đặt
+   `height` bằng CSS mà không đặt `width` thì trình duyệt giữ 128px của
+   thuộc tính và ép cao 22px: đo trên production 23/10/2026 ra ĐÚNG 128×22,
+   tức tỉ lệ 5,82:1 — logo giãn ngang 1,45 lần. `.hdr-logo img` ở dòng 115 đã
+   có `width:auto` từ đầu, nên cùng một logo vẽ đúng ở thanh đầu và méo ở
+   chân trang.
+   26px, bằng `.hdr-logo img` ở desktop: sau khi hết giãn, 22px ra 88px bề
+   ngang và trông hụt so với 104px của thanh đầu. */
+.footer-logo img,.ft-logo img{height:26px;width:auto}
 .footer-desc,.ft-desc{font-size:13px;color:var(--t3);line-height:1.7;margin-bottom:16px}
 .footer-socs,.ft-socs{display:flex;gap:8px}
 .footer-soc,.ft-soc{width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--t3);cursor:pointer;transition:all 140ms}

@@ -63,15 +63,15 @@ const MUC: { ma: NavKey; duong: string; nhan: string; icon: string }[] = [
         nhan: 'Khám phá',
         icon: 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z',
     },
-    {
-        ma: 'map',
-        // `/explore?view=map`, không `/map`: trang bản đồ khai tử 22/10/2026
-        // (lát 7) và `/map` nay chỉ là chuyển hướng 301. Trên điện thoại đây
-        // là đường DUY NHẤT tới kiểu xem bản đồ, nên nó phải đi thẳng.
-        duong: '/explore?view=map',
-        nhan: 'Bản đồ',
-        icon: 'M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z',
-    },
+    // Mục "Bản đồ" gỡ 23/10/2026 — xem docblock của `SiteHeader`.
+    //
+    // Chú thích cũ ở đây viết rằng trên điện thoại đây là đường DUY NHẤT tới
+    // kiểu xem bản đồ. Điều đó đúng khi nó được viết (lát 7, 22/10) nhưng
+    // không còn đúng sau lát 2: cặp liên kết "Lưới · Bản đồ" trong thanh kết
+    // quả hiện ở MỌI bề ngang — `.ex-doi-xem` không có `display:none` trong
+    // media query nào, đo lại ở 390px ngày 23/10. Có một ca chốt canh đúng
+    // điều đó, vì nếu ai đó ẩn cặp liên kết ấy ở mobile thì việc gỡ mục này
+    // mới thành ra cắt đường.
     {
         ma: 'products',
         duong: '/products',

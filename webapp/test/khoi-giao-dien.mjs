@@ -141,7 +141,11 @@ const TRANG = [
             // vài MB, đúng kiểu hỏng mà không ai nhìn thấy.
             '/_next/image',
 
-            'class="ft-g"', // lưới liên kết tỉnh thành ở chân trang
+            // Lưới chân trang. `ft-tu-chia` thêm 23/10/2026: bản Next có bốn
+            // khối còn `.ft-g` khai sáu cột, nên bốn khối chỉ dùng 61% chiều
+            // rộng. Khớp cả hai lớp chứ không riêng `ft-g`, để việc gỡ lớp
+            // thêm — tức quay về lưới cột cứng — cũng làm ca này đỏ.
+            'class="ft-g ft-tu-chia"',
 
             // Thanh "trust". Khối thì giữ, chữ thì đổi ngày 20/10/2026: năm
             // câu của bản Blade thay bằng năm việc kiểm được. Canh nguyên văn
