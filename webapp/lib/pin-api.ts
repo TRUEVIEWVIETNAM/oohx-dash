@@ -51,9 +51,33 @@ export function truyVanPin(thamSo?: Record<string, string | undefined>): string 
     return p.toString();
 }
 
+/** Một ô lưới: tâm và số màn hình trong ô. Không mang gì nhận dạng được. */
+export type Cum = { lat: number; lng: number; count: number };
+
+/**
+ * Hai chế độ, và `meta.mode` nói rõ đang ở chế độ nào — **không đoán theo số
+ * lượng** (lát A, 23/10/2026).
+ *
+ * `pin`: trong ngân sách, `data` có pin thật và `clusters` rỗng.
+ * `cluster`: trên ngân sách, `data` rỗng và `clusters` có ô lưới có số đếm.
+ *
+ * Vì sao máy chủ phải nói ra thay vì để client suy: suy từ `data.length === 0`
+ * thì "khung nhìn không có gì" và "khung nhìn quá dày nên trả cụm" trông giống
+ * hệt nhau, và hai thứ đó cần hai câu trả lời ngược nhau trên màn hình.
+ *
+ * `truncated` còn lại vì là hợp đồng cũ, và nay **luôn** `false`: trên ngân
+ * sách thì endpoint đổi chế độ chứ không cắt bớt.
+ */
 export type KetQuaPin = {
     data: MapPin[];
-    meta: { returned: number; total: number; truncated: boolean };
+    clusters?: Cum[];
+    meta: {
+        mode?: 'pin' | 'cluster';
+        returned: number;
+        total: number;
+        truncated: boolean;
+        cell_deg?: number | null;
+    };
 };
 
 /**

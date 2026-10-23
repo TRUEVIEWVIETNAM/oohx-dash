@@ -180,7 +180,15 @@ class CatalogMapApiTest extends TestCase
             ->assertJsonPath('meta.max_limit', 500);
     }
 
-    public function test_bi_cat_thi_noi_ra_chu_khong_tra_thieu_trong_im_lang(): void
+    /**
+     * Trên ngân sách pin thì **đổi chế độ**, không cắt bớt.
+     *
+     * Ca này trước lát A (23/10/2026) khẳng định điều ngược lại: trả 1 pin và
+     * `truncated: true`. Nó đã canh đúng hợp đồng lúc đó, nhưng hợp đồng đó
+     * sai — xem `test_cum_khong_bo_sot_man_hinh_nao` ngay dưới, và docblock
+     * của `CatalogController::map()`.
+     */
+    public function test_tren_ngan_sach_pin_thi_doi_sang_cum_khong_cat_bot(): void
     {
         $this->screenAt(21.02, 105.80);
         $this->screenAt(21.03, 105.81);
@@ -188,10 +196,13 @@ class CatalogMapApiTest extends TestCase
 
         $response = $this->getJson('/api/v2/screens/map?' . self::HANOI . '&limit=1')->assertOk();
 
-        $response->assertJsonCount(1, 'data')
-            ->assertJsonPath('meta.returned', 1)
+        $response->assertJsonPath('meta.mode', 'cluster')
+            ->assertJsonCount(0, 'data')
+            ->assertJsonPath('meta.returned', 0)
             ->assertJsonPath('meta.total', 3)
-            ->assertJsonPath('meta.truncated', true);
+            ->assertJsonPath('meta.truncated', false);
+
+        $this->assertNotEmpty($response->json('clusters'), 'Chế độ cụm mà không trả cụm nào.');
     }
 
     public function test_khong_bi_cat_thi_khong_bao_la_bi_cat(): void
@@ -220,7 +231,20 @@ class CatalogMapApiTest extends TestCase
             ->assertJsonPath('meta.total', 2);
     }
 
-    public function test_cat_co_thu_tu_xac_dinh(): void
+    /**
+     * Thứ tự cụm phải xác định.
+     *
+     * Ca này trước lát A so hai tập **pin bị cắt**. Sau lát A, `limit=2` với 4
+     * màn hình cho chế độ cụm và `data` rỗng, nên phép so cũ thành
+     * `[] === []` — **xanh một cách rỗng**. Phát hiện khi chạy lại bộ test
+     * ngày 23/10/2026: ca duy nhất đỏ là ca kia, còn ca này im lặng ngừng canh
+     * gì cả.
+     *
+     * Nên nó chuyển sang so thứ tự **cụm**: MySQL không bảo đảm thứ tự của
+     * `GROUP BY` khi không có `ORDER BY`, và client vẽ lại cụm theo thứ tự
+     * khác là một lần nháy màn hình không ai giải thích được.
+     */
+    public function test_thu_tu_cum_xac_dinh_giua_hai_lan_goi(): void
     {
         foreach ([[21.02, 105.80], [21.03, 105.81], [21.04, 105.82], [21.05, 105.83]] as [$lat, $lon]) {
             $this->screenAt($lat, $lon);
@@ -229,11 +253,178 @@ class CatalogMapApiTest extends TestCase
         $lan1 = $this->getJson('/api/v2/screens/map?' . self::HANOI . '&limit=2')->assertOk();
         $lan2 = $this->getJson('/api/v2/screens/map?' . self::HANOI . '&limit=2')->assertOk();
 
+        $this->assertNotEmpty($lan1->json('clusters'), 'Không có cụm nào để so thứ tự.');
+
         $this->assertSame(
-            collect($lan1->json('data'))->pluck('slug')->all(),
-            collect($lan2->json('data'))->pluck('slug')->all(),
-            'Hai lần gọi giống hệt nhau ra hai tập pin khác nhau — pin bị cắt đang không có thứ tự.'
+            $lan1->json('clusters'),
+            $lan2->json('clusters'),
+            'Hai lần gọi giống hệt nhau ra hai tập cụm khác nhau — cụm đang không có thứ tự.'
         );
+    }
+
+    // ── Lát A: gom cụm thay vì cắt thiên lệch ───────────────────────────────
+
+    /**
+     * **Ca chống hồi quy của chính lỗi lát A sửa.**
+     *
+     * Trước lát A, `getMapPins()` cắt bằng `orderBy('screens.id')->limit()`.
+     * ULID tăng theo thời gian tạo, nên bản đồ trả về đúng `limit` màn hình
+     * **nhập vào sớm nhất** — và kho nhập sau đó không tồn tại trên bản đồ.
+     *
+     * Ca dựng đúng hình dạng đó: ba màn hình cũ ở một chỗ, ba màn hình mới ở
+     * một chỗ khác, ngân sách 3 pin. Hành vi cũ trả về ba cái cũ và báo
+     * `truncated: true`; ba cái mới biến mất không dấu vết. Hành vi đúng là
+     * đếm đủ sáu.
+     */
+    public function test_ban_do_khong_chi_thay_ban_ghi_nhap_som_nhat(): void
+    {
+        // Ba màn hình "cũ" — id nhỏ hơn vì tạo trước.
+        $cu = collect(range(1, 3))->map(fn ($i) => $this->screenAt(21.01 + $i / 1000, 105.80));
+
+        // Ba màn hình "mới" ở một góc khác của khung nhìn.
+        $moi = collect(range(1, 3))->map(fn ($i) => $this->screenAt(21.15 + $i / 1000, 105.88));
+
+        $this->assertTrue(
+            $moi->min('id') > $cu->max('id'),
+            'Dàn cảnh sai: màn hình "mới" phải có ULID lớn hơn, nếu không ca này không dựng lại được lỗi.'
+        );
+
+        $response = $this->getJson('/api/v2/screens/map?' . self::HANOI . '&limit=3')->assertOk();
+
+        $response->assertJsonPath('meta.mode', 'cluster')
+            ->assertJsonPath('meta.total', 6)
+            ->assertJsonPath('meta.truncated', false);
+
+        $this->assertSame(
+            6,
+            collect($response->json('clusters'))->sum('count'),
+            'Tổng số đếm của các cụm không bằng số màn hình trong khung nhìn — '
+            . 'bản đồ vẫn đang giấu một phần kho.'
+        );
+
+        // Và hai nhóm phải nằm ở hai cụm khác nhau: gộp cả sáu vào một cụm
+        // cũng cho tổng đúng nhưng vẽ sai chỗ, nên tổng một mình chưa đủ canh.
+        $this->assertGreaterThanOrEqual(
+            2,
+            count($response->json('clusters')),
+            'Sáu màn hình cách nhau 0,14° mà chỉ ra một cụm — ô lưới đang quá thô.'
+        );
+    }
+
+    /**
+     * Tâm cụm là **trung bình toạ độ**, không phải tâm hình học của ô.
+     *
+     * Tâm ô xếp mọi cụm thành một lưới đều tăm tắp, nhìn như dữ liệu tổng hợp
+     * chứ không như kho thật; trung bình đặt dấu vào đúng chỗ dày, nên một cụm
+     * ở ngoại thành nằm lệch về phía nội thành — đúng như kho nằm.
+     *
+     * Ca này tồn tại vì một lần đột biến (23/10/2026): đổi `AVG` thành `MIN`
+     * trong truy vấn gom và **cả 30 ca của tệp này vẫn xanh**. Tâm cụm lúc đó
+     * là một lựa chọn thiết kế đã ghi trong docblock mà không có gì giữ.
+     */
+    public function test_tam_cum_la_trung_binh_toa_do_khong_phai_goc_o(): void
+    {
+        // Khung `HANOI` rộng 0,3° nên cạnh ô là 0,02°. Ba màn hình dưới đây
+        // nằm trong CÙNG một ô (FLOOR(lat / 0,02) = 1050) nhưng lệch hẳn về
+        // một phía, nên trung bình, nhỏ nhất và lớn nhất khác nhau rõ.
+        foreach ([[21.001, 105.801], [21.002, 105.802], [21.015, 105.815]] as [$lat, $lon]) {
+            $this->screenAt($lat, $lon);
+        }
+
+        $cums = $this->getJson('/api/v2/screens/map?' . self::HANOI . '&limit=1')
+            ->assertOk()
+            ->assertJsonPath('meta.mode', 'cluster')
+            ->json('clusters');
+
+        $this->assertCount(1, $cums, 'Ba màn hình trong cùng một ô 0,02° mà ra nhiều cụm.');
+
+        // (21,001 + 21,002 + 21,015) / 3 = 21,006
+        $this->assertEqualsWithDelta(21.006, $cums[0]['lat'], 0.0005, 'Tâm cụm không phải trung bình vĩ độ.');
+        $this->assertEqualsWithDelta(105.806, $cums[0]['lng'], 0.0005, 'Tâm cụm không phải trung bình kinh độ.');
+
+        // Và nói thẳng ra hai ngả sai, để thông báo lỗi chỉ đúng chỗ khi ai đó
+        // đổi `AVG` thành `MIN`/`MAX` hay sang tâm ô.
+        $this->assertNotEqualsWithDelta(21.001, $cums[0]['lat'], 0.0005, 'Tâm cụm đang là góc nhỏ nhất của ô.');
+        $this->assertNotEqualsWithDelta(21.015, $cums[0]['lat'], 0.0005, 'Tâm cụm đang là góc lớn nhất của ô.');
+        $this->assertNotEqualsWithDelta(21.000, $cums[0]['lat'], 0.0005, 'Tâm cụm đang là tâm hình học của ô.');
+    }
+
+    public function test_cum_ton_trong_bo_loc_giong_pin(): void
+    {
+        $ownerA = Owner::factory()->create(['status' => 'active', 'slug' => 'chu-a']);
+        $ownerB = Owner::factory()->create(['status' => 'active', 'slug' => 'chu-b']);
+
+        foreach (range(1, 3) as $i) {
+            $this->screenAt(21.01 + $i / 1000, 105.80, $ownerA);
+        }
+
+        foreach (range(1, 3) as $i) {
+            $this->screenAt(21.15 + $i / 1000, 105.88, $ownerB);
+        }
+
+        // Bộ lọc trôi khỏi nhau giữa hai chế độ là lỗi khó thấy nhất của lát
+        // này: cả hai trả về thứ trông hợp lý, chỉ con số là sai.
+        $this->getJson('/api/v2/screens/map?' . self::HANOI . '&limit=1&owner[]=chu-a')
+            ->assertOk()
+            ->assertJsonPath('meta.mode', 'cluster')
+            ->assertJsonPath('meta.total', 3);
+    }
+
+    public function test_cum_khong_dem_man_hinh_ngoai_khung_nhin(): void
+    {
+        foreach (range(1, 3) as $i) {
+            $this->screenAt(21.01 + $i / 1000, 105.80);
+        }
+
+        $this->screenAt(10.77, 106.70);   // TP.HCM, ngoài khung
+
+        $response = $this->getJson('/api/v2/screens/map?' . self::HANOI . '&limit=1')->assertOk();
+
+        $this->assertSame(3, (int) $response->json('meta.total'));
+        $this->assertSame(3, collect($response->json('clusters'))->sum('count'));
+    }
+
+    public function test_cum_khong_lo_truong_nao_nhan_dang_duoc(): void
+    {
+        $owner = Owner::factory()->create(['status' => 'active', 'revenue_share_pct' => 63.17]);
+
+        foreach (range(1, 3) as $i) {
+            $this->screenAt(21.01 + $i / 1000, 105.80, $owner);
+        }
+
+        $response = $this->getJson('/api/v2/screens/map?' . self::HANOI . '&limit=1')->assertOk();
+
+        // Ở mức thu phóng rộng một ô có thể chứa đúng một màn hình, và khi đó
+        // "tâm cụm" là toạ độ của nó. Một cụm vì vậy không được mang gì nhận
+        // dạng được — nó là một phép đếm, không phải một đối tượng trong kho.
+        foreach ($response->json('clusters') as $cum) {
+            $this->assertSame(['lat', 'lng', 'count'], array_keys($cum));
+        }
+
+        $this->assertStringNotContainsString('device_token', $response->getContent());
+        $this->assertStringNotContainsString('revenue_share_pct', $response->getContent());
+        $this->assertStringNotContainsString('63.17', $response->getContent());
+    }
+
+    public function test_che_do_pin_khong_tra_cum_va_nguoc_lai(): void
+    {
+        $this->screenAt(21.02, 105.80);
+        $this->screenAt(21.03, 105.81);
+
+        // Trong ngân sách: pin thật, không cụm.
+        $this->getJson('/api/v2/screens/map?' . self::HANOI)
+            ->assertOk()
+            ->assertJsonPath('meta.mode', 'pin')
+            ->assertJsonCount(2, 'data')
+            ->assertJsonCount(0, 'clusters')
+            ->assertJsonPath('meta.cell_deg', null);
+
+        // Trên ngân sách: cụm, không pin — và `cell_deg` nói ô rộng bao nhiêu.
+        $response = $this->getJson('/api/v2/screens/map?' . self::HANOI . '&limit=1')->assertOk();
+
+        $response->assertJsonPath('meta.mode', 'cluster')->assertJsonCount(0, 'data');
+
+        $this->assertGreaterThan(0, (float) $response->json('meta.cell_deg'));
     }
 
     // ── Danh sách trắng ─────────────────────────────────────────────────────

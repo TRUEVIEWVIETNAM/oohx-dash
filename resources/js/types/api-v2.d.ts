@@ -213,14 +213,38 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            /** @description Pin thật. **Rỗng ở chế độ `cluster`.** */
                             data: components["schemas"]["MapPin"][];
+                            /** @description Ô lưới có số đếm. **Rỗng ở chế độ `pin`.** */
+                            clusters: components["schemas"]["MapCluster"][];
                             meta: {
+                                /**
+                                 * @description Chế độ của phản hồi. **Đọc khoá này, đừng suy từ độ dài
+                                 *     `data`:** một khung nhìn rỗng ở chế độ `pin` cũng có
+                                 *     `data` rỗng, và hai trạng thái đó cần hai câu trả lời
+                                 *     ngược nhau trên màn hình.
+                                 * @enum {string}
+                                 */
+                                mode: "pin" | "cluster";
+                                /** @description Số pin trả về. `0` ở chế độ `cluster`. */
                                 returned: number;
-                                /** @description Tổng số pin khớp bộ lọc và khung nhìn, trước khi cắt. */
+                                /** @description Tổng số màn hình khớp bộ lọc và khung nhìn. Ở chế độ `cluster` nó bằng tổng `count` của các ô. */
                                 total: number;
+                                /** @description Ngân sách pin. Trên ngưỡng này endpoint đổi sang `cluster` chứ không cắt bớt. */
                                 limit: number;
                                 max_limit: number;
+                                /**
+                                 * @deprecated
+                                 * @description **Luôn `false` từ 23/10/2026 (lát A).** Giữ lại vì là hợp
+                                 *     đồng cũ. Trước lát A, khung nhìn rộng bị cắt về `limit`
+                                 *     pin bằng `ORDER BY screens.id`, tức trả về `limit` màn
+                                 *     hình **nhập vào sớm nhất** — không phải một mẫu. Cờ này
+                                 *     nói là đã cắt nhưng không nói rằng phần bị cắt có hệ
+                                 *     thống. Nay endpoint đổi chế độ thay vì cắt.
+                                 */
                                 truncated: boolean;
+                                /** @description Cạnh ô lưới, tính bằng độ. `null` ở chế độ `pin`. */
+                                cell_deg: number | null;
                                 viewport: {
                                     north: number;
                                     south: number;
@@ -3262,6 +3286,24 @@ export interface components {
                 duration_discount_pct?: number | null;
             };
             notes?: string | null;
+        };
+        /**
+         * @description Một ô lưới trên bản đồ: toạ độ tâm và số màn hình trong ô.
+         *
+         *     Ba trường, và đó là toàn bộ. Một cụm **không** là một đối tượng trong
+         *     kho — nó là một phép đếm. Thêm bất cứ thứ gì nhận dạng được vào đây là
+         *     mở một đường danh sách mà không ai nghĩ là đường danh sách: ở mức thu
+         *     phóng rộng một ô có thể chứa đúng một màn hình, và khi đó "tâm cụm"
+         *     chính là toạ độ của nó.
+         *
+         *     Tâm là **trung bình toạ độ** các màn hình trong ô, không phải tâm hình
+         *     học của ô. Tâm hình học xếp mọi cụm thành một lưới đều tăm tắp, nhìn
+         *     như dữ liệu tổng hợp chứ không như kho thật.
+         */
+        MapCluster: {
+            lat: number;
+            lng: number;
+            count: number;
         };
         /**
          * @description Cố tình gọn: bản đồ trả hàng trăm bản ghi một lúc nên mỗi trường thừa

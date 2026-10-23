@@ -382,7 +382,8 @@ const ROUTES = {
                 photo_url: 'https://oohx.net/storage/screens/a.jpg',
             },
         ],
-        meta: { returned: 1, total: 1, truncated: false, max: 500 },
+        clusters: [],
+        meta: { mode: 'pin', returned: 1, total: 1, truncated: false, cell_deg: null, max: 500 },
     },
 
     '/api/v2/owners': { data: [OWNER], meta: PAGE_META },

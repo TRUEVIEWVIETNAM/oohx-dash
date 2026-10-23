@@ -97,15 +97,33 @@ test('dung sai theo CẠNH khung, không phải một số độ cố định', 
     assert.equal(kn.canNapLai(duongpho, { ...duongpho, north: duongpho.north + 0.05 }), true);
 });
 
-test('lần nạp trước bị CẮT ở 500 thì mọi cú di chuyển đều đáng nạp lại', () => {
-    // Trần cứng của `GET /api/v2/screens/map`. Tập đang có không đầy đủ ngay
-    // cả trong vùng cũ, nên thu nhỏ lại cũng có thể lộ ra pin đã bị cắt —
-    // luật "nằm gọn bên trong" không còn đúng.
+test('lần nạp trước ở CHẾ ĐỘ CỤM thì mọi cú di chuyển đều đáng nạp lại', () => {
+    // Trong tay chỉ có ô lưới có số đếm, không có pin nào — nên luật "nằm gọn
+    // bên trong" không còn đúng. Đây là lưới an toàn duy nhất đưa người dùng
+    // từ cụm xuống pin: phóng to vào GIỮA vùng đã nạp là khung mới nằm gọn
+    // trong khung cũ, và không có cờ này thì bản đồ kẹt ở cụm mãi mãi dù đã
+    // phóng tới sát mặt đường.
+    assert.equal(
+        kn.canNapLai(DA_NAP, { ...DA_NAP, north: DA_NAP.north - 0.1, south: DA_NAP.south + 0.1 }, true),
+        true,
+    );
+
     assert.equal(kn.canNapLai(DA_NAP, khung(10.8, 106.7, 0.4), true), true);
 
     // Nhưng đứng yên hoàn toàn thì vẫn không hiện: hàm chỉ được gọi ở
-    // `moveend`, và ca này canh rằng cờ `daCat` không tự bật nút một mình.
+    // `moveend`, và ca này canh rằng cờ `chuaDayDu` không tự bật nút một mình.
     assert.equal(kn.canNapLai(null, khung(10.8, 106.7, 0.4), true), false);
+});
+
+test('phóng to vào giữa vùng đã nạp KHÔNG bật nút khi đang có pin thật', () => {
+    // Mặt còn lại của ca trên, và nó là lý do cờ kia phải là một cờ chứ không
+    // phải "luôn nạp lại": ở chế độ pin, tập đang có đã đủ cho vùng con, nên
+    // bật nút là mời người dùng trả một lời gọi API để nhận lại đúng thứ họ
+    // đang nhìn.
+    assert.equal(
+        kn.canNapLai(DA_NAP, { ...DA_NAP, north: DA_NAP.north - 0.1, south: DA_NAP.south + 0.1 }, false),
+        false,
+    );
 });
 
 // ── Bốn con số của dải tổng quan ───────────────────────────────────────────
@@ -129,13 +147,29 @@ test('không có pin nào thì mọi ô đều rỗng, không phải số 0 gi�
 });
 
 test('tổng lấy từ meta.total, KHÔNG từ số pin trả về', () => {
-    // Hai con số khác nhau khi API cắt ở trần: `data` có 500 phần tử còn
-    // `meta.total` nói 1.200. In số nhỏ là nói với người mua rằng vùng này
-    // chỉ có 500 vị trí.
-    const t = kn.tomTatKhung([pin(1_000_000)], { returned: 1, total: 1200, truncated: true });
+    // Ở chế độ cụm `data` rỗng còn `meta.total` nói 1.200. Lấy số pin là nói
+    // với người mua rằng vùng này không có vị trí nào.
+    const t = kn.tomTatKhung([], { mode: 'cluster', returned: 0, total: 1200, truncated: false });
 
     assert.equal(t.tong, 1200);
-    assert.equal(t.daCat, true);
+    assert.equal(t.cheDoCum, true);
+});
+
+test('chế độ cụm phải đọc từ meta.mode, không suy từ số pin', () => {
+    // Khung nhìn rỗng ở chế độ pin cũng có 0 pin. Suy theo số lượng thì hai
+    // trạng thái đó lẫn vào nhau, và chúng cần hai câu trả lời ngược nhau:
+    // một cái nói "vùng này chưa có màn hình", cái kia nói "thu nhỏ vùng xem
+    // để thấy từng vị trí".
+    const trong = kn.tomTatKhung([], { mode: 'pin', returned: 0, total: 0, truncated: false });
+
+    assert.equal(trong.cheDoCum, false);
+    assert.equal(trong.tong, 0);
+
+    // Và ngược lại: có pin thật thì không phải chế độ cụm, dù `meta` thiếu
+    // `mode` (phản hồi từ một máy chủ chưa lên lát A).
+    const cuaPin = kn.tomTatKhung([pin(1_000_000)], { returned: 1, total: 1, truncated: false });
+
+    assert.equal(cuaPin.cheDoCum, false);
 });
 
 test('đếm "đã báo giá" bỏ qua giá rỗng và giá bằng không', () => {

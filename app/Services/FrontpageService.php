@@ -445,7 +445,7 @@ class FrontpageService
         });
     }
 
-    public function getOwnerScreens(string $ownerId, Request $request = null, int $perPage = 12): LengthAwarePaginator
+    public function getOwnerScreens(string $ownerId, ?Request $request = null, int $perPage = 12): LengthAwarePaginator
     {
         $query = Screen::publiclyVisible()->where('owner_id', $ownerId);
 
@@ -873,28 +873,162 @@ class FrontpageService
     private function mapPinQuery(Request $request, ?array $viewport = null)
     {
         return $this->buildScreenQuery($request)
-            ->whereHas('site', function ($q) use ($viewport) {
-                $q->whereNotNull('lat')->whereNotNull('lon')
-                    ->where('lat', '!=', 0)->where('lon', '!=', 0);
+            ->whereHas('site', fn ($q) => $this->apDungKhungNhin($q, $viewport, ''));
+    }
 
-                if ($viewport === null) {
-                    return;
-                }
+    /**
+     * Điều kiện "có toạ độ thật và nằm trong khung nhìn", dùng chung cho cả
+     * đường pin và đường gom cụm.
+     *
+     * Hai đường phải lọc **giống hệt nhau**, nếu không thì số đếm của cụm và
+     * tập pin trả về nói hai điều khác nhau về cùng một khung nhìn — đúng kiểu
+     * lệch mà CLAUDE.md mục 1 ghi lại từ lần `InventoryController` và
+     * `FrontpageService` trôi khỏi nhau. Nên điều kiện sống ở một chỗ, và
+     * `$tien` chỉ là tiền tố cột vì đường cụm đọc qua `join ... as pin_site`
+     * còn đường pin đọc trong `whereHas` (cột trần).
+     *
+     * @param  array{north:float,south:float,east:float,west:float}|null  $viewport
+     */
+    private function apDungKhungNhin($q, ?array $viewport, string $tien)
+    {
+        $lat = $tien . 'lat';
+        $lon = $tien . 'lon';
 
-                $q->whereBetween('lat', [$viewport['south'], $viewport['north']]);
+        $q->whereNotNull($lat)->whereNotNull($lon)
+            ->where($lat, '!=', 0)->where($lon, '!=', 0);
 
-                // Khung nhìn vắt qua kinh tuyến 180 thì `west` lớn hơn `east`
-                // và `whereBetween` trả rỗng. Dữ liệu hiện chỉ có Việt Nam nên
-                // ca này không xảy ra, nhưng để `whereBetween` trần ở đây là
-                // để lại một cái bẫy im lặng cho người dùng bản đồ thế giới.
-                if ($viewport['west'] <= $viewport['east']) {
-                    $q->whereBetween('lon', [$viewport['west'], $viewport['east']]);
-                } else {
-                    $q->where(fn ($or) => $or
-                        ->where('lon', '>=', $viewport['west'])
-                        ->orWhere('lon', '<=', $viewport['east']));
-                }
-            });
+        if ($viewport === null) {
+            return $q;
+        }
+
+        $q->whereBetween($lat, [$viewport['south'], $viewport['north']]);
+
+        // Khung nhìn vắt qua kinh tuyến 180 thì `west` lớn hơn `east` và
+        // `whereBetween` trả rỗng. Dữ liệu hiện chỉ có Việt Nam nên ca này
+        // không xảy ra, nhưng để `whereBetween` trần ở đây là để lại một cái
+        // bẫy im lặng cho người dùng bản đồ thế giới.
+        if ($viewport['west'] <= $viewport['east']) {
+            $q->whereBetween($lon, [$viewport['west'], $viewport['east']]);
+        } else {
+            $q->where(fn ($or) => $or
+                ->where($lon, '>=', $viewport['west'])
+                ->orWhere($lon, '<=', $viewport['east']));
+        }
+
+        return $q;
+    }
+
+    /**
+     * Cạnh ô lưới (độ) cho một khung nhìn, chọn từ một thang cố định.
+     *
+     * ══ Vì sao có thang, không tính thẳng `span / 16` ══
+     *
+     * Ô lưới phải **neo vào một lưới cố định**, nếu không thì mỗi lần người
+     * dùng kéo bản đồ một chút, ranh ô dịch theo và mọi cụm nhảy chỗ — cùng
+     * một kho trông như vừa thay đổi. `FLOOR(lat / $o)` neo được vì `$o` chỉ
+     * nhận một trong mấy giá trị dưới đây, không phải một số bất kỳ phụ thuộc
+     * khung nhìn.
+     *
+     * ══ Vì sao không dùng luỹ thừa của 10 ══
+     *
+     * `ROUND(lat, n)` đơn giản hơn, nhưng mỗi nấc nhảy 10 lần, nên số ô ngang
+     * trượt từ 2 tới 20 giữa hai nấc. Thang 1–2–5 nhảy 2–2,5 lần, giữ số ô
+     * quanh 8–16 ở mọi mức thu phóng.
+     *
+     * Chọn ô **nhỏ nhất vẫn giữ được ≤ 16 ô ngang**, nên tổng ô luôn dưới
+     * 16 × 16 = 256 — đủ nhỏ để trả về cả gói mà không cần phân trang, và
+     * cũng là lý do chế độ cụm không cần trần nào.
+     *
+     * ══ Đầu mịn của thang phải chạm tới 0,0001° ══
+     *
+     * Bản đầu dừng ở 0,002°, và ca `test_so_o_ngang_khong_qua_muoi_sau_o…` bắt
+     * được: khung 0,0045° (≈500m, tức thu phóng hết vào một con phố) chỉ ra
+     * **4,5 ô ngang** vì thang đã cạn. Ở mức đó bản đồ gần như không nói gì
+     * thêm so với bốn chấm. 0,0001° ≈ 11m là nấc cuối có nghĩa cho một biển
+     * quảng cáo.
+     */
+    public const THANG_O_LUOI = [
+        5.0, 2.0, 1.0, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001,
+    ];
+
+    public static function coOLuoi(array $viewport): float
+    {
+        $thang = self::THANG_O_LUOI;
+
+        $rong = max(
+            abs($viewport['north'] - $viewport['south']),
+            abs($viewport['east'] - $viewport['west']),
+        );
+
+        $canToiThieu = $rong / 16;
+
+        foreach (array_reverse($thang) as $o) {
+            if ($o >= $canToiThieu) {
+                return $o;
+            }
+        }
+
+        return $thang[0];
+    }
+
+    /**
+     * Gom màn hình trong khung nhìn thành **ô lưới có số đếm**.
+     *
+     * ══ Lỗi nó sửa ══
+     *
+     * `getMapPins()` cắt bằng `orderBy('screens.id')->limit($limit)`. ULID
+     * tăng theo thời gian tạo, nên ở khung nhìn rộng bản đồ trả về đúng
+     * `$limit` màn hình **nhập vào sớm nhất** — không phải một mẫu, không phải
+     * cái gần nhất. Đo ngày 22/10/2026 trên 10.000 bản ghi giả: khung cả nước
+     * trả 500 pin, ranh giới nằm chính xác ở vị trí thứ 500 theo thứ tự nhập,
+     * và 9.500 màn hình **không tồn tại** trên bản đồ. Trong 97ms.
+     *
+     * `meta.truncated` có nói là đã cắt. Nó không nói rằng phần bị cắt có hệ
+     * thống, nên người mua rà cả nước nhận một câu trả lời nhanh, gọn, và sai.
+     *
+     * Gom cụm thì không còn gì bị cắt, vì không còn trả về từng pin.
+     *
+     * ══ Tâm cụm là trung bình toạ độ, không phải tâm ô ══
+     *
+     * Tâm ô làm mọi cụm xếp thành một lưới đều tăm tắp, nhìn như dữ liệu tổng
+     * hợp chứ không như kho thật. Trung bình đặt dấu vào đúng chỗ dày, nên một
+     * cụm ở ngoại thành nằm lệch về phía nội thành — đúng như kho nằm.
+     *
+     * @param  array{north:float,south:float,east:float,west:float}  $viewport
+     * @return Collection<int, object{lat:float,lng:float,so:int}>
+     */
+    public function getMapClusters(Request $request, array $viewport, float $o): Collection
+    {
+        // `sites as pin_site`, không `sites` trần. `buildScreenQuery()` có
+        // những `whereHas('site', …)` đọc cột `city`/`lat` không tiền tố; join
+        // thêm một `sites` cùng tên làm chúng nhập nhằng. Đúng cái bẫy đã làm
+        // `?q=…&sort=distance` trả 500 ngày 22/10 (#160).
+        $query = $this->buildScreenQuery($request)
+            ->join('sites as pin_site', 'screens.site_id', '=', 'pin_site.id');
+
+        $this->apDungKhungNhin($query, $viewport, 'pin_site.');
+
+        return collect(
+            $query->toBase()
+                ->selectRaw(
+                    'FLOOR(pin_site.lat / ?) as o_lat, FLOOR(pin_site.lon / ?) as o_lon,'
+                    . ' COUNT(*) as so, AVG(pin_site.lat) as tam_lat, AVG(pin_site.lon) as tam_lon',
+                    [$o, $o]
+                )
+                ->groupBy('o_lat', 'o_lon')
+                // Thứ tự xác định: cụm dày nhất trước, rồi theo ô. Không có
+                // `ORDER BY` thì MySQL được phép đổi thứ tự giữa hai lần gọi,
+                // và client vẽ lại cụm theo thứ tự khác là một lần nháy màn
+                // hình không ai giải thích được.
+                ->orderByDesc('so')
+                ->orderBy('o_lat')
+                ->orderBy('o_lon')
+                ->get()
+        )->map(fn ($hang) => (object) [
+            'lat' => (float) $hang->tam_lat,
+            'lng' => (float) $hang->tam_lon,
+            'so'  => (int) $hang->so,
+        ]);
     }
 
     /**
