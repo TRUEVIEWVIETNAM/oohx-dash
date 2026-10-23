@@ -33,7 +33,7 @@ import { gonTien, nhanDonVi, type TomTat } from '@/lib/khung-nhin';
  * có số, và không phải đổi bố cục nào.
  */
 export function DaiTongQuan({ tomTat }: { tomTat: TomTat }) {
-    const { tong, daCat, daBaoGia, giaMin, giaMax, donVi, tienTe } = tomTat;
+    const { tong, cheDoCum, daBaoGia, giaMin, giaMax, donVi, tienTe } = tomTat;
 
     const khoangGia =
         giaMin === null || giaMax === null
@@ -69,11 +69,20 @@ export function DaiTongQuan({ tomTat }: { tomTat: TomTat }) {
                 <O nhan="Lượt xem/ngày" gt="—" mo chuThich="chưa đo" />
             </div>
 
-            {daCat ? (
-                // Nói ra khi API đã cắt ở trần 500. Im lặng ở đây là để người
-                // dùng tin rằng vùng này chỉ có chừng ấy màn hình.
+            {cheDoCum ? (
+                /*
+                  Ở chế độ cụm, `Vị trí` là con số **đúng và đầy đủ** của cả
+                  khung nhìn — nhưng ba ô còn lại đọc từ pin, và không có pin
+                  nào. Im lặng ở đây là để một ô "Khoảng giá —" nói với người
+                  mua rằng vùng này chưa ai báo giá, trong khi sự thật là chưa
+                  ai hỏi tới từng vị trí.
+
+                  Ngược hẳn với dòng trước lát A, vốn báo rằng API đã cắt ở
+                  trần pin: dòng đó nói con số `Vị trí` không đáng tin. Giờ
+                  con số đó mới là thứ đáng tin nhất trên dải.
+                */
                 <p className="ex-tq-cat">
-                    Đã cắt ở 500 vị trí — thu nhỏ vùng xem để thấy đủ
+                    Đang xem theo cụm — thu nhỏ vùng xem để thấy từng vị trí và khoảng giá
                 </p>
             ) : null}
         </div>
