@@ -44,7 +44,23 @@ export const VIETNAM = {
     zoom: 5.5,
 };
 
-export type MetaPin = { returned: number; total: number; truncated: boolean };
+/**
+ * `meta` của `GET /api/v2/screens/map`.
+ *
+ * `mode` là khoá quan trọng nhất ở đây (lát A, 23/10/2026): nó nói phản hồi
+ * đang mang pin hay mang ô lưới có số đếm. Không suy từ `data.length` — khung
+ * nhìn rỗng và khung nhìn quá dày trông giống hệt nhau khi suy như vậy, và hai
+ * thứ đó cần hai câu trả lời ngược nhau trên màn hình.
+ *
+ * `truncated` giữ lại vì là hợp đồng cũ và nay luôn `false`.
+ */
+export type MetaPin = {
+    mode?: 'pin' | 'cluster';
+    returned: number;
+    total: number;
+    truncated: boolean;
+    cell_deg?: number | null;
+};
 
 // Danh sách tham số bị bỏ (`BO_QUA_PIN`) chuyển sang `pin-api.ts`
 // ngày 22/10/2026: kiểu xem lưới cũng cần nó để đếm vị trí quanh người
@@ -95,8 +111,8 @@ export function useBanDoPin({
     /** Khung nhìn mà tập pin đang có được nạp từ đó. */
     const khungDaNapRef = useRef<Khung | null>(null);
 
-    /** Lần nạp trước có chạm trần 500 pin không — xem `canNapLai`. */
-    const daCatRef = useRef(false);
+    /** Tập đang có chưa mô tả đủ khung đã nạp (chế độ cụm) — xem `canNapLai`. */
+    const chuaDayDuRef = useRef(false);
 
     /** Người dùng đã kéo ra khỏi vùng dữ liệu: hiện nút "Tìm trong khu vực này". */
     const [capNhat, setCapNhat] = useState(false);
@@ -179,10 +195,11 @@ export function useBanDoPin({
                 setMeta(body.meta);
                 setLoi(null);
 
-                // Ghi lại khung nhìn mà tập pin này đến từ đó, và trần có bị
-                // chạm không. Hai thứ đó là toàn bộ đầu vào của `canNapLai`.
+                // Ghi lại khung nhìn mà tập này đến từ đó, và liệu nó đã mô tả
+                // đủ vùng đó chưa. Hai thứ đó là toàn bộ đầu vào của
+                // `canNapLai`.
                 khungDaNapRef.current = khung;
-                daCatRef.current = body.meta?.truncated ?? false;
+                chuaDayDuRef.current = body.meta?.mode === 'cluster';
                 setCapNhat(false);
 
                 const cluster = clusterRef.current;
@@ -190,6 +207,49 @@ export function useBanDoPin({
 
                 cluster.clearLayers();
                 markerRef.current.clear();
+
+                // ── Chế độ cụm ──────────────────────────────────────────────
+                //
+                // Đọc `meta.mode`, không `clusters.length`: một khung nhìn
+                // rỗng ở chế độ pin cũng có `clusters` rỗng, và nếu suy theo
+                // độ dài thì hai trạng thái đó lẫn vào nhau.
+                if (body.meta?.mode === 'cluster') {
+                    const oCum = (body.clusters ?? []).map((c) => {
+                        // `cumHtml` — cùng vòng tròn mà `leaflet.markercluster`
+                        // vẽ cho cụm phía trình duyệt. Hai nguồn cụm khác nhau,
+                        // nhưng với người dùng chúng nói **cùng một điều** ("n
+                        // vị trí ở đây, bấm để phóng to"), nên chúng phải trông
+                        // giống nhau. Vẽ một vòng tròn thứ hai cho cùng một ý
+                        // là dạy người dùng một vốn từ thị giác không có nghĩa.
+                        const { html, px } = cumHtml(c.count);
+
+                        const icon = L.divIcon({
+                            className: 'oohx-pin',
+                            html,
+                            iconSize: [px, px],
+                            iconAnchor: [px / 2, px / 2],
+                        });
+
+                        const marker = L.marker([c.lat, c.lng], { icon });
+
+                        // Bấm vào cụm thì phóng to vào nó. Đây là đường duy
+                        // nhất đi từ cụm xuống pin, nên nó không được là một
+                        // cú bấm chết: `flyTo` kèm `moveend` sẽ bật nút "Tìm
+                        // trong khu vực này" qua `canNapLai`, vì `chuaDayDuRef`
+                        // đang bật ở chế độ cụm.
+                        marker.on('click', () => {
+                            map.flyTo([c.lat, c.lng], Math.min(map.getZoom() + 3, 17), {
+                                duration: 0.6,
+                            });
+                        });
+
+                        return marker;
+                    });
+
+                    cluster.addLayers(oCum);
+
+                    return body.meta;
+                }
 
                 const lop = gomTheoSite(body.data).map((cum) => {
                     const icon = L.divIcon({
@@ -339,7 +399,7 @@ export function useBanDoPin({
                             east: b.getEast(),
                             west: b.getWest(),
                         },
-                        daCatRef.current,
+                        chuaDayDuRef.current,
                     ),
                 );
             });

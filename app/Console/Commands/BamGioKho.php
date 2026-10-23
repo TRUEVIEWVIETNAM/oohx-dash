@@ -58,6 +58,20 @@ class BamGioKho extends Command
                 $kho->countMapPins($this->req([]), self::KHUNG_MOT_QUAN),
             ],
 
+            // Đường của lát A: một `GROUP BY` thay cho `count` + 500 pin + 8
+            // lượt nạp quan hệ.
+            'map · cụm, khung cả nước' => fn () => $kho->getMapClusters(
+                $this->req([]),
+                self::KHUNG_CA_NUOC,
+                FrontpageService::coOLuoi(self::KHUNG_CA_NUOC)
+            )->count(),
+
+            'map · cụm, khung một quận' => fn () => $kho->getMapClusters(
+                $this->req([]),
+                self::KHUNG_MOT_QUAN,
+                FrontpageService::coOLuoi(self::KHUNG_MOT_QUAN)
+            )->count(),
+
             'sort=distance · trang 1' => fn () => $kho->getScreensPaginated(
                 $this->req(['sort' => 'distance', 'near_lat' => '21.0278', 'near_lng' => '105.8342']),
                 24

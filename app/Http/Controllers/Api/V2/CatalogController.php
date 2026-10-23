@@ -9,6 +9,7 @@ use App\Http\Requests\Api\V2\ScreenAvailabilityRequest;
 use App\Http\Requests\Api\V2\OwnerListingRequest;
 use App\Http\Requests\FrontpageListingRequest;
 use App\Http\Requests\ProductListingRequest;
+use App\Http\Resources\V2\MapClusterResource;
 use App\Http\Resources\V2\MapPinResource;
 use App\Http\Resources\V2\OwnerDetailResource;
 use App\Http\Requests\Api\V2\AgencyListingRequest;
@@ -269,15 +270,35 @@ class CatalogController extends Controller
             ->all();
     }
     /**
-     * Pin bản đồ trong một khung nhìn.
+     * Pin bản đồ trong một khung nhìn — **hai chế độ**, và `meta.mode` nói rõ
+     * đang ở chế độ nào.
      *
      * Khung nhìn **bắt buộc** — thiếu là 422, không phải "mặc định cả thế
      * giới". Xem `MapViewportRequest` về lý do.
      *
-     * Vẫn có giới hạn cứng số pin bên trên khung nhìn, vì khung nhìn rộng vẫn
-     * có thể trùm cả kho. Khi bị cắt thì nói thẳng trong `meta`: client biết
-     * mình đang xem thiếu và cần thu nhỏ khung nhìn, thay vì tưởng đã thấy
-     * hết. Một bản đồ trả thiếu trong im lặng còn tệ hơn một bản đồ báo lỗi.
+     * ══ Vì sao có chế độ thứ hai (lát A, 23/10/2026) ══
+     *
+     * Trước lát này, khung nhìn rộng bị cắt về `limit` pin bằng
+     * `orderBy('screens.id')`. ULID tăng theo thời gian tạo, nên "500 pin" là
+     * **500 màn hình nhập vào sớm nhất**, không phải một mẫu. Đo trên 10.000
+     * bản ghi: khung cả nước trả 500, ranh giới nằm chính xác ở vị trí thứ 500
+     * theo thứ tự nhập, 9.500 màn hình không tồn tại trên bản đồ — trong 97ms.
+     *
+     * `meta.truncated` có nói là đã cắt, nhưng không nói rằng phần bị cắt có
+     * hệ thống. Một bản đồ trả thiếu trong im lặng tệ hơn một bản đồ báo lỗi;
+     * một bản đồ trả **thiên lệch** trong im lặng thì tệ hơn cả hai, vì nó
+     * trông đúng.
+     *
+     * Nên nay: trong ngân sách pin thì trả pin (không giấu gì), trên ngân sách
+     * thì trả **ô lưới có số đếm** (không cắt gì). `meta.truncated` còn lại vì
+     * là hợp đồng cũ, và nay luôn `false`.
+     *
+     * ══ Ngưỡng là mật độ, không phải mức thu phóng ══
+     *
+     * Chuyển chế độ theo số bản ghi thật trong khung nhìn, không theo một
+     * ngưỡng zoom. Zoom là một phỏng đoán về mật độ; đếm thì không. Nên khung
+     * nhìn trùm cả biển vẫn trả pin, còn khung nhìn một phường ở quận Hoàn
+     * Kiếm có thể trả cụm — đúng như nó phải vậy.
      */
     public function map(MapViewportRequest $request): JsonResponse
     {
@@ -288,17 +309,55 @@ class CatalogController extends Controller
             self::MAX_MAP_PINS,
         );
 
-        $pins  = $this->catalog->getMapPins($request, $viewport, $limit);
-        $total = $this->catalog->countMapPins($request, $viewport);
+        // Gom cụm **trước**, rồi mới quyết định chế độ.
+        //
+        // Cụm là một `GROUP BY` trả về nhiều nhất ~256 hàng ở mọi mức thu
+        // phóng, nên nó rẻ hơn `countMapPins()` mà nó thay thế — và tổng số
+        // đếm của các ô *chính là* con số đếm đó. Hai truy vấn thành một, và
+        // quan trọng hơn: hai con số không thể trôi khỏi nhau nữa, vì chỉ còn
+        // một con số.
+        $o     = FrontpageService::coOLuoi($viewport);
+        $cums  = $this->catalog->getMapClusters($request, $viewport, $o);
+        $total = (int) $cums->sum('so');
 
+        // Dưới ngân sách pin thì trả pin thật: người dùng thấy từng màn hình,
+        // bấm được, và **không có gì bị giấu**.
+        if ($total <= $limit) {
+            $pins = $this->catalog->getMapPins($request, $viewport, $limit);
+
+            return response()->json([
+                'data'     => MapPinResource::collection($pins)->resolve(),
+                'clusters' => [],
+                'meta'     => [
+                    'mode'      => 'pin',
+                    'returned'  => $pins->count(),
+                    'total'     => $total,
+                    'limit'     => $limit,
+                    'max_limit' => self::MAX_MAP_PINS,
+
+                    // Giữ lại khoá cũ, và nay nó **luôn** `false`: trên ngân
+                    // sách pin thì endpoint đổi sang cụm chứ không cắt bớt.
+                    'truncated' => false,
+                    'cell_deg'  => null,
+                    'viewport'  => $viewport,
+                ],
+            ]);
+        }
+
+        // Trên ngân sách thì trả cụm. Không `data`, và đó là có chủ ý: một
+        // client cũ chưa biết `clusters` sẽ vẽ **bản đồ trống** — hỏng thấy
+        // được ngay — thay vì vẽ 500 pin thiên lệch và trông như đã xong.
         return response()->json([
-            'data' => MapPinResource::collection($pins)->resolve(),
-            'meta' => [
-                'returned'  => $pins->count(),
+            'data'     => [],
+            'clusters' => MapClusterResource::collection($cums)->resolve(),
+            'meta'     => [
+                'mode'      => 'cluster',
+                'returned'  => 0,
                 'total'     => $total,
                 'limit'     => $limit,
                 'max_limit' => self::MAX_MAP_PINS,
-                'truncated' => $total > $pins->count(),
+                'truncated' => false,
+                'cell_deg'  => $o,
                 'viewport'  => $viewport,
             ],
         ]);

@@ -578,11 +578,45 @@ MySQL bỏ qua 9.600 hàng đã sắp. Không ai bò tới đó trừ công cụ
 | Lát | Trạng thái |
 |---|---|
 | **Lát 0** · dựng kho giả và bấm giờ | **Xong.** Hai lệnh `oohx:gia-lap-kho` và `oohx:bam-gio-kho` ở trong repo; số đo ở mục trên |
-| **Lát A** · gom cụm ở máy chủ | **Làm.** Sửa một chỗ trả lời sai: bản đồ cả nước chỉ thấy 500 bản ghi nhập đầu tiên |
+| **Lát A** · gom cụm ở máy chủ | **Xong 23/10/2026.** Số đo ở mục dưới |
 | **Lát B** · khung nới dần | **Không làm.** 68ms ở 10.000. Đo lại quanh 20.000 |
 | **Lát C** · `whereHas` → `join` | **Xoá.** `EXPLAIN` cho thấy optimizer đã chọn đúng đường; giả thuyết sai |
 | **Lát D** · `FULLTEXT` | **Không làm.** 42ms ở ca xấu nhất |
 | *(mới)* · `filters` cache nguội | **Theo dõi.** Dốc nhất bảng (7,2×) và sẽ chạm 300ms trước mọi lát trên |
+
+### Lát A đã làm — số đo 23/10/2026
+
+Ngưỡng chuyển chế độ là **mật độ thật trong khung nhìn**, không phải một mức
+thu phóng: trong ngân sách pin thì trả pin (không giấu gì), trên ngân sách thì
+trả ô lưới có số đếm (không cắt gì). Zoom là một phỏng đoán về mật độ; đếm thì
+không.
+
+| Đường | 10.000 | 50.000 | Truy vấn |
+|---|---|---|---|
+| `map` cả nước — **pin** (trước) | 143ms | **548ms** | 7 |
+| `map` cả nước — **cụm** (sau) | **24ms** | **151ms** | **1** |
+| `map` một quận — cụm | 19ms | 4ms | 1 |
+
+Một `GROUP BY` thay cho `COUNT(*)` + 500 pin + 8 lượt nạp quan hệ. Ở 50.000
+đường bản đồ rời khỏi danh sách "quá 300ms", nhưng đó là **tác dụng phụ** — lát
+này sửa một chỗ trả lời sai, và sẽ đáng làm ngay cả khi nó chậm hơn.
+
+Ba chỗ suýt sập, ghi lại vì chúng là loại lỗi "vẫn trông chạy":
+
+1. **Phóng to vào giữa vùng đã nạp không nạp lại.** Luật `canNapLai` là "chứa
+   trong", và khung mới nằm gọn trong khung cũ, nên bản đồ **kẹt ở cụm mãi mãi**
+   dù người dùng phóng tới sát mặt đường. Cờ `daCat` cũ (bật khi chạm trần 500)
+   đổi thành `chuaDayDu` (bật ở chế độ cụm) — cùng một lưới an toàn, đổi điều
+   kiện bật.
+2. **Một ca chốt xanh một cách rỗng.** `test_cat_co_thu_tu_xac_dinh` so hai tập
+   pin bị cắt; ở chế độ cụm `data` rỗng nên phép so thành `[] === []`. Nó ngừng
+   canh gì cả mà không đỏ. Đổi sang so thứ tự **cụm**.
+3. **Dải tổng quan nói sai.** Ba trong bốn ô đọc từ pin, và ở chế độ cụm không
+   có pin nào — nên ô "Khoảng giá —" đọc thành "vùng này chưa ai báo giá".
+
+Và một lỗ của thang ô lưới, bắt được bằng ca chốt chứ không bằng mắt: thang
+dừng ở 0,002° nên khung 0,0045° (≈500m) chỉ ra **4,5 ô ngang**. Nối thang tới
+0,0001° (≈11m).
 
 ### Quyết định thứ nhất tháo mất lý do tồn tại của lát B như đã viết
 

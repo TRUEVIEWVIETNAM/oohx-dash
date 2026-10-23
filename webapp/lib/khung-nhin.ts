@@ -43,10 +43,16 @@ const DUNG_SAI = 0.005;
  * trong vùng cũ thì mọi pin cần thiết đã nằm sẵn trong tay — bật nút lúc đó
  * là mời người dùng trả một lời gọi API để nhận lại đúng thứ họ đang nhìn.
  *
- * `daCat` lật luật đó: lần nạp trước đã chạm trần 500 pin của
- * `GET /api/v2/screens/map`, nên tập đang có **không** đầy đủ ngay cả trong
- * vùng cũ. Thu nhỏ lại khung thì máy chủ có chỗ trả những pin đã bị cắt, nên
- * mọi cú di chuyển đều đáng nạp lại.
+ * `chuaDayDu` lật luật đó: tập đang có **không** mô tả đủ vùng cũ, nên mọi cú
+ * di chuyển đều đáng nạp lại. Nó bật khi phản hồi trước ở **chế độ cụm**
+ * (`meta.mode === 'cluster'`, từ lát A ngày 23/10/2026) — lúc đó trong tay chỉ
+ * có ô lưới có số đếm, không có pin nào.
+ *
+ * Đây là chỗ dễ bỏ sót nhất của lát A. Phóng to vào giữa vùng đã nạp là khung
+ * mới **nằm gọn trong** khung cũ, nên luật "chứa trong" nói không cần nạp lại
+ * — và bản đồ kẹt ở cụm mãi mãi dù người dùng phóng tới sát mặt đường. Trước
+ * lát A tham số này tên `daCat` và bật khi chạm trần 500 pin; cùng một lưới an
+ * toàn, đổi điều kiện bật.
  *
  * `daNap` là `null` khi chưa nạp lần nào — trả `false`, vì lúc đó lượt nạp
  * đầu tiên đang trên đường và một cái nút "Tìm trong khu vực này" trên một
@@ -56,7 +62,7 @@ const DUNG_SAI = 0.005;
  * dưới đây sẽ sai. Bản đồ này chỉ có kho Việt Nam, và viết nhánh cho một
  * trường hợp không xảy ra là thêm một nhánh không ai chạy để kiểm.
  */
-export function canNapLai(daNap: Khung | null, hienTai: Khung, daCat = false): boolean {
+export function canNapLai(daNap: Khung | null, hienTai: Khung, chuaDayDu = false): boolean {
     if (!daNap) return false;
 
     const docSai = Math.abs(daNap.north - daNap.south) * DUNG_SAI;
@@ -67,7 +73,7 @@ export function canNapLai(daNap: Khung | null, hienTai: Khung, daCat = false): b
     if (hienTai.east > daNap.east + ngangSai) return true;
     if (hienTai.west < daNap.west - ngangSai) return true;
 
-    return daCat;
+    return chuaDayDu;
 }
 
 /**
@@ -137,8 +143,15 @@ export type TomTat = {
     /** Số **màn hình** khớp bộ lọc trong khung — `meta.total` của API. */
     tong: number;
 
-    /** Lần nạp trước có chạm trần 500 pin không. */
-    daCat: boolean;
+    /**
+     * Phản hồi đang xem là **ô lưới có số đếm**, không phải pin.
+     *
+     * Khi nó `true` thì `daBaoGia` và khoảng giá dưới đây đều rỗng — không
+     * phải vì vùng này không có giá, mà vì không có pin nào để đọc giá từ đó.
+     * Dải tổng quan phải nói ra, nếu không một ô "Khoảng giá —" đọc thành
+     * "vùng này chưa ai báo giá".
+     */
+    cheDoCum: boolean;
 
     /** Bao nhiêu pin trong khung có giá thật. */
     daBaoGia: number;
@@ -202,7 +215,7 @@ export function tomTatKhung(pins: MapPin[], meta: MetaPin | null): TomTat {
 
     return {
         tong: meta?.total ?? pins.length,
-        daCat: meta?.truncated ?? false,
+        cheDoCum: meta?.mode === 'cluster',
         daBaoGia,
         giaMin: dongNhat ? Math.min(...dongNhat.gia) : null,
         giaMax: dongNhat ? Math.max(...dongNhat.gia) : null,
