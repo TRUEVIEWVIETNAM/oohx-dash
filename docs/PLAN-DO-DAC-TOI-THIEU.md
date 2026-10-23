@@ -147,7 +147,36 @@ Gắn vào `webapp/lib/dung-vi-tri.ts`, nơi đã có đủ cả năm nhánh. Ba
 N giây chờ: **12** — dài hơn `timeout: 10_000` của `getCurrentPosition`, để
 ca hết-giờ rơi vào `loi` chứ không lẫn vào `chua_tra_loi`.
 
-### Lát 3 — một ô trên `/admin`
+### Lát 3 — một ô trên `/admin` — **XONG 23/10/2026**
+
+> `QuyenViTriWidget` + `DoDacService::tongHopQuyenViTri()`. 25 ca mới (39 ca
+> cả nhóm `DoDac`, 215 khẳng định). Sáu đột biến, cả sáu đều cho tín hiệu.
+>
+> **Làm trước lát 2, và điều đó không sao** — ô này hiện "Chưa có số liệu",
+> đúng trạng thái thật của hệ thống hôm nay. Nó cũng thành chỗ nhìn kết quả
+> ngay khi lát 2 bật, thay vì bật đo đạc rồi mới dựng chỗ để đọc.
+>
+> **Một chỗ plan nói ngầm và widget sai được im lặng:** `hoi` là mẫu số,
+> nhưng `da_chan_tu_truoc` **không** nằm trong nó. Nhánh ấy là
+> `permissions.query` trả `denied` — client không gọi `getCurrentPosition`,
+> nên không ghi lượt `hoi` nào. `da_chan_tu_truoc / hoi` là một phân số
+> **vượt 100% được** mà không gì đỏ. Nó ra ngoài như một số đếm tuyệt đối,
+> và có hai ca canh (một ở service, một ở chỗ người đọc thật sự nhìn).
+>
+> **Ngưỡng "chưa đủ số liệu" áp theo TỪNG thiết bị**, không theo tổng: 500
+> lượt mobile không làm 7 lượt desktop đáng tin hơn. Áp theo tổng là đúng cái
+> sai plan muốn tránh, chỉ khó thấy hơn một bậc.
+>
+> **Thêm một lưới an toàn plan chưa đòi:** `tong_ket_qua` so với `hoi`. Nó
+> canh đúng cái lỗi lát 2 đã gọi tên — hẹn giờ `chua_tra_loi` không huỷ được
+> thì một callback về chậm ghi hai kết quả cho một lượt. Khi đó từng tỉ lệ
+> vẫn trông hợp lý, chỉ tổng của chúng là vô lý, và không màn hình nào khác
+> nhìn ra được.
+>
+> **Một chốt canh lát 4:** `KET_QUA_TRONG_MAU_SO` phải hợp với `NGOAI_MAU_SO`
+> thành đúng `CHO_PHEP[quyen_vi_tri]`. Thêm một giá trị mà quên phân loại nó
+> thì giá trị đó biến mất khỏi widget im lặng, và tổng các tỉ lệ hụt đi mà
+> không ai biết vì sao.
 
 Widget kiểu `NguonBanDoWidget`: ba mươi ngày gần nhất, bốn số — tổng lượt
 hỏi, tỉ lệ cho phép, tỉ lệ chặn, tỉ lệ chưa trả lời — tách mobile/desktop.
