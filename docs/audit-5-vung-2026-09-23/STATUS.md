@@ -95,7 +95,7 @@ Chốt `sites.network_id` là nguồn sự thật duy nhất. Phần đối chi�
 | ~~**Gỡ số liệu bịa trên trang công khai** (F-15)~~ **XONG 03/10/2026** | Giai đoạn 4, hai đợt (29/09 và 03/10). Chi tiết ở `LO-TRINH-SAU-GIAI-DOAN-0.md` |
 | ~~**Chạy đối chiếu mạng lưới trên production** (F-12)~~ **XONG 02/10/2026** | Đã chạy khi deploy: **2970 → 2970 địa điểm, 0 xung đột** |
 | ~~**Xoay khóa deploy** đang nằm trong git~~ **XONG 01/10/2026** | Nhãn "F-07" ở đây **sai**: F07 trong `FINDINGS.md` là chuyện tổng tiền che khuất công nợ theo owner. Việc khóa deploy là **mục 0.2** của `IMPLEMENTATION-P0-CLAUDE.md`. Trình tự đã chạy ghi ở `docs/LO-TRINH-SAU-GIAI-DOAN-0.md`. |
-| **Soát `allowed_network_ids` trên production** (mới 13/10) | Hàng rào mạng lưới nay **có hiệu lực thật** trên dữ liệu cũ: mọi hàng pivot `operator`/`read_only` đang mang danh sách khác rỗng vừa bị thu hẹp tầm nhìn kho. Câu truy vấn để biết hàng nào ở cuối `LO-TRINH-SAU-GIAI-DOAN-0.md`. Nếu hàng nào là dữ liệu sót chứ không phải chủ ý, bỏ tích hết là trả lại "tất cả" |
+| **Soát `allowed_network_ids` trên production** (mới 13/10) | Hàng rào mạng lưới nay **có hiệu lực thật** trên dữ liệu cũ: mọi hàng pivot `operator`/`read_only` đang mang danh sách khác rỗng vừa bị thu hẹp tầm nhìn kho. Câu truy vấn để biết hàng nào ở `docs/nhat-ky/2026-10-13-hang-rao-mang-luoi.md`. Nếu hàng nào là dữ liệu sót chứ không phải chủ ý, bỏ tích hết là trả lại "tất cả" |
 | **Kiểm `MAIL_MAILER` trên VPS** và chạy `php artisan policies:consents-before-effective` | Hai việc cần quyền vào máy chủ, tôi không có. Nếu `MAIL_MAILER` vẫn là `log` thì thư nghĩa vụ hoàn tiền (#75) **và hai thông báo có từ trước** chỉ ghi vào log, không tới ai |
 
 ---
@@ -105,7 +105,7 @@ Chốt `sites.network_id` là nguồn sự thật duy nhất. Phần đối chi�
 ### Còn lại của T1b
 - DTO lọc trường cho Site/Screen ở `/api/v2`. `price_per_slot_vnd` trả `floor_cpm` dưới cái tên sai (F09) — **cố ý chưa sửa** vì `/api/v1` là hợp đồng với đối tác; đã ghi chú tại chỗ trong code. Chờ trả lời câu hỏi 2.
 - Quyền cho các action Filament còn lại (CRUD product, settings của owner).
-- **Hàng rào theo mạng lưới đã thực thi 13/10** (#83, ba tầng — xem `LO-TRINH-SAU-GIAI-DOAN-0.md`). Còn hai khe đã biết: `ImportScreensJob` không có người dùng đăng nhập nên chặn-ghi không thấy giới hạn nào (hôm nay không ai tới được vì trang nhập kho chỉ có ở `/admin` cho `super_admin`, nhưng **phải truyền hàng rào vào job** trước khi panel publisher có trang nhập); và hai vai trò đọc báo cáo (`reporting_only`, `sales_manager`) **không** bị fence vì số liệu của chúng ở mức cả media owner, không tách được theo mạng lưới.
+- **Hàng rào theo mạng lưới đã thực thi 13/10** (#83, ba tầng — xem `docs/nhat-ky/2026-10-13-hang-rao-mang-luoi.md`). Còn hai khe đã biết: `ImportScreensJob` không có người dùng đăng nhập nên chặn-ghi không thấy giới hạn nào (hôm nay không ai tới được vì trang nhập kho chỉ có ở `/admin` cho `super_admin`, nhưng **phải truyền hàng rào vào job** trước khi panel publisher có trang nhập); và hai vai trò đọc báo cáo (`reporting_only`, `sales_manager`) **không** bị fence vì số liệu của chúng ở mức cả media owner, không tách được theo mạng lưới.
 
 ### Nợ giao dịch còn lại
 - **Đường phát sóng cho thiết bị**: vẫn chưa tồn tại — không endpoint nào trả lịch phát. Giai đoạn 2 mới làm xong đường thiết bị **báo về**, chưa làm đường máy chủ **gửi xuống**. Cổng nội dung của 1.3 vì thế vẫn đặt ở bước kích hoạt.

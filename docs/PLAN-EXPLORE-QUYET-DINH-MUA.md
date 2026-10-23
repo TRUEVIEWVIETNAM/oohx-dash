@@ -10,8 +10,9 @@ Mock đã duyệt: <https://claude.ai/artifact/5ytRQifieU8xwhGek7T7bc>
 >
 > Ba lỗi có sẵn lộ ra trong lúc làm, sửa ở #129 (nhãn loại hình ≠ bộ lọc),
 > #130 (phân trang trả trùng 29 vị trí) và trong chính các lát (bốn vùng
-> chạm dưới 44px). Tổng kết ở `docs/LO-TRINH-SAU-GIAI-DOAN-0.md`, mục ngày
-> 19–20/10/2026.
+> chạm dưới 44px). Tổng kết ở
+> `docs/nhat-ky/2026-10-19-20-explore-quyet-dinh-mua.md` (tách khỏi lộ trình
+> ngày 23/10/2026).
 
 ## Vấn đề, nói bằng con số đo được
 
