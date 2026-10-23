@@ -6,6 +6,7 @@ use App\Filament\Resources\ScreenResource;
 use App\Filament\Resources\SiteResource;
 use App\Filament\Widgets\NguonBanDoWidget;
 use App\Filament\Widgets\OohxHealthSummaryWidget;
+use App\Filament\Widgets\QuyenViTriWidget;
 use App\Filament\Widgets\RegistryStatsWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -55,6 +56,7 @@ class AdminPanelProvider extends PanelProvider
                 RegistryStatsWidget::class,
                 OohxHealthSummaryWidget::class,
                 NguonBanDoWidget::class,
+                QuyenViTriWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

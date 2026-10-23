@@ -85,6 +85,24 @@ class DoDacService
     public const THIET_BI = ['mobile', 'desktop'];
 
     /**
+     * Những kết quả chia được cho mẫu số `hoi`.
+     *
+     * Tức mọi giá trị của `quyen_vi_tri` **trừ** `hoi` (chính mẫu số) và
+     * `da_chan_tu_truoc` (nhánh không có hộp thoại nào, nên không có một lượt
+     * `hoi` nào đi kèm — xem `tongHopQuyenViTri()`).
+     *
+     * Viết tay thay vì `array_diff` vì hằng số PHP không gọi hàm được. Nên có
+     * một chốt khẳng định hai danh sách này hợp lại đúng bằng
+     * `CHO_PHEP[SU_KIEN_QUYEN_VI_TRI]`: thêm một giá trị ở trên mà quên phân
+     * loại nó vào đây thì giá trị đó biến mất khỏi widget **im lặng**, và
+     * tổng các tỉ lệ sẽ hụt mà không ai biết vì sao.
+     */
+    public const KET_QUA_TRONG_MAU_SO = ['cho_phep', 'tu_choi', 'chua_tra_loi', 'loi'];
+
+    /** Mẫu số, và hai giá trị không phải một kết quả đi sau nó. */
+    public const NGOAI_MAU_SO = ['hoi', 'da_chan_tu_truoc'];
+
+    /**
      * Múi giờ của cột `ngay`.
      *
      * `config('app.timezone')` là `UTC`, nên `now()->toDateString()` sẽ dồn
@@ -98,6 +116,19 @@ class DoDacService
      * với câu hỏi đang cần trả lời.
      */
     public const MUI_GIO = 'Asia/Ho_Chi_Minh';
+
+    /** Cửa sổ của bản tổng hợp trên `/admin`, tính cả hôm nay. */
+    public const SO_NGAY_TONG_HOP = 30;
+
+    /**
+     * Dưới mức này thì không in tỉ lệ nào.
+     *
+     * Plan đòi điều này, và lý do đáng nhắc lại: một tỉ lệ tính trên 7 lượt
+     * **vẫn trông như một tỉ lệ**, nên nó sẽ được mang đi quyết định có bỏ
+     * tính năng hay không. Ô này thà nói "chưa đủ số liệu" còn hơn nói
+     * "43%" khi 43% nghĩa là 3 trên 7.
+     */
+    public const NGUONG_DU_LIEU = 100;
 
     /**
      * Lỗi đầu tiên của một bộ ba, hoặc `null` nếu hợp lệ.
@@ -182,5 +213,104 @@ class DoDacService
     public function homNay(): string
     {
         return Carbon::now(self::MUI_GIO)->toDateString();
+    }
+
+    /**
+     * Bản tổng hợp quyền vị trí cho ô trên `/admin` — lát 3.
+     *
+     * ══ `hoi` là mẫu số, và `da_chan_tu_truoc` KHÔNG nằm trong nó ══
+     *
+     * Đây là chỗ dễ sai im lặng nhất của cả lát này. `hoi` được ghi *mỗi lần
+     * thật sự gọi `getCurrentPosition` ở nhánh có thể bật hộp thoại*. Nhánh
+     * `da_chan_tu_truoc` là nhánh `permissions.query` trả `denied` — client
+     * **không** gọi `getCurrentPosition`, nên **không** ghi `hoi` nào.
+     *
+     * Hệ quả: `da_chan_tu_truoc / hoi` là một phân số không có nghĩa, và nó
+     * **vượt 100% được** mà không gì đỏ. Nên nó ra ngoài `thiet_bi` như một
+     * số đếm tuyệt đối, không phải một tỉ lệ.
+     *
+     * Bốn kết quả chia cho `hoi` là `cho_phep`, `tu_choi`, `chua_tra_loi`,
+     * `loi` — đúng những nhánh đi sau một lời gọi đã đếm.
+     *
+     * ══ Vì sao có `tong_ket_qua` ══
+     *
+     * Nó là số đếm bốn kết quả trên, để so với `hoi`. Lệch nhiều nghĩa là
+     * client sai, và plan lát 2 đã gọi tên đúng cái sai đó: *"hẹn giờ
+     * `chua_tra_loi` phải huỷ được, nếu không một callback về chậm sẽ ghi cả
+     * `chua_tra_loi` lẫn `cho_phep` cho cùng một lượt"*. Khi bug ấy xảy ra
+     * trên production thì tỉ lệ vẫn trông hợp lý từng cái một; chỉ tổng của
+     * chúng là vô lý. Đây là đường duy nhất nhìn ra nó từ xa.
+     *
+     * Cửa sổ tính theo giờ Việt Nam, cùng lý do như `homNay()`: lấy mốc theo
+     * UTC thì bảy giờ đầu mỗi ngày VN nằm ngoài cửa sổ.
+     *
+     * @return array{
+     *     tu_ngay: string,
+     *     so_ngay: int,
+     *     nguong: int,
+     *     hoi: int,
+     *     da_chan_tu_truoc: int,
+     *     thiet_bi: array<string, array{hoi: int, du_lieu: bool, tong_ket_qua: int, so_luot: array<string, int>, ti_le: array<string, float>}>
+     * }
+     */
+    public function tongHopQuyenViTri(): array
+    {
+        // `- 1` vì cửa sổ tính cả hôm nay: 30 ngày là hôm nay cộng 29 ngày
+        // trước, không phải hôm nay cộng 30.
+        $tuNgay = Carbon::now(self::MUI_GIO)
+            ->subDays(self::SO_NGAY_TONG_HOP - 1)
+            ->toDateString();
+
+        $hang = DB::table('do_dac_ngay')
+            ->select('thiet_bi', 'gia_tri', DB::raw('SUM(so_luot) AS tong'))
+            ->where('su_kien', self::SU_KIEN_QUYEN_VI_TRI)
+            ->where('ngay', '>=', $tuNgay)
+            ->groupBy('thiet_bi', 'gia_tri')
+            ->get();
+
+        $gop = [];
+        foreach ($hang as $h) {
+            $gop[(string) $h->thiet_bi][(string) $h->gia_tri] = (int) $h->tong;
+        }
+
+        $theoThietBi = [];
+        $tongHoi = 0;
+        $tongDaChan = 0;
+
+        foreach (self::THIET_BI as $thietBi) {
+            $cua = $gop[$thietBi] ?? [];
+            $hoi = $cua['hoi'] ?? 0;
+            $tongHoi += $hoi;
+            $tongDaChan += $cua['da_chan_tu_truoc'] ?? 0;
+
+            $soLuot = [];
+            foreach (self::KET_QUA_TRONG_MAU_SO as $ketQua) {
+                $soLuot[$ketQua] = $cua[$ketQua] ?? 0;
+            }
+
+            $tiLe = [];
+            foreach ($soLuot as $ketQua => $so) {
+                // `$hoi === 0` đi vào đây được: `du_lieu` chặn widget in tỉ
+                // lệ, nhưng nó không chặn mảng này được tính.
+                $tiLe[$ketQua] = $hoi > 0 ? round($so / $hoi * 100, 1) : 0.0;
+            }
+
+            $theoThietBi[$thietBi] = [
+                'hoi' => $hoi,
+                'du_lieu' => $hoi >= self::NGUONG_DU_LIEU,
+                'tong_ket_qua' => array_sum($soLuot),
+                'so_luot' => $soLuot,
+                'ti_le' => $tiLe,
+            ];
+        }
+
+        return [
+            'tu_ngay' => $tuNgay,
+            'so_ngay' => self::SO_NGAY_TONG_HOP,
+            'nguong' => self::NGUONG_DU_LIEU,
+            'hoi' => $tongHoi,
+            'da_chan_tu_truoc' => $tongDaChan,
+            'thiet_bi' => $theoThietBi,
+        ];
     }
 }
