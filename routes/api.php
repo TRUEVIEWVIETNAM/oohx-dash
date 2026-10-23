@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V2\MeController;
 use App\Http\Controllers\Api\V2\PaymentController as V2PaymentController;
 use App\Http\Controllers\Api\V2\CampaignReportController as V2CampaignReportController;
 use App\Http\Controllers\Api\V2\PaymentRecipientController as V2PaymentRecipientController;
+use App\Http\Controllers\Api\V2\DoDacController as V2DoDacController;
 use App\Http\Controllers\Api\V2\PublicContentController as V2PublicContentController;
 use App\Http\Controllers\Api\V2\QuoteRequestController as V2QuoteRequestController;
 use App\Http\Controllers\Api\V2\SettingsController as V2SettingsController;
@@ -155,6 +156,19 @@ Route::prefix('v2')->group(function () {
     // một cổng đăng nhập.
     Route::post('quote-requests', [V2QuoteRequestController::class, 'store'])
         ->middleware('throttle:5,60');
+
+    // Máy đếm — lát 1 của `docs/PLAN-DO-DAC-TOI-THIEU.md`.
+    //
+    // `30,60` chứ không `5,60` như hai đường trên: đây là sự kiện tự động
+    // chứ không phải người gõ biểu mẫu, và một người mở `/explore` vài lần
+    // trong một giờ sinh ra nhiều hơn 5 lượt một cách hoàn toàn bình thường.
+    // Vẫn là một trần, vì đường này ghi và không đăng nhập.
+    //
+    // Lớp chặn thật nằm ở chỗ khác: bảng đích có khoá duy nhất bốn cột nên
+    // không lớn theo số lượt gửi — bơm rác vào đây không làm nó phình, chỉ
+    // làm vài con số sai. Danh sách trắng cứng chặn nốt phần đó.
+    Route::post('do-dac', [V2DoDacController::class, 'store'])
+        ->middleware('throttle:30,60');
 });
 
 // ── /api/v2 — nhóm cần quyền (khu người mua) ──────────────────────────────
