@@ -2765,3 +2765,224 @@ dày chứ không vào tâm ô. Khoá của một cụm đúng là `["lat","lng"
 Mọi việc còn mở của 22/10 vẫn nguyên, trừ **Haversine chạy trên từng hàng** —
 nay đã đo: 68ms ở 10.000, nên không còn là việc phải làm, chỉ là việc phải đo
 lại khi kho lớn hơn.
+
+## Ngày 23/10/2026, chiều — đường dốc nhất, một mục menu chưa bao giờ sáng, và một lời hứa trả sau một ngày (#166 → #171)
+
+| PR | Việc | Đổi |
+|---|---|---|
+| #166 | Cập nhật lộ trình (sáng 23/10) | +167/−0 |
+| #167 | `filters` cache nguội — đường dốc nhất mà lát 0 tìm ra | +487/−11 |
+| #168 | Gộp menu "Khám phá" với "Bản đồ", và chân trang dùng hết chiều rộng | +249/−39 |
+| #169 | Đo đạc lát 1 — bảng đếm và đường nhận, chưa ai gọi | +899/−1 |
+| #170 | Đo đạc lát 3 — một ô trên `/admin` | +909/−1 |
+| #171 | Đo đạc lát 2 — client gửi năm kết quả và mẫu số | +573/−12 |
+
+### #167 — "cứ 30 phút một người dùng thật là người tính"
+
+Lát 0 đo ra đường dốc nhất **không nằm trong ba giả thuyết** của tôi:
+`filters` cache nguội, 7,2× từ 10.000 lên 50.000 bản ghi. Nó lộ ra chỉ vì
+bảng đo có cột cho nó.
+
+Và chỗ đau không phải thuật toán. `Cache::remember` với thời hạn 1.800 giây
+nghĩa là **người đầu tiên tới sau khi hết hạn trả toàn bộ phép tính** — cứ
+nửa giờ một lần, mãi mãi. Không phải sự cố, đó là cách `remember` hoạt động.
+
+Đo trên 50.000 bản ghi giả, cùng máy đo cho cả hai bản:
+
+| Chế độ nguội | Trước | Sau | Truy vấn |
+|---|---|---|---|
+| tất cả nguội | 1.178ms | 659ms | 11 → 10 |
+| chỉ `fp:filters` nguội | 987ms | 654ms | 7 → 6 |
+
+**Hai chế độ nguội đó khác nhau hẳn, và lẫn chúng là cách tự lừa mình.** Ba
+hàm mà `tinhBoLoc()` gọi có cache riêng với thời hạn riêng, nên `fp:filters`
+hết hạn **không** có nghĩa là mọi thứ tính lại. Ca thường xuyên là chế độ thứ
+hai, và nếu chỉ đo chế độ thứ nhất thì mọi con số đều lạc quan sai.
+
+Ba việc, theo đúng thứ tự số đo chỉ ra:
+
+1. **Lệnh `oohx:ham-nong-bo-loc`, chạy mỗi 15 phút.** Đổi "người tính" từ một
+   người mua thành một tiến trình nền. Lệnh tính **trước** rồi `Cache::put`
+   **sau** — không xoá khoá rồi tính, vì giữa hai lời gọi đó có khe hở hơn
+   một giây với cache rỗng, tức lệnh **tự tạo ra chính thứ nó sinh ra để
+   tránh**, đều đặn theo lịch. Cũng không dùng `remember`: khoá còn hạn thì
+   nó không tính gì cả.
+
+   15 phút là **một nửa** thời hạn, có chủ ý: chạy đúng 30 phút thì một lượt
+   trượt để lại một khoảng nguội.
+
+2. **Ba câu đếm loại màn hình còn hai** (284 + 216 + 17 = 517ms, hơn nửa thời
+   gian SQL). Nhóm cuối suy ra bằng phép trừ, và phép trừ đúng **theo cấu
+   trúc** chứ không theo kinh nghiệm: `billboard = P`, `led = ¬P∧Q`,
+   `lcd = ¬P∧¬Q`, nên ba nhánh loại trừ nhau và phủ kín vì `P ∨ ¬P`.
+   `whereHas` và `whereDoesntHave` là `EXISTS` và `NOT EXISTS` của cùng một
+   điều kiện.
+
+   Vẫn gọi `applyScreenTypeFilter()` cho hai nhóm đầu, không viết lại điều
+   kiện: `screen_type` là giá trị **suy ra** chứ không phải một cột.
+
+3. **`owners` bỏ `COUNT(DISTINCT)`** (96ms). `owners → screens` là một-nhiều
+   nên mỗi màn hình xuất hiện đúng một lần trong nhóm của chủ nó; `DISTINCT`
+   không loại được gì, chỉ bắt MySQL dựng thêm bảng tạm.
+
+### #168 — một mục menu chưa bao giờ sáng lên
+
+Chủ dự án gộp hai mục điều hướng thành một. Trong lúc gỡ, một phát hiện đáng
+ghi lại hơn chính việc gỡ:
+
+> Mục "Bản đồ" ở thanh đầu **đã là một khoá chết từ lát 2 (22/10/2026)**:
+> `/explore?view=map` render `<SiteHeader active="explore">`, nên **không
+> trang nào** từng truyền `'map'`. Mục đó chưa bao giờ sáng lên.
+
+Tức việc gộp menu không chỉ bớt một mục — nó bỏ một mục **đã hỏng âm thầm
+suốt một ngày** mà không ai thấy, vì cái hỏng là *thiếu* một dấu hiệu chứ
+không phải *có* một lỗi.
+
+Chân trang thì sai đo được, và tôi đo trên production trước khi sửa:
+
+| | Trước | Sau |
+|---|---|---|
+| logo chân trang | `128×22`, tỉ lệ **5,82** | `104×26`, tỉ lệ **4,00** |
+| logo thanh đầu | `104×26`, tỉ lệ 4,00 | không đổi |
+| bốn khối trên lưới 1176px | dùng **716px**, trống **460px** | `428·217·217·217`, chia hết |
+
+Logo giãn ngang vì `<img width="128" height="32">` gặp CSS chỉ đặt `height`:
+trình duyệt giữ `width` của thuộc tính HTML. Thêm `width:auto` là xong, và
+đó là một ca chốt mới.
+
+Lớp `ft-tu-chia` phải là lớp **riêng**, không sửa `.ft-g`: `.ft-g` dùng chung
+với Blade, nơi có **sáu** khối, và flex cùng `basis` làm khối thứ sáu rớt
+hàng. Đã đo trước khi tách.
+
+### #169 → #171 — đường đo đạc, làm theo thứ tự 1 → 3 → 2
+
+Ngày 22/10 `/explore` bắt đầu xin quyền vị trí **khi mở trang** (#159). Khi
+thuyết phục rằng cách hỏi đó chấp nhận được, tôi hứa ba lưới an toàn; lưới
+thứ ba là *"đếm tỉ lệ bấm Chặn"*. Hai lưới đầu đã làm cùng ngày. **Lưới thứ
+ba trả sau một ngày.**
+
+Vì sao thứ tự là 1 → 3 → 2: lát 2 là lát duy nhất **gửi dữ liệu thật**, nên
+nó chờ hai quyết định của chủ dự án. Lát 1 và lát 3 không gửi gì và không đụng
+giao diện, nên chúng chạy trước.
+
+**Hai quyết định, chốt 23/10:** bật đo đạc · **không** ghi mục vào chính sách
+bảo mật.
+
+Quyết định thứ hai đứng được vì thiết kế cố ý không thu dữ liệu cá nhân — thân
+request có đúng ba trường, bảng đích không có cột nào nhận một định danh.
+Nhưng đó là một lời hứa về **hình dạng**, không phải một ghi chép ai cũng đọc
+được, nên plan giờ ghi rõ **ba ca test đang canh nó** và nói rằng ngày nào một
+trong ba ca ấy bị sửa cho qua thì quyết định cần được xem lại — không vì nó
+sai, mà vì tiền đề đã đổi.
+
+#### Một máy đếm, không phải một nhật ký sự kiện
+
+| | Bảng này | Nhật ký sự kiện (không làm) |
+|---|---|---|
+| Lưu gì | `(ngày, sự kiện, giá trị, thiết bị) → số lượt` | một hàng mỗi lần xảy ra |
+| Định danh ai | **không** — không id, không IP, không user agent | có, kể cả khi "ẩn danh" |
+| Lớn ra sao | ≤12 hàng/ngày hôm nay | một hàng mỗi lượt truy cập |
+
+Khoá duy nhất `(ngay, su_kien, gia_tri, thiet_bi)` là thứ làm bảng **không
+thể** lớn theo số lượt truy cập. Đó là lớp chặn quan trọng nhất của một đường
+ghi mở cho người lạ: hai lớp kia (`throttle:30,60`, danh sách trắng theo cặp)
+làm việc bơm rác *khó hơn*, lớp này làm nó *vô ích*.
+
+#### Năm chỗ sai im lặng, và không chỗ nào ném lỗi
+
+| Chỗ | Hậu quả nếu sai |
+|---|---|
+| `upsert()` của Laravel sinh `so_luot = VALUES(so_luot)` | **ghi đè bằng 1** thay vì cộng thêm 1. Mỗi ô vĩnh viễn bằng 1 và trông hoàn toàn bình thường |
+| `config('app.timezone')` là `UTC` | bảy giờ đầu mỗi ngày VN dồn vào hôm trước — widget thiếu hẳn buổi sáng, đều đặn, mãi mãi |
+| `da_chan_tu_truoc` chia cho `hoi` | nhánh đó không gọi `getCurrentPosition` nên không có lượt `hoi` nào đi kèm; phân số **vượt 100% được** |
+| đếm cả nhánh `granted` | tỉ lệ cho phép **tiến dần tới 100%** theo số lượt quay lại của chính người đã đồng ý — nó *xác nhận* đúng cái quyết định đang cần kiểm chứng |
+| gửi `'tu-choi'` thay vì `'tu_choi'` | 422, `fetch` nuốt lỗi, ô đó **vĩnh viễn bằng 0** — và `dung-vi-tri.ts` có cả hai quy ước nằm cạnh nhau |
+
+Chỗ cuối có một ca đọc `DoDacService::CHO_PHEP` **thẳng từ PHP** rồi so với
+mọi giá trị client gửi, cả hai chiều: gửi lạ → 422 im lặng; nhận mà không ai
+gửi → ô trống mãi.
+
+#### Lát 1 lộ ra một lỗi thật, và đột biến là thứ chỉ ra nó
+
+Nới phép kiểm từ theo-cặp sang gộp mọi giá trị: **không ca nào đỏ**, 12/12 vẫn
+xanh. Lý do — danh sách thật mới có *một* sự kiện, nên không ca nào dựng nổi
+bộ ba *(sự kiện hợp lệ, giá trị thuộc sự kiện khác)*. Ca mang tên
+`gia_tri_dung_nhung_thuoc_su_kien_khac` thật ra gửi một sự kiện **không** hợp
+lệ, nên nó trùng việc với ca trước. **Tên ca hứa nhiều hơn nó làm.**
+
+Lỗi thật hơn mà nó lộ ra: `GhiDoDacRequest` tự dựng lại cả ba phép kiểm thay
+vì gọi service, làm `DoDacService::hopLe()` thành **mã chết** — hai bản luật
+cho một thứ, đúng loại trôi khỏi nhau mà CLAUDE.md mục 1 cấm. Docblock của
+FormRequest còn nói nó gọi `hopLe()` trong khi không gọi.
+
+Sửa: luật về một chỗ, `loiDauTien()` trả `[trường, thông báo]` thay vì `bool`
+(phía gọi cần biết trường nào sai; `false` trơ không nói được, và FormRequest
+sẽ lại phải tra danh sách để đoán — tức lại hai bản luật). Đột biến lại:
+**đúng một ca đỏ.**
+
+#### Ô trên `/admin` được phép nói "chưa đủ số liệu"
+
+Dưới 100 lượt hỏi thì không in tỉ lệ nào, và ngưỡng áp **theo từng thiết bị**:
+
+| | mobile | desktop |
+|---|---|---|
+| lượt hỏi | 500 | 7 |
+| áp theo tổng (507) | 60% | **43%** ← ba trên bảy |
+| áp theo thiết bị | 60% | *chưa đủ số liệu* |
+
+Thêm một lưới plan chưa đòi: `tong_ket_qua` so với `hoi`. Nó canh đúng lỗi
+plan lát 2 đã gọi tên — hẹn giờ `chua_tra_loi` không huỷ được thì một callback
+về chậm ghi hai kết quả cho một lượt. Khi đó **từng tỉ lệ vẫn trông hợp lý**,
+chỉ tổng của chúng là vô lý, và không màn hình nào khác nhìn ra được.
+
+#### Số đã đi qua đường mạng thật
+
+Soát bundle production sau deploy: `quyen_vi_tri`, `api/v2/do-dac`,
+`pointer: coarse`, `keepalive:!0`, `credentials:"omit"` — cả năm sống sót qua
+minify trong `chunks/3cjdxn6q0152m.js`.
+
+`credentials: 'omit'` không phải chi tiết nhỏ: mặc định của `fetch` cùng nguồn
+gốc là **gửi cookie phiên**, nên mỗi lượt đếm sẽ mang danh tính người dùng vào
+nhật ký truy cập của OpenLiteSpeed — không vào bảng, nhưng vào chỗ nằm ngoài
+mọi lời hứa của plan.
+
+### Trạng thái đường đo đạc
+
+```
+lát 2 ✓ client gửi  →  lát 1 ✓ bảng cộng dồn  →  lát 3 ✓ ô trên /admin
+```
+
+Nối liền trên production. **Nhưng chưa trả lời gì:** ngưỡng là 100 lượt hỏi
+cho mỗi loại thiết bị, và bảng mới có những lượt đầu tiên. Ô in "Chưa đủ số
+liệu" là nó đang làm đúng việc.
+
+**Đừng nới ngưỡng để đọc sớm hơn.** Plan tồn tại vì một tỉ lệ tính trên quá ít
+lượt là một con số sẽ bị mang đi quyết định.
+
+Khi đủ số, ba kết quả dẫn tới ba việc khác nhau:
+
+| Thấy gì | Việc |
+|---|---|
+| cho phép cao (~70%) | quyết định 22/10 đúng, không bàn lại. Sang lát 4 |
+| `tu_choi` cao | trình duyệt đã khoá những người đó **vĩnh viễn** — bàn lại cách hỏi với người mới, không cứu được người cũ |
+| `chua_tra_loi` cao | ô **duy nhất còn cứu được**: câu trả lời không phải "bỏ tính năng" mà là "hỏi ở thời điểm khác" |
+
+### Lát 4: chưa làm, có chủ ý
+
+Plan nói **không làm trước khi lát 3 trả lời được câu hỏi ban đầu**. Thêm sự
+kiện vào một đường đo đạc chưa ai đọc chỉ là thêm dữ liệu không ai đọc.
+
+### Còn mở sau hôm nay
+
+| Việc | Ghi chú |
+|---|---|
+| Hai việc về log | hạ `LOG_LEVEL=debug` → **`info`** (không phải `warning`: `Log::info` là nhật ký kiểm toán ở `QuoteRequestService:94/167/218`); tách kênh kiểm toán **trước** khi bật xoay vòng, vì `LOG_STACK=daily` giữ 14 ngày sẽ **xoá** hồ sơ. Chưa rõ vì sao `laravel.log` (494MB) ngừng được ghi lúc 22/10 09:36 |
+| Nhập 10.000 vị trí từ API đối tác | cần biết đối tác nào, tài liệu API, kéo hay đẩy |
+| `TRIM(SUBSTRING_INDEX(sites.city,'>',1))` còn 164ms | cần cột tỉnh tách riêng (migration), quyết định riêng |
+| Lát B (khung nới dần) và lát D (`FULLTEXT`) | **không làm** — đo lại quanh 20.000 |
+| `oohx:bam-gio-kho` chưa chạy trên production | |
+| Ba lớp chặn production của `oohx:gia-lap-kho` chưa đột biến được | |
+| `meta.truncated` là khoá luôn `false` | đã đánh `deprecated`, chưa gỡ |
+| Chân trang bản **Blade** vẫn sáu cột | và còn bốn liên kết `href="#"` không đi đâu |
+| Hơn mười nhánh cũ đã merge còn treo trên remote | đã đề nghị dọn, chưa được chốt |
+| Lộ trình này đã hơn 2.900 dòng | chưa tách theo giai đoạn |
