@@ -27,6 +27,29 @@ Schedule::command('oohx:fetch-health')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/oohx-health.log'));
 
+// ── Hâm nóng bộ lọc /explore, mỗi 15 phút ────────────────────────────────
+//
+// Cache của bộ lọc sống 1800 giây, nên không có lệnh này thì **cứ 30 phút
+// một người dùng thật trả toàn bộ phép tính**: người đầu tiên tới sau khi
+// hết hạn là người tính. Đo 23/10/2026 trên 50.000 bản ghi giả: 1.362ms,
+// 11 truy vấn — đường dốc nhất của `/explore` (7,2× khi dữ liệu gấp 5).
+//
+// 15 phút là **một nửa** thời hạn, có chủ ý: chạy đúng 30 phút thì một lượt
+// chạy trượt (máy chủ tải cao, `withoutOverlapping` chặn) để lại một khoảng
+// cache nguội, và người dùng lại là người tính. Một nửa thời hạn cho phép
+// bỏ hẳn một lượt mà không ai thấy gì.
+//
+// Không phải cơ chế bảo vệ: `getFilterAggregates()` vẫn tự tính khi cache
+// nguội. Lệnh chết nghĩa là quay về hành vi cũ, không phải bộ lọc trống —
+// nên nó chỉ cần một dòng log khi hỏng, không cần cảnh báo gắt.
+Schedule::command('oohx:ham-nong-bo-loc')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->onFailure(fn () => Log::warning(
+        'oohx:ham-nong-bo-loc đỏ — bộ lọc /explore quay về tự tính khi cache nguội. '
+        . 'Không hỏng gì với người dùng, chỉ chậm hơn cho một người mỗi 30 phút.',
+    ));
+
 // ── Prune expired user invitations daily ──
 Schedule::command('invitations:prune')->dailyAt('03:00');
 

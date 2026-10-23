@@ -645,9 +645,31 @@ class FrontpageService
         return $this->phanTrang($query, $perPage);
     }
 
+    /** Khoá và thời hạn của bộ lọc tổng hợp — `oohx:ham-nong-bo-loc` dùng chung. */
+    public const KHOA_BO_LOC = 'fp:filters';
+
+    public const HAN_BO_LOC = 1800;
+
     public function getFilterAggregates(): array
     {
-        return Cache::remember('fp:filters', 1800, function () {
+        return Cache::remember(self::KHOA_BO_LOC, self::HAN_BO_LOC, fn () => $this->tinhBoLoc());
+    }
+
+    /**
+     * Tính bộ lọc tổng hợp, **không qua cache**.
+     *
+     * Tách khỏi `getFilterAggregates()` để `oohx:ham-nong-bo-loc` tính xong
+     * rồi mới `Cache::put`. Nếu lệnh hâm nóng gọi `Cache::forget` rồi tính thì
+     * có một khe hở hơn một giây với cache rỗng, và người dùng rơi vào đúng
+     * khe đó phải trả cả phép tính — tức lệnh hâm nóng tự tạo ra chính thứ nó
+     * sinh ra để tránh.
+     *
+     * Đo 23/10/2026 trên 50.000 bản ghi: **1.362ms**, 11 truy vấn, 1.024ms
+     * trong SQL. Đây là đường dốc nhất của `/explore` (7,2× khi dữ liệu gấp 5).
+     */
+    public function tinhBoLoc(): array
+    {
+        {
             $formats = $this->getVenueTypesWithCounts();
             $cities = $this->getTopCities(20);
 
@@ -703,7 +725,19 @@ class FrontpageService
                 ->whereNull('screens.deleted_at')
                 ->whereNull('owners.deleted_at')
                 ->where('owners.status', 'active')
-                ->selectRaw('owners.id, owners.slug, owners.name, COUNT(DISTINCT screens.id) as count')
+                // `COUNT(*)`, không `COUNT(DISTINCT screens.id)`.
+                //
+                // `owners → screens` là một-nhiều, nên mỗi màn hình xuất hiện
+                // **đúng một lần** trong nhóm của chủ nó: không hàng nào nhân
+                // đôi, và `DISTINCT` không loại được gì. Nó chỉ bắt MySQL dựng
+                // thêm một bảng tạm để khử trùng — đo 23/10/2026 trên 50.000
+                // bản ghi: 96ms, đứng thứ tư trong `tinhBoLoc()`.
+                //
+                // Câu `networks` ngay trên vẫn giữ `DISTINCT` dù cùng hình
+                // dạng (`networks → sites → screens`, cũng không nhân đôi):
+                // nó mất 1,6ms, và sửa một câu không đau chỉ để hai câu trông
+                // giống nhau là đổi mã mà không mua được gì.
+                ->selectRaw('owners.id, owners.slug, owners.name, COUNT(*) as count')
                 ->groupBy('owners.id', 'owners.slug', 'owners.name')
                 ->orderByDesc('count')
                 ->limit(20)
@@ -742,13 +776,61 @@ class FrontpageService
             // tổng ba con số này bằng tổng số bản ghi. Trước hôm đó không:
             // cả ba nhánh của bộ lọc đòi có dòng `screen_specs`, nên 20/104
             // bản ghi rơi ra ngoài trong khi thẻ của chúng vẫn in "LCD".
-            $screenTypes = [];
+            // ══ Hai truy vấn, không ba — nhóm cuối suy ra bằng phép trừ ══
+            //
+            // Đo 23/10/2026 trên 50.000 bản ghi: ba câu đếm này mất
+            // **284 + 216 + 17 = 517ms**, tức hơn một nửa toàn bộ thời gian
+            // SQL của `tinhBoLoc()`. Hai câu đắt là `led` và `lcd`, và chúng
+            // đắt vì cả hai đều có `whereDoesntHave('spec', …)` — một
+            // `NOT EXISTS` tương quan — cộng thêm một EXISTS trên tồn kho.
+            //
+            // Phép trừ đúng **theo cấu trúc**, không theo kinh nghiệm. Gọi
+            // P = "có một cạnh từ ngưỡng trở lên", Q = "tồn kho là ngoài
+            // trời"; `applyScreenTypeFilter` dựng đúng ba nhánh:
+            //
+            //     billboard = P
+            //     led       = ¬P ∧ Q
+            //     lcd       = ¬P ∧ ¬Q
+            //
+            // Ba nhánh đó loại trừ nhau và phủ kín, vì
+            // P ∨ (¬P∧Q) ∨ (¬P∧¬Q) = P ∨ ¬P. Đó là một đồng nhất thức của
+            // mã, không phải một tính chất quan sát được của dữ liệu hôm nay
+            // — `whereHas` và `whereDoesntHave` là EXISTS và NOT EXISTS của
+            // cùng một điều kiện, nên chúng bù trừ nhau chính xác.
+            //
+            // Vẫn gọi `applyScreenTypeFilter()` cho hai nhóm đầu, **không**
+            // viết lại điều kiện: `screen_type` là giá trị suy ra từ kích
+            // thước và `venue_type` chứ không phải một cột, và hai lần diễn
+            // giải cùng một quy tắc sẽ trôi khỏi nhau. Chỗ lệch chỉ lộ ra
+            // dưới dạng "bộ lọc nói 30, bấm vào thấy 28".
+            //
+            // `test_ba_nhom_loai_man_hinh_khop_voi_chinh_bo_loc` so từng con
+            // số với đúng bộ lọc của nó, nên nếu cấu trúc ba nhánh đổi thì ca
+            // đó đỏ chứ không phải người dùng phát hiện.
+            //
+            // Tổng công khai lấy lại từ `$priceStatus` ở trên — `quoted` và
+            // `unquoted` cũng là một phân hoạch của đúng tập đó, nên không
+            // cần thêm truy vấn nào.
+            $tongCongKhai = (int) ($priceStatus->quoted ?? 0) + (int) ($priceStatus->unquoted ?? 0);
 
-            foreach (array_keys(ScreenSummaryResource::SCREEN_TYPE_LABELS) as $loaiManHinh) {
-                $screenTypes[$loaiManHinh] = $this
-                    ->applyScreenTypeFilter(Screen::publiclyVisible(), [$loaiManHinh])
-                    ->count();
-            }
+            $soBillboard = $this
+                ->applyScreenTypeFilter(Screen::publiclyVisible(), ['billboard'])
+                ->count();
+
+            $soLed = $this
+                ->applyScreenTypeFilter(Screen::publiclyVisible(), ['led'])
+                ->count();
+
+            $screenTypes = [
+                'billboard' => $soBillboard,
+                'led'       => $soLed,
+
+                // `max(0, …)`: nếu một ngày nào đó ba nhánh không còn phủ kín
+                // thì phép trừ ra số âm, và một bộ lọc in "−3 vị trí" là thứ
+                // không ai hiểu. Kẹp về 0 để giao diện vẫn đọc được, còn việc
+                // báo động là của ca chốt.
+                'lcd'       => max(0, $tongCongKhai - $soBillboard - $soLed),
+            ];
 
             return [
                 'formats'              => $formats,
@@ -765,7 +847,7 @@ class FrontpageService
                 // đổi**, gồm cả hàng niêm yết bằng USD — xem `vndEquivalentSql()`.
                 'price_currency'       => 'VND',
             ];
-        });
+        }
     }
 
     // ── Phase 4: Detail ───────────────────────────────────
