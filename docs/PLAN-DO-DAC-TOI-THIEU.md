@@ -77,7 +77,32 @@ chỉ hỏi một lần cho mỗi trình duyệt.
 
 ## Lát cắt
 
-### Lát 1 — bảng đếm và đường nhận, chưa ai gọi
+### Lát 1 — bảng đếm và đường nhận, chưa ai gọi — **XONG 23/10/2026**
+
+> Bảng `do_dac_ngay`, `POST /api/v2/do-dac`, `DoDacService`,
+> `GhiDoDacRequest`. 14 ca / ~150 khẳng định. Chưa ai gọi đường này, đúng
+> như tên lát.
+>
+> **Hai chỗ thiết kế trên giấy không nói, và chúng sai được im lặng:**
+>
+> - `upsert()` của Laravel sinh `so_luot = VALUES(so_luot)` — **ghi đè bằng
+>   1** thay vì cộng thêm 1. Mỗi ô sẽ vĩnh viễn bằng 1 và trông hoàn toàn
+>   bình thường. Phải viết `ON DUPLICATE KEY UPDATE so_luot = so_luot + 1`.
+> - `config('app.timezone')` là `UTC`, nên `now()->toDateString()` dồn **bảy
+>   giờ đầu mỗi ngày ở Việt Nam vào ngày hôm trước**. Widget lát 3 sẽ thiếu
+>   hẳn buổi sáng, đều đặn, mãi mãi. Ghi theo `Asia/Ho_Chi_Minh`.
+>
+> **Một đột biến cho thấy chốt chưa canh được điều plan coi là quan trọng.**
+> Nới phép kiểm từ theo-cặp (`CHO_PHEP[$suKien]`) sang gộp mọi giá trị —
+> **không ca nào đỏ**, 12/12 vẫn xanh. Lý do: danh sách thật mới có *một*
+> sự kiện, nên không gửi được bộ ba *(sự kiện hợp lệ, giá trị thuộc sự kiện
+> khác)*, đúng cái duy nhất phân biệt hai cách viết. Lỗ mở ra thật ở **lát
+> 4**, đúng lúc không ai còn nhớ chỗ này.
+>
+> Nó cũng lộ ra một lỗi thật: `GhiDoDacRequest` tự dựng lại cả ba phép kiểm
+> thay vì gọi service, tức **hai bản luật** cho một thứ. Nay luật sống ở
+> `DoDacService::loiDauTien()`, và nó nhận tham số `$choPhep` để chốt tiêm
+> được một bảng giả hai sự kiện.
 
 Bảng `do_dac_ngay`:
 

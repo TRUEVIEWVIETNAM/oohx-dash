@@ -1538,6 +1538,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/do-dac": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cộng một lượt vào máy đếm theo ngày
+         * @description Lát 1 của `docs/PLAN-DO-DAC-TOI-THIEU.md`. Đường này **không** là một
+         *     hệ thống phân tích; nó là một máy đếm.
+         *
+         *     Nó cộng 1 vào ô `(hôm nay, sự kiện, giá trị, thiết bị)` của bảng
+         *     `do_dac_ngay`. Không nhận — và bảng đích **không có chỗ cho** — IP,
+         *     user agent, id phiên hay bất cứ thứ gì định danh được. Vì thế bảng
+         *     không chứa dữ liệu cá nhân, và câu hỏi "được phép thu không, giữ bao
+         *     lâu" không phát sinh.
+         *
+         *     > Ngày nào cần biết *"người dùng X đã làm gì"*, đó là một bảng khác,
+         *     > một plan khác, có đồng ý của người dùng và có mục trong chính sách
+         *     > bảo mật. Đừng mở rộng đường này thành đường đó.
+         *
+         *     `su_kien` và `gia_tri` đi qua **danh sách trắng cứng theo cặp**
+         *     (`DoDacService::CHO_PHEP`): `gia_tri` phải thuộc đúng `su_kien` đó.
+         *     Cặp lạ → 422, không ghi hàng nào.
+         *
+         *     Hạn mức **30 lần mỗi 60 phút** — cao hơn `5,60` của `reflections` vì
+         *     đây là sự kiện tự động chứ không phải người gõ biểu mẫu, nhưng vẫn là
+         *     một trần cho một đường ghi mở.
+         *
+         *     Phản hồi **204, thân rỗng**: không có gì để dò. Phía gọi `fetch` mà
+         *     không `await` và nuốt lỗi im lặng — một phép đo làm chậm tính năng nó
+         *     đo là một phép đo tự huỷ.
+         *
+         *     `thiet_bi` do client tự khai bằng `matchMedia('(pointer: coarse)')`,
+         *     **không** suy từ user agent: chuỗi user agent là dữ liệu nhận dạng
+         *     được. Hệ quả: nó nói "màn hình cảm ứng hay không", không nói "điện
+         *     thoại hay máy tính".
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Hôm nay chỉ có `quyen_vi_tri`. Lát 4 của plan thêm sự kiện
+                         *     khác, và **không làm trước lát 3** — một đường đo đạc chưa
+                         *     ai đọc thì thêm sự kiện vào chỉ là thêm dữ liệu không ai đọc.
+                         * @enum {string}
+                         */
+                        su_kien: "quyen_vi_tri";
+                        /**
+                         * @description Các giá trị của `quyen_vi_tri`:
+                         *
+                         *     | Giá trị | Nghĩa |
+                         *     |---|---|
+                         *     | `hoi` | **mẫu số** — mỗi lần thật sự gọi `getCurrentPosition` ở nhánh có thể bật hộp thoại |
+                         *     | `cho_phep` | bấm "Cho phép" |
+                         *     | `tu_choi` | bấm "Chặn" |
+                         *     | `da_chan_tu_truoc` | trình duyệt đã nhớ "Chặn" từ phiên trước — không hộp thoại nào bật |
+                         *     | `loi` | hết thời gian chờ, không lấy được vị trí |
+                         *     | `chua_tra_loi` | hộp thoại bật ra và người dùng bỏ qua |
+                         *
+                         *     `chua_tra_loi` là một **suy đoán**, không phải phép đo:
+                         *     trình duyệt không báo gì khi người dùng bấm ra ngoài hộp
+                         *     thoại. Người mở trang rồi chuyển tab cũng rơi vào ô này.
+                         *
+                         *     Mẫu số là `hoi`, **không** phải số lượt mở `/explore`:
+                         *     phần lớn lượt mở không hỏi gì cả.
+                         * @enum {string}
+                         */
+                        gia_tri: "hoi" | "cho_phep" | "tu_choi" | "da_chan_tu_truoc" | "loi" | "chua_tra_loi";
+                        /** @enum {string} */
+                        thiet_bi: "mobile" | "desktop";
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã cộng. Thân rỗng, có chủ ý. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                422: components["responses"]["ValidationFailed"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/quote-requests": {
         parameters: {
             query?: never;
