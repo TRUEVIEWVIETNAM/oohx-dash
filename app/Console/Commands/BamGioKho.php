@@ -27,7 +27,9 @@ use Illuminate\Support\Facades\DB;
  */
 class BamGioKho extends Command
 {
-    protected $signature = 'oohx:bam-gio-kho {--lan=3 : Số lần chạy mỗi đường, lấy số nhỏ nhất}';
+    protected $signature = 'oohx:bam-gio-kho
+                            {--lan=3 : Số lần chạy mỗi đường, lấy số nhỏ nhất}
+                            {--chi-tiet= : Mổ một đường ra từng câu truy vấn (hiện có: filters)}';
 
     protected $description = 'Bấm giờ sáu đường của /explore ở quy mô hiện có trong CSDL';
 
@@ -39,6 +41,10 @@ class BamGioKho extends Command
 
     public function handle(FrontpageService $kho): int
     {
+        if ($this->option('chi-tiet') === 'filters') {
+            return $this->moFilters($kho);
+        }
+
         $lan = max(1, (int) $this->option('lan'));
 
         $this->line('Quy mô: ' . number_format(DB::table('screens')->count()) . ' màn hình · '
@@ -143,6 +149,111 @@ class BamGioKho extends Command
         $this->inPhanBiCat($kho);
         $this->newLine();
         $this->inKeHoach($kho);
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Mổ `getFilterAggregates()` ra từng câu truy vấn.
+     *
+     * Tổng thời gian của một đường không nói sửa chỗ nào. `filters` ở 50.000
+     * bản ghi mất 717ms — là đường dốc nhất bảng (7,2×) — nhưng nó gọi tới
+     * tám nhóm truy vấn con, và tối ưu nhóm sai là cách tốn công nhất.
+     */
+    private function moFilters(FrontpageService $kho): int
+    {
+        $lan = max(1, (int) $this->option('lan'));
+
+        /*
+         * **Hai chế độ nguội khác nhau hẳn**, và lẫn chúng là cách tự lừa mình.
+         *
+         * `getFilterAggregates()` cache ở khoá `fp:filters`, nhưng ba hàm nó
+         * gọi (`getVenueTypesWithCounts`, `getTopCities`,
+         * `getCategoriesWithNetworks`) có cache **riêng** với thời hạn riêng.
+         * Nên:
+         *
+         *  - *tất cả nguội* — sau một lần xoá cache hay đổi máy chủ cache. Đây
+         *    là con số tệ nhất, và nó chỉ xảy ra một lần cho mỗi lần xoá.
+         *  - *chỉ `fp:filters` nguội* — ca **thường xuyên**: cứ 1800 giây khoá
+         *    đó hết hạn trong khi cache con vẫn còn. Đây là con số mà một
+         *    người dùng thật trả mỗi 30 phút.
+         *
+         * Bản đầu của hàm này chỉ `Cache::forget('fp:filters')` và gọi một
+         * lần, rồi bảng đo chính lại lặp 5 lượt lấy lượt nhanh nhất — nên
+         * dòng "filters cache nguội" của nó đo lượt thứ năm với cache con đã
+         * nóng, tức **không nguội gì cả**. Số truy vấn 6 thay vì 11 là chỗ
+         * phát hiện ra.
+         */
+        $cheDo = [
+            'tất cả nguội'        => fn () => Cache::flush(),
+            'chỉ fp:filters nguội' => fn () => Cache::forget(FrontpageService::KHOA_BO_LOC),
+        ];
+
+        /*
+         * Một listener cho cả lượt chạy, và đặt lại `$cau` ở mỗi vòng.
+         *
+         * Đăng ký `DB::listen` *trong* vòng lặp làm listener cộng dồn, nên số
+         * truy vấn in ra là tổng của mọi vòng trước. Lỗi này tôi mắc **ba lần**
+         * trong cùng một phiên, và dấu hiệu nhận ra nó luôn giống nhau: tỉ lệ
+         * "trong SQL" vượt 100% (lần này 797%).
+         *
+         * Closure giữ `$cau` **theo tham chiếu**, nên gán `$cau = []` ở ngoài
+         * là nó thấy mảng mới.
+         */
+        $cau = [];
+        DB::listen(function ($su) use (&$cau) {
+            $cau[] = ['sql' => $su->sql, 'ms' => $su->time];
+        });
+
+        foreach ($cheDo as $ten => $donCache) {
+            /** @var list<array{sql:string,ms:float}> $nhanhNhat */
+            $nhanhNhat = [];
+            $msNhanhNhat = PHP_FLOAT_MAX;
+
+            for ($i = 0; $i < $lan; $i++) {
+                // Nóng lại mọi cache con trước khi đo chế độ thứ hai, nếu
+                // không thì lượt đầu của nó vẫn là "tất cả nguội".
+                $kho->getFilterAggregates();
+
+                $donCache();
+
+                $cau = [];
+                $batDau = microtime(true);
+
+                $kho->getFilterAggregates();
+
+                $ms = (microtime(true) - $batDau) * 1000;
+
+                if ($ms < $msNhanhNhat) {
+                    $msNhanhNhat = $ms;
+                    $nhanhNhat = $cau;
+                }
+            }
+
+            $tongSql = array_sum(array_column($nhanhNhat, 'ms'));
+
+            $this->info(sprintf(
+                '%s: %.0f ms · %d truy vấn · %.0f ms trong SQL (%.0f%%)',
+                $ten,
+                $msNhanhNhat,
+                count($nhanhNhat),
+                $tongSql,
+                $msNhanhNhat > 0 ? $tongSql / $msNhanhNhat * 100 : 0
+            ));
+
+            usort($nhanhNhat, fn ($a, $b) => $b['ms'] <=> $a['ms']);
+
+            foreach (array_slice($nhanhNhat, 0, 8) as $c) {
+                // Nén khoảng trắng và cắt ngắn: câu của `filters` dài vài trăm
+                // ký tự, và cái cần nhận ra là *câu nào*, không phải đọc lại
+                // cả câu.
+                $gon = preg_replace('/\s+/', ' ', $c['sql']);
+
+                $this->line(sprintf('  %7.1f ms  %s', $c['ms'], mb_strimwidth($gon, 0, 84, '…')));
+            }
+
+            $this->newLine();
+        }
 
         return self::SUCCESS;
     }
