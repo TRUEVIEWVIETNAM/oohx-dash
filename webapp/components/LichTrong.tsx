@@ -1,4 +1,5 @@
 import type { AvailabilityCalendar } from '@/lib/api';
+import { theoThang, type NgayTrong } from '@/lib/lich';
 
 /**
  * Tab "Lịch trống" — lưới ngày theo tháng, ba màu.
@@ -32,24 +33,12 @@ import type { AvailabilityCalendar } from '@/lib/api';
 
 const DAU_TUAN = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
-type Ngay = { date: string; remaining_sov_pct: number };
+type Ngay = NgayTrong;
 
-/** Nhóm các ngày theo `YYYY-MM`, giữ thứ tự API trả về. */
-function theoThang(days: Ngay[]): { khoa: string; nam: number; thang: number; ngay: Ngay[] }[] {
-    const nhom = new Map<string, Ngay[]>();
-
-    for (const d of days) {
-        const khoa = d.date.slice(0, 7);
-        const danh = nhom.get(khoa);
-        danh ? danh.push(d) : nhom.set(khoa, [d]);
-    }
-
-    return [...nhom.entries()].map(([khoa, ngay]) => {
-        const [nam, thang] = khoa.split('-').map(Number);
-
-        return { khoa, nam, thang, ngay };
-    });
-}
+// `theoThang` chuyển sang `@/lib/lich` ở lát 3: khối gọn trên màn hình đầu
+// (`LichGon`) nhóm cùng một lịch theo cùng cách. Hai bản luật là cách hai khối
+// nói hai con số khác nhau về cùng một dữ liệu, và chỗ lệch sẽ không ai thấy
+// vì hai khối không bao giờ hiện cạnh nhau.
 
 /**
  * Thứ của ngày 1 trong tháng, với Thứ Hai = 0.
