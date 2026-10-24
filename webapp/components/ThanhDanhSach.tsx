@@ -115,9 +115,15 @@ export function ThanhDanhSach() {
 
             <div className={mo ? 'ds-panel open' : 'ds-panel'} aria-hidden={!mo}>
                 <div className="ds-panel-dau">
-                    <span>
-                        Đã chọn {dem.viTri}/{TOI_DA}
-                    </span>
+                    {/*
+                      Template string, không `{dem.viTri}/{TOI_DA}`: React chèn
+                      `<!-- -->` giữa hai text node liền kề, nên dạng kia ra
+                      HTML là `3<!-- -->/<!-- -->50`. Người đọc thấy đúng,
+                      nhưng con số không còn là một chuỗi liền để phép kiểm
+                      tìm — và đây là một con số nói với người mua họ còn chọn
+                      được bao nhiêu vị trí nữa.
+                    */}
+                    <span>{`Đã chọn ${dem.viTri}/${TOI_DA}`}</span>
 
                     <div className="ds-panel-nut">
                         <button type="button" className="btn btn-s btn-xs" onClick={() => void chep()}>

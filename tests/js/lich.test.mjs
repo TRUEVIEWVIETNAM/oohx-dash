@@ -182,6 +182,29 @@ test('khối gọn: BA trạng thái rỗng nói ba câu khác nhau', () => {
     assert.ok(gon.includes('tom.ngaySom === null'), 'thiếu nhánh không còn ngày nào trống');
 });
 
+test('ô tháng ghép bằng template string, không để React chèn comment', () => {
+    // Soát production 24/10/2026: HTML thật là `Th<!-- -->10` và
+    // `8<!-- -->/<!-- -->8`. React chèn `<!-- -->` giữa hai text node liền kề.
+    //
+    // Người đọc thấy đúng "Th10" và "8/8", nên đây không phải lỗi hiển thị —
+    // nhưng con số không còn là một chuỗi liền để phép kiểm tìm, tức khối có
+    // thể in `Th` rỗng hoặc một dấu gạch không có số nào mà chốt vẫn xanh.
+    // Cùng chỗ sai đã gặp và đã sửa ở `/explore/yeu-cau-bao-gia`.
+    const gon = readFileSync(
+        new URL('../../webapp/components/LichGon.tsx', import.meta.url),
+        'utf8',
+    );
+
+    // Bỏ chú thích: đoạn giải thích ở trên có nhắc nguyên văn hai dạng sai.
+    const ma = gon.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\/.*$/gm, '');
+
+    assert.ok(!ma.includes('>Th{m.thang}<'), 'ô tháng còn để React chèn comment');
+    assert.ok(!ma.includes('{m.trong}/{m.tong}'), 'ô số còn để React chèn comment');
+
+    assert.ok(ma.includes('{`Th${m.thang}`}'), 'nhãn tháng phải ghép bằng template string');
+    assert.ok(ma.includes('{`${m.trong}/${m.tong}`}'), 'ô số phải ghép bằng template string');
+});
+
 test('LichTrong dùng theoThang của lib, không giữ bản riêng', () => {
     // Hai bản luật là cách hai khối nói hai con số khác nhau về cùng một lịch,
     // và chỗ lệch sẽ không ai thấy vì hai khối không bao giờ hiện cạnh nhau.

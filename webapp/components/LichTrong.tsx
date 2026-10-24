@@ -111,9 +111,14 @@ export function LichTrong({
 
                     return (
                         <div className="month-card" key={m.khoa}>
-                            <div className="month-name">
-                                Tháng {m.thang}/{m.nam}
-                            </div>
+                            {/*
+                              Template string, không `{m.thang}/{m.nam}`: React
+                              chèn `<!-- -->` giữa hai text node liền kề, nên
+                              dạng kia ra HTML là `10<!-- -->/<!-- -->2026`.
+                              Người đọc thấy đúng, nhưng tên tháng không còn là
+                              một chuỗi liền để phép kiểm tìm.
+                            */}
+                            <div className="month-name">{`Tháng ${m.thang}/${m.nam}`}</div>
 
                             <div className="cal-grid">
                                 {DAU_TUAN.map((d) => (
