@@ -117,6 +117,22 @@ class AnhPublisherTest extends TestCase
         // Con số trong ngoặc là thứ chủ vị trí dùng để biết mình đã nạp mấy
         // ảnh — "Thật" một mình không phân biệt 1 ảnh với 10.
         $this->assertSame('Thật (2)', $this->nhan($man));
+
+        // ── Con số phải đếm ĐƯỜNG DẪN ĐÃ LỌC, không đếm cột thô ──
+        //
+        // Hai hình dạng dưới đây là chỗ hai phép đếm tách nhau, và một đột
+        // biến đổi `photoPaths()` thành `spec->photos` đi qua được cả chín ca
+        // khi chúng còn thiếu:
+        //
+        //   • hàng chỉ có `photo_url` → cột `photos` là null → đếm cột thô ra
+        //     "Thật (0)", một con số tự mâu thuẫn với chính chữ "Thật";
+        //   • hàng trộn một đường dẫn thật với một ô rỗng → đếm cột thô ra 2
+        //     trong khi chỉ một ảnh hiện được.
+        $chiPhotoUrl = $this->manHinh(['photos' => null, 'photo_url' => 'screen-photos/cu.jpg']);
+        $this->assertSame('Thật (1)', $this->nhan($chiPhotoUrl));
+
+        $tron = $this->manHinh(['photos' => ['', 'screen-photos/a.jpg', '   ']]);
+        $this->assertSame('Thật (1)', $this->nhan($tron));
     }
 
     public function test_cot_noi_dang_muon_anh_cua_ai(): void
