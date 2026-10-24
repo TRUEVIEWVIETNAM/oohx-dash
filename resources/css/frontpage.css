@@ -2074,6 +2074,13 @@ input[type=range]{width:100%;accent-color:var(--bl);cursor:pointer}
 @media(min-width:768px){.dtitle{font-size:28px;letter-spacing:-.5px;margin-bottom:8px;-webkit-line-clamp:2}}
 @media(min-width:1024px){.dtitle{font-size:32px}}
 @media(min-width:1280px){.dtitle{font-size:36px;letter-spacing:-.8px}}
+/* Nhãn mã kho trên tiêu đề trang chi tiết — lát 1 của PLAN-CHI-TIET-VI-TRI.
+   Mã kho ("OOHX_LED_CTO_CAN_THO") từng là chính `h1`; nó vẫn cần hiện ra cho
+   người vận hành tra cứu, nhưng ở cỡ chữ của một nhãn, không của một tiêu đề.
+   Chỉ trang Next dùng hai lớp này; bản Blade không render chúng. */
+.dkho{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.4;color:var(--t3);background:var(--bg2);border:1px solid var(--ln);border-radius:5px;padding:2px 7px;margin-bottom:8px;word-break:break-all}
+.daddr{font-size:14px;color:var(--t2);line-height:1.5;margin-bottom:8px}
+@media(min-width:768px){.daddr{font-size:15px}}
 .dmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 @media(min-width:768px){.dmeta{margin-bottom:18px;gap:10px}}
 @media(min-width:1024px){.dmeta{margin-bottom:22px}}

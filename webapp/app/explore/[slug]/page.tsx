@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getScreen, getScreenAvailability, type ScreenDetail } from '@/lib/api';
+import { moTaDiaGioi, tachDiaGioi } from '@/lib/dia-gioi';
 import { buildMetadata, jsonLd, OgType } from '@/lib/seo';
 import { SiteHeader } from '@/components/SiteHeader';
 import { ScreenCard } from '@/components/ScreenCard';
@@ -100,8 +101,37 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
           ? [screen.photo_url]
           : [];
 
-    const thanhPho = screen.location?.city ?? '';
+    // Breadcrumb lấy CẤP TỈNH, phần còn lại đi xuống dòng mô tả dưới `h1`:
+    // một breadcrumb mang theo cả "Cần Thơ > Phường Tân An" thì dài và lặp lại
+    // thứ nằm ngay bên dưới nó.
+    const diaGioi = tachDiaGioi(screen.location?.city ?? screen.site?.city);
+    const thanhPho = diaGioi.tinh;
+
+    // `?? 100` giữ nguyên cho `LichTrong` — đổi mặc định của nó là đổi hành vi
+    // một khối khác, ngoài phạm vi lát này. Nhưng ô số liệu **không** dùng nó:
+    // một màn hình không khai `sov_max_pct` mà hiện "100%" là nói với người mua
+    // rằng họ mua được toàn bộ thời lượng, trong khi hệ thống không biết điều
+    // đó. Ô đọc trường thật, trống thì để trống.
     const sovMax = screen.specs?.sov_max_pct ?? 100;
+    const sovThat = screen.specs?.sov_max_pct;
+
+    // ══ Tiêu đề không còn là mã kho ══
+    //
+    // `screen.name` là mã kho — vị trí đo được ngày 24/10/2026 mang tên
+    // `OOHX_LED_CTO_CAN_THO`, và nó đang là `h1` của trang. Người mua đọc
+    // `site.name` ("LED Cần Thơ"); mã kho xuống một nhãn phụ để người vận hành
+    // vẫn tra được.
+    //
+    // Bản thiết kế ghép thêm tên đường tách từ `site.address`. Không làm: số
+    // nhà trong dữ liệu có đủ dạng ("59–59A", "Lô 12", "KM 5+300"), nên mọi
+    // regex tách số nhà khỏi tên đường sẽ sai ở một phần kho — và sai ở tiêu
+    // đề thì sai ở chỗ dễ thấy nhất. Địa chỉ đầy đủ đứng riêng một dòng ngay
+    // dưới, không bị cắt gì.
+    //
+    // `generateMetadata`, JSON-LD và breadcrumb vẫn dùng `screen.name`: đó là
+    // thứ công cụ tìm kiếm đã lập chỉ mục.
+    const tenKho = screen.name ?? '';
+    const tenHienThi = screen.site?.name?.trim() || tenKho;
 
     const tabs = [
         { khoa: 'info', nhan: 'Thông tin', noiDung: <TabThongTin screen={screen} /> },
@@ -206,14 +236,27 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
 
                 <div className="detail-layout">
                     <div>
-                        <h1 className="dtitle">{screen.name}</h1>
+                        {/*
+                          Nhãn mã kho chỉ hiện khi nó KHÁC tiêu đề. Màn hình
+                          không có `site.name` thì tiêu đề rơi về chính mã kho,
+                          và in nó hai lần liền nhau là một lỗi trình bày.
+                        */}
+                        {tenKho && tenKho !== tenHienThi ? (
+                            <div className="dkho">{tenKho}</div>
+                        ) : null}
+
+                        <h1 className="dtitle">{tenHienThi}</h1>
+
+                        {screen.site?.address ? (
+                            <div className="daddr">{screen.site.address}</div>
+                        ) : null}
 
                         <div className="dmeta">
                             <div className="dloc">
                                 <svg viewBox="0 0 24 24" fill="var(--bl)" aria-hidden="true">
                                     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
                                 </svg>{' '}
-                                {thanhPho}
+                                {moTaDiaGioi(screen.location?.city ?? screen.site?.city)}
                             </div>
                             <span className="msep" />
                             <span style={{ fontSize: 13, color: 'var(--t3)' }}>
@@ -223,9 +266,29 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
 
                         {screen.owner?.slug ? <OwnerMini screen={screen} /> : null}
 
+                        {/*
+                          ══ Bốn ô này đổi nội dung ở lát 1 ══
+
+                          Trước: Site · Network · Kích thước · Floor CPM.
+                          "Site" và "Network" là cách **sàn** tổ chức kho,
+                          không phải thứ một agency cân nhắc khi sàng vị trí;
+                          còn "Floor CPM" rỗng trên phần lớn kho vì mô hình bán
+                          là IO (thuê trọn theo tháng). Ba ô trên bốn ô nói về
+                          chuyện nội bộ hoặc không nói gì.
+
+                          Cả Site và Network vẫn còn trong bảng thông số ở tab
+                          "Thông tin" — không mất đi, chỉ nhường chỗ.
+
+                          Sau: bốn con số một người mua DOOH thật sự dùng để
+                          sàng — giá, lượng người thấy, cỡ biển, phần hiển thị
+                          mua được. Trên vị trí đo được ngày 24/10/2026 thì hai
+                          ô đầu trống, và đó là thông tin đúng: hồ sơ ấy chưa
+                          đủ để ra quyết định. Lát 2 cho chúng nói ra vì sao
+                          trống thay vì chỉ một dấu gạch ngang.
+                        */}
                         <div className="stats-row">
-                            <StatBox nhan="Site" giaTri={screen.site?.name} />
-                            <StatBox nhan="Network" giaTri={screen.network?.name} />
+                            <StatBox nhan="Giá thuê" giaTri={moTaGia(screen)} />
+                            <StatBox nhan="Impressions/ngày" giaTri={moTaImpressions(screen)} />
                             <StatBox
                                 nhan="Kích thước"
                                 giaTri={
@@ -235,15 +298,8 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
                                 }
                             />
                             <StatBox
-                                nhan="Floor CPM"
-                                giaTri={
-                                    screen.pricing?.floor_cpm?.amount
-                                        ? dinhDangTien(
-                                              screen.pricing.floor_cpm.amount,
-                                              screen.pricing.floor_cpm.currency ?? 'VND',
-                                          )
-                                        : null
-                                }
+                                nhan="SOV tối đa"
+                                giaTri={sovThat != null ? `${sovThat}%` : null}
                             />
                         </div>
 
@@ -262,7 +318,9 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
                     lat={screen.site.lat}
                     lng={screen.site.lng}
                     tenSite={screen.site.name ?? ''}
-                    diaChi={[screen.site.address, screen.site.city].filter(Boolean).join(', ')}
+                    diaChi={[screen.site.address, moTaDiaGioi(screen.site.city)]
+                        .filter(Boolean)
+                        .join(', ')}
                     tenManHinh={screen.name ?? ''}
                     pois={screen.nearby_pois ?? []}
                 />
@@ -342,6 +400,42 @@ function StatBox({ nhan, giaTri }: { nhan: string; giaTri?: string | null }) {
             <div className="stat-l">{nhan}</div>
         </div>
     );
+}
+
+/**
+ * Giá cho ô số liệu — và nó phải nói rõ đang là giá GÌ.
+ *
+ * Hai mô hình bán nằm trong cùng một trường `pricing`: `io_rate` là thuê trọn
+ * theo tháng, `floor_cpm` là giá sàn trên nghìn lượt. Hai con số ấy khác nhau
+ * khoảng ba bậc độ lớn, nên in một trong hai mà không ghi đơn vị thì người mua
+ * đọc sai mà không có cách nào biết.
+ */
+function moTaGia(screen: ScreenDetail): string | null {
+    const io = screen.pricing?.io_rate;
+    if (io?.amount) {
+        const donVi = io.unit === 'month' ? '/tháng' : io.unit ? '/' + io.unit : '';
+        return dinhDangTien(io.amount, io.currency ?? 'VND') + donVi;
+    }
+
+    const cpm = screen.pricing?.floor_cpm;
+    if (cpm?.amount) {
+        return dinhDangTien(cpm.amount, cpm.currency ?? 'VND') + ' CPM';
+    }
+
+    return null;
+}
+
+/**
+ * Impressions mỗi ngày — `null` khi chưa có, KHÔNG suy ra từ gì khác.
+ *
+ * `<= 0` cũng trả `null`: số 0 ở đây nghĩa là "chưa đo", không phải "không ai
+ * thấy màn hình này". In "0" lên ô số liệu là một khẳng định sai về vị trí.
+ */
+function moTaImpressions(screen: ScreenDetail): string | null {
+    const n = screen.insights?.daily_impressions_est;
+    if (typeof n !== 'number' || n <= 0) return null;
+
+    return new Intl.NumberFormat('vi-VN').format(n);
 }
 
 function dinhDangTien(so: number, donVi: string): string {
@@ -466,7 +560,10 @@ function TabThongTin({ screen }: { screen: ScreenDetail }) {
                     }
                 />
                 <SpecO nhan="Vị trí" giaTri={screen.site?.address} />
-                <SpecO nhan="Tỉnh/Thành" giaTri={screen.site?.city ?? screen.location?.city} />
+                <SpecO
+                    nhan="Tỉnh/Thành"
+                    giaTri={moTaDiaGioi(screen.site?.city ?? screen.location?.city) || null}
+                />
                 <SpecO
                     nhan="Thời lượng QC"
                     giaTri={spec?.spot_length_s ? `${spec.spot_length_s}s` : null}
@@ -652,8 +749,14 @@ const nutLienHe = {
  * JSON-LD thì không. Lệch thì không ai thấy, vì cả hai đều hợp lệ.
  */
 function describe(screen: ScreenDetail): string {
-    const parts = [screen.name, screen.site?.name ?? screen.location?.site, screen.location?.city]
-        .filter(Boolean);
+    // `screen.name` giữ nguyên ở đây: đó là thứ công cụ tìm kiếm đã lập chỉ mục
+    // cho URL này. Nhưng chuỗi địa giới thì tách — một dấu `>` giữa câu mô tả
+    // là ký tự kỹ thuật của dữ liệu đi ra tới kết quả tìm kiếm.
+    const parts = [
+        screen.name,
+        screen.site?.name ?? screen.location?.site,
+        moTaDiaGioi(screen.location?.city) || null,
+    ].filter(Boolean);
 
     return parts.join(', ') + '.';
 }
