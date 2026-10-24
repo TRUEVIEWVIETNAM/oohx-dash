@@ -327,6 +327,98 @@ class ScreenDetailApiTest extends TestCase
         $this->assertNull($data['photo_source']);
     }
 
+    // ── Lát 1 của plan ảnh: một đường dựng URL, không ba ───────────────────
+
+    /**
+     * Ảnh là URL đầy đủ thì ra ngoài **nguyên văn**.
+     *
+     * Hồi quy cho một lỗi đang sống tới 24/10/2026: DTO này map
+     * `asset('storage/' . $p)` vô điều kiện, nên một hàng
+     * `photos: ["https://doitac.example/a.jpg"]` cho
+     * `https://oohx.net/storage/https://doitac.example/a.jpg`.
+     *
+     * Chưa ai thấy vì chưa có ảnh nào để nó làm vỡ — cả 104 vị trí trên
+     * production đều không có ảnh riêng. Nhưng cột `spec.photo_url` của đường
+     * nhập kho nhận đúng dạng này, nên hàng đầu tiên đối tác gửi sẽ gặp.
+     */
+    public function test_anh_la_url_day_du_thi_ra_ngoai_nguyen_van(): void
+    {
+        $screen = $this->screen([], ['photos' => [
+            'https://doitac.example/a.jpg',
+            'screens/noi-bo.jpg',
+        ]]);
+
+        $data = $this->getJson('/api/v2/screens/' . $screen->slug)->assertOk()->json('data');
+
+        $this->assertSame('https://doitac.example/a.jpg', $data['photo_urls'][0]);
+        $this->assertStringNotContainsString(
+            'storage/https',
+            $data['photo_urls'][0],
+            'URL đầy đủ bị bọc thêm asset(\'storage/\').',
+        );
+
+        // Và đường dẫn tương đối vẫn được dựng như cũ.
+        $this->assertStringContainsString('/storage/screens/noi-bo.jpg', $data['photo_urls'][1]);
+    }
+
+    /**
+     * **Hai đường đọc phải khớp** — đây là cái chốt thật của lát 1.
+     *
+     * `photo_url` của DTO danh sách (qua `display_photo` → `spec->photo`) và
+     * phần tử đầu của `photo_urls` của DTO chi tiết nói về **cùng một ảnh**.
+     * Trước lát 1 chúng đi qua hai phép dựng URL khác nhau và lệch nhau ở
+     * đúng trường hợp URL đầy đủ.
+     *
+     * Ca này đỏ với bất cứ đường dựng URL thứ ba nào mọc lên sau.
+     */
+    public function test_hai_duong_doc_noi_cung_mot_url_cho_cung_mot_anh(): void
+    {
+        foreach ([
+            'url đầy đủ'       => ['https://doitac.example/a.jpg'],
+            'đường dẫn tương đối' => ['screens/mot.jpg'],
+        ] as $ten => $photos) {
+            $screen = $this->screen([], ['photos' => $photos]);
+
+            $chiTiet = $this->getJson('/api/v2/screens/' . $screen->slug)->assertOk()->json('data');
+
+            $danhSach = collect($this->getJson('/api/v2/screens?per_page=50')->assertOk()->json('data'))
+                ->firstWhere('slug', $screen->slug);
+
+            $this->assertNotNull($danhSach, "Không thấy màn hình trong danh sách ({$ten}).");
+            $this->assertSame(
+                $danhSach['photo_url'],
+                $chiTiet['photo_urls'][0],
+                "Hai đường đọc nói hai URL khác nhau cho cùng một ảnh ({$ten}).",
+            );
+        }
+    }
+
+    public function test_phan_tu_rong_khong_thanh_mot_o_anh_vo(): void
+    {
+        // `asset('storage/')` ra `https://oohx.net/storage/` — một URL không
+        // trỏ vào ảnh nào. Đếm nó là một ảnh làm hồ sơ trông đầy hơn thực tế.
+        $screen = $this->screen([], ['photos' => ['', '   ', 'screens/that.jpg']]);
+
+        $data = $this->getJson('/api/v2/screens/' . $screen->slug)->assertOk()->json('data');
+
+        $this->assertCount(1, $data['photo_urls']);
+        $this->assertSame('screen', $data['photo_source']);
+    }
+
+    public function test_chi_toan_phan_tu_rong_thi_roi_sang_bac_thay_the(): void
+    {
+        $screen = $this->screen([], ['photos' => ['', null], 'photo_url' => null]);
+        $screen->owner->update(['cover_url' => 'owners/covers/bia.webp']);
+
+        $data = $this->getJson('/api/v2/screens/' . $screen->slug)->assertOk()->json('data');
+
+        // Không có ảnh thật nào, nên chuỗi dự phòng phải chạy — và `photo_source`
+        // phải nói đúng bậc. Nếu phép lọc chỉ nằm ở một đường thì đường kia
+        // thấy "có ảnh" và `photo_source` ra `screen` cho một ô ảnh vỡ.
+        $this->assertCount(1, $data['photo_urls']);
+        $this->assertSame('owner_cover', $data['photo_source']);
+    }
+
     /**
      * `photo_source` là trường DUY NHẤT lát 5 thêm vào DTO.
      *

@@ -178,26 +178,22 @@ class SoatAnhKhoService
     }
 
     /**
-     * Danh sách đường dẫn ảnh **thô** của một màn hình, đúng như trong CSDL.
+     * Đường dẫn ảnh **thô** của một màn hình, đúng như trong cột.
      *
-     * Không đi qua accessor `photoUrls`: accessor trả URL đã dựng xong, và
+     * Không dùng `spec->photo_urls`: accessor đó trả URL đã dựng xong, còn
      * lệnh này cần biết trong cột có gì — một đường dẫn tương đối hay một URL
-     * đầy đủ. Đó chính là thứ phân biệt hai đường đọc đang lệch nhau.
+     * đầy đủ. Đó chính là thứ phân biệt hai đường đọc từng lệch nhau.
+     *
+     * Nhưng **phép lọc** thì đi qua `ScreenSpec::photoPaths()`, không chép lại:
+     * lượt đột biến thứ sáu của lát 0 gỡ nhánh dự phòng `photo_url` khỏi bản
+     * chép ở đây và **không ca nào đỏ**, vì phân loại ba trạng thái đọc một
+     * đường khác. Hai bản của cùng một phép lọc là hai bản sẽ lệch.
      *
      * @return list<string>
      */
     private function duongAnh(Screen $man): array
     {
-        $tho = $man->spec?->photos;
-
-        if (! is_array($tho) || $tho === []) {
-            $tho = $man->spec?->photo_url ? [$man->spec->photo_url] : [];
-        }
-
-        return array_values(array_filter(
-            array_map(fn ($p) => is_string($p) ? trim($p) : '', $tho),
-            fn (string $p) => $p !== '',
-        ));
+        return $man->spec?->photoPaths() ?? [];
     }
 
     private function laUrl(string $duong): bool

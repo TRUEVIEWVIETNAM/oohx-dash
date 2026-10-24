@@ -178,22 +178,23 @@ class ScreenDetailResource extends ScreenSummaryResource
      * cho `Screen::displayPhotoWithSource()` — nơi giữ bản duy nhất của ba bậc
      * còn lại — và lấy luôn tên bậc nó dừng ở.
      *
-     * @return array{urls: string[], source: ?string}
+     * ══ Lát 1 (24/10/2026): hàm này thôi tự dựng URL ══
+     *
+     * Trước lát này nó map `asset('storage/' . $p)` **vô điều kiện**, trong
+     * khi `ScreenSpec::photo` và `::photo_urls` đều xử lý đúng `http(s)://`.
+     * Nên một hàng `photos: ["https://doitac.example/a.jpg"]` — đúng thứ cột
+     * `spec.photo_url` của đường nhập kho nhận — hiện bình thường ở thẻ danh
+     * sách và ra `https://oohx.net/storage/https://doitac.example/a.jpg` ở
+     * đây. Phép dựng URL nay có **một** bản, ở `ScreenSpec::photoUrlOf()`.
+     *
+     * @return array{urls: list<string>, source: ?string}
      */
     private function anhVaNguon(): array
     {
-        $photos = collect($this->spec?->photos ?? [])
-            ->filter(fn ($p) => is_string($p) && $p !== '')
-            ->map(fn ($p) => asset('storage/' . $p))
-            ->values()
-            ->all();
+        $cuaManHinh = $this->spec?->photo_urls ?? [];
 
-        if ($photos === [] && $this->spec?->photo_url) {
-            $photos = [asset('storage/' . $this->spec->photo_url)];
-        }
-
-        if ($photos !== []) {
-            return ['urls' => $photos, 'source' => 'screen'];
+        if ($cuaManHinh !== []) {
+            return ['urls' => $cuaManHinh, 'source' => 'screen'];
         }
 
         $thay = $this->displayPhotoWithSource();

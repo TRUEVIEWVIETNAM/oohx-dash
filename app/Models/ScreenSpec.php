@@ -68,15 +68,58 @@ class ScreenSpec extends Model
     // ── Accessors ───────────────────────────────────────────
 
     /**
-     * Get the first photo as a full public URL.
-     * Supports: photos array, photo_url string, full URL, or relative storage path.
+     * Đường dẫn ảnh **đúng như trong cột**, đã lọc.
+     *
+     * ══ Vì sao phép lọc nằm ở đây, một chỗ ══
+     *
+     * Trước 24/10/2026 có **ba** bản của cùng phép này: hai accessor dưới đây
+     * và một vòng `map` trong `ScreenDetailResource`. Bản thứ ba thiếu phép
+     * kiểm `http(s)://`, nên một hàng `photos: ["https://doitac.example/a.jpg"]`
+     * hiện bình thường ở thẻ danh sách (đi qua accessor) và ra
+     * `https://oohx.net/storage/https://doitac.example/a.jpg` ở trang chi tiết.
+     * Hai đường đọc cho cùng một màn hình trả dữ liệu khác nhau — hình dạng
+     * lỗi R38, và `CLAUDE.md` mục 1 dặn đừng lặp lại.
+     *
+     * Chỗ sửa không phải bản thứ ba. Chỗ sửa là **xoá bản thứ ba đi**.
+     *
+     * ══ Lọc gì, và vì sao ══
+     *
+     * Phần tử không phải chuỗi, hoặc rỗng sau khi bỏ khoảng trắng, không phải
+     * một ảnh. Để nó đi tiếp thì nó ra `asset('storage/')` — tức
+     * `https://oohx.net/storage/`, một URL không trỏ vào ảnh nào. Đếm nó là
+     * một ảnh làm hồ sơ trông đầy hơn thực tế, và hiện nó làm trang có một ô
+     * ảnh vỡ.
+     *
+     * @return list<string>
      */
-    public function getPhotoAttribute(): ?string
+    public function photoPaths(): array
     {
-        $path = collect($this->photos)->first() ?? $this->photo_url;
-        if (! $path) return null;
+        $tho = is_array($this->photos) ? $this->photos : [];
 
-        // Already a full URL
+        // `photo_url` là nhánh dự phòng, không phải nhánh cộng dồn: mọi hàng
+        // nhập trước migration `add_photos_to_screen_specs_table` chỉ có nó, và
+        // migration đó đã chép sang `photos` cho hàng nào có. Một hàng có cả
+        // hai thì `photos` là bản đầy đủ.
+        if ($tho === []) {
+            $tho = $this->photo_url !== null ? [$this->photo_url] : [];
+        }
+
+        return array_values(array_filter(
+            array_map(fn ($p) => is_string($p) ? trim($p) : '', $tho),
+            fn (string $p) => $p !== '',
+        ));
+    }
+
+    /**
+     * Một đường dẫn trong cột → một URL dùng được.
+     *
+     * Cột nhận hai dạng, và cả hai đều có thật trong dữ liệu: đường dẫn tương
+     * đối trong disk công khai (biểu mẫu tải ảnh của Filament ghi vào), và URL
+     * đầy đủ (cột `spec.photo_url` của đường nhập kho nhận được). Bọc dạng thứ
+     * hai bằng `asset('storage/')` cho ra một URL vô nghĩa.
+     */
+    public static function photoUrlOf(string $path): string
+    {
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
             return $path;
         }
@@ -84,19 +127,22 @@ class ScreenSpec extends Model
         return asset('storage/' . $path);
     }
 
+    /** Ảnh đầu tiên dưới dạng URL đầy đủ, hoặc `null` khi không có ảnh nào. */
+    public function getPhotoAttribute(): ?string
+    {
+        $duong = $this->photoPaths();
+
+        return $duong === [] ? null : self::photoUrlOf($duong[0]);
+    }
+
     /**
-     * Get all photos as full public URLs.
+     * Toàn bộ ảnh dưới dạng URL đầy đủ.
+     *
+     * @return list<string>
      */
     public function getPhotoUrlsAttribute(): array
     {
-        $paths = $this->photos ?? ($this->photo_url ? [$this->photo_url] : []);
-
-        return collect($paths)->map(function ($path) {
-            if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-                return $path;
-            }
-            return asset('storage/' . $path);
-        })->all();
+        return array_map(fn (string $p) => self::photoUrlOf($p), $this->photoPaths());
     }
 
     public function getOrientationAttribute(): string
