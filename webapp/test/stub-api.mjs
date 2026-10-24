@@ -562,6 +562,21 @@ function chiTiet(pathname, searchParams = new URLSearchParams()) {
                 ...SCREEN_KHONG_GIA,
                 ...SCREEN_CHI_TIET,
                 availability: AVAILABILITY,
+
+                // ── Lát 1 (24/10/2026): địa giới HAI CẤP ──
+                //
+                // Đúng dạng dữ liệu thật. `GET /api/v2/screens/oohx-led-cto-can-tho`
+                // trả `"Cần Thơ > Phường Tân An"` — hai cấp hành chính trong
+                // một chuỗi, nối bằng dấu `>`.
+                //
+                // Trước lát này trang in nguyên dấu `>` ra giao diện, và
+                // **không chốt nào bắt được**: mọi màn hình giả trong tệp này
+                // đều có `city` một cấp ("Hà Nội"), nên cả bộ chốt chạy trên
+                // một thế giới không có chuỗi gộp. Cùng một hình dạng lỗi với
+                // fixture "màn hình thiếu thông tin" ở trên.
+                location: { ...SCREEN_KHONG_GIA.location, city: 'Cần Thơ > Phường Tân An' },
+                site: { ...SCREEN_CHI_TIET.site, city: 'Cần Thơ > Phường Tân An' },
+
                 // Màn hình không giá KHÔNG có insights: trang phải ẩn hẳn tab
                 // Insights, và đó là một nhánh riêng cần được render ở đâu đó.
                 insights: null,

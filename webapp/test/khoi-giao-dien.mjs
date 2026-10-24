@@ -574,10 +574,22 @@ const TRANG = [
             // Lát 4 — bố cục hai cột và hàng số liệu
             'class="detail-layout"',
             'class="detail-sidebar"',
-            'class="dtitle"',
             'class="dmeta"',
             'class="stats-row"',
             'class="stat-box"',
+
+            // ── Lát 1 (24/10/2026): tiêu đề thôi là mã kho ──
+            //
+            // `screen.name` là mã kho — vị trí thật đo được mang tên
+            // `OOHX_LED_CTO_CAN_THO`, và nó đang là `h1`. Tiêu đề nay lấy
+            // `site.name`; mã kho xuống nhãn `.dkho`.
+            //
+            // Khẳng định cả NỘI DUNG của `h1`, không chỉ sự có mặt của class:
+            // nếu có người trả `screen.name` về chỗ cũ thì ca này đỏ, còn
+            // `class="dtitle"` thì vẫn khớp.
+            'class="dtitle">Toà Nhà A<',
+            'class="dkho"',
+            'class="daddr">Số 1 Đường Thử<',
             'class="oc-mini"', // thẻ owner một dòng
 
             // Lát 4 — bốn tab, và nội dung CỦA CẢ BỐN phải có trong HTML máy
@@ -653,6 +665,24 @@ const TRANG = [
             'Verified Location',
             'Fast Booking',
         ],
+        thuTu: [
+            // ── Lát 1 (24/10/2026): bốn ô số liệu, ĐÚNG thứ tự ──
+            //
+            // Trước lát này là `Site · Network · Kích thước · Floor CPM` — hai
+            // ô đầu nói về cách sàn tổ chức kho, ô cuối rỗng trên phần lớn kho
+            // vì mô hình bán là IO.
+            //
+            // Canh thứ tự chứ không chỉ canh sự có mặt: thứ tự này là thứ tự
+            // một người mua sàng vị trí (giá trước, rồi lượng người thấy), và
+            // đảo nó là đổi nghĩa của cả hàng. Cả bốn nhãn còn phải nằm TRƯỚC
+            // bảng thông số, nơi "Kích thước" xuất hiện lần thứ hai.
+            'class="stats-row"',
+            'Giá thuê',
+            'Impressions/ngày',
+            'Kích thước',
+            'SOV tối đa',
+            'class="tabs"',
+        ],
         khong: [
             // CHÚ Ý: `class="sc"` KHÔNG nằm trong danh sách này, khác với
             // `/explore` và `/products`. `.sc` là một ô bảng thông số
@@ -704,9 +734,22 @@ const TRANG = [
             'class="loc-browser"',
             'class="loc-empty"',
             'class="loc-empty-sub"',
+
+            // ── Lát 1 (24/10/2026): địa giới hai cấp đã tách ──
+            //
+            // Fixture của màn hình này có `city = "Cần Thơ > Phường Tân An"`,
+            // đúng dạng dữ liệu thật. Giao diện phải in hai cấp nối bằng dấu
+            // giữa, không bằng dấu kỹ thuật của dữ liệu.
+            'Cần Thơ · Phường Tân An',
         ],
         khong: [
             'id="tp-insights"',
+
+            // Dấu `>` của chuỗi địa giới KHÔNG được ra tới giao diện, dù ở
+            // dạng thực thể HTML. Đây là cái chốt của lát 1: trước nó, trang
+            // in nguyên "Cần Thơ > Phường Tân An" cho người mua đọc.
+            'Cần Thơ &gt;',
+            'Cần Thơ >',
 
             // `offers` trong JSON-LD chỉ xuất hiện khi CÓ giá: `price: 0` với
             // schema.org nghĩa là MIỄN PHÍ.
