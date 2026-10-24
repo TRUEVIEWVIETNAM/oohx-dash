@@ -355,6 +355,53 @@ class Screen extends Model
         );
     }
 
+    /**
+     * Biểu thức SQL cho "màn hình có ảnh của **chính nó**" — lát 3 của
+     * `docs/PLAN-ANH-VI-TRI.md`.
+     *
+     * ══ Vì sao là một hằng, không hai chỗ viết ══
+     *
+     * Bộ lọc "chỉ vị trí thiếu ảnh" và phép sắp theo cột ảnh cần **cùng** một
+     * định nghĩa. Hai chỗ viết là hai chỗ sẽ lệch, và lệch ở đây nghĩa là bộ
+     * lọc và thứ tự nói hai điều khác nhau về cùng một hàng.
+     *
+     * Dùng trong ngữ cảnh đã có bảng `screen_specs` (qua `whereHas('spec')`
+     * hoặc một truy vấn con tương quan), nên tên cột được viết đủ. Hằng tự bọc
+     * ngoặc: `whereRaw` nối thẳng vào mệnh đề `WHERE`, nên một `OR` không bọc
+     * sẽ ăn lan sang điều kiện bên cạnh.
+     *
+     * ══ Chỗ nó KHÔNG chính xác, nói ra ══
+     *
+     * SQL không nhìn được vào trong mảng JSON để phân biệt một đường dẫn thật
+     * với một chuỗi rỗng, nên một hàng `photos: ["", ""]` bị tính là **có**
+     * ảnh ở đây, trong khi `ScreenSpec::photoPaths()` — thứ cột giao diện và
+     * `oohx:soat-anh-kho` đọc — nói là không.
+     *
+     * Hàng đó **không đường ghi nào của hệ thống tạo ra được**: biểu mẫu tải
+     * ảnh Filament ghi tên tệp nó tự đặt, và đường nhập kho đã từ chối ô rỗng
+     * từ lát 1. Nên hằng này chính xác trên mọi hàng hệ thống sinh ra, và sai
+     * chỉ trên hàng sửa tay trong CSDL. `AnhPublisherTest` ghim cả hai mặt đó.
+     */
+    public const SQL_CO_ANH_THAT = "(JSON_LENGTH(screen_specs.photos) > 0 OR (screen_specs.photo_url IS NOT NULL AND screen_specs.photo_url <> ''))";
+
+    /** Màn hình có ảnh của chính nó. */
+    public function scopeCoAnhThat($query)
+    {
+        return $query->whereHas('spec', fn ($q) => $q->whereRaw(self::SQL_CO_ANH_THAT));
+    }
+
+    /**
+     * Màn hình **không** có ảnh của chính nó — kể cả màn hình không có hàng
+     * `screen_specs` nào.
+     *
+     * `whereDoesntHave` chứ không `whereHas(... NOT ...)`: một màn hình chưa
+     * có spec cũng là một màn hình thiếu ảnh, và dạng sau bỏ sót nó.
+     */
+    public function scopeThieuAnhThat($query)
+    {
+        return $query->whereDoesntHave('spec', fn ($q) => $q->whereRaw(self::SQL_CO_ANH_THAT));
+    }
+
     public function scopeOnline($query)
     {
         return $query->where('status', 'online');
