@@ -98,6 +98,21 @@ class RowValidator
             $errors[] = "Floor CPM âm: {$inventory['floor_cpm']}";
         }
 
+        // Ảnh — thêm 24/10/2026, lát 1 của `docs/PLAN-ANH-VI-TRI.md`.
+        //
+        // Cột `spec.photo_url` của `FieldCatalog` là `string` **không luật
+        // nào**: giá trị đi thẳng từ bảng tính vào `screen_specs.photos`, và
+        // từ đó ra trang công khai. Hàng đầu tiên đối tác gửi kèm một đường
+        // dẫn kiểu `../../etc/passwd` hay một URL `http://` sẽ được ghi và
+        // không ai thấy.
+        if (isset($spec['photo_url']) && is_string($spec['photo_url']) && trim($spec['photo_url']) !== '') {
+            $loi = $this->loiDuongAnh(trim($spec['photo_url']));
+
+            if ($loi !== null) {
+                $errors[] = $loi;
+            }
+        }
+
         // VN category warning (not hard error — can still import)
         $vnCatLabel = $inventory['vn_category_name'] ?? null;
         if ($vnCatLabel && ! isset($this->vnCategoryMap[$vnCatLabel])) {
@@ -105,6 +120,52 @@ class RowValidator
         }
 
         return $errors;
+    }
+
+    /**
+     * Đường dẫn ảnh hợp lệ hay không, và nếu không thì vì sao.
+     *
+     * Cột nhận **hai** dạng, vì cả hai đều có thật trong dữ liệu: một đường
+     * dẫn tương đối trong disk công khai, hoặc một URL `https` đầy đủ. Mọi
+     * dạng khác là một hàng cần người đọc lại, không phải một hàng cần ghi.
+     *
+     * Vì sao `http://` bị từ chối chứ không được "nâng cấp" thành `https`:
+     * trang công khai chạy trên HTTPS, nên trình duyệt **chặn** ảnh HTTP
+     * (mixed content) — ô ảnh trống và không khối nào nói gì. Còn tự đổi
+     * giao thức là đoán hộ đối tác rằng máy chủ của họ có HTTPS.
+     */
+    private function loiDuongAnh(string $duong): ?string
+    {
+        if (str_contains($duong, "\0")) {
+            return 'Đường dẫn ảnh chứa byte NUL';
+        }
+
+        if (str_starts_with($duong, 'http://')) {
+            return "Ảnh phải dùng https, không http (trình duyệt chặn ảnh HTTP trên trang HTTPS): {$duong}";
+        }
+
+        if (str_starts_with($duong, 'https://')) {
+            return filter_var($duong, FILTER_VALIDATE_URL) === false
+                ? "Ảnh không phải URL hợp lệ: {$duong}"
+                : null;
+        }
+
+        // Còn lại phải là đường dẫn tương đối trong disk công khai.
+        if (preg_match('#^[a-zA-Z][a-zA-Z0-9+.\-]*:#', $duong) === 1) {
+            return "Ảnh chỉ nhận https hoặc đường dẫn tương đối: {$duong}";
+        }
+
+        if (str_starts_with($duong, '/') || str_starts_with($duong, '\\')) {
+            return "Đường dẫn ảnh phải tương đối, không bắt đầu bằng dấu phân cách: {$duong}";
+        }
+
+        // `..` ở bất cứ đâu: `storage/app/public` là gốc, và một đường dẫn đi
+        // lên khỏi nó trỏ vào tệp của máy chủ.
+        if (str_contains($duong, '..')) {
+            return "Đường dẫn ảnh đi ra khỏi disk công khai: {$duong}";
+        }
+
+        return null;
     }
 
     /**
