@@ -7,6 +7,7 @@ use App\Models\Screen;
 use App\Models\Site;
 use App\Models\VenueCategory;
 use App\Services\PoiContextEnricher;
+use App\Services\SoatAnhKhoService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Support\RawJs;
@@ -15,10 +16,12 @@ use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Lớp base canonical cho Screens.
@@ -664,6 +667,28 @@ abstract class BaseScreenResource extends Resource
 
     // ── Table ─────────────────────────────────────────────────────────────────
 
+    /**
+     * Chữ cho cột "Ảnh".
+     *
+     * Nhãn từng bậc dự phòng lấy từ `SoatAnhKhoService::NHAN_NGUON` — cùng bộ
+     * chữ mà `oohx:soat-anh-kho` in, nên bảng và lệnh soát không bao giờ gọi
+     * cùng một bậc bằng hai tên.
+     */
+    protected static function nhanAnh(Screen $record): string
+    {
+        $nguon = $record->displayPhotoWithSource()['source'];
+
+        if ($nguon === null) {
+            return 'Không có';
+        }
+
+        if ($nguon === 'screen') {
+            return 'Thật (' . count($record->spec?->photoPaths() ?? []) . ')';
+        }
+
+        return 'Mượn: ' . (SoatAnhKhoService::NHAN_NGUON[$nguon] ?? $nguon);
+    }
+
     public static function table(Table $table): Table
     {
         $canPricing = static::canPricing();
@@ -695,7 +720,58 @@ abstract class BaseScreenResource extends Resource
                         'warning' => 'maintenance',
                     ])
                     ->formatStateUsing(fn ($state) => Screen::STATUS_LABELS[$state] ?? $state ?? '—'),
+
+                /*
+                 * ── Cột "Ảnh" — lát 3 của `docs/PLAN-ANH-VI-TRI.md` ──
+                 *
+                 * Đo trên production 24/10/2026: **104/104** vị trí dùng ảnh
+                 * bìa chủ sở hữu, và thư mục `screen-photos/` xuất hiện 0 lần
+                 * — biểu mẫu tải ảnh ngay trên trang này chưa từng được dùng
+                 * cho một màn hình nào. 104 vị trí thì gửi một email là xong;
+                 * 10.000 thì chủ vị trí cần một danh sách rút dần được.
+                 *
+                 * Ba trạng thái đọc `Screen::displayPhotoWithSource()` — cùng
+                 * hàm mà `photo_source` của API trả, và cùng hàm mà
+                 * `oohx:soat-anh-kho` đếm. Nên bảng này, lệnh soát, và trang
+                 * người mua thấy không bao giờ nói ba điều khác nhau.
+                 *
+                 * Phạm vi hẹp có chủ ý: chỉ **một** điều — có ảnh của chính nó
+                 * hay không. Khối 18 trường của trang chi tiết nằm ở
+                 * `webapp/lib/danh-gia-ho-so.ts`, tức TypeScript; dựng lại nó
+                 * bằng PHP là tạo bản thứ hai của một phép đánh giá.
+                 */
+                Tables\Columns\TextColumn::make('anh')
+                    ->label('Ảnh')
+                    ->badge()
+                    ->state(fn (Screen $record) => static::nhanAnh($record))
+                    ->color(fn (Screen $record) => match ($record->displayPhotoWithSource()['source']) {
+                        'screen' => 'success',
+                        null     => 'danger',
+                        default  => 'warning',
+                    })
+                    // Sắp theo đúng biểu thức mà bộ lọc dùng — xem
+                    // `Screen::SQL_CO_ANH_THAT`. Không sắp theo nhãn: nhãn là
+                    // chữ dựng ở PHP, và sắp theo nó là sắp theo bảng chữ cái.
+                    ->sortable(query: fn (Builder $query, string $direction) => $query->orderBy(
+                        DB::table('screen_specs')
+                            ->selectRaw('CASE WHEN ' . Screen::SQL_CO_ANH_THAT . ' THEN 1 ELSE 0 END')
+                            ->whereColumn('screen_specs.screen_id', 'screens.id')
+                            ->limit(1),
+                        $direction,
+                    )),
             ])
+            // Cột ảnh đi qua chuỗi dự phòng, và chuỗi đó chạm `site.network`,
+            // `owner`, `inventory.vnCategory` khi bậc trước không có. Trên kho
+            // sạch ảnh nó chạm **cả bốn** cho mọi hàng — nên thiếu eager load
+            // là 25 hàng × 4 truy vấn mỗi lượt mở bảng.
+            ->modifyQueryUsing(fn (Builder $query) => $query->with([
+                'spec:id,screen_id,photos,photo_url',
+                'site:id,name,banner,network_id',
+                'site.network:id,banner',
+                'owner:id,name,cover_url',
+                'inventory:id,screen_id,vn_category_id',
+                'inventory.vnCategory:id,thumb',
+            ]))
             ->filters([
                 TernaryFilter::make('active')
                     ->label('Đang bật'),
@@ -729,6 +805,19 @@ abstract class BaseScreenResource extends Resource
                         fn ($q, $v) => $q->whereHas('inventory', fn ($iq) => $iq->where('vn_category_id', $v))
                     ))
                     ->searchable(),
+
+                /*
+                 * Bộ lọc "chỉ vị trí thiếu ảnh" — mặc định TẮT.
+                 *
+                 * Tham số closure tên `$query`: `CLAUDE.md` mục 4 — đặt tên
+                 * khác thì Filament tạo Builder rỗng và bộ lọc mất tác dụng,
+                 * im lặng. Ở đây sự im lặng ấy đặc biệt tệ: một bộ lọc không
+                 * lọc gì trả **toàn bộ** kho, và chủ vị trí sẽ đọc nó như
+                 * "mọi vị trí của tôi đều thiếu ảnh".
+                 */
+                Filter::make('thieu_anh')
+                    ->label('Chỉ vị trí thiếu ảnh')
+                    ->query(fn (Builder $query) => $query->thieuAnhThat()),
 
                 ...static::additionalFilters(),
             ])
