@@ -672,15 +672,6 @@ const TRANG = [
             'class="similar-section"',
             'class="inv-grid"',
             'class="sc-card sc-compact"',
-
-            // Bốn thẻ "Điểm nổi bật", chủ dự án chốt dựng nguyên văn
-            // 18/10/2026. Chúng in vô điều kiện cho mọi màn hình.
-            'class="hl-grid"',
-            'class="hl-card"',
-            'AI Traffic Data',
-            'Proof of Play',
-            'Verified Location',
-            'Fast Booking',
         ],
         thuTu: [
             // ── Lát 1 (24/10/2026): bốn ô số liệu, ĐÚNG thứ tự ──
@@ -771,8 +762,36 @@ const TRANG = [
             // Dấu "Đã xác minh" trên thẻ owner thu nhỏ, gỡ 18/10/2026 cùng
             // với dấu trên `OwnerCard`. Trang này là chỗ THỨ HAI in nó, và
             // một lệnh cấm chỉ ở một chỗ thì chỗ kia sẽ sống tiếp.
+            //
+            // Lát 5 thêm huy hiệu tình trạng xác minh vào khối liên hệ, và
+            // fixture này có `verified: true` — nên nếu huy hiệu in cả chiều
+            // bật thì ca này đỏ. Đó là chủ ý: xem docblock `KhoiLienHe`.
             'class="oc-mini-ver"',
             'Đã xác minh',
+
+            // ── Lát 5 (24/10/2026): bốn thẻ "Điểm nổi bật" đi khỏi trang ──
+            //
+            // Chúng in vô điều kiện cho mọi màn hình, không đọc trường nào
+            // của `screen`. Trên vị trí đo được, cả bốn câu đều sai: owner
+            // `verified: false` dưới thẻ "Verified Location", không bản ghi
+            // `impression_logs` nào cho "Proof of Play", chín trường
+            // `insights` null cho "AI Traffic Data".
+            //
+            // Canh cả tên class lẫn bốn câu: gỡ markup mà để lại hằng
+            // `DIEM_NOI_BAT` thì class biến mất nhưng chuỗi vẫn ở trong bundle
+            // — và một hằng không ai dùng sẽ được dùng lại.
+            'class="hl-grid"',
+            'class="hl-card"',
+            'AI Traffic Data',
+            'Proof of Play',
+            'Verified Location',
+            'Fast Booking',
+
+            // Fixture này có `photo_source: 'screen'` — ảnh của chính màn
+            // hình, nên thư viện KHÔNG được nói gì thêm. Một dải cảnh báo in
+            // vô điều kiện thì cũng vô dụng như bốn thẻ vừa gỡ.
+            'class="gal-nguon"',
+            'chưa có ảnh chụp vị trí',
         ],
     },
     {
@@ -874,6 +893,28 @@ const TRANG = [
             'class="stat-src"',
             'media owner chưa niêm yết',
             'media owner chưa khai số liệu',
+
+            // ── Lát 5 (24/10/2026): ảnh thay thế tự nhận là ảnh thay thế ──
+            //
+            // Fixture này mang đúng hình dạng của production: một ảnh, và nó
+            // là ảnh bìa chủ sở hữu (`photo_source: 'owner_cover'`). Thư viện
+            // vẫn hiện ảnh — nó cho biết khu vực trông thế nào — nhưng thôi
+            // để nó giả làm ảnh biển.
+            'class="gallery gallery--single"',
+            'class="gal-nguon"',
+            'Đây là ảnh bìa của chủ vị trí, chưa có ảnh chụp vị trí',
+
+            // Và huy hiệu tình trạng xác minh, chiều `false` — cũng như
+            // production. Nó nằm cạnh số điện thoại người mua sắp gọi.
+            'class="lh-ver"',
+            'class="badge b-gray">Chưa xác minh',
+            'OOHX chưa đối chiếu hồ sơ',
+
+            // Khối hồ sơ của lát 4 nói lại cùng một điều, bằng trường của nó:
+            // ảnh có nhưng đáng ngờ. Trước lát 5 nó suy ra điều đó từ CHUỖI
+            // URL; nay nó đọc `photo_source`, và câu phải giữ nguyên.
+            'class="hoso-mk hoso-mk--dang_ngo"',
+            '1 ảnh, nhưng ảnh đầu là ảnh bìa chủ sở hữu',
         ],
         khong: [
             // Không một khối số liệu nào được dựng khi mọi trường là null.

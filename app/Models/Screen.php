@@ -254,31 +254,59 @@ class Screen extends Model
      */
     public function getDisplayPhotoAttribute(): ?string
     {
+        return $this->displayPhotoWithSource()['url'];
+    }
+
+    /**
+     * Display photo **and where it came from**.
+     *
+     * Only one of the five steps below is a photo of this screen; the other
+     * four are stand-ins. A buyer looking at a billboard listing cannot tell
+     * them apart — the measured screen `oohx-led-cto-can-tho` shows an owner
+     * cover photo and nothing on the page says so. So the chain names its own
+     * step, and `ScreenDetailResource` passes that name out as `photo_source`.
+     *
+     * The chain lives here once. Reading it a second time in the resource is
+     * how the two copies drift apart, which is exactly audit finding R38.
+     *
+     * Sequential ifs, not a lookup array: an array literal evaluates every
+     * branch, so `site->network`, `owner` and `inventory->vnCategory` would be
+     * lazy-loaded for every row of the list endpoints even when step 1 hits.
+     *
+     * @return array{url: ?string, source: ?string}
+     */
+    public function displayPhotoWithSource(): array
+    {
         // 1. Screen spec photo (already formatted as full URL by spec accessor)
         $specPhoto = $this->spec?->photo;
-        if ($specPhoto) return $specPhoto;
+        if ($specPhoto) {
+            return ['url' => $specPhoto, 'source' => 'screen'];
+        }
 
         // 2. Site banner
         if ($this->site?->banner) {
-            return asset('storage/' . $this->site->banner);
+            return ['url' => asset('storage/' . $this->site->banner), 'source' => 'site'];
         }
 
         // 3. Network banner (via site)
         if ($this->site?->network?->banner) {
-            return asset('storage/' . $this->site->network->banner);
+            return ['url' => asset('storage/' . $this->site->network->banner), 'source' => 'network'];
         }
 
         // 4. Owner cover
         if ($this->owner?->cover_url) {
-            return asset('storage/' . $this->owner->cover_url);
+            return ['url' => asset('storage/' . $this->owner->cover_url), 'source' => 'owner_cover'];
         }
 
         // 5. Venue category thumb
         if ($this->inventory?->vnCategory?->thumb) {
-            return asset('storage/' . $this->inventory->vnCategory->thumb);
+            return [
+                'url'    => asset('storage/' . $this->inventory->vnCategory->thumb),
+                'source' => 'venue_category',
+            ];
         }
 
-        return null;
+        return ['url' => null, 'source' => null];
     }
 
     public function spec(): HasOne

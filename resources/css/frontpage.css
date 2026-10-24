@@ -2066,6 +2066,10 @@ input[type=range]{width:100%;accent-color:var(--bl);cursor:pointer}
 .gal-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
 .gal-thumb:hover img{transform:scale(1.05)}
 .gal-more{position:absolute;inset:0;background:rgba(0,0,0,.52);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;border-radius:14px}
+/* Lát 5: ảnh của thư viện không phải ảnh chụp vị trí (`photo_source`). */
+.gal-nguon{display:flex;align-items:flex-start;gap:7px;margin-top:10px;padding:9px 12px;background:rgba(255,159,10,.1);border-radius:10px;font-size:12px;line-height:1.5;color:var(--t2)}
+.gal-nguon svg{width:14px;height:14px;flex-shrink:0;margin-top:2px}
+@media(min-width:768px){.gal-nguon{font-size:13px}}
 .detail-layout{display:grid;grid-template-columns:1fr;gap:20px;padding:16px 0 24px}
 @media(min-width:768px){.detail-layout{grid-template-columns:1fr 300px;gap:24px;padding:24px 0 40px}}
 @media(min-width:1024px){.detail-layout{grid-template-columns:1fr 360px;gap:32px;padding:32px 0 48px}}
@@ -2217,18 +2221,14 @@ input[type=range]{width:100%;accent-color:var(--bl);cursor:pointer}
 .desc p{margin-bottom:16px}
 .desc ul{padding-left:22px;list-style:disc;color:var(--t3);margin-bottom:16px}
 .desc ul li{margin-bottom:8px;font-size:14px}
-.hl-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:20px}
-@media(min-width:480px){.hl-grid{grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}}
-.hl-card{display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--bg2);border-radius:10px}
-@media(min-width:768px){.hl-card{padding:14px;border-radius:12px}}
-.hl-icon{width:32px;height:32px;border-radius:8px;background:var(--bl-lt);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-@media(min-width:768px){.hl-icon{width:36px;height:36px;border-radius:10px}}
-.hl-icon svg{width:16px;height:16px;color:var(--bl)}
-@media(min-width:768px){.hl-icon svg{width:18px;height:18px}}
-.hl-title{font-size:12px;font-weight:700;color:var(--t1)}
-@media(min-width:768px){.hl-title{font-size:13px}}
-.hl-sub{font-size:11px;color:var(--t4);margin-top:2px}
-@media(min-width:768px){.hl-sub{font-size:12px}}
+/* Bộ `.hl-*` (bốn thẻ "Điểm nổi bật") gỡ ở lát 5 — 24/10/2026. Không nơi nào
+   trong `resources/views` hay `webapp` còn đặt các tên ấy vào DOM, nên để lại
+   luật là để lại một bộ luật người đọc sau tưởng còn sống. Lý do gỡ khối ở
+   docblock của `webapp/app/explore/[slug]/page.tsx`. */
+/* Lát 5: tình trạng xác minh thật của media owner, ở khối liên hệ. */
+.lh-ver{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.lh-ver-sub{font-size:11px;line-height:1.5;color:var(--t4)}
+@media(min-width:768px){.lh-ver-sub{font-size:12px}}
 .avail-grid{display:grid;grid-template-columns:1fr;gap:14px}
 @media(min-width:580px){.avail-grid{grid-template-columns:1fr 1fr}}
 .month-card{background:#fff;border-radius:14px;padding:18px;border:1px solid var(--ln2);box-shadow:var(--sh1)}

@@ -3509,6 +3509,23 @@ export interface components {
              *     không trả URL của một dịch vụ ảnh giữ chỗ nào.
              */
             photo_urls: string[];
+            /**
+             * @description Ảnh đầu của `photo_urls` đến từ **bậc nào** của chuỗi dự phòng.
+             *
+             *     Chỉ `screen` là ảnh của chính màn hình. Bốn giá trị còn lại là
+             *     ảnh thay thế: banner của địa điểm, banner của mạng lưới, bìa
+             *     chủ sở hữu, ảnh mặc định của loại điểm đặt — mỗi cái cho người
+             *     mua xem một thứ không phải mặt biển họ sắp thuê.
+             *
+             *     Vị trí `oohx-led-cto-can-tho` đo ngày 24/10/2026 trả
+             *     `owner_cover`: đúng một ảnh, và nó là ảnh bìa của AdTRUE
+             *     Platform. Trước trường này, không client nào phân biệt được —
+             *     nên trang hiện ra như một vị trí đã có ảnh.
+             *
+             *     `null` khi `photo_urls` là mảng rỗng.
+             * @enum {string|null}
+             */
+            photo_source: "screen" | "site" | "network" | "owner_cover" | "venue_category" | null;
             specs: {
                 width_px: number | null;
                 height_px: number | null;

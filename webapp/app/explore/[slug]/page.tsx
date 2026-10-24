@@ -44,14 +44,30 @@ import { KhoiViTri } from '@/components/KhoiViTri';
  * bọc chúng trong `@if(false)` — tức chính tác giả đã tắt vì chúng là dữ liệu
  * bịa. Tab "Đánh giá" dựng lại đúng trạng thái đang bật: chưa có đánh giá nào.
  *
- * ══ Và một thứ chủ dự án chốt dựng lại nguyên văn (18/10/2026) ══
+ * ══ Lát 5: bốn thẻ "Điểm nổi bật" đi khỏi trang này ══
  *
- * Khối "Điểm nổi bật" bốn thẻ `hl-card` — "AI Traffic Data / Cập nhật theo
- * giờ thực", "Proof of Play / Video xác nhận hàng ngày", "Verified Location /
- * Kiểm tra thực địa 2024", "Fast Booking / Xác nhận trong 48h". Bốn câu, không
- * câu nào kiểm được, và chúng in **vô điều kiện cho mọi màn hình**. Danh sách
- * đầy đủ những gì không kiểm được ở chú thích ngay trên markup, trong
- * `TabThongTin`.
+ * Ngày 18/10/2026 chủ dự án chốt dựng lại nguyên văn bốn thẻ `hl-card` của bản
+ * Blade — "AI Traffic Data / Cập nhật theo giờ thực", "Proof of Play / Video
+ * xác nhận hàng ngày", "Verified Location / Kiểm tra thực địa 2024", "Fast
+ * Booking / Xác nhận trong 48h". Ngày 24/10/2026 chốt bỏ **trên riêng trang
+ * này**, và lý do là thứ bốn lát trước đã làm lộ ra:
+ *
+ *   - `owner.verified` của vị trí đo được là `false`, trong khi thẻ nói
+ *     "Verified Location · kiểm tra thực địa 2024".
+ *   - `impression_logs` chưa có bản ghi nào, nên không có proof-of-play nào
+ *     để "video xác nhận hàng ngày".
+ *   - Cả chín trường `insights` là null, nên không có "AI Traffic Data · cập
+ *     nhật theo giờ thực".
+ *
+ * Bốn câu in **vô điều kiện cho mọi màn hình**, không đọc trường nào của
+ * `screen` — nên chúng nói sai to nhất ở đúng chỗ hồ sơ mỏng nhất. Khối hồ sơ
+ * của lát 4 ngay phía trên nói `8/18`; bốn thẻ nằm dưới nó nói trang này có
+ * bốn điểm nổi bật. Một trong hai là sai, và chỉ một trong hai đọc dữ liệu.
+ *
+ * Thay chúng: tình trạng xác minh **thật** của chủ vị trí, ở khối liên hệ —
+ * xem `KhoiLienHe`.
+ *
+ * Bốn thẻ ở các trang khác không thuộc phạm vi lát này.
  */
 
 type Params = { slug: string };
@@ -248,6 +264,7 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
                     ten={screen.name ?? ''}
                     conTrong={Boolean(screen.availability?.has_capacity)}
                     soNgay={screen.availability?.window_days ?? 30}
+                    nguon={screen.photo_source}
                 />
 
                 <div className="detail-layout">
@@ -563,36 +580,6 @@ function OwnerMini({ screen }: { screen: ScreenDetail }) {
     );
 }
 
-/**
- * Bốn thẻ "Điểm nổi bật", nguyên văn `frontpage/detail.blade.php`.
- *
- * In **vô điều kiện cho mọi màn hình** — không đọc trường nào của `screen`.
- * Chủ dự án chốt dựng lại ngày 18/10/2026 sau khi đọc danh sách bốn câu không
- * kiểm được (xem chú thích tại chỗ render, trong `TabThongTin`).
- */
-const DIEM_NOI_BAT: { tieuDe: string; phu: string; path: string }[] = [
-    {
-        tieuDe: 'AI Traffic Data',
-        phu: 'Cập nhật theo giờ thực',
-        path: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z',
-    },
-    {
-        tieuDe: 'Proof of Play',
-        phu: 'Video xác nhận hàng ngày',
-        path: 'M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z',
-    },
-    {
-        tieuDe: 'Verified Location',
-        phu: 'Kiểm tra thực địa 2024',
-        path: 'M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.7L1 12l2.44 2.79-.34 3.7 3.61.82 1.89 3.2L12 21.04l3.4 1.46 1.89-3.19 3.61-.82-.34-3.69L23 12zm-12.91 4.72l-3.8-3.81 1.48-1.48 2.32 2.33 5.85-5.87 1.48 1.48-7.33 7.35z',
-    },
-    {
-        tieuDe: 'Fast Booking',
-        phu: 'Xác nhận trong 48h',
-        path: 'M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zm-9.79 6.84a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z',
-    },
-];
-
 /** Tab "Thông tin": bảng thông số + mô tả. */
 function TabThongTin({ screen }: { screen: ScreenDetail }) {
     const spec = screen.specs;
@@ -666,53 +653,6 @@ function TabThongTin({ screen }: { screen: ScreenDetail }) {
                 </div>
             ) : null}
 
-            {/*
-              Khối "Điểm nổi bật", nguyên văn bản Blade. Chủ dự án chốt dựng
-              lại ngày 18/10/2026.
-
-              Bốn câu này không câu nào kiểm được, ghi lại ở đúng chỗ người sửa
-              sau sẽ đọc: không có tính năng AI nào trong mã; `impression_logs`
-              chưa có bản ghi nào nên không có proof-of-play; "kiểm tra thực
-              địa 2024" là một khẳng định về quy trình, không phải một cột
-              trong CSDL; và "48h" là cam kết vận hành.
-
-              Chúng in **vô điều kiện cho mọi màn hình** — không đọc trường nào
-              của `screen`.
-            */}
-            <div style={{ marginBottom: 28 }}>
-                <h3
-                    style={{
-                        fontSize: 18,
-                        fontWeight: 700,
-                        color: 'var(--t1)',
-                        marginBottom: 16,
-                        letterSpacing: '-.3px',
-                    }}
-                >
-                    Điểm nổi bật
-                </h3>
-
-                <div className="hl-grid">
-                    {DIEM_NOI_BAT.map((the) => (
-                        <div className="hl-card" key={the.tieuDe}>
-                            <div className="hl-icon">
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    fill="var(--bl)"
-                                    aria-hidden="true"
-                                    style={{ width: 18, height: 18, flexShrink: 0 }}
-                                >
-                                    <path d={the.path} />
-                                </svg>
-                            </div>
-                            <div>
-                                <div className="hl-title">{the.tieuDe}</div>
-                                <div className="hl-sub">{the.phu}</div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
         </>
     );
 }
@@ -748,11 +688,34 @@ function TabDanhGia() {
     );
 }
 
-/** Khối liên hệ media owner ở cột phải. */
+/**
+ * Khối liên hệ media owner ở cột phải.
+ *
+ * ══ Lát 5: huy hiệu tình trạng xác minh, và chỉ NỬA của nó ══
+ *
+ * Bản thiết kế chốt 24/10/2026 ghi hai nhãn: `Đã xác minh` khi
+ * `owner.verified` bật, `Chưa xác minh` khi tắt. Ở đây chỉ in nhãn thứ hai,
+ * vì nhãn thứ nhất là đúng thứ dự án đã gỡ ngày 18/10/2026 khỏi `OwnerCard`
+ * và khỏi thẻ owner thu nhỏ của chính trang này: `owners.verified` là **một
+ * cờ quản trị bật tay** — không quy trình kiểm định, không hồ sơ, không bước
+ * đối chiếu. In "Đã xác minh" ngay cạnh số điện thoại người mua sắp gọi là
+ * nói rằng SÀN đã kiểm, và sàn thì chưa. Chốt
+ * `webapp/test/khoi-giao-dien.mjs` cấm đúng chuỗi đó trên trang này.
+ *
+ * Chiều ngược lại không có vấn đề ấy: cờ tắt là một sự thật về hồ sơ, và nó
+ * là thông tin người mua cần trước khi bấm gọi. Giá trị của cả đề xuất nằm ở
+ * chiều này — vị trí đo được ngày 24/10/2026 có `verified: false` nằm ngay
+ * dưới một thẻ "Verified Location".
+ *
+ * Trường hợp bật vẫn hiện ở khối hồ sơ của lát 4, nơi "Xác minh chủ sở hữu"
+ * là một trong 18 trường được đánh dấu — một phép đếm hồ sơ, không phải một
+ * dấu tin cậy cạnh nút gọi.
+ */
 function KhoiLienHe({ screen }: { screen: ScreenDetail }) {
     const ten = screen.owner?.name ?? 'OOHX';
     const dienThoai = screen.owner?.phone;
     const email = screen.owner?.email;
+    const chuaXacMinh = screen.owner?.verified !== true;
 
     return (
         <div
@@ -770,6 +733,16 @@ function KhoiLienHe({ screen }: { screen: ScreenDetail }) {
             <div style={{ fontSize: 12, color: 'var(--t4)', marginBottom: 12 }}>
                 Media owner quản lý vị trí này
             </div>
+
+            {chuaXacMinh ? (
+                <div className="lh-ver" style={{ marginBottom: 12 }}>
+                    <span className="badge b-gray">Chưa xác minh</span>
+                    <span className="lh-ver-sub">
+                        OOHX chưa đối chiếu hồ sơ của media owner này. Đề nghị yêu cầu giấy tờ sở
+                        hữu vị trí trước khi đặt cọc.
+                    </span>
+                </div>
+            ) : null}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                 {dienThoai ? (

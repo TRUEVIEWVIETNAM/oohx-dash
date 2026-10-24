@@ -78,8 +78,23 @@ export type DanhGiaHoSo = {
 /** Ngưỡng lệch tỉ lệ coi là đáng ngờ. 2% chịu được sai số làm tròn của mét. */
 const NGUONG_LECH_TI_LE = 0.02;
 
-/** Đường dẫn ảnh bìa của chủ sở hữu — không phải ảnh vị trí. */
+/**
+ * Đường dẫn ảnh bìa của chủ sở hữu — không phải ảnh vị trí.
+ *
+ * Lớp **dự phòng** từ lát 5: `photo_source` của API nói thẳng bậc nào của
+ * chuỗi dự phòng đã dùng, nên không phải đoán theo URL nữa. Giữ phép đoán cho
+ * payload chưa có trường đó — một client đọc bản API cũ không được tự nhiên
+ * thấy hồ sơ đầy hơn thực tế.
+ */
 const ANH_BIA_OWNER = '/owners/covers/';
+
+/** Nhãn cho từng bậc ảnh thay thế, dùng trong câu "vì sao đáng ngờ". */
+const NHAN_NGUON_ANH: Record<string, string> = {
+    site: 'ảnh của địa điểm',
+    network: 'ảnh của mạng lưới',
+    owner_cover: 'ảnh bìa chủ sở hữu',
+    venue_category: 'ảnh minh hoạ loại địa điểm',
+};
 
 function so(v: unknown): boolean {
     return typeof v === 'number' && v > 0;
@@ -134,7 +149,14 @@ export function danhGiaHoSo(screen: unknown): DanhGiaHoSo {
         : chu(s.photo_url)
           ? [s.photo_url]
           : [];
-    const anhDauLaBia = chu(anh[0]) && (anh[0] as string).includes(ANH_BIA_OWNER);
+    // `photo_source === 'screen'` là ảnh của chính màn hình; bốn giá trị còn
+    // lại là ảnh thay thế. Thiếu trường thì rơi về phép đoán theo URL.
+    const nguonAnh = chu(s.photo_source) ? (s.photo_source as string) : null;
+    const anhDauLaThayThe =
+        nguonAnh !== null
+            ? nguonAnh !== 'screen'
+            : chu(anh[0]) && (anh[0] as string).includes(ANH_BIA_OWNER);
+    const nhanNguonAnh = (nguonAnh && NHAN_NGUON_ANH[nguonAnh]) || 'ảnh bìa chủ sở hữu';
 
     const lech = lechTiLe(s.size?.width_m, s.size?.height_m, s.specs?.width_px, s.specs?.height_px);
     const coKichThuoc = so(s.size?.width_m) && so(s.size?.height_m);
@@ -144,12 +166,12 @@ export function danhGiaHoSo(screen: unknown): DanhGiaHoSo {
     const viTri: TruongHoSo[] = [
         anh.length === 0
             ? truong('anh', 'Ảnh vị trí', 'thieu')
-            : anhDauLaBia
+            : anhDauLaThayThe
               ? truong(
                     'anh',
                     'Ảnh vị trí',
                     'dang_ngo',
-                    `${anh.length} ảnh, nhưng ảnh đầu là ảnh bìa chủ sở hữu`,
+                    `${anh.length} ảnh, nhưng ảnh đầu là ${nhanNguonAnh}`,
                 )
               : truong('anh', 'Ảnh vị trí', 'co', `${anh.length} ảnh`),
 

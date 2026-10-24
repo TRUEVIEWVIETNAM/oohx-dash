@@ -22,17 +22,41 @@ import { useCallback, useEffect, useState } from 'react';
  * Audit F-15 gỡ badge in vô điều kiện trên trang này: một màn hình đã bán kín
  * vẫn mời người mua. Ở đây badge đọc `availability` do API tính — và API tính
  * qua `InventoryHoldService`, nên nó trừ cả suất người khác đang giữ.
+ *
+ * ══ Lát 5 (24/10/2026): ảnh này là ảnh của ai ══
+ *
+ * `photo_urls` có năm bậc dự phòng ở phía API, và chỉ bậc đầu là ảnh của chính
+ * màn hình. Vị trí đo được ngày 24/10/2026 có đúng một ảnh, và nó là ảnh bìa
+ * của chủ sở hữu — thư viện ảnh hiện nó to như ảnh biển, với badge "Còn trống"
+ * và "1 ảnh" bên cạnh. Người mua nhìn một tấm ảnh họ tưởng là mặt biển.
+ *
+ * Trường `photo_source` của API nói bậc nào đã dùng, và khối này nói lại điều
+ * đó cho người đọc. Không ẩn ảnh: một ảnh thay thế vẫn cho biết khu vực đó
+ * trông thế nào, nên bỏ nó đi là mất thông tin. Chỉ ngừng để nó giả làm ảnh
+ * biển.
  */
+
+/** Nhãn cho từng bậc dự phòng không phải ảnh màn hình. */
+const NGUON_THAY_THE: Record<string, string> = {
+    site: 'Đây là ảnh của địa điểm, chưa có ảnh chụp vị trí',
+    network: 'Đây là ảnh của mạng lưới màn hình, chưa có ảnh chụp vị trí',
+    owner_cover: 'Đây là ảnh bìa của chủ vị trí, chưa có ảnh chụp vị trí',
+    venue_category: 'Đây là ảnh minh hoạ loại địa điểm, chưa có ảnh chụp vị trí',
+};
+
 export function ThuVienAnh({
     anh,
     ten,
     conTrong,
     soNgay,
+    nguon,
 }: {
     anh: string[];
     ten: string;
     conTrong: boolean;
     soNgay: number;
+    /** `photo_source` của API. `screen` hoặc thiếu = không nói gì. */
+    nguon?: string | null;
 }) {
     const [chon, setChon] = useState(0);
     const [moLightbox, setMoLightbox] = useState(false);
@@ -93,6 +117,7 @@ export function ThuVienAnh({
     }
 
     const thumbs = anh.slice(0, 5);
+    const canhBao = nguon ? NGUON_THAY_THE[nguon] : undefined;
 
     return (
         <>
@@ -182,6 +207,15 @@ export function ThuVienAnh({
                     </div>
                 ) : null}
             </div>
+
+            {canhBao ? (
+                <div className="gal-nguon">
+                    <svg viewBox="0 0 24 24" fill="var(--org)" aria-hidden="true">
+                        <path d="M12 2L1 21h22L12 2zm1 15h-2v-2h2v2zm0-4h-2V8h2v5z" />
+                    </svg>{' '}
+                    {canhBao}
+                </div>
+            ) : null}
 
             {moLightbox ? (
                 <div

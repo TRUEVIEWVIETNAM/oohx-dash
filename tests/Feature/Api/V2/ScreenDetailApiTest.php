@@ -37,6 +37,18 @@ class ScreenDetailApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Bộ khoá tầng ngoài của `GET /api/v2/screens/{slug}` TRƯỚC lát 5.
+     *
+     * `distance_km` không có mặt: nó là `whenNotNull` và chỉ xuất hiện khi
+     * truy vấn chạy với `sort=distance`, tức không bao giờ trên đường chi tiết.
+     */
+    private const KHOA_TRUOC_LAT_5 = [
+        'slug', 'name', 'screen_type', 'screen_type_label', 'owner', 'location',
+        'network', 'size', 'pricing', 'photo_url', 'description', 'photo_urls',
+        'specs', 'site', 'insights', 'nearby_pois', 'similar', 'availability',
+    ];
+
     private const FORBIDDEN_KEYS = [
         'revenue_share_pct', 'billing_info', 'bank_name', 'bank_account_number',
         'bank_account_name', 'bank_branch', 'tax_code', 'business_license_path',
@@ -164,7 +176,7 @@ class ScreenDetailApiTest extends TestCase
 
         $data = $this->getJson('/api/v2/screens/' . $screen->slug)->assertOk()->json('data');
 
-        foreach (['photo_urls', 'specs', 'site', 'owner', 'insights', 'nearby_pois', 'similar', 'availability'] as $khoa) {
+        foreach (['photo_urls', 'photo_source', 'specs', 'site', 'owner', 'insights', 'nearby_pois', 'similar', 'availability'] as $khoa) {
             $this->assertArrayHasKey($khoa, $data, "Thiếu khối `{$khoa}` trong chi tiết màn hình.");
         }
 
@@ -243,6 +255,93 @@ class ScreenDetailApiTest extends TestCase
         // payload API là bắt mọi client tin một dịch vụ không ai khai.
         $this->assertIsArray($data['photo_urls']);
         $this->assertSame([], array_filter($data['photo_urls'], fn ($u) => str_contains((string) $u, 'placehold')));
+    }
+
+    // ── Lát 5: ảnh này là ảnh của ai ──────────────────────────────────────
+
+    /**
+     * Chuỗi dự phòng của `photo_urls` có năm bậc, và chỉ bậc đầu là ảnh của
+     * chính màn hình. Bốn bậc còn lại cho người mua xem một thứ **không phải**
+     * mặt biển họ sắp thuê — `oohx-led-cto-can-tho` đo ngày 24/10/2026 có đúng
+     * một ảnh, và nó là ảnh bìa của AdTRUE Platform.
+     *
+     * Trước `photo_source`, không client nào phân biệt được hai chuyện đó.
+     */
+    public function test_photo_source_la_screen_khi_man_hinh_co_anh_rieng(): void
+    {
+        $screen = $this->screen([], ['photos' => ['screens/mot.jpg']]);
+
+        $data = $this->getJson('/api/v2/screens/' . $screen->slug)->assertOk()->json('data');
+
+        $this->assertSame('screen', $data['photo_source']);
+    }
+
+    public function test_photo_source_la_owner_cover_khi_anh_den_tu_bia_chu_so_huu(): void
+    {
+        $screen = $this->screen([], ['photos' => [], 'photo_url' => null]);
+
+        // Màn hình không ảnh, địa điểm không banner → chuỗi rơi tới bìa owner.
+        $screen->owner->update(['cover_url' => 'owners/covers/bia.webp']);
+
+        $data = $this->getJson('/api/v2/screens/' . $screen->slug)->assertOk()->json('data');
+
+        $this->assertSame('owner_cover', $data['photo_source']);
+
+        // Và ảnh vẫn ra ngoài: một ảnh thay thế cho biết khu vực trông thế
+        // nào, nên bỏ nó đi là mất thông tin. Chỉ thôi để nó giả làm ảnh biển.
+        $this->assertCount(1, $data['photo_urls']);
+        $this->assertStringContainsString('owners/covers/bia.webp', $data['photo_urls'][0]);
+    }
+
+    /**
+     * Banner địa điểm ĐỨNG TRƯỚC bìa owner trong chuỗi, nên nó phải mang tên
+     * của chính nó.
+     *
+     * Bản thiết kế lát 5 chỉ ghi hai giá trị (`screen`, `owner_cover`), nhưng
+     * chuỗi thật có năm bậc. Gán `owner_cover` cho một banner địa điểm là đặt
+     * một nhãn SAI vào DTO — và một nhãn sai khó sửa hơn một nhãn thiếu, vì
+     * client đã tin nó.
+     */
+    public function test_photo_source_phan_biet_banner_dia_diem_voi_bia_owner(): void
+    {
+        $screen = $this->screen([], ['photos' => [], 'photo_url' => null]);
+
+        $screen->site->update(['banner' => 'sites/banner.jpg']);
+        $screen->owner->update(['cover_url' => 'owners/covers/bia.webp']);
+
+        $data = $this->getJson('/api/v2/screens/' . $screen->fresh()->slug)->assertOk()->json('data');
+
+        $this->assertSame('site', $data['photo_source']);
+        $this->assertStringContainsString('sites/banner.jpg', $data['photo_urls'][0]);
+    }
+
+    public function test_photo_source_la_null_khi_khong_co_anh_nao(): void
+    {
+        $screen = $this->screen([], ['photos' => [], 'photo_url' => null]);
+
+        $data = $this->getJson('/api/v2/screens/' . $screen->slug)->assertOk()->json('data');
+
+        // `null` đi cùng `photo_urls` rỗng — không `'screen'`, vì không có ảnh
+        // nào của màn hình để nói thế.
+        $this->assertSame([], $data['photo_urls']);
+        $this->assertNull($data['photo_source']);
+    }
+
+    /**
+     * `photo_source` là trường DUY NHẤT lát 5 thêm vào DTO.
+     *
+     * Một lát đổi `/api/v2` là chỗ dễ nhất để một trường thứ hai đi kèm mà
+     * không ai chú ý — nên đếm luôn bộ khoá tầng ngoài.
+     */
+    public function test_lat_5_khong_them_truong_nao_ngoai_photo_source(): void
+    {
+        $screen = $this->screen([], ['photos' => ['screens/mot.jpg']]);
+
+        $data = $this->getJson('/api/v2/screens/' . $screen->slug)->assertOk()->json('data');
+
+        $moi = array_diff(array_keys($data), self::KHOA_TRUOC_LAT_5);
+
+        $this->assertSame(['photo_source'], array_values($moi));
     }
 
     // ── Insights ────────────────────────────────────────────────────────────

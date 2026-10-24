@@ -97,6 +97,10 @@ const SCREEN_CHI_TIET = {
         'https://oohx.net/storage/screens/b.jpg',
         'https://oohx.net/storage/screens/c.jpg',
     ],
+
+    // Lát 5: ba ảnh này là ảnh của chính màn hình, nên thư viện KHÔNG được
+    // nói gì thêm. Bậc thay thế canh ở `man-hinh-insights-rong` bên dưới.
+    photo_source: 'screen',
     specs: {
         width_px: 1920,
         height_px: 1080,
@@ -579,6 +583,20 @@ function chiTiet(pathname, searchParams = new URLSearchParams()) {
                 slug: 'man-hinh-insights-rong',
                 name: 'Màn Hình Insights Rỗng',
                 availability: AVAILABILITY,
+
+                // ── Lát 5 (24/10/2026): đúng hình dạng ảnh của production ──
+                //
+                // `oohx-led-cto-can-tho` có đúng MỘT ảnh, và nó là
+                // `storage/owners/covers/…` — ảnh bìa của chủ sở hữu dùng thay
+                // ảnh biển. Fixture duy nhất đi qua nhánh ấy, và nó cũng là
+                // fixture duy nhất có một ảnh (nên `gallery--single` được
+                // render ở đâu đó).
+                photo_urls: ['https://oohx.net/storage/owners/covers/bia.webp'],
+                photo_source: 'owner_cover',
+
+                // Và `verified: false`, cũng như production. Đây là chiều duy
+                // nhất của huy hiệu lát 5 được in ra.
+                owner: { ...SCREEN_CHI_TIET.owner, verified: false },
                 insights: {
                     placement_zone: null,
                     placement_label: null,
