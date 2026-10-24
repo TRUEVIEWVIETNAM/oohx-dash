@@ -61,10 +61,20 @@ export function LichGon({ lich }: { lich: AvailabilityCalendar | null }) {
             <div className="lg-thangs">
                 {tom.thang.map((m) => (
                     <div className={m.trong > 0 ? 'lg-thang' : 'lg-thang lg-thang--het'} key={m.khoa}>
-                        <span className="lg-thang-t">Th{m.thang}</span>
-                        <span className="lg-thang-s">
-                            {m.trong}/{m.tong}
-                        </span>
+                        {/*
+                          Ghép bằng template string, KHÔNG `Th{m.thang}`.
+
+                          React chèn `<!-- -->` giữa hai text node liền kề, nên
+                          `Th{m.thang}` ra HTML là `Th<!-- -->10` và
+                          `{m.trong}/{m.tong}` ra `8<!-- -->/<!-- -->8`. Câu
+                          vẫn đọc đúng trên màn hình, nhưng không còn là một
+                          chuỗi liền để phép kiểm tìm — nên khối này có thể in
+                          `Th` rỗng hoặc một dấu gạch không có số nào mà chốt
+                          vẫn xanh.
+                          Cùng chỗ sai đã gặp ở `/explore/yeu-cau-bao-gia`.
+                        */}
+                        <span className="lg-thang-t">{`Th${m.thang}`}</span>
+                        <span className="lg-thang-s">{`${m.trong}/${m.tong}`}</span>
                     </div>
                 ))}
             </div>

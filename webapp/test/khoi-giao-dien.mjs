@@ -703,6 +703,19 @@ const TRANG = [
             'class="avail-grid"',
         ],
         khong: [
+            // ── Lát 3, soát production 24/10/2026 ──
+            //
+            // React chèn `<!-- -->` giữa hai text node liền kề. `Th{m.thang}`
+            // ra HTML là `Th<!-- -->10`, và `{m.trong}/{m.tong}` ra
+            // `8<!-- -->/<!-- -->8`. Người đọc thấy đúng, nhưng con số không
+            // còn là một chuỗi liền để phép kiểm tìm — nên khối gọn có thể in
+            // `Th` rỗng hoặc một dấu gạch không có số nào mà chốt vẫn xanh.
+            //
+            // Canh sự VẮNG MẶT của chúng, không canh "Th10": fixture lịch sinh
+            // ngày từ hôm nay, nên tháng đổi theo ngày chạy test.
+            'Th<!-- -->',
+            '<!-- -->/<!-- -->',
+
             // CHÚ Ý: `class="sc"` KHÔNG nằm trong danh sách này, khác với
             // `/explore` và `/products`. `.sc` là một ô bảng thông số
             // (frontpage.css:1330) và trang chi tiết có đúng bảng đó bên trong
