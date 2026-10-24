@@ -1150,6 +1150,41 @@ quyết định đặt tên sản phẩm, không phải việc chuyển đổi �
 
 ---
 
+## Mục mới 24/10/2026 — cả kho hiện ra bằng hai tấm ảnh
+
+Plan riêng: **[`docs/PLAN-ANH-VI-TRI.md`](PLAN-ANH-VI-TRI.md)** — sáu lát, bốn
+quyết định chờ chốt.
+
+Lát 5 của `PLAN-CHI-TIET-VI-TRI.md` thêm `photo_source` vào
+`GET /api/v2/screens/{slug}`, tức lần đầu payload nói ảnh đến từ **bậc nào**
+của chuỗi dự phòng. Đo ngay sau khi nó lên production, trên cả 104 vị trí:
+
+```
+104/104  owners/covers/…    ← ảnh bìa chủ sở hữu, không phải ảnh biển
+     83  Kim Ngân ADV       (một tệp .jpg duy nhất)
+     21  AdTRUE Platform    (một tệp .webp duy nhất)
+      0  screen-photos/…
+```
+
+Hai tấm ảnh cho cả kho. `/explore` in cùng một tệp **42 lần** trong một khung
+nhìn. Và thư mục mà biểu mẫu tải ảnh của Filament ghi vào — `screen-photos/` —
+xuất hiện **0 lần**: đường tải ảnh có đủ (nhiều ảnh, kéo thả xếp lại, ở cả
+`/admin` và `/publisher`) và **chưa từng được dùng cho một màn hình nào**.
+
+Đây là con số đo được của đúng điều mục 8 `CLAUDE.md` cảnh báo, và nó nối lại
+với ghi chú ngày 18/10 ở mục "Mục mới 14/10/2026" phía trên: **0/50** bản ghi
+có ảnh thực địa riêng. Sáu ngày sau, mẫu đầy đủ cho **0/104**.
+
+Plan còn lộ ra **một lỗi đang sống**: `ScreenDetailResource` dựng URL ảnh bằng
+`asset('storage/' . $p)` vô điều kiện, trong khi hai accessor của `ScreenSpec`
+xử lý đúng URL đầy đủ. Nên một hàng `photos: ["https://…"]` — đúng thứ cột nhập
+kho `spec.photo_url` nhận, và cột đó **không có luật xác thực nào** — cho ảnh
+hiện bình thường ở thẻ danh sách và **vỡ** ở trang chi tiết. Hai đường đọc cho
+cùng một màn hình trả dữ liệu khác nhau: hình dạng lỗi R38. Lát 1 của plan sửa
+nó, và nó phải lên **trước** mọi đường nhập ảnh.
+
+---
+
 
 ## Nhật ký công việc — đã tách ra khỏi tệp này (23/10/2026)
 
