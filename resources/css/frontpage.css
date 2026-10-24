@@ -2110,6 +2110,32 @@ input[type=range]{width:100%;accent-color:var(--bl);cursor:pointer}
 @media(min-width:768px){.stat-n{font-size:22px;margin-bottom:4px}}
 .stat-l{font-size:10px;color:var(--t4);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
 @media(min-width:768px){.stat-l{font-size:11px}}
+
+/* Ô số liệu TRỐNG — lát 2 của PLAN-CHI-TIET-VI-TRI.
+   `—` một mình không phân biệt được "chưa đo" với "bằng không" hay "lỗi". Ô
+   trống đổi màu số sang chữ xám (không còn màu nhấn của một con số thật) và
+   mang thêm một dòng nói ai còn nợ dữ liệu đó.
+   Chỉ trang Next dùng ba lớp này; bản Blade không render chúng. */
+.stat-box--trong{background:var(--bg2);box-shadow:none}
+.stat-box--trong:hover{box-shadow:none;transform:none}
+.stat-box--trong .stat-n{font-size:13px;color:var(--t3);letter-spacing:0}
+@media(min-width:768px){.stat-box--trong .stat-n{font-size:15px}}
+.stat-src{font-size:9px;color:var(--t4);font-weight:600;line-height:1.35;margin-top:4px}
+@media(min-width:768px){.stat-src{font-size:10px}}
+
+/* Khối "chưa có số liệu khán giả" trong tab Insights — lát 2.
+   Trước lát này tab mở ra là một div rỗng khi `insights` có mà mọi trường bên
+   trong null. */
+.ins-trong{border:1px dashed var(--ln);border-radius:14px;padding:24px 18px;text-align:center;background:var(--bg3)}
+.ins-trong-h{font-size:15px;font-weight:800;color:var(--t1);margin-bottom:8px}
+@media(min-width:768px){.ins-trong-h{font-size:17px}}
+.ins-trong-p{font-size:13px;color:var(--t3);line-height:1.6;max-width:52ch;margin:0 auto 16px}
+.ins-trong .btn{display:inline-flex}
+
+/* Hai trạng thái lịch trống, lát 2: "chưa lấy được" và "không có ngày nào mở
+   bán" dùng cùng một lớp nhưng KHÁC nội dung — xem LichTrong.tsx. */
+.lt-trong{font-size:14px;color:var(--t3);line-height:1.6;max-width:62ch}
+.lt-trong strong{color:var(--t2)}
 .tabs{display:flex;border-bottom:1px solid var(--ln2);margin-bottom:20px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .tabs::-webkit-scrollbar{display:none}
 .tab{padding:10px 14px;font-size:13px;font-weight:600;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:all 140ms;flex-shrink:0}

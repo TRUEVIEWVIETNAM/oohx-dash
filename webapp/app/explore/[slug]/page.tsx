@@ -135,9 +135,23 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
 
     const tabs = [
         { khoa: 'info', nhan: 'Thông tin', noiDung: <TabThongTin screen={screen} /> },
-        ...(screen.insights
-            ? [{ khoa: 'insights', nhan: 'Insights', noiDung: <KhoiInsights insights={screen.insights} /> }]
-            : []),
+
+        // ══ Lát 2: tab Insights LUÔN có mặt ══
+        //
+        // Trước lát này tab bị bỏ hẳn khi `screen.insights` là null — và đó là
+        // hai lỗi trong một điều kiện. Thứ nhất, nó không bắt được trường hợp
+        // phổ biến hơn: đối tượng `insights` có, mọi trường bên trong null, nên
+        // tab vẫn hiện và rỗng. Thứ hai, ẩn tab nói với người mua rằng sàn
+        // không có phần số liệu khán giả, trong khi sự thật là chủ vị trí chưa
+        // khai — hai điều đó dẫn tới hai hành động khác nhau.
+        //
+        // `KhoiInsights` tự lo cả hai trạng thái, nên quyết định nằm ở MỘT chỗ
+        // thay vì chia đôi giữa trang và khối.
+        {
+            khoa: 'insights',
+            nhan: 'Insights',
+            noiDung: <KhoiInsights insights={screen.insights ?? null} />,
+        },
         {
             khoa: 'avail',
             nhan: 'Lịch trống',
@@ -287,8 +301,16 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
                           trống thay vì chỉ một dấu gạch ngang.
                         */}
                         <div className="stats-row">
-                            <StatBox nhan="Giá thuê" giaTri={moTaGia(screen)} />
-                            <StatBox nhan="Impressions/ngày" giaTri={moTaImpressions(screen)} />
+                            <StatBox
+                                nhan="Giá thuê"
+                                giaTri={moTaGia(screen)}
+                                khiTrong="media owner chưa niêm yết"
+                            />
+                            <StatBox
+                                nhan="Impressions/ngày"
+                                giaTri={moTaImpressions(screen)}
+                                khiTrong="media owner chưa khai số liệu"
+                            />
                             <StatBox
                                 nhan="Kích thước"
                                 giaTri={
@@ -393,11 +415,31 @@ function BcSep() {
     );
 }
 
-function StatBox({ nhan, giaTri }: { nhan: string; giaTri?: string | null }) {
+/**
+ * Ô số liệu — và khi trống thì nó nói VÌ SAO trống.
+ *
+ * `—` một mình không phân biệt được "sàn chưa đo" với "vị trí này bằng không"
+ * hay "có lỗi". Trên hai ô quan trọng nhất (giá và impressions), người mua cần
+ * biết là chủ vị trí chưa khai, vì đó là thứ họ đòi được.
+ *
+ * `khiTrong` chỉ hiện khi ô trống, nên nó không chiếm chỗ ở ô có số.
+ */
+function StatBox({
+    nhan,
+    giaTri,
+    khiTrong,
+}: {
+    nhan: string;
+    giaTri?: string | null;
+    khiTrong?: string;
+}) {
+    const co = Boolean(giaTri);
+
     return (
-        <div className="stat-box">
-            <div className="stat-n">{giaTri || '—'}</div>
+        <div className={co ? 'stat-box' : 'stat-box stat-box--trong'}>
+            <div className="stat-n">{co ? giaTri : khiTrong ? 'Chưa có' : '—'}</div>
             <div className="stat-l">{nhan}</div>
+            {!co && khiTrong ? <div className="stat-src">{khiTrong}</div> : null}
         </div>
     );
 }

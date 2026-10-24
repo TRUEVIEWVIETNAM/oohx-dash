@@ -542,7 +542,62 @@ function chiTiet(pathname, searchParams = new URLSearchParams()) {
     // Lịch trống đi qua cùng hàm này vì nó cũng là một đường có tham số đường
     // dẫn. `months` đọc từ query, mặc định 2 — đúng mặc định của API thật.
     if (/^\/api\/v2\/screens\/[^/]+\/availability$/.test(pathname)) {
+        // ── Lát 2 (24/10/2026): lịch RỖNG nhưng lấy được ──
+        //
+        // Hai trạng thái phải render khác nhau, và trước lát này chúng dùng
+        // cùng một câu: `lich === null` (lời gọi lỗi, sàn KHÔNG BIẾT) và
+        // `days: []` (lấy được, sàn BIẾT là không có ngày nào mở bán). Nói
+        // "thử tải lại trang" cho trường hợp sau là dẫn người mua đi làm một
+        // việc vô ích.
+        //
+        // Màn hình này là trường hợp thứ hai. Trường hợp thứ nhất không dựng
+        // được bằng fixture: `getScreenAvailability()` trả null khi lời gọi
+        // **lỗi**, nên nó cần một endpoint hỏng chứ không phải một endpoint
+        // trả rỗng — đã ghi vào chốt tĩnh thay vì ở đây.
+        if (pathname.startsWith('/api/v2/screens/man-hinh-insights-rong/')) {
+            return { data: { sov_max_pct: 100, days: [] } };
+        }
+
         return { data: lichTrong(searchParams.get('months') ?? 2) };
+    }
+
+    // ── Lát 2 (24/10/2026): `insights` CÓ nhưng mọi trường bên trong null ──
+    //
+    // Đúng hình dạng production đo được trên
+    // `GET /api/v2/screens/oohx-led-cto-can-tho` ngày 24/10/2026.
+    //
+    // Fixture cũ chỉ có hai cực: màn hình đủ số liệu, và màn hình
+    // `insights: null`. Trường hợp ở giữa — đối tượng tồn tại, rỗng bên trong —
+    // là trường hợp PHỔ BIẾN trên kho thật, và nó đi qua phép chặn
+    // `if (!insights)` rồi render một tab trống. Không chốt nào đỏ, vì không
+    // màn hình giả nào có hình dạng đó.
+    if (pathname === '/api/v2/screens/man-hinh-insights-rong') {
+        return {
+            data: {
+                ...SCREEN_KHONG_GIA,
+                ...SCREEN_CHI_TIET,
+                slug: 'man-hinh-insights-rong',
+                name: 'Màn Hình Insights Rỗng',
+                availability: AVAILABILITY,
+                insights: {
+                    placement_zone: null,
+                    placement_label: null,
+                    daily_footfall: null,
+                    monthly_reach: null,
+                    daily_impressions_est: null,
+                    audience_profile: null,
+                    time_performance: null,
+                    nearby_context: null,
+                    methodology_note: null,
+
+                    // `source` luôn có mặt, kể cả khi không có gì được khai.
+                    // Đếm nó là nói rằng hồ sơ có dữ liệu.
+                    source: 'owner',
+                },
+                nearby_pois: [],
+                similar: [],
+            },
+        };
     }
 
     if (pathname === '/api/v2/screens/man-hinh-co-gia') {

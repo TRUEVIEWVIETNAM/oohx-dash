@@ -722,11 +722,21 @@ const TRANG = [
             'class="bp bp-quote"',
             'class="bp-quote-title"',
 
-            // Fixture của màn hình này KHÔNG có insights, nên tab Insights
-            // phải vắng mặt hẳn — đúng cách bản Blade ẩn tab khi
-            // `has_insights` là false.
+            // ── Lát 2 (24/10/2026): tab Insights KHÔNG còn bị ẩn ──
+            //
+            // Trước lát này, fixture không có insights thì tab vắng mặt hẳn —
+            // bắt chước cách bản Blade ẩn tab khi `has_insights` false. Nhưng
+            // ẩn tab nói với người mua rằng SÀN không có phần số liệu khán
+            // giả, trong khi sự thật là CHỦ VỊ TRÍ chưa khai. Hai điều đó dẫn
+            // tới hai hành động khác nhau: bỏ qua vị trí, hay đòi số liệu.
+            //
+            // Tab nay luôn có, và nội dung nói rõ trạng thái.
             'id="tp-info"',
+            'id="tp-insights"',
             'id="tp-avail"',
+            'class="ins-trong"',
+            'Chủ vị trí chưa cung cấp số liệu khán giả',
+            'không tính được CPM',
 
             // Fixture này có toạ độ nhưng KHÔNG có POI: khối bản đồ vẫn dựng,
             // danh sách bên trái hiện trạng thái rỗng. Đó là một nhánh render
@@ -743,7 +753,9 @@ const TRANG = [
             'Cần Thơ · Phường Tân An',
         ],
         khong: [
-            'id="tp-insights"',
+            // Khối số liệu KHÔNG được dựng khi không có số: `ins-stats` là
+            // hàng con số, và nó từng xuất hiện rỗng.
+            'class="ins-stats"',
 
             // Dấu `>` của chuỗi địa giới KHÔNG được ra tới giao diện, dù ở
             // dạng thực thể HTML. Đây là cái chốt của lát 1: trước nó, trang
@@ -758,6 +770,49 @@ const TRANG = [
             // Có toạ độ nên khối bản đồ vẫn dựng, nhưng KHÔNG có POI nào —
             // nên thanh chip lọc nhóm không được xuất hiện.
             'class="loc-filter"',
+        ],
+    },
+    {
+        // ── Lát 2 (24/10/2026) ──
+        //
+        // Trường hợp Ở GIỮA hai cực mà fixture cũ không có: đối tượng
+        // `insights` tồn tại, mọi trường bên trong null. Đúng hình dạng
+        // production đo được trên `oohx-led-cto-can-tho`, và là trường hợp phổ
+        // biến trên kho thật — nó đi qua phép chặn `if (!insights)` rồi render
+        // một tab trống suốt nhiều ngày mà không ca nào đỏ.
+        path: '/explore/man-hinh-insights-rong',
+        ten: 'chi tiết màn hình có insights rỗng',
+        co: [
+            // Tab vẫn dựng, nội dung nói rõ trạng thái.
+            'id="tp-insights"',
+            'class="ins-trong"',
+            'Chủ vị trí chưa cung cấp số liệu khán giả',
+            'không tính được CPM',
+
+            // Lịch LẤY ĐƯỢC nhưng rỗng — khác hẳn "chưa lấy được", và câu phải
+            // khác theo. Nói "thử tải lại trang" ở đây là dẫn người mua đi làm
+            // một việc vô ích.
+            'class="lt-trong"',
+            'Không có ngày nào mở bán',
+            'chứ không phải sàn thiếu dữ liệu',
+
+            // Hai ô số liệu trống nay nói ai còn nợ dữ liệu, không chỉ `—`.
+            'class="stat-box stat-box--trong"',
+            'class="stat-src"',
+            'media owner chưa niêm yết',
+            'media owner chưa khai số liệu',
+        ],
+        khong: [
+            // Không một khối số liệu nào được dựng khi mọi trường là null.
+            'class="ins-stats"',
+            'class="ins-block"',
+            'class="ins-bar"',
+
+            // Và KHÔNG được nói "chưa lấy được" cho một lịch đã lấy được.
+            'Chưa lấy được lịch trống',
+
+            // `offers` chỉ xuất hiện khi CÓ giá.
+            '"offers"',
         ],
     },
     {

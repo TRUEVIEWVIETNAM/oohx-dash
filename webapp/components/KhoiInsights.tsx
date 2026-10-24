@@ -1,4 +1,5 @@
 import type { ScreenInsights } from '@/lib/api';
+import { coNoiDung, coSoKhanGia } from '@/lib/so-khan-gia';
 
 /**
  * Tab "Insights" của trang chi tiết.
@@ -58,6 +59,34 @@ function so(n: unknown): number {
     return typeof n === 'number' ? n : 0;
 }
 
+/**
+ * Khối thay cho tab rỗng — và nó phải nói ĐƯỢC GÌ, không chỉ nói "không có".
+ *
+ * Người mua đứng trước một hồ sơ thiếu số khán giả có đúng hai đường: bỏ qua
+ * vị trí, hoặc đòi chủ vị trí cung cấp số. Khối này nói rõ hệ quả (không tính
+ * được CPM, nên không so sánh được vị trí này với vị trí khác) rồi đưa đường
+ * thứ hai thành một cú bấm.
+ *
+ * Nút trỏ `/explore/yeu-cau-bao-gia` — cùng một đường đã có, không dựng luồng
+ * mới: yêu cầu báo giá và yêu cầu số liệu đều là một tin nhắn gửi tới chủ vị
+ * trí qua sàn.
+ */
+function KhongCoSoLieu() {
+    return (
+        <div className="ins-trong">
+            <div className="ins-trong-h">Chủ vị trí chưa cung cấp số liệu khán giả</div>
+            <p className="ins-trong-p">
+                Không có lượt khách, reach hay impressions thì <strong>không tính được CPM</strong>,
+                nên chưa đặt được vị trí này cạnh vị trí khác để so sánh. Số liệu ở khối này do
+                media owner khai, không phải sàn đo.
+            </p>
+            <a href="/explore/yeu-cau-bao-gia" className="btn btn-p btn-sm">
+                Yêu cầu số liệu khán giả
+            </a>
+        </div>
+    );
+}
+
 /** Thanh phần trăm, kẹp ở 100 — một cột dữ liệu 180% không được vẽ tràn ra. */
 function Thanh({ nhan, gio, pct, mau }: { nhan: string; gio?: string; pct: number; mau: string }) {
     return (
@@ -77,11 +106,34 @@ function Thanh({ nhan, gio, pct, mau }: { nhan: string; gio?: string; pct: numbe
 }
 
 export function KhoiInsights({ insights }: { insights: ScreenInsights }) {
-    if (!insights) return null;
+    // ══ Lát 2: trống thì NÓI trống ══
+    //
+    // Trước lát này chỗ đây là `if (!insights) return null`, và nó bỏ sót đúng
+    // trường hợp phổ biến nhất: đối tượng `insights` CÓ nhưng mọi trường bên
+    // trong null (đo trên production 24/10/2026). Khối đi qua phép chặn ấy rồi
+    // render một `<div class="ins">` rỗng — tab mở ra không có gì.
+    //
+    // Và trả `null` cũng không phải câu trả lời đúng: ẩn khối làm người mua
+    // tưởng sàn không có phần số liệu khán giả, trong khi sự thật là **chủ vị
+    // trí chưa khai**. Hai điều đó dẫn tới hai hành động khác nhau — bỏ qua vị
+    // trí, hay đòi chủ vị trí cung cấp số.
+    //
+    // `!insights` đứng riêng trước `coSoKhanGia` không phải để chạy hai lần:
+    // `coSoKhanGia` nhận `unknown` nên nó trả `boolean` chứ không phải một
+    // type predicate, và TypeScript không thu hẹp `insights` qua nó. Viết
+    // tường minh thì mười hai chỗ đọc `insights.*` bên dưới hết lỗi
+    // TS18047 mà không cần `!` ở đâu cả.
+    if (!insights || !coSoKhanGia(insights)) {
+        return <KhongCoSoLieu />;
+    }
 
-    const khanGia = insights.audience_profile ?? null;
-    const thoiGian = insights.time_performance ?? null;
-    const quanh = insights.nearby_context ?? null;
+    // `coNoiDung` thay cho phép kiểm `object ? (` ở ba nhánh dưới: một
+    // `audience_profile` toàn null vẫn là một đối tượng, nên nó từng dựng tiêu
+    // đề khối "Chân dung khán giả" cùng những thanh phần trăm 0% — tức vẽ ra
+    // một chân dung gồm 0% nam và 0% nữ.
+    const khanGia = coNoiDung(insights.audience_profile) ? insights.audience_profile : null;
+    const thoiGian = coNoiDung(insights.time_performance) ? insights.time_performance : null;
+    const quanh = coNoiDung(insights.nearby_context) ? insights.nearby_context : null;
 
     const coTuoi = TUOI.some((t) => khanGia?.[t.khoa] != null);
     const coBuoi = BUOI.some((b) => thoiGian?.[b.khoa] != null);
