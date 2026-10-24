@@ -132,7 +132,52 @@ class SoatAnhKhoTest extends TestCase
         // là ảnh của chính màn hình.
         $this->manHinh($this->owner('Chủ Một'), ['photos' => [], 'photo_url' => 'screen-photos/cu.jpg']);
 
-        $this->assertSame(1, $this->soat()['tong'][SoatAnhKhoService::CO_ANH]);
+        $kq = $this->soat();
+
+        $this->assertSame(1, $kq['tong'][SoatAnhKhoService::CO_ANH]);
+
+        // Và nó phải được ĐẾM, không chỉ được phân loại.
+        //
+        // Hai con số này đi qua hai đường khác nhau — phân loại qua
+        // `displayPhotoWithSource()`, phép đếm qua đường dẫn thô trong cột —
+        // nên một đường có nhánh dự phòng `photo_url` mà đường kia không thì
+        // lệnh nói "vị trí này có ảnh thật" và "kho có 0 ảnh" cùng lúc.
+        // Đột biến gỡ nhánh dự phòng khỏi phép đếm từng đi qua cả 18 ca.
+        $this->assertSame(1, $kq['so_anh']['so_vi_tri_co_anh']);
+        $this->assertSame(1, $kq['so_anh']['tong_phan_tu']);
+    }
+
+    /**
+     * Bất biến giữa hai đường: **phân loại và phép đếm phải thấy cùng một tập**.
+     *
+     * Một màn hình là "có ảnh thật" đúng khi cột ảnh của nó không rỗng, và khi
+     * cột ảnh không rỗng thì phép đếm phải thấy nó. Hai chiều, nên hai con số
+     * bằng nhau trên **mọi** kho — kể cả kho trộn đủ ba trạng thái và hai hình
+     * dạng cột (`photos[]` và `photo_url` một mình).
+     *
+     * Ca này canh một quan hệ, không canh một con số. Nó đỏ với bất cứ nhánh
+     * nào mọc thêm ở một đường mà không mọc ở đường kia.
+     */
+    public function test_so_vi_tri_co_anh_luon_bang_so_phan_loai_co_anh_that(): void
+    {
+        $o = $this->owner('Chủ Một', 'owners/covers/bia.webp');
+
+        $this->manHinh($o, ['photos' => ['screen-photos/a.jpg', 'screen-photos/b.jpg']]);
+        $this->manHinh($o, ['photos' => [], 'photo_url' => 'screen-photos/cu.jpg']);
+        $this->manHinh($o, ['photos' => ['https://doitac.example/a.jpg']]);
+        $this->manHinh($o);                            // chỉ còn bìa owner
+        $this->manHinh($this->owner('Chủ Trắng'));     // không gì cả
+
+        $kq = $this->soat();
+
+        $this->assertSame(
+            $kq['tong'][SoatAnhKhoService::CO_ANH],
+            $kq['so_anh']['so_vi_tri_co_anh'],
+            'Phân loại và phép đếm thấy hai tập khác nhau — một trong hai đường có nhánh mà đường kia không.',
+        );
+
+        $this->assertSame(3, $kq['so_anh']['so_vi_tri_co_anh']);
+        $this->assertSame(4, $kq['so_anh']['tong_phan_tu']);
     }
 
     public function test_bon_bac_du_phong_moi_bac_mang_ten_cua_no(): void
