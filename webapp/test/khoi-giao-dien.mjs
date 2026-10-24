@@ -681,7 +681,26 @@ const TRANG = [
             'Impressions/ngày',
             'Kích thước',
             'SOV tối đa',
+
+            // ── Lát 3 (24/10/2026): lịch gọn TRƯỚC thanh tab ──
+            //
+            // Cả lát 3 nằm ở vị trí này. "Đặt được từ khi nào" là câu người mua
+            // hỏi trước cả giá, và trước lát này nó nằm sau một cú bấm vào tab
+            // thứ ba. Một người sàng mười vị trí không mở ba tab cho mỗi vị
+            // trí.
+            //
+            // Canh bằng `thuTu` chứ không bằng `co`: khối có mặt nhưng nằm
+            // dưới thanh tab thì lại thành một thứ phải cuộn tới, và `co` sẽ
+            // vẫn khớp.
+            'class="lg"',
+            'Đặt được từ',
+            'class="lg-thang',
+
             'class="tabs"',
+
+            // Tab vẫn giữ: nó chứa mức SOV của TỪNG NGÀY, thứ khối gọn không
+            // nhồi được. Bỏ tab là mất nó.
+            'class="avail-grid"',
         ],
         khong: [
             // CHÚ Ý: `class="sc"` KHÔNG nằm trong danh sách này, khác với
@@ -795,6 +814,11 @@ const TRANG = [
             'class="lt-trong"',
             'Không có ngày nào mở bán',
             'chứ không phải sàn thiếu dữ liệu',
+
+            // Lát 3: khối gọn cũng phải nói trạng thái rỗng, bằng câu ngắn của
+            // nó — fixture này có `days: []`, tức sàn BIẾT là chưa mở ngày nào.
+            'class="lg lg--trong"',
+            'Chưa mở ngày nào để đặt',
 
             // Hai ô số liệu trống nay nói ai còn nợ dữ liệu, không chỉ `—`.
             'class="stat-box stat-box--trong"',

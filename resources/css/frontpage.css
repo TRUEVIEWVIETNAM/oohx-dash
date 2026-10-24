@@ -2123,6 +2123,27 @@ input[type=range]{width:100%;accent-color:var(--bl);cursor:pointer}
 .stat-src{font-size:9px;color:var(--t4);font-weight:600;line-height:1.35;margin-top:4px}
 @media(min-width:768px){.stat-src{font-size:10px}}
 
+/* Lịch trống bản GỌN trên màn hình đầu — lát 3 của PLAN-CHI-TIET-VI-TRI.
+   Trước lát này lịch chỉ có trong tab thứ ba, nên "đặt được từ khi nào" — câu
+   người mua hỏi trước cả giá — nằm sau một cú bấm.
+   Chỉ trang Next dùng nhóm lớp này; bản Blade không render chúng. */
+.lg{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 0;padding:12px 14px;border:1px solid var(--ln2);border-radius:12px;background:var(--bg3)}
+@media(min-width:768px){.lg{gap:14px;padding:14px 16px;border-radius:14px}}
+.lg--trong{background:var(--bg2)}
+.lg-chinh{display:flex;align-items:baseline;gap:7px;flex-shrink:0}
+.lg-nhan{font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.3px}
+@media(min-width:768px){.lg-nhan{font-size:11px}}
+.lg-ngay{font-size:17px;font-weight:800;color:var(--bl);letter-spacing:-.3px}
+@media(min-width:768px){.lg-ngay{font-size:19px}}
+.lg-thangs{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
+.lg-thang{display:flex;align-items:baseline;gap:5px;padding:3px 9px;border-radius:999px;background:var(--bl-lt);border:1px solid transparent}
+.lg-thang--het{background:var(--bg2);border-color:var(--ln2)}
+.lg-thang-t{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase}
+.lg-thang-s{font-size:13px;font-weight:800;color:var(--bl)}
+.lg-thang--het .lg-thang-s{color:var(--t4)}
+.lg-phu{font-size:11px;color:var(--t4);line-height:1.4;min-width:0}
+@media(min-width:768px){.lg-phu{font-size:12px}}
+
 /* Khối "chưa có số liệu khán giả" trong tab Insights — lát 2.
    Trước lát này tab mở ra là một div rỗng khi `insights` có mà mọi trường bên
    trong null. */

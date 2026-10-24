@@ -10,6 +10,7 @@ import { ThuVienAnh } from '@/components/ThuVienAnh';
 import { TabChiTiet } from '@/components/TabChiTiet';
 import { KhoiInsights } from '@/components/KhoiInsights';
 import { LichTrong } from '@/components/LichTrong';
+import { LichGon } from '@/components/LichGon';
 import { PanelGia } from '@/components/PanelGia';
 import { KhoiViTri } from '@/components/KhoiViTri';
 
@@ -324,6 +325,25 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
                                 giaTri={sovThat != null ? `${sovThat}%` : null}
                             />
                         </div>
+
+                        {/*
+                          ══ Lát 3: lịch ra khỏi tab thứ ba ══
+
+                          "Đặt được từ khi nào" là câu người mua hỏi TRƯỚC khi
+                          quan tâm tới giá, và nó đang nằm sau một cú bấm vào
+                          tab thứ ba. Một người sàng mười vị trí sẽ không mở ba
+                          tab cho mỗi vị trí.
+
+                          Tab vẫn giữ: nó chứa mức SOV của TỪNG NGÀY — thứ một
+                          người đã quyết định mua cần để chọn ngày, và không
+                          nhồi được vào một khối gọn.
+
+                          Cùng một `lich`, truyền cho hai khối. Trang gọi
+                          `getScreenAvailability()` đúng MỘT lần; để khối tự
+                          gọi là hai lượt vào một endpoint có giới hạn tần suất
+                          để hiện hai cách nhìn của cùng một dữ liệu.
+                        */}
+                        <LichGon lich={lich} />
 
                         <TabChiTiet tabs={tabs} />
                     </div>
