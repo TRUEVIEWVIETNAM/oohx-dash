@@ -11,6 +11,7 @@ import { TabChiTiet } from '@/components/TabChiTiet';
 import { KhoiInsights } from '@/components/KhoiInsights';
 import { LichTrong } from '@/components/LichTrong';
 import { LichGon } from '@/components/LichGon';
+import { KhoiHoSo } from '@/components/KhoiHoSo';
 import { PanelGia } from '@/components/PanelGia';
 import { KhoiViTri } from '@/components/KhoiViTri';
 
@@ -344,6 +345,20 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
                           để hiện hai cách nhìn của cùng một dữ liệu.
                         */}
                         <LichGon lich={lich} />
+
+                        {/*
+                          ══ Lát 4: hồ sơ đủ để ra quyết định chưa ══
+
+                          Đặt TRƯỚC thanh tab, cùng lý do như khối lịch gọn:
+                          người mua phải biết hồ sơ thiếu gì trước khi đọc chi
+                          tiết, không phải sau khi đọc hết rồi tự ghép các
+                          khoảng trống lại.
+
+                          Tính hoàn toàn từ `screen` — mọi trường cần đã nằm
+                          trong phản hồi hiện có, nên lát này không đổi OpenAPI
+                          và không thêm lời gọi nào.
+                        */}
+                        <KhoiHoSo screen={screen} />
 
                         <TabChiTiet tabs={tabs} />
                     </div>
