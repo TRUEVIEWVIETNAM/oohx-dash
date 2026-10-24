@@ -71,11 +71,35 @@ export function LichTrong({
     lich: AvailabilityCalendar | null;
     sovMax: number;
 }) {
-    if (!lich || !lich.days?.length) {
+    // ══ Lát 2: hai trạng thái này KHÔNG giống nhau ══
+    //
+    // Trước lát này cả hai rơi vào cùng một câu "Chưa lấy được lịch trống", và
+    // người mua không phân biệt được:
+    //
+    //   - `lich === null` — `getScreenAvailability()` trả null khi lời gọi
+    //     lỗi. Sàn KHÔNG BIẾT tình trạng chỗ. Tải lại trang có thể ra kết quả.
+    //   - `days: []` — lời gọi thành công, API trả về không ngày nào trong cửa
+    //     sổ. Sàn BIẾT, và câu trả lời là không có ngày nào để đặt. Tải lại
+    //     trang một trăm lần cũng vậy.
+    //
+    // Nói "thử tải lại trang" cho trường hợp thứ hai là dẫn người mua đi làm
+    // một việc vô ích thay vì liên hệ chủ vị trí.
+    if (!lich) {
         return (
-            <p style={{ fontSize: 14, color: 'var(--t3)' }}>
-                Chưa lấy được lịch trống. Thử tải lại trang, hoặc liên hệ media owner để hỏi tình
-                trạng chỗ.
+            <p className="lt-trong">
+                <strong>Chưa lấy được lịch trống.</strong> Sàn không đọc được tình trạng chỗ của vị
+                trí này lúc này. Thử tải lại trang; nếu vẫn vậy, gửi yêu cầu báo giá để hỏi trực
+                tiếp media owner.
+            </p>
+        );
+    }
+
+    if (!lich.days?.length) {
+        return (
+            <p className="lt-trong">
+                <strong>Không có ngày nào mở bán trong cửa sổ đang xem.</strong> Lịch đã lấy được —
+                vị trí này chưa mở ngày nào để đặt, chứ không phải sàn thiếu dữ liệu. Gửi yêu cầu
+                báo giá để hỏi media owner về đợt kế tiếp.
             </p>
         );
     }
