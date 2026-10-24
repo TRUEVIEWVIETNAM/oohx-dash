@@ -83,6 +83,7 @@ class ScreenDetailResource extends ScreenSummaryResource
         $spec      = $this->spec;
         $inventory = $this->inventory;
         $site      = $this->site;
+        $anh       = $this->anhVaNguon();
 
         // `array_merge`, KHÔNG toán tử `+`.
         //
@@ -103,7 +104,22 @@ class ScreenDetailResource extends ScreenSummaryResource
             // mảng rỗng — KHÔNG trả một URL placehold.co, vì một URL ảnh
             // ngoài trong payload API là bắt mọi client phải tin một dịch vụ
             // thứ ba mà không ai khai.
-            'photo_urls' => $this->photoUrls(),
+            'photo_urls' => $anh['urls'],
+
+            // ══ Ảnh này là ảnh của BIỂN, hay một ảnh thay thế? ══
+            //
+            // Chuỗi dự phòng ở trên có năm bậc, và chỉ bậc đầu là ảnh của
+            // chính màn hình. Bốn bậc còn lại là ảnh của site, của network,
+            // bìa chủ sở hữu, hoặc ảnh mặc định của loại điểm đặt — mỗi cái
+            // cho người mua xem một thứ **không phải** mặt biển họ sắp thuê.
+            //
+            // Vị trí đo được ngày 24/10/2026 (`oohx-led-cto-can-tho`) có đúng
+            // một ảnh, và nó là `storage/owners/covers/…`. Trang hiện ra như
+            // một vị trí có ảnh. Không trường nào trong payload nói khác, nên
+            // không client nào nói khác được.
+            //
+            // `null` khi không có ảnh nào — cùng lúc `photo_urls` là mảng rỗng.
+            'photo_source' => $anh['source'],
 
             'specs' => [
                 'width_px'      => $spec?->width_px,
@@ -154,8 +170,17 @@ class ScreenDetailResource extends ScreenSummaryResource
         ]);
     }
 
-    /** @return string[] */
-    private function photoUrls(): array
+    /**
+     * Thư viện ảnh, kèm **nguồn** của ảnh đầu tiên.
+     *
+     * Hai bậc đầu của chuỗi dự phòng (`spec.photos[]`, `spec.photo_url`) là
+     * ảnh của chính màn hình, nên nguồn là `screen`. Hết hai bậc đó thì giao
+     * cho `Screen::displayPhotoWithSource()` — nơi giữ bản duy nhất của ba bậc
+     * còn lại — và lấy luôn tên bậc nó dừng ở.
+     *
+     * @return array{urls: string[], source: ?string}
+     */
+    private function anhVaNguon(): array
     {
         $photos = collect($this->spec?->photos ?? [])
             ->filter(fn ($p) => is_string($p) && $p !== '')
@@ -167,11 +192,16 @@ class ScreenDetailResource extends ScreenSummaryResource
             $photos = [asset('storage/' . $this->spec->photo_url)];
         }
 
-        if ($photos === [] && $this->display_photo) {
-            $photos = [$this->display_photo];
+        if ($photos !== []) {
+            return ['urls' => $photos, 'source' => 'screen'];
         }
 
-        return $photos;
+        $thay = $this->displayPhotoWithSource();
+
+        return [
+            'urls'   => $thay['url'] ? [$thay['url']] : [],
+            'source' => $thay['source'],
+        ];
     }
 
     /**

@@ -2743,7 +2743,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/ScreenSummary'
         - type: object
-          required: [photo_urls, specs, site, owner, insights, nearby_pois, similar, availability]
+          required: [photo_urls, photo_source, specs, site, owner, insights, nearby_pois, similar, availability]
           properties:
             description: { type: [string, 'null'] }
             photo_urls:
@@ -2754,6 +2754,23 @@ components:
                 owner / loại điểm đặt. Không có ảnh nào thì **mảng rỗng** —
                 không trả URL của một dịch vụ ảnh giữ chỗ nào.
               items: { type: string }
+            photo_source:
+              type: [string, 'null']
+              enum: [screen, site, network, owner_cover, venue_category, null]
+              description: |
+                Ảnh đầu của `photo_urls` đến từ **bậc nào** của chuỗi dự phòng.
+
+                Chỉ `screen` là ảnh của chính màn hình. Bốn giá trị còn lại là
+                ảnh thay thế: banner của địa điểm, banner của mạng lưới, bìa
+                chủ sở hữu, ảnh mặc định của loại điểm đặt — mỗi cái cho người
+                mua xem một thứ không phải mặt biển họ sắp thuê.
+
+                Vị trí `oohx-led-cto-can-tho` đo ngày 24/10/2026 trả
+                `owner_cover`: đúng một ảnh, và nó là ảnh bìa của AdTRUE
+                Platform. Trước trường này, không client nào phân biệt được —
+                nên trang hiện ra như một vị trí đã có ảnh.
+
+                `null` khi `photo_urls` là mảng rỗng.
             specs:
               type: object
               required: [width_px, height_px, allow_image, allow_video, spot_length_s, orientation, venue_label, venue_type, sov_max_pct, io_kpi_spots_per_day]

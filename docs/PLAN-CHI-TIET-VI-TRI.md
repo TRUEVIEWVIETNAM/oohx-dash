@@ -209,6 +209,31 @@ chứng minh được**.
   owner, `screen` khi có ảnh riêng; DTO **không** thêm trường nào ngoài nó
   (danh sách trắng).
 
+### Hai chỗ bản dựng lệch khỏi plan, và vì sao
+
+**`photo_source` có năm giá trị, không hai.** Plan ghi `screen | owner_cover`,
+nhưng chuỗi dự phòng thật ở `Screen::displayPhotoWithSource()` có **năm bậc**:
+ảnh màn hình → banner địa điểm → banner mạng lưới → bìa owner → ảnh mặc định
+của loại điểm đặt. Gán `owner_cover` cho một banner địa điểm là đặt một nhãn
+**sai** vào DTO, và một nhãn sai khó sửa hơn một nhãn thiếu vì client đã tin
+nó. Enum là `screen | site | network | owner_cover | venue_category | null`;
+hai giá trị plan ghi vẫn giữ đúng nghĩa plan muốn.
+
+**Huy hiệu xác minh chỉ in chiều TẮT.** Plan ghi hai nhãn (`Đã xác minh` /
+`Chưa xác minh`). Chỉ nhãn thứ hai được in. `owners.verified` là một cờ quản
+trị bật tay — không quy trình kiểm định, không hồ sơ, không bước đối chiếu — và
+ngày 18/10/2026 dự án đã gỡ đúng chữ "Đã xác minh" khỏi `OwnerCard` và khỏi thẻ
+owner thu nhỏ của chính trang này, với lý do nó nói rằng SÀN đã kiểm.
+`webapp/test/khoi-giao-dien.mjs` còn **cấm** chuỗi đó trên trang này. Chiều tắt
+không có vấn đề ấy: cờ tắt là một sự thật về hồ sơ, và nó là toàn bộ giá trị
+của đề xuất — vị trí đo được có `verified: false` nằm ngay dưới một thẻ
+"Verified Location". Trường hợp bật vẫn hiện ở khối hồ sơ lát 4, nơi nó là một
+trong 18 trường được đếm chứ không phải một dấu tin cậy cạnh nút gọi.
+
+Nếu chủ dự án muốn cả hai chiều thì đó là đảo quyết định 18/10/2026 trên cả
+`OwnerCard`, `/owners` và trang này — một quyết định riêng, không phải một lần
+sửa.
+
 ---
 
 ## Hai việc tìm thấy khi đọc dữ liệu — chờ chốt riêng
@@ -243,11 +268,11 @@ Text để duyệt: `che liên hệ owner`
 
 | Lát | Nội dung | Đổi API? | Trạng thái |
 |---|---|---|---|
-| 1 | Tên hiển thị · bốn ô số liệu · tách tỉnh/phường | không | chưa làm |
-| 2 | Trống thì nói trống (khán giả, lịch) | không | chưa làm |
-| 3 | Lịch ra khỏi tab | không | chưa làm |
-| 4 | Khối "hồ sơ đủ chưa" (18 trường) | không | chưa làm |
-| 5 | Bỏ bốn thẻ · `photo_source` | **có** | chưa làm |
+| 1 | Tên hiển thị · bốn ô số liệu · tách tỉnh/phường | không | xong — #175 |
+| 2 | Trống thì nói trống (khán giả, lịch) | không | xong — #176 |
+| 3 | Lịch ra khỏi tab | không | xong — #177 |
+| 4 | Khối "hồ sơ đủ chưa" (18 trường) | không | xong — #179 |
+| 5 | Bỏ bốn thẻ · `photo_source` | **có** | xong — lát này |
 
 Thứ tự là thứ tự rủi ro tăng dần, không phải thứ tự giá trị. Lát 4 có giá trị
 cao nhất nhưng đứng thứ tư vì nó cần ba lát trước ổn định để không phải sửa

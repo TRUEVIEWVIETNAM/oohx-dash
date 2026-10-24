@@ -178,6 +178,55 @@ test('ảnh thật thì KHÔNG đáng ngờ, không ảnh nào thì thiếu', ()
     assert.equal(tim(hai, 'anh').trangThai, 'co');
 });
 
+// ── Lát 5: `photo_source` thay phép đoán theo URL ───────────────────────────
+
+test('photo_source THẮNG phép đoán theo URL, cả hai chiều', () => {
+    // Chiều một: URL nằm trong `owners/covers/` nhưng API nói đó là ảnh của
+    // chính màn hình. Tin API — nó biết bậc nào của chuỗi dự phòng đã dùng,
+    // còn đường dẫn chỉ là nơi tệp tình cờ nằm.
+    const noiLaThat = danhGiaHoSo({ ...THAT, photo_source: 'screen' });
+    assert.equal(tim(noiLaThat, 'anh').trangThai, 'co');
+
+    // Chiều hai — chiều quan trọng hơn: URL trông như ảnh màn hình, nhưng API
+    // nói đó là banner của địa điểm. Phép đoán cũ cho "có", và hồ sơ trông
+    // đầy hơn thực tế.
+    const noiLaThayThe = danhGiaHoSo({
+        ...THAT,
+        photo_urls: ['https://oohx.net/storage/screens/a.jpg'],
+        photo_source: 'site',
+    });
+    assert.equal(tim(noiLaThayThe, 'anh').trangThai, 'dang_ngo');
+    assert.match(tim(noiLaThayThe, 'anh').ghiChu, /ảnh của địa điểm/);
+});
+
+test('mỗi bậc thay thế nói ĐÚNG tên của nó', () => {
+    const nhan = {
+        site: 'ảnh của địa điểm',
+        network: 'ảnh của mạng lưới',
+        owner_cover: 'ảnh bìa chủ sở hữu',
+        venue_category: 'ảnh minh hoạ loại địa điểm',
+    };
+
+    for (const [nguon, cau] of Object.entries(nhan)) {
+        const dg = danhGiaHoSo({ ...THAT, photo_source: nguon });
+        const t = tim(dg, 'anh');
+
+        assert.equal(t.trangThai, 'dang_ngo', `${nguon} phải là đáng ngờ`);
+        assert.ok(t.ghiChu.includes(cau), `${nguon} nói sai tên: ${t.ghiChu}`);
+    }
+});
+
+test('payload KHÔNG có photo_source vẫn rơi về phép đoán cũ', () => {
+    // Một client đọc bản API chưa có trường này không được tự nhiên thấy hồ sơ
+    // đầy hơn thực tế. `THAT` không mang `photo_source`, và ảnh của nó là bìa
+    // owner — đúng hình dạng production trước lát 5.
+    assert.equal(THAT.photo_source, undefined);
+    assert.equal(tim(danhGiaHoSo(THAT), 'anh').trangThai, 'dang_ngo');
+
+    // Và điểm tổng không đổi: 8/18, đúng con số đo được.
+    assert.equal(danhGiaHoSo(THAT).diem, 8);
+});
+
 test('kích thước khớp tỉ lệ thì là "có", lệch thì "đáng ngờ"', () => {
     // 16,2/28,8 = 0,5625 = 1080/1920 → khớp.
     assert.equal(tim(danhGiaHoSo(DU), 'kich_thuoc').trangThai, 'co');
