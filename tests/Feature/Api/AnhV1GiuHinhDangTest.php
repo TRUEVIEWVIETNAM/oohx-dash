@@ -11,7 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * `photos` của `/api/v1/inventory/screens` — ghim hình dạng.
+ * `photos` của `/api/v1/inventory/screens/{id}` — ghim hình dạng.
  *
  * ══ Vì sao tệp này tồn tại ══
  *
@@ -19,12 +19,21 @@ use Tests\TestCase;
  * → URL" về một bản ở `ScreenSpec::photoUrlOf()`. Hai trong ba bản là accessor
  * mà **`/api/v1` đang đọc** (`ScreenResource:53` → `$spec->photo_urls`), và
  * `CLAUDE.md` mục 2 nói: *không đổi hành vi `/api/v1`* — đó là hợp đồng với
- * đối tác.
+ * đối tác. Nên hình dạng phải được ghim, không chỉ được tin.
  *
- * Nên hai dạng dữ liệu thật phải ra **y như trước**, và tệp này ghim chúng:
- * đường dẫn tương đối thành URL đầy đủ, URL đầy đủ giữ nguyên văn.
+ * ══ Một điều phát hiện khi viết tệp này ══
  *
- * ══ Một điểm KHÁC trước, nói rõ ở đây ══
+ * `/api/v1` chỉ nạp **cột `photo_url`** của spec, trừ khi có `?include=adops`
+ * (`InventoryController::resolveRelations()`). Nghĩa là mảng `photos` của
+ * phản hồi mặc định **không bao giờ** chứa nhiều hơn một ảnh, dù màn hình có
+ * mười ảnh trong `photos[]` — và điều đó đúng từ trước lát này, không phải do
+ * nó. Ghim cả hai nhánh ở đây để lần sau ai đọc cũng thấy ngay, thay vì tìm
+ * trong một danh sách cột eager-load.
+ *
+ * Phiên bản đầu của tệp này đo nhánh mặc định rồi khẳng định như thể nó là
+ * nhánh đầy đủ, và **CI bắt được** — ba ca đỏ trong khi 1.270 ca còn lại xanh.
+ *
+ * ══ Một điểm KHÁC trước, nói rõ ══
  *
  * Phần tử rỗng hoặc không phải chuỗi nay bị **lọc** thay vì ra
  * `https://oohx.net/storage/`. Nó là một thay đổi của `/api/v1`, nên nó phải
@@ -36,7 +45,7 @@ use Tests\TestCase;
  *    một trang HTML hoặc 404, nên không có cách dùng nào của nó bị mất.
  *
  * Nếu chủ dự án muốn giữ nguyên cả phần tử rỗng thì đó là một dòng trong
- * `ScreenSpec::photoPaths()`, và ca cuối tệp này đổi theo.
+ * `ScreenSpec::photoPaths()`, và ca cuối tệp này đỏ chỉ ngay vào nó.
  */
 class AnhV1GiuHinhDangTest extends TestCase
 {
@@ -60,7 +69,7 @@ class AnhV1GiuHinhDangTest extends TestCase
     }
 
     /** @param array<string, mixed> $spec */
-    private function anhCua(array $spec): array
+    private function manHinh(array $spec): Screen
     {
         $owner = Owner::factory()->create(['status' => 'active']);
         $site  = Site::factory()->create(['owner_id' => $owner->id, 'status' => 'active', 'city' => 'Hà Nội']);
@@ -73,23 +82,32 @@ class AnhV1GiuHinhDangTest extends TestCase
 
         ScreenSpec::factory()->create(array_merge(['screen_id' => $screen->id], $spec));
 
-        $hang = collect(
-            $this->withToken($this->token)
-                ->getJson('/api/v1/inventory/screens?per_page=50')
-                ->assertOk()
-                ->json('data')
-        )->firstWhere('screen_id', $screen->external_id)
-            ?? collect(
-                $this->withToken($this->token)
-                    ->getJson('/api/v1/inventory/screens?per_page=50')
-                    ->json('data')
-            )->last();
-
-        $this->assertIsArray($hang, 'Không thấy màn hình trong phản hồi v1.');
-        $this->assertArrayHasKey('photos', $hang, 'Trường `photos` biến mất khỏi /api/v1.');
-
-        return $hang['photos'];
+        return $screen;
     }
+
+    /**
+     * Mảng `photos` của phản hồi v1 cho một màn hình.
+     *
+     * @param  array<string, mixed>  $spec
+     * @param  bool  $adops  `?include=adops` — nhánh duy nhất nạp cả cột `photos`
+     * @return list<string>
+     */
+    private function anhCua(array $spec, bool $adops = true): array
+    {
+        $screen = $this->manHinh($spec);
+
+        $duong = '/api/v1/inventory/screens/' . $screen->external_id
+            . ($adops ? '?include=adops' : '');
+
+        $data = $this->withToken($this->token)->getJson($duong)->assertOk()->json('data');
+
+        $this->assertIsArray($data, 'Phản hồi v1 không có khối `data`.');
+        $this->assertArrayHasKey('photos', $data, 'Trường `photos` biến mất khỏi /api/v1.');
+
+        return $data['photos'];
+    }
+
+    // ── Hai dạng dữ liệu thật, phải ra y như trước ──────────────────────────
 
     public function test_duong_dan_tuong_doi_ra_url_day_du_nhu_truoc(): void
     {
@@ -105,9 +123,10 @@ class AnhV1GiuHinhDangTest extends TestCase
 
     public function test_url_day_du_giu_nguyen_van_nhu_truoc(): void
     {
-        $anh = $this->anhCua(['photos' => ['https://doitac.example/a.jpg']]);
-
-        $this->assertSame(['https://doitac.example/a.jpg'], $anh);
+        $this->assertSame(
+            ['https://doitac.example/a.jpg'],
+            $this->anhCua(['photos' => ['https://doitac.example/a.jpg']]),
+        );
     }
 
     public function test_photo_url_mot_minh_van_ra_mot_phan_tu_nhu_truoc(): void
@@ -124,10 +143,28 @@ class AnhV1GiuHinhDangTest extends TestCase
     }
 
     /**
+     * Phản hồi **mặc định** chỉ đọc cột `photo_url`.
+     *
+     * `resolveRelations()` nạp `spec:screen_id,photo_url,…` khi không có
+     * `?include=adops`, nên cột `photos` không được chọn và accessor rơi về
+     * nhánh dự phòng. Đây là hành vi có từ trước lát 1; ghim nó để lần sau
+     * không ai mất một buổi đi tìm vì sao đối tác chỉ thấy một ảnh.
+     */
+    public function test_nhanh_mac_dinh_chi_tra_mot_anh_tu_photo_url(): void
+    {
+        $anh = $this->anhCua([
+            'photos'    => ['screen-photos/a.jpg', 'screen-photos/b.jpg'],
+            'photo_url' => 'screen-photos/cu.jpg',
+        ], adops: false);
+
+        $this->assertCount(1, $anh);
+        $this->assertStringContainsString('screen-photos/cu.jpg', $anh[0]);
+    }
+
+    /**
      * Điểm duy nhất khác trước — xem docblock đầu tệp.
      *
-     * Ca này **ghim thay đổi**, không chỉ chấp nhận nó: nếu chủ dự án đảo
-     * quyết định thì ca này đỏ và chỉ ngay vào dòng cần sửa.
+     * Ca này **ghim thay đổi**, không chỉ chấp nhận nó.
      */
     public function test_phan_tu_rong_bi_loc_thay_vi_ra_url_tro_vao_khong_dau(): void
     {
