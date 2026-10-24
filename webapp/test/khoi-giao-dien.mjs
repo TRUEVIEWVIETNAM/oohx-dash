@@ -607,6 +607,23 @@ const TRANG = [
             'id="tp-review"',
             'class="specs-grid"',
 
+            // ── Lát 4 (24/10/2026): ba trạng thái trường của khối hồ sơ ──
+            //
+            // Nằm trong `co` chứ không `thuTu`: dấu tick xuất hiện ngay ở nhóm
+            // đầu, nên nó không thuộc chuỗi thứ tự của các mốc khối.
+            //
+            // Fixture `man-hinh-co-gia` có đủ cả 18 trường — nhưng một trong
+            // số đó ĐÁNG NGỜ, và nó đáng ngờ vì một lý do thật: `4×2 m` là tỉ
+            // lệ 2,0 còn `1920×1080 px` là 1,778, lệch 12,5%. Phép kiểm tỉ lệ
+            // của lát 4 bắt được chính fixture của chính bộ chốt này.
+            //
+            // Hai lớp cùng xuất hiện là bằng chứng hàm phân loại thật, không
+            // gán cứng một trạng thái. Trạng thái `thieu` được canh ở trang
+            // `man-hinh-insights-rong` bên dưới.
+            'class="hoso-mk hoso-mk--co"',
+            'class="hoso-mk hoso-mk--dang_ngo"',
+            'tỉ lệ không khớp độ phân giải',
+
             // Lát 4 — insights
             'class="ins"',
             'class="ins-stats"',
@@ -695,6 +712,18 @@ const TRANG = [
             'class="lg"',
             'Đặt được từ',
             'class="lg-thang',
+
+            // ── Lát 4 (24/10/2026): khối "hồ sơ đủ chưa" ──
+            //
+            // Cũng nằm TRƯỚC thanh tab, cùng lý do: người mua phải biết hồ sơ
+            // thiếu gì trước khi đọc chi tiết, không phải sau khi đọc hết rồi
+            // tự ghép các khoảng trống lại.
+            'class="hoso"',
+            'class="hoso-diem-n"',
+            'trường có dữ liệu',
+            'class="hoso-nhom"',
+            'Nhận diện &amp; vị trí',
+            'Thông số kỹ thuật',
 
             'class="tabs"',
 
@@ -832,6 +861,13 @@ const TRANG = [
             // nó — fixture này có `days: []`, tức sàn BIẾT là chưa mở ngày nào.
             'class="lg lg--trong"',
             'Chưa mở ngày nào để đặt',
+
+            // Lát 4: fixture này thiếu cả giá và số khán giả, nên kết luận phải
+            // là câu nặng nhất — và đó là câu của hồ sơ thật trên production.
+            'class="hoso"',
+            'Chưa đủ để báo giá',
+            'không tính được CPM',
+            'class="hoso-mk hoso-mk--thieu"',
 
             // Hai ô số liệu trống nay nói ai còn nợ dữ liệu, không chỉ `—`.
             'class="stat-box stat-box--trong"',

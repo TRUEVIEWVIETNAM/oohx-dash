@@ -2123,6 +2123,42 @@ input[type=range]{width:100%;accent-color:var(--bl);cursor:pointer}
 .stat-src{font-size:9px;color:var(--t4);font-weight:600;line-height:1.35;margin-top:4px}
 @media(min-width:768px){.stat-src{font-size:10px}}
 
+/* Khối "hồ sơ đủ để ra quyết định chưa" — lát 4 của PLAN-CHI-TIET-VI-TRI.
+   Phục vụ hai người bằng cùng một đoạn mã: người mua biết phải đòi gì, chủ vị
+   trí (qua /publisher sau này) biết phải bổ sung gì.
+   Chỉ trang Next dùng nhóm lớp này; bản Blade không render chúng. */
+.hoso{margin:16px 0 0;border:1px solid var(--ln2);border-radius:14px;overflow:hidden;background:var(--bg)}
+.hoso-top{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;padding:16px;background:var(--bg2)}
+@media(min-width:768px){.hoso-top{gap:18px;padding:18px}}
+.hoso-diem{display:flex;flex-direction:column;flex-shrink:0}
+.hoso-diem-n{font-size:26px;font-weight:800;line-height:1;color:var(--t1);letter-spacing:-.8px}
+@media(min-width:768px){.hoso-diem-n{font-size:32px}}
+.hoso-diem-l{font-size:10px;font-weight:600;color:var(--t4);text-transform:uppercase;letter-spacing:.3px;margin-top:4px}
+.hoso-tx{flex:1 1 240px;min-width:0}
+.hoso-h{font-size:15px;font-weight:800;color:var(--t1);letter-spacing:-.2px}
+@media(min-width:768px){.hoso-h{font-size:17px}}
+.hoso-vi{font-size:12px;color:var(--t3);line-height:1.55;margin:5px 0 0;max-width:68ch}
+@media(min-width:768px){.hoso-vi{font-size:13px}}
+.hoso-bar{height:7px;border-radius:999px;background:var(--ln2);overflow:hidden;margin-top:10px}
+.hoso-bar-i{display:block;height:100%;background:#9A6400;border-radius:999px}
+.hoso-bar-i--du{background:#0A7C42}
+.hoso-ngo{font-size:11px;font-weight:700;color:#9A6400;margin:8px 0 0}
+.hoso-nhom{border-top:1px solid var(--ln2);padding:14px 16px}
+@media(min-width:768px){.hoso-nhom{padding:16px 18px}}
+.hoso-nhom-h{font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px}
+@media(min-width:768px){.hoso-nhom-h{font-size:11px}}
+.hoso-flds{display:grid;grid-template-columns:1fr;gap:8px;margin:0;padding:0;list-style:none}
+@media(min-width:600px){.hoso-flds{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px 18px}}
+.hoso-fld{display:flex;gap:8px;align-items:flex-start;min-width:0}
+.hoso-mk{flex:0 0 auto;width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:900;margin-top:2px;border:1px solid}
+.hoso-mk--co{background:#E8F7EF;color:#0A7C42;border-color:#0A7C42}
+.hoso-mk--dang_ngo{background:#FFF6E5;color:#9A6400;border-color:#9A6400}
+.hoso-mk--thieu{background:var(--bg2);color:var(--t4);border-color:var(--ln2)}
+.hoso-fld-tx{font-size:12px;line-height:1.45;min-width:0}
+@media(min-width:768px){.hoso-fld-tx{font-size:13px}}
+.hoso-fld-tx b{font-weight:700;color:var(--t2)}
+.hoso-fld-gc{display:block;color:var(--t4);font-size:11px;margin-top:1px;word-break:break-word}
+
 /* Lịch trống bản GỌN trên màn hình đầu — lát 3 của PLAN-CHI-TIET-VI-TRI.
    Trước lát này lịch chỉ có trong tab thứ ba, nên "đặt được từ khi nào" — câu
    người mua hỏi trước cả giá — nằm sau một cú bấm.
