@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Rules\AnhKhongQuaNhieuDiem;
 use App\Filament\Resources\VietnamProvinceResource\Pages;
 use App\Models\VietnamProvince;
 use App\Models\VietnamRegion;
@@ -71,6 +72,7 @@ class VietnamProvinceResource extends Resource
                     ->imageCropAspectRatio('4:3')
                     ->imageResizeTargetWidth('800')
                     ->imageResizeTargetHeight('600')
+                    ->rules([new AnhKhongQuaNhieuDiem])
                     ->helperText('Ảnh đại diện tỉnh/thành (4:3, tối đa 50MB)'),
 
             ]),

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Shared\Resources;
 
+use App\Rules\AnhKhongQuaNhieuDiem;
 use App\Models\Network;
 use App\Models\Site;
 use App\Models\VietnamCommune;
@@ -123,12 +124,14 @@ abstract class BaseSiteResource extends Resource
                     ->imageResizeTargetWidth('400')
                     ->imageResizeTargetHeight('400')
                     ->maxSize(1024)
+                    ->rules([new AnhKhongQuaNhieuDiem])
                     ->helperText('Logo site. Khuyến nghị 400×400px, tối đa 1MB.'),
 
                 Forms\Components\FileUpload::make('banner')
                     ->label('Ảnh bìa')
                     ->image()
                     ->directory('sites/banners')
+                    ->rules([new AnhKhongQuaNhieuDiem])
                     ->disk('public')
                     ->imageResizeMode('cover')
                     ->imageCropAspectRatio('21:9')

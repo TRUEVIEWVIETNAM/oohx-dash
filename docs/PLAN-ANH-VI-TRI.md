@@ -401,6 +401,81 @@ khi `memory_limit` còn lại không đủ — vì một lượt OOM của PHP l
 Nửa chưa làm là **luật `dimensions:` ở biểu mẫu**, tức từ chối ngay lúc tải lên
 thay vì nhận tệp rồi bỏ qua nó. Đó vẫn là quyết định `chặn ảnh bom`.
 
+### Nửa còn lại của `chặn ảnh bom` — chốt 25/10/2026
+
+Dựng rồi, và nó khác plan ở ba chỗ.
+
+**1. Lý do thật sự phải đóng không phải lý do plan ghi.** Plan nói lát 4 là lúc
+máy chủ bắt đầu mở ảnh ra. Đúng, nhưng `AnhDanXuatService` đã đóng chiều đó: nó
+đo kích thước từ đầu tệp và từ chối trên trần, nên máy chủ **đã** an toàn sau
+lát 4. Chiều chưa ai chặn là chiều khác: ảnh bom vẫn **vào kho và ra trang**, và
+vì không sinh được bản dẫn xuất nên `srcset` vắng mặt — tức **mọi** trình duyệt
+tải đúng bản gốc. Lớp dưới hỏng theo chiều an toàn cho máy chủ và theo chiều
+nguy hiểm cho người xem; hai chiều trái nhau thì không phải một lớp đủ.
+
+**2. Không dùng `dimensions:` của Laravel.** Luật đó chặn theo **từng cạnh**,
+còn trần thật là **số điểm ảnh** — đó là thứ quyết định bộ nhớ GD. Hai thang
+không thay nhau được: `3.900×3.900` lọt `max_width=4000` mà là 15 triệu điểm,
+tức vào kho rồi vĩnh viễn không có bản dẫn xuất. Và `dimensions:` còn **cho SVG
+qua vô điều kiện** (`ValidatesAttributes:760-762`). Nên lát này viết
+`App\Rules\AnhKhongQuaNhieuDiem`, đọc **đúng hằng** `AnhDanXuatService::TOI_DA_PIXEL`
+— biểu mẫu nhận ⟹ trần cố định của service cho qua, và có một ca chốt đòi hai
+chỗ không bao giờ lệch.
+
+**3. Mười bốn ô, không phải một.** Quyết định nói về ô ảnh màn hình. Nhưng ảnh
+bìa chủ sở hữu **là** ảnh mà 104/104 vị trí đang hiện ra, và nó vào qua một ô
+khác; `VenueCategoryResource` và `VietnamProvinceResource` còn đặt
+`maxSize(51200)` — 50MB. Chặn một ô trong mười bốn thì không phải chặn. Luật áp
+cho **mọi** ô `->image()` trong `app/Filament`, và một bộ quét đòi đúng điều đó
+để ô thứ mười lăm thêm sau này không lọt.
+
+Còn **chưa** đóng: trần này chỉ sống ở đường Filament. Đường nhập kho
+(`spec.photo_url` nhận một URL) và lát 5 (ảnh về từ API đối tác) sẽ tải tệp từ
+máy chủ người khác, và ở đó phải đo **trước khi** tải hết tệp — một phép kiểm
+khác hẳn, thuộc `plan nhập kho`.
+
+### Phát hiện nặng hơn cả lát 4: một dấu chấm làm mọi luật tệp bất động
+
+Khi viết chốt cho nửa còn lại, ca "ô ảnh thật từ chối ảnh quá nhiều điểm"
+**đỏ** — luật có trong bộ luật, tệp có 5000×4000, mà không lỗi nào. Đo ra:
+
+`BaseFileUpload::getValidationRules()` (vendor dòng 608-617) dựng một
+`Validator` **riêng** cho từng tệp:
+
+```php
+Validator::make([$name => $files], ["{$name}.*" => ['file', ...luật từng tệp]])
+```
+
+với `$name = $this->getName()`. Ô ảnh màn hình tên `spec.photos`, nên khoá luật
+thành `spec.photos.*` — và Laravel đọc dấu chấm là **mảng lồng**: nó đi tìm
+`spec` → `photos` → từng phần tử, trong khi dữ liệu có đúng **một khoá phẳng**
+tên `'spec.photos'`. Không khớp. Đo thật ngày 25/10/2026:
+
+| Dữ liệu | Khoá luật | `fails()` |
+|---|---|---|
+| `['spec.photos' => [$tệp]]` | `spec.photos.*` | **0** |
+| `['photos' => [$tệp]]` | `photos.*` | 1 |
+| `['spec' => ['photos' => [$tệp]]]` | `spec.photos.*` | 1 |
+
+**Hệ quả: `acceptedFileTypes` và `maxSize` mà lát 2 thêm vào chưa bao giờ
+chạy.** Lát 2 nói đường tải ảnh có hai lớp kiểm loại tệp và một trần dung
+lượng; thật ra chỉ có **một** lớp — cổng upload tạm của Livewire
+(`config/livewire.php:66`, trần 50MB + `extensions:`/`mimes:`), vốn nằm ở
+endpoint riêng của Livewire nên không đi qua đường này.
+
+Và chốt của lát 2 **không bắt được** vì nó dựng `Validator` bằng khoá riêng của
+nó (`luatMayChu()`): nó chứng minh luật *được đăng ký*, không chứng minh luật
+*được áp*. Một ca xanh giả, và nó là của tôi.
+
+Cách sửa: `->name('photos')` — đổi **tên** mà giữ **state path** `spec.photos`.
+`getName()` chỉ được `BaseFileUpload` dùng ở đúng một chỗ, chính bộ luật trên;
+đường nạp (`mutateFormDataBeforeFill`) và đường lưu (`SavesScreenRelationships`
+đọc `$data['spec']`) chạy theo state path nên không đổi một dòng. Ô ảnh màn
+hình là **ô duy nhất** trong `app/` có dấu chấm trong tên.
+
+Ba ca canh chuyện này từ nay: tên ô không có dấu chấm, `maxSize` thật sự từ
+chối một tệp 8,6MB, và `acceptedFileTypes` thật sự từ chối một GIF.
+
 ### Hai chỗ lát 4 cố ý không chạm
 
 - **Ảnh trong lightbox** giữ bản gốc, không `srcset`. Người dùng bấm vào ảnh để

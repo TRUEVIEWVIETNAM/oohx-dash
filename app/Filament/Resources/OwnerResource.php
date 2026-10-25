@@ -1,6 +1,7 @@
 <?php
 namespace App\Filament\Resources;
 
+use App\Rules\AnhKhongQuaNhieuDiem;
 use App\Models\Owner;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -115,9 +116,11 @@ class OwnerResource extends Resource
                 Forms\Components\RichEditor::make('about')
                     ->label('Giới thiệu')->columnSpan(2),
                 Forms\Components\FileUpload::make('logo_url')
-                    ->label('Logo')->image()->disk('public')->directory('owners/logos')->maxSize(5120),
+                    ->label('Logo')->image()->disk('public')->directory('owners/logos')->maxSize(5120)
+                    ->rules([new AnhKhongQuaNhieuDiem]),
                 Forms\Components\FileUpload::make('cover_url')
-                    ->label('Ảnh bìa')->image()->disk('public')->directory('owners/covers')->maxSize(10240),
+                    ->label('Ảnh bìa')->image()->disk('public')->directory('owners/covers')->maxSize(10240)
+                    ->rules([new AnhKhongQuaNhieuDiem]),
                 Forms\Components\TextInput::make('website')->label('Website')->url(),
                 Forms\Components\TextInput::make('email')->label('Email')->email(),
                 Forms\Components\TextInput::make('phone')->label('Điện thoại')

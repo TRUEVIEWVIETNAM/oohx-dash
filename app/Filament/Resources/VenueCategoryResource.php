@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Rules\AnhKhongQuaNhieuDiem;
 use App\Filament\Resources\VenueCategoryResource\Pages;
 use App\Filament\Resources\VenueCategoryResource\RelationManagers;
 use App\Models\VenueCategory;
@@ -65,6 +66,7 @@ class VenueCategoryResource extends Resource
                     ->imageResizeTargetWidth('800')
                     ->imageResizeTargetHeight('450')
                     ->maxSize(51200)
+                    ->rules([new AnhKhongQuaNhieuDiem])
                     ->columnSpan(2)
                     ->helperText('Ảnh đại diện cho danh mục, hiển thị ở trang chủ. Khuyến nghị 800×450px, tối đa 50MB.'),
 
