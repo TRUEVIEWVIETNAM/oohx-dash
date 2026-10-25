@@ -191,27 +191,41 @@ class ThamSoQueryPhaiTenQueryTest extends TestCase
             'Bộ quét không thấy closure `->query()` nào — regex hỏng, không phải panel sạch.',
         );
 
-        // Và phải thấy được **cả** hai họ, không chỉ họ cũ: bốn chỗ cột từng
-        // lọt qua bộ quét này đúng vì mẫu chỉ có `->query(`.
-        $soCot = 0;
+    }
 
-        foreach (File::allFiles(base_path('app/Filament')) as $tep) {
-            if ($tep->getExtension() !== 'php') {
-                continue;
-            }
+    /**
+     * Mẫu `MO_DAU` phải phủ đúng bốn họ lời gọi, và **chỉ** bốn họ đó.
+     *
+     * Ca này không đọc mã dự án, nó đọc chính cái hằng — vì một ca đếm trên mã
+     * dự án không bắt được việc nới hay thu mẫu. Đo thật: lượt đột biến thứ hai
+     * của 26/10/2026 gỡ hẳn nhánh cột khỏi `MO_DAU` (đưa bộ quét về đúng trạng
+     * thái mù bốn chỗ của bản cũ) và **cả hai ca kia vẫn xanh** — vì phép đếm
+     * nhánh cột lúc ấy dùng một regex viết tay riêng, không đọc hằng. Đúng cái
+     * lỗi hai-bản-regex mà hằng này được đặt ra để dẹp.
+     */
+    public function test_mau_mo_dau_phu_dung_bon_ho_loi_goi(): void
+    {
+        $mau = '#' . self::MO_DAU . '#';
 
-            $soCot += preg_match_all(
-                '#(?:searchable|sortable)\(\s*query:\s*(?:static\s+)?(?:fn|function)\s*\(#',
-                $this->khongChuThich($tep->getRealPath()),
-                $bo,
-            );
+        // Bốn họ đi qua `evaluate()` dưới tên `query` — phải khớp.
+        foreach ([
+            '->query(fn (Builder $query) => $query)',
+            '->baseQuery(fn (Builder $query) => $query)',
+            '->modifyQueryUsing(fn (Builder $query) => $query)',
+            '->searchable(query: fn (Builder $query) => $query)',
+            '->sortable(query: fn (Builder $query) => $query)',
+        ] as $doan) {
+            $this->assertMatchesRegularExpression($mau, $doan, "Mẫu không còn phủ: {$doan}");
         }
 
-        $this->assertGreaterThan(
-            0,
-            $soCot,
-            'Không thấy `searchable(query:`/`sortable(query:` nào — nhánh cột của mẫu regex đã trôi khỏi mã thật.',
-        );
+        // Ba họ gọi closure theo **vị trí** — không được khớp, xem `BoLocDuToanTest`.
+        foreach ([
+            '->queries(true: fn (Builder $q) => $q, false: fn (Builder $q) => $q)',
+            '->when($co, fn (Builder $q) => $q)',
+            '->unless($co, fn (Builder $q) => $q)',
+        ] as $doan) {
+            $this->assertDoesNotMatchRegularExpression($mau, $doan, "Mẫu bắt một chỗ đang đúng: {$doan}");
+        }
     }
 
     public function test_khong_them_closure_query_nao_dat_ten_khac(): void
