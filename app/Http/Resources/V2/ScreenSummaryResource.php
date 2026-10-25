@@ -3,6 +3,7 @@
 namespace App\Http\Resources\V2;
 
 use App\Http\Resources\V2\Concerns\SuyRaLoaiManHinh;
+use App\Services\AnhDanXuatService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -38,6 +39,13 @@ class ScreenSummaryResource extends JsonResource
     {
         $inventory = $this->inventory;
         $loai      = $this->resolveScreenType();
+
+        // **Một** lượt đi chuỗi dự phòng cho cả URL và đường dẫn. Gọi
+        // `$this->display_photo` rồi gọi lại `displayPhotoWithSource()` để lấy
+        // đường dẫn là đi hết năm bậc hai lần cho mỗi hàng của một trang 24
+        // hàng — và chuỗi đó chạm `site->network`, `owner`,
+        // `inventory->vnCategory`.
+        $anh = $this->displayPhotoWithSource();
 
         return [
             'slug'        => $this->slug,
@@ -93,7 +101,22 @@ class ScreenSummaryResource extends JsonResource
                 ],
             ],
 
-            'photo_url' => $this->display_photo,
+            'photo_url' => $anh['url'],
+
+            /*
+             * Bản hẹp hơn của cùng ảnh, để trình duyệt chọn — lát 4, 25/10/2026.
+             *
+             * `null` khi chưa có bản dẫn xuất nào, và giao diện phải **bỏ hẳn**
+             * thuộc tính `srcset` khi đó. Không trả chuỗi rỗng: `srcset=""`
+             * vẫn là một thuộc tính trình duyệt phải đọc.
+             *
+             * Máy chủ dựng cả chuỗi, không trả riêng từng bề rộng cho client
+             * tự ghép: client ghép là client dựng đường dẫn tệp, và lát 1 vừa
+             * gộp ba bản của phép dựng URL thành một. Thêm một bản ở phía
+             * TypeScript là mở lại đúng cái khoảng đó — lần này ở nơi không
+             * test PHP nào nhìn thấy.
+             */
+            'photo_srcset' => AnhDanXuatService::srcsetCho($anh['path']),
 
             /*
              * Khoảng cách tới toạ độ người gọi gửi lên, km — thêm 22/10/2026.

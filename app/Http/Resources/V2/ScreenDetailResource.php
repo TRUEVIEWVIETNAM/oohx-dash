@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V2;
 
+use App\Services\AnhDanXuatService;
 use Illuminate\Http\Request;
 
 /**
@@ -106,6 +107,14 @@ class ScreenDetailResource extends ScreenSummaryResource
             // thứ ba mà không ai khai.
             'photo_urls' => $anh['urls'],
 
+            // ══ Bản hẹp hơn của từng ảnh, cho `srcset` (lát 4) ══
+            //
+            // Cùng độ dài và cùng thứ tự với `photo_urls`; phần tử `null` ở
+            // đúng vị trí ảnh chưa có bản dẫn xuất. Không nén dãy lại cho gọn:
+            // giao diện ghép `photo_urls[i]` với `photo_srcsets[i]`, nên một
+            // dãy ngắn hơn là mỗi ảnh từ đó về sau mang `srcset` của ảnh khác.
+            'photo_srcsets' => AnhDanXuatService::srcsetChoDay($anh['paths']),
+
             // ══ Ảnh này là ảnh của BIỂN, hay một ảnh thay thế? ══
             //
             // Chuỗi dự phòng ở trên có năm bậc, và chỉ bậc đầu là ảnh của
@@ -187,20 +196,40 @@ class ScreenDetailResource extends ScreenSummaryResource
      * sách và ra `https://oohx.net/storage/https://doitac.example/a.jpg` ở
      * đây. Phép dựng URL nay có **một** bản, ở `ScreenSpec::photoUrlOf()`.
      *
-     * @return array{urls: list<string>, source: ?string}
+     * ══ Lát 4 (25/10/2026): trả cả `paths` ══
+     *
+     * `AnhDanXuatService` tìm bản `w480`/`w1280` theo **đường dẫn trong disk**,
+     * không theo URL. Cắt `storage/` ra khỏi đầu một URL để lần về đường dẫn
+     * là dựng lại phép dựng URL theo chiều ngược ở một chỗ thứ hai — đúng thứ
+     * lát 1 vừa gộp lại.
+     *
+     * @return array{urls: list<string>, paths: list<string>, source: ?string}
      */
     private function anhVaNguon(): array
     {
         $cuaManHinh = $this->spec?->photo_urls ?? [];
 
         if ($cuaManHinh !== []) {
-            return ['urls' => $cuaManHinh, 'source' => 'screen'];
+            return [
+                'urls'   => $cuaManHinh,
+                // Cùng `photoPaths()` mà `photo_urls` được map ra từ đó, nên
+                // hai dãy luôn cùng độ dài và cùng thứ tự.
+                'paths'  => $this->spec?->photoPaths() ?? [],
+                'source' => 'screen',
+            ];
         }
 
         $thay = $this->displayPhotoWithSource();
 
         return [
             'urls'   => $thay['url'] ? [$thay['url']] : [],
+            // Độ dài khoá vào `urls`, không vào `path`: hai dãy ra ngoài dưới
+            // dạng `photo_urls[i]` ↔ `photo_srcsets[i]`, và giao diện ghép
+            // theo chỉ số. Một bậc có `url` mà không có `path` làm hai dãy
+            // lệch nhau một ô, và từ ô đó về sau mỗi ảnh mang `srcset` của ảnh
+            // khác. Chuỗi rỗng đi qua `srcsetCho()` ra `null`, nên ô ấy chỉ
+            // mất phần tối ưu.
+            'paths'  => $thay['url'] ? [(string) $thay['path']] : [],
             'source' => $thay['source'],
         ];
     }

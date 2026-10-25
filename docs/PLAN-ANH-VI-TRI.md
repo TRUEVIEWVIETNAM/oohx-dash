@@ -262,6 +262,13 @@ Lát này không đảo quyết định đó; bản nhỏ sinh ở phía Laravel
 - Lệnh chạy hai lần không sinh thêm tệp nào ở lượt hai.
 - `srcset` có mặt trong HTML đã render (`webapp/test/khoi-giao-dien.mjs`).
 
+**Đã dựng 25/10/2026.** Cả ba chốt trên có ca riêng, cộng những chốt mà bản
+dựng làm lộ ra: bản gốc không bị sửa, ảnh 600px chỉ có `w480` (không phóng to),
+ảnh 300px không có bản nào và `srcset` là `null`, PNG giữ kênh trong suốt, tệp
+không phải ảnh không làm vỡ lượt lưu, con số của lát 0 không đổi một đơn vị sau
+khi sinh, và `srcset` của thẻ danh sách trỏ vào **đúng tệp** mà chuỗi dự phòng
+dừng ở. Chỗ lệch khỏi plan ghi ở mục "Năm chỗ bản dựng lát 4 lệch khỏi plan".
+
 ---
 
 ## Lát 5 — ảnh về cùng lúc kho về (chờ câu trả lời đối tác)
@@ -300,9 +307,9 @@ thật chứ không theo phần mở rộng trong URL, và một hàng nhật k�
 |---|---|---|---|---|
 | 0 | Lệnh soát ảnh kho | không | — | **xong** — PR #182 |
 | 1 | URL đầy đủ thôi vỡ · một đường đọc | không (sửa **giá trị** sai, không đổi hình dạng) | — | **xong** — PR #183 |
-| 2 | Đường tải ảnh: mime · dung lượng · resize | không | — | **xong** — lát này |
+| 2 | Đường tải ảnh: mime · dung lượng · resize | không | — | **xong** — PR #185 |
 | 3 | `/publisher` thấy vị trí thiếu ảnh | không | — | **xong** — PR #184 |
-| 4 | Bản dẫn xuất + `srcset` | không | lát 2 (nay đã xong) | chưa làm |
+| 4 | Bản dẫn xuất + `srcset` | **có** — hai trường thêm, xem dưới | lát 2 (đã xong) | **xong** — lát này |
 | 5 | Ảnh về cùng lúc nhập kho | **có thể** | `plan nhập kho` | chưa làm |
 
 Thứ tự là rủi ro tăng dần. Lát 1 đứng sớm không vì nó dễ mà vì **mọi lát sau
@@ -341,6 +348,66 @@ Và một điều **không** cần nữa: lát 2 từng chờ con số `upload_m
 production. Không cần: `config/livewire.php` đặt trần ứng dụng ở `max:51200`
 (50MB), nên 8MB nằm sâu bên dưới và `maxSize` chắc chắn là lớp siết chặt hơn.
 Có một ca canh đúng quan hệ ấy, để ai hạ trần của cổng xuống dưới 8MB thì biết.
+
+### Năm chỗ bản dựng lát 4 lệch khỏi plan, và vì sao
+
+**1. Lát 4 CÓ đổi `/api/v2`, bảng trên nói "không".** Plan viết *"bản nhỏ sinh
+ở phía Laravel lúc tải lên, và `srcset` chỉ trỏ vào các bản đã có"* — nhưng
+không nói ai bảo giao diện biết bản nào đã có. Hai cách:
+
+| | Hệ quả |
+|---|---|
+| Giao diện tự dựng `anh-dan-xuat/w480/<đường gốc>` | mỗi ảnh chưa sinh là một `<img>` trỏ vào **404**, và không gì phát hiện ra. Và nó là bản thứ hai của phép dựng URL mà lát 1 vừa gộp lại thành một — lần này ở nơi không test PHP nào nhìn thấy |
+| Máy chủ trả sẵn chuỗi `srcset` | thêm hai trường vào DTO |
+
+Chọn cách thứ hai: `ScreenSummary.photo_srcset` (một chuỗi) và
+`ScreenDetail.photo_srcsets` (dãy cùng chỉ số với `photo_urls`, phần tử `null`
+ở ảnh chưa có bản). Cả hai **thêm**, không đổi trường nào đang có; `/api/v1`
+không chạm tới. Có một ca đếm bộ khoá tầng ngoài của đường chi tiết để trường
+thứ ba không lẻn vào sau này.
+
+**2. `srcset` KHÔNG chứa bản gốc.** Mỗi mục `srcset` phải khai bề rộng thật của
+nó, và bề rộng bản gốc chỉ biết được bằng cách mở tệp ra đo — mỗi ảnh, mỗi lượt
+yêu cầu. Hệ quả nói thẳng: một ảnh gốc 600px chỉ có bản `w480`, nên màn hình
+rộng nhận 480px thay vì 600px có sẵn. Đổi 600 thành 480 là mất mát nhỏ đo được;
+đổi lấy nó là **không bao giờ** phóng to một ảnh nhỏ.
+
+**3. Bản dẫn xuất nằm ở `anh-dan-xuat/`, NGOÀI `screen-photos/`.** Plan không
+nói chỗ. Đặt vào trong thì `SoatAnhKhoService::doDia()` của lát 0 đếm cả bản
+dẫn xuất và báo cáo nói kho có **gấp ba** số ảnh nó có. Thư mục riêng còn đóng
+hai chuyện: không trùng tên với một ảnh người ta đặt sẵn là `foo-w480.jpg`, và
+`rm -r anh-dan-xuat` là một lượt dựng lại sạch không chạm bản gốc nào. Có một
+ca sinh ảnh rồi đòi con số của lát 0 không đổi một đơn vị.
+
+**4. Đường ghi là observer, không phải móc trong `FileUpload`.** `CLAUDE.md`
+mục 1 đòi mọi đường ghi gọi cùng một service. Móc vào biểu mẫu Filament thì
+đường nhập kho, seeder và một lượt `tinker` không có bản dẫn xuất.
+`ScreenSpecObserver` đứng ở chỗ cột `photos` thật sự đổi.
+
+Và nó chạy **đồng bộ**, không qua queue: `deploy.sh` có `queue:restart || true`
+nhưng không có cách nào từ đây xác nhận production đang có worker sống, và một
+job không ai chạy là tính năng *trông như* đã chạy — biểu mẫu lưu xong, không
+lỗi nào, bản dẫn xuất không bao giờ tới. Giá phải trả: 10 ảnh × 2 bề rộng ở một
+lượt lưu biểu mẫu quản trị, mỗi lượt resize một ảnh ≤ 2000px.
+
+**5. `chặn ảnh bom` đã làm MỘT NỬA, và nửa còn lại vẫn chờ chốt.** Lát 2 để lại
+lỗ hổng: một tệp 8MB có thể là ảnh 20.000×20.000, và tới lát 2 không mã nào
+phía máy chủ giải nén nó. Lát 4 **là** mã giải nén, nên nửa phía service đã
+đóng: `AnhDanXuatService` đo kích thước từ đầu tệp (`getimagesizefromstring`,
+chưa giải nén), từ chối trên trần 12 triệu điểm, và từ chối thêm một lần nữa
+khi `memory_limit` còn lại không đủ — vì một lượt OOM của PHP là lỗi tử không
+`catch` được, nó giết luôn request đang lưu biểu mẫu.
+
+Nửa chưa làm là **luật `dimensions:` ở biểu mẫu**, tức từ chối ngay lúc tải lên
+thay vì nhận tệp rồi bỏ qua nó. Đó vẫn là quyết định `chặn ảnh bom`.
+
+### Hai chỗ lát 4 cố ý không chạm
+
+- **Ảnh trong lightbox** giữ bản gốc, không `srcset`. Người dùng bấm vào ảnh để
+  xem to; đưa cho họ `w1280` ở đó là làm đúng việc nút ấy sinh ra để tránh.
+- **Ảnh trong popup bản đồ** (`MapPinResource`) chưa có `srcset`. Plan chỉ nêu
+  `ScreenCard` và `ThuVienAnh`. Thêm vào là một trường nữa trong DTO bản đồ —
+  DTO nóng nhất của trang — nên nó cần một phép đo riêng trước khi làm.
 
 ---
 

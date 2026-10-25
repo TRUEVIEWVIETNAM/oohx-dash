@@ -289,6 +289,16 @@ const TRANG = [
             'class="sc-card"', // thẻ màn hình, đúng tên
             'class="sc-foot"',
 
+            // ── Lát 4 plan ảnh (25/10/2026): thẻ dùng bản hẹp hơn ──
+            //
+            // Một trang 24 thẻ là 24 ảnh gốc cho những ô cao 180px. Khẳng
+            // định cả `srcset` và `sizes`: `srcset` với đơn vị `w` mà thiếu
+            // `sizes` thì trình duyệt mặc định ô ảnh rộng `100vw` và luôn
+            // chọn bản lớn nhất — tức thuộc tính có mặt mà không tiết kiệm
+            // được gì, đúng kiểu lỗi không ai nhìn ra.
+            'anh-dan-xuat/w480/screens/a.jpg 480w',
+            'sizes="(max-width: 519px) 100vw, (max-width: 1199px) 50vw, 33vw"',
+
             // Lát 3 — ô tìm kiếm lớn, biến thể compact. Trước lát 3 trang này
             // đọc city/venue_type/sort từ URL mà không hiện ra bộ lọc nào.
             'class="ms-wrap"',
@@ -571,6 +581,15 @@ const TRANG = [
             'class="gal-count"',
             'class="gal-badge"',
 
+            // ── Lát 4 plan ảnh (25/10/2026): ảnh chính và thumbnail có srcset ──
+            //
+            // Hai `sizes` khác nhau, cố ý: ảnh chính ≈730px còn thumbnail
+            // ≈444px ở desktop. Một `sizes` dùng cho cả hai là khai sai bề
+            // rộng của một trong hai ô.
+            'sizes="(max-width: 767px) 100vw, 730px"',
+            'sizes="(max-width: 767px) 50vw, 444px"',
+            'anh-dan-xuat/w1280/screens/a.jpg 1280w',
+
             // Lát 4 — bố cục hai cột và hàng số liệu
             'class="detail-layout"',
             'class="detail-sidebar"',
@@ -735,6 +754,18 @@ const TRANG = [
             // ngày từ hôm nay, nên tháng đổi theo ngày chạy test.
             'Th<!-- -->',
             '<!-- -->/<!-- -->',
+
+            // ── Lát 4 plan ảnh (25/10/2026): ảnh không có bản dẫn xuất thì
+            //    KHÔNG được có `srcset` ──
+            //
+            // Fixture cho ảnh thứ ba (`screens/c.jpg`) một `photo_srcsets`
+            // bằng `null` — hình dạng thật khi ảnh gốc nhỏ hơn 480px hoặc
+            // lệnh chưa chạm tới. Cái sai cần chặn là giao diện **tự dựng**
+            // đường dẫn `anh-dan-xuat/…` từ URL gốc thay vì dùng chuỗi máy
+            // chủ trả: làm thế thì mỗi ảnh chưa sinh là một `<img>` trỏ vào
+            // 404, và không gì phát hiện ra.
+            'anh-dan-xuat/w480/screens/c.jpg',
+            'anh-dan-xuat/w1280/screens/c.jpg',
 
             // CHÚ Ý: `class="sc"` KHÔNG nằm trong danh sách này, khác với
             // `/explore` và `/products`. `.sc` là một ô bảng thông số

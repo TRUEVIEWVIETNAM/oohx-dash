@@ -46,6 +46,14 @@ const SCREEN_CO_GIA = {
         io_rate: { amount: 1000000, currency: 'VND', unit: 'month' },
     },
     photo_url: 'https://oohx.net/storage/screens/a.jpg',
+
+    // Bắt buộc theo `ScreenSummary.photo_srcset` từ 25/10/2026 (lát 4). Dạng
+    // đúng như máy chủ dựng: hai bề rộng, đơn vị `w`, đường dẫn trong
+    // `anh-dan-xuat/`. Fixture nói sai hợp đồng ở đây là chốt đọc HTML chạy
+    // trên một thế giới không tồn tại — đã xảy ra ba lần ở giai đoạn 6.
+    photo_srcset:
+        'https://oohx.net/storage/anh-dan-xuat/w480/screens/a.jpg 480w, '
+        + 'https://oohx.net/storage/anh-dan-xuat/w1280/screens/a.jpg 1280w',
 };
 
 const SCREEN_KHONG_GIA = {
@@ -96,6 +104,17 @@ const SCREEN_CHI_TIET = {
         'https://oohx.net/storage/screens/a.jpg',
         'https://oohx.net/storage/screens/b.jpg',
         'https://oohx.net/storage/screens/c.jpg',
+    ],
+
+    // Lát 4: cùng độ dài và cùng thứ tự với `photo_urls`, và **ảnh thứ ba cố
+    // ý là `null`** — đó là hình dạng thật khi một ảnh gốc nhỏ hơn 480px hoặc
+    // chưa được lệnh `oohx:sinh-anh-dan-xuat` chạm tới. Fixture toàn ảnh có
+    // `srcset` thì nhánh không có `srcset` không bao giờ được render.
+    photo_srcsets: [
+        'https://oohx.net/storage/anh-dan-xuat/w480/screens/a.jpg 480w, '
+            + 'https://oohx.net/storage/anh-dan-xuat/w1280/screens/a.jpg 1280w',
+        'https://oohx.net/storage/anh-dan-xuat/w480/screens/b.jpg 480w',
+        null,
     ],
 
     // Lát 5: ba ảnh này là ảnh của chính màn hình, nên thư viện KHÔNG được
@@ -592,6 +611,16 @@ function chiTiet(pathname, searchParams = new URLSearchParams()) {
                 // fixture duy nhất có một ảnh (nên `gallery--single` được
                 // render ở đâu đó).
                 photo_urls: ['https://oohx.net/storage/owners/covers/bia.webp'],
+
+                // Lát 4: ảnh bìa chủ sở hữu **cũng** có bản dẫn xuất — lệnh
+                // `oohx:sinh-anh-dan-xuat` đi theo chuỗi dự phòng mà người mua
+                // thấy, không chỉ theo cột `photos`. Trên dữ liệu hôm nay đó
+                // là 104/104 vị trí, nên đây là nhánh phổ biến nhất chứ không
+                // phải ngoại lệ.
+                photo_srcsets: [
+                    'https://oohx.net/storage/anh-dan-xuat/w480/owners/covers/bia.webp 480w, '
+                        + 'https://oohx.net/storage/anh-dan-xuat/w1280/owners/covers/bia.webp 1280w',
+                ],
                 photo_source: 'owner_cover',
 
                 // Và `verified: false`, cũng như production. Đây là chiều duy

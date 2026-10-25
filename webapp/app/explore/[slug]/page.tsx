@@ -119,6 +119,21 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
           ? [screen.photo_url]
           : [];
 
+    /*
+     * `srcset` của từng ảnh, cùng thứ tự với `anh` (lát 4).
+     *
+     * Nhánh dự phòng `photo_url` không có dãy `srcset` riêng, nên nó dùng
+     * `photo_srcset` của chính nó. Và nếu máy chủ trả hai dãy lệch độ dài —
+     * không được phép, nhưng giao diện không ở vị trí tin chuyện đó — thì
+     * `?? null` ở `ThuVienAnh` giữ ảnh đó không có `srcset` thay vì gán cho nó
+     * `srcset` của ảnh khác.
+     */
+    const anhSrcset = screen.photo_urls?.length
+        ? (screen.photo_srcsets ?? [])
+        : screen.photo_url
+          ? [screen.photo_srcset ?? null]
+          : [];
+
     // Breadcrumb lấy CẤP TỈNH, phần còn lại đi xuống dòng mô tả dưới `h1`:
     // một breadcrumb mang theo cả "Cần Thơ > Phường Tân An" thì dài và lặp lại
     // thứ nằm ngay bên dưới nó.
@@ -261,6 +276,7 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
 
                 <ThuVienAnh
                     anh={anh}
+                    srcset={anhSrcset}
                     ten={screen.name ?? ''}
                     conTrong={Boolean(screen.availability?.has_capacity)}
                     soNgay={screen.availability?.window_days ?? 30}

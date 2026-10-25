@@ -50,6 +50,34 @@ Schedule::command('oohx:ham-nong-bo-loc')
         . 'Không hỏng gì với người dùng, chỉ chậm hơn cho một người mỗi 30 phút.',
     ));
 
+// ── Sinh bản dẫn xuất ảnh còn thiếu, mỗi đêm ─────────────────────────────
+//
+// `ScreenSpecObserver` đã sinh ngay lúc cột `photos` đổi, nên lệnh này không
+// phải đường chính. Nó đóng ba khoảng mà observer không với tới:
+//
+//  1. **Ảnh thay thế.** 104/104 vị trí hôm nay hiện ra bằng ảnh bìa chủ sở
+//     hữu, và ảnh bìa thuộc bản ghi `owners` — observer của `screen_specs`
+//     không thấy nó. Một chủ sở hữu đổi ảnh bìa lúc 10h thì tới 3h30 sáng hôm
+//     sau mới có bản dẫn xuất; tới lúc đó `srcset` vắng và trang dùng bản gốc,
+//     tức chậm hơn chứ không hỏng.
+//  2. **Ảnh có trước lát 4.** Không còn lượt ghi nào để observer bắt.
+//  3. **Lượt rơi.** Observer ghi `warning` rồi đi tiếp khi một ảnh không sinh
+//     được (GD thiếu, tệp hỏng, ảnh quá trần). Lệnh này thử lại.
+//
+// 3h30: sau `invitations:prune` (3h00) để hai việc nặng đĩa không trùng nhau.
+//
+// Không phải cơ chế bảo vệ: lệnh chết nghĩa là một số ảnh ra trang dưới dạng
+// bản gốc — chậm hơn, không hỏng. Nên một dòng log là đủ.
+Schedule::command('oohx:sinh-anh-dan-xuat')
+    ->dailyAt('03:30')
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/oohx-anh-dan-xuat.log'))
+    ->onFailure(fn () => Log::warning(
+        'oohx:sinh-anh-dan-xuat đỏ — ảnh thiếu bản dẫn xuất sẽ ra trang dưới dạng bản gốc. '
+        . 'Chi tiết ở storage/logs/oohx-anh-dan-xuat.log. '
+        . 'Chạy tay với --soat để xem GD của máy chủ làm được gì.',
+    ));
+
 // ── Prune expired user invitations daily ──
 Schedule::command('invitations:prune')->dailyAt('03:00');
 
