@@ -298,15 +298,49 @@ thật chứ không theo phần mở rộng trong URL, và một hàng nhật k�
 
 | Lát | Nội dung | Đổi API? | Chặn bởi | Trạng thái |
 |---|---|---|---|---|
-| 0 | Lệnh soát ảnh kho | không | — | chưa làm |
-| 1 | URL đầy đủ thôi vỡ · một đường đọc | không (sửa **giá trị** sai, không đổi hình dạng) | — | chưa làm |
-| 2 | Đường tải ảnh: mime · dung lượng · resize | không | hạn mức chờ chốt | chưa làm |
-| 3 | `/publisher` thấy vị trí thiếu ảnh | không | — | chưa làm |
-| 4 | Bản dẫn xuất + `srcset` | không | lát 2 | chưa làm |
+| 0 | Lệnh soát ảnh kho | không | — | **xong** — PR #182 |
+| 1 | URL đầy đủ thôi vỡ · một đường đọc | không (sửa **giá trị** sai, không đổi hình dạng) | — | **xong** — PR #183 |
+| 2 | Đường tải ảnh: mime · dung lượng · resize | không | — | **xong** — lát này |
+| 3 | `/publisher` thấy vị trí thiếu ảnh | không | — | **xong** — PR #184 |
+| 4 | Bản dẫn xuất + `srcset` | không | lát 2 (nay đã xong) | chưa làm |
 | 5 | Ảnh về cùng lúc nhập kho | **có thể** | `plan nhập kho` | chưa làm |
 
 Thứ tự là rủi ro tăng dần. Lát 1 đứng sớm không vì nó dễ mà vì **mọi lát sau
 ghi dữ liệu vào đúng chỗ nó đang hỏng**.
+
+### Ba chỗ bản dựng lát 2 lệch khỏi plan, và vì sao
+
+**1. Plan nói sai về `->image()`.** Mục lát 2 viết `->image()` "chỉ đặt `accept`
+của `<input>`, tức một gợi ý cho trình duyệt, không phải một phép kiểm ở máy
+chủ". Đọc `vendor/filament/forms/src/Components/FileUpload.php:119` thì nó gọi
+`acceptedFileTypes(['image/*'])`, và hàm đó **đăng ký một luật** `mimetypes:`
+chạy ở máy chủ trên nội dung tệp (`BaseFileUpload.php:236-240`). Cộng với cổng
+upload tạm của Livewire (`config/livewire.php:66`), đường này **đã** có hai lớp
+kiểm loại tệp trước lát 2. Thứ thật sự thiếu là dung lượng, một danh sách hẹp
+hơn `image/*` (nó nhận cả `image/svg+xml`), và thư mục không phẳng.
+
+**2. `imageResize*` không phải hàng rào máy chủ.** Nó là tham số truyền xuống
+FilePond; `filament/forms` không có lớp xử lý ảnh nào phía máy chủ (không
+Intervention, không GD). Nên 2000px co ảnh ở đường đi bình thường và **mất tác
+dụng** nếu ai gọi thẳng endpoint upload. Chốt của lát này nói đúng hạng của
+từng con số và **không** có ca nào khẳng định ảnh đã bị thu nhỏ.
+
+Hệ quả còn mở: một tệp 8MB vẫn có thể là ảnh 20.000×20.000. Hôm nay không mã
+nào phía máy chủ giải nén những ảnh này nên nó chưa gây hại — **lát 4 là lúc
+phải đóng**, vì lát 4 chính là lúc máy chủ bắt đầu mở ảnh ra. Text để duyệt:
+`chặn ảnh bom`.
+
+**3. Thêm một thùng `chua-ro-chu` mà plan không ghi.** Biểu mẫu `/admin` cho
+tải ảnh lên **trước** khi chọn chủ sở hữu, nên có lúc không có `owner_id` nào
+để chia thư mục theo. Đoán một `owner_id` là ghi ảnh của người này vào thư mục
+người khác, nên `SoatAnhKhoService::thuMucAnh()` đưa về một thùng chung có tên
+nói rõ nó là gì. Cùng phép kiểm ấy chặn `../` — giá trị này đến từ trạng thái
+biểu mẫu, tức từ trình duyệt, và đi thẳng vào một đường dẫn tệp.
+
+Và một điều **không** cần nữa: lát 2 từng chờ con số `upload_max_filesize` của
+production. Không cần: `config/livewire.php` đặt trần ứng dụng ở `max:51200`
+(50MB), nên 8MB nằm sâu bên dưới và `maxSize` chắc chắn là lớp siết chặt hơn.
+Có một ca canh đúng quan hệ ấy, để ai hạ trần của cổng xuống dưới 8MB thì biết.
 
 ---
 

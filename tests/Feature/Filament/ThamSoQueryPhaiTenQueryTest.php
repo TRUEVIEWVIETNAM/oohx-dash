@@ -71,14 +71,26 @@ class ThamSoQueryPhaiTenQueryTest extends TestCase
      * thích cái bẫy. Một phép tìm chuỗi thô sẽ đếm chính lời giải thích đó là
      * một vi phạm — cùng cái bẫy đã làm đỏ ca đếm `getScreenAvailability` ở
      * lát 3 của plan trang chi tiết.
+     *
+     * ══ Vì sao là `php_strip_whitespace()` chứ không phải regex ══
+     *
+     * Bản đầu bỏ chú thích bằng một regex "mở chú thích … đóng chú thích,
+     * lười". Lát 2 của plan ảnh viết một docblock có nhắc `image/` + dấu sao,
+     * và cặp ký tự ấy mở một chú thích **giả**: phép thay thế chạy tới dấu
+     * đóng của docblock kế tiếp và ăn luôn cả khối mã ở giữa. Bộ quét của lát
+     * 2 đỏ với "không thấy closure nào" — may là nó có ca canh rỗng. Bộ quét
+     * này thì **không** đỏ, nó chỉ im lặng quét thiếu, tức xanh giả.
+     *
+     * (Lời giải thích này không viết nổi cặp ký tự đóng chú thích ra đây —
+     * viết ra là docblock tự kết thúc giữa câu. Đúng một lần nữa cái bẫy.)
+     *
+     * `php_strip_whitespace()` dùng tokenizer của PHP, nên `image/*` nằm
+     * trong một chuỗi hay một chú thích đều không mở được gì cả. Đây cũng là
+     * cách `CLAUDE.md`-era các chốt đọc mã nguồn khác của dự án đang dùng.
      */
-    private function khongChuThich(string $ma): string
+    private function khongChuThich(string $duongTep): string
     {
-        return preg_replace(
-            ['#/\*[\s\S]*?\*/#', '#^\s*//.*$#m'],
-            '',
-            $ma,
-        ) ?? '';
+        return php_strip_whitespace($duongTep);
     }
 
     /** @return list<string> */
@@ -91,7 +103,7 @@ class ThamSoQueryPhaiTenQueryTest extends TestCase
                 continue;
             }
 
-            $ma = $this->khongChuThich(File::get($tep->getRealPath()));
+            $ma = $this->khongChuThich($tep->getRealPath());
 
             // `->query(` hoặc `->modifyQueryUsing(` theo sau là một closure.
             // Kiểu tham số là tuỳ chọn: `fn($query, $data)` không khai kiểu
@@ -130,7 +142,7 @@ class ThamSoQueryPhaiTenQueryTest extends TestCase
 
             $tong += preg_match_all(
                 '#->(?:query|modifyQueryUsing)\(\s*(?:static\s+)?(?:fn|function)\s*\(#',
-                $this->khongChuThich(File::get($tep->getRealPath())),
+                $this->khongChuThich($tep->getRealPath()),
                 $bo,
             );
         }

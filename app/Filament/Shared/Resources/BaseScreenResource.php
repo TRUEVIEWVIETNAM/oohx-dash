@@ -114,6 +114,110 @@ abstract class BaseScreenResource extends Resource
 
     // ── Form ─────────────────────────────────────────────────────────────────
 
+    /**
+     * Ô tải ảnh của màn hình — lát 2 của `docs/PLAN-ANH-VI-TRI.md`.
+     *
+     * Tách thành một hàm để có đúng **một** chỗ khai các hạn mức, và để chốt
+     * gọi được vào chính cái đối tượng mà biểu mẫu dùng thay vì đọc mã nguồn.
+     *
+     * ══ Điều plan ghi sai, và điều thật sự thiếu ══
+     *
+     * Plan viết `->image()` "chỉ đặt `accept` của `<input>`, không phải một
+     * phép kiểm ở máy chủ". Đọc `vendor/filament/forms/src/Components/FileUpload.php:119`
+     * thì không phải: `image()` gọi `acceptedFileTypes(['image/*'])`, và
+     * `acceptedFileTypes()` **đăng ký một luật** `mimetypes:…`
+     * (`BaseFileUpload.php:236-240`) chạy ở máy chủ trên nội dung tệp. Cộng
+     * với cổng upload tạm của Livewire (`config/livewire.php:66`, danh sách
+     * `extensions:` + `mimes:` đặt sau sự cố webshell 08–09/2026), đường này
+     * **đã** có hai lớp kiểm loại tệp trước lát 2.
+     *
+     * Ba thứ thật sự thiếu:
+     *
+     *  - **Không hạn mức dung lượng.** Trần duy nhất là `max:51200` của cổng
+     *    Livewire, tức 50MB mỗi tệp × 10 tệp cho một màn hình.
+     *  - **`image/*` quá rộng.** Nó nhận `image/svg+xml` — svg chạy được
+     *    script, và ảnh này đi vào disk **công khai**. Hôm nay cổng Livewire
+     *    chặn svg trước, nên lỗ này chưa thông; hai lớp nói hai điều khác nhau
+     *    theo chiều nới, và lớp ngoài là lớp duy nhất đang giữ.
+     *  - **Thư mục phẳng** `screen-photos/`, xem `SoatAnhKhoService::thuMucAnh()`.
+     *
+     * ══ 2000px là phép co phía trình duyệt, KHÔNG phải hàng rào máy chủ ══
+     *
+     * `imageResize*` của Filament là tham số truyền xuống FilePond; không có
+     * lớp xử lý ảnh nào phía máy chủ trong `filament/forms` (không
+     * Intervention, không GD). Nên nó co ảnh ở đường đi bình thường và **mất
+     * tác dụng** nếu ai gọi thẳng endpoint upload. `maxSize` và `mimetypes`
+     * thì có hiệu lực ở máy chủ.
+     *
+     * Hệ quả còn mở: một tệp 8MB vẫn có thể là ảnh 20.000×20.000 (bom giải
+     * nén). Hôm nay không có mã nào phía máy chủ **giải nén** những ảnh này,
+     * nên nó chưa gây hại; lát 4 (sinh bản dẫn xuất `w480`/`w1280`) là lúc
+     * phải đóng, bằng một luật `dimensions:` hoặc một lượt đo trước khi mở
+     * ảnh. Text để chủ dự án duyệt: `chặn ảnh bom`.
+     */
+    protected static function oAnhManHinh(): Forms\Components\FileUpload
+    {
+        return Forms\Components\FileUpload::make('spec.photos')
+            ->label('Ảnh màn hình')
+            ->image()
+            // Hẹp hơn `image/*` mà `->image()` vừa đặt: ba loại này là tập mà
+            // mọi trình duyệt dựng được và `<img srcset>` của lát 4 dùng tới.
+            // Gọi sau nên nó là giá trị cuối; cả hai lượt đăng ký luật đều đọc
+            // `getAcceptedFileTypes()`, nên luật máy chủ cũng là ba loại này.
+            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->maxSize(8192) // KB — 8MB mỗi tệp
+            ->multiple()
+            ->reorderable()
+            ->maxFiles(10)
+            ->imageResizeMode('contain') // vừa trong khung, không cắt
+            ->imageResizeTargetWidth('2000')
+            ->imageResizeTargetHeight('2000')
+            // Mặc định của Filament là `true`: không có dòng này thì một ảnh
+            // 300px bị kéo lên 2000px — nặng hơn mà không rõ hơn.
+            ->imageResizeUpscale(false)
+            ->disk('public')
+            ->directory(fn (?Screen $record, callable $get) => SoatAnhKhoService::thuMucAnh(
+                static::ownerIdChoAnh($record, $get),
+            ))
+            ->imagePreviewHeight('160')
+            ->helperText('Tối đa 10 ảnh, mỗi ảnh ≤ 8MB, định dạng JPG/PNG/WebP. '
+                . 'Ảnh lớn hơn 2000px được thu nhỏ ngay trên máy anh/chị trước khi gửi.')
+            ->columnSpan(2);
+    }
+
+    /**
+     * Chủ sở hữu mà ảnh vừa tải lên thuộc về.
+     *
+     * Ba đường, theo thứ tự đáng tin giảm dần:
+     *
+     *  1. `$record->owner_id` — đang sửa một màn hình đã có. Đây là sự thật đã
+     *     nằm trong CSDL, nên nó thắng cả trạng thái biểu mẫu.
+     *  2. `$get('owner_id')` — đang tạo mới ở `/admin`, nơi ô chọn chủ sở hữu
+     *     có mặt (`showOwnerField()`).
+     *  3. `current_owner_id` của người đang đăng nhập — `/publisher`, nơi
+     *     không có ô ấy. Cùng cái cột mà `HasOwnerScope` dùng để thu hẹp mọi
+     *     truy vấn, nên không có định nghĩa tenant thứ hai ở đây.
+     *
+     * Không đường nào ra kết quả thì `thuMucAnh()` đưa về thùng chung; hàm này
+     * không bao giờ đoán.
+     */
+    protected static function ownerIdChoAnh(?Screen $record, callable $get): ?string
+    {
+        $tuBanGhi = $record?->owner_id;
+        if (is_string($tuBanGhi) && $tuBanGhi !== '') {
+            return $tuBanGhi;
+        }
+
+        $tuBieuMau = $get('owner_id');
+        if (is_string($tuBieuMau) && $tuBieuMau !== '') {
+            return $tuBieuMau;
+        }
+
+        $tuPhien = auth()->user()?->current_owner_id;
+
+        return is_string($tuPhien) && $tuPhien !== '' ? $tuPhien : null;
+    }
+
     public static function form(Form $form): Form
     {
         $canPricing = static::canPricing();
@@ -236,16 +340,7 @@ abstract class BaseScreenResource extends Resource
                         ->icon('heroicon-o-tv')
                         ->columns(2)
                         ->schema([
-                            Forms\Components\FileUpload::make('spec.photos')
-                                ->label('Ảnh màn hình')
-                                ->image()
-                                ->multiple()
-                                ->reorderable()
-                                ->maxFiles(10)
-                                ->disk('public')
-                                ->directory('screen-photos')
-                                ->imagePreviewHeight('160')
-                                ->columnSpan(2),
+                            static::oAnhManHinh(),
 
                             Forms\Components\View::make('filament.publisher.components.resolution-picker')
                                 ->columnSpan(2),
