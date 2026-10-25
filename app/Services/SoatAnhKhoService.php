@@ -72,8 +72,54 @@ class SoatAnhKhoService
     /** Thư mục mà biểu mẫu tải ảnh của Filament ghi vào. */
     public const THU_MUC_ANH = 'screen-photos';
 
+    /**
+     * Thùng cho ảnh của một màn hình mà không biết được chủ sở hữu.
+     *
+     * Không phải một trạng thái lỗi: biểu mẫu `/admin` cho phép tải ảnh lên
+     * **trước** khi chọn chủ sở hữu, và lúc đó chưa có gì để chia thư mục theo.
+     * Thà một thùng chung có tên nói rõ nó là gì, hơn là đoán một `owner_id`
+     * rồi ghi ảnh của người này vào thư mục của người khác.
+     */
+    public const THU_MUC_CHUA_RO = 'chua-ro-chu';
+
     /** Số màn hình nạp mỗi lượt. Kho 10.000 không được nạp hết vào bộ nhớ. */
     private const CO_LO = 500;
+
+    /**
+     * Thư mục ảnh của một chủ sở hữu — **một** chỗ dựng đường dẫn này.
+     *
+     * ══ Vì sao chia theo chủ sở hữu ══
+     *
+     * `screen-photos/` phẳng. Ở 10.000 vị trí × tới 10 ảnh là 100.000 tệp
+     * trong một thư mục: `allFiles()` của lát 0 phải đọc cả danh sách ấy để
+     * đếm một tệp, và `rm -r` cho một chủ sở hữu rời sàn là không làm được.
+     * Chia theo `owner_id` làm cả hai việc thành chuyện của một thư mục con.
+     *
+     * ══ Vì sao có phép kiểm hình dạng ══
+     *
+     * Giá trị vào đây đến từ **trạng thái biểu mẫu** (`$get('owner_id')` của
+     * `/admin`), tức từ trình duyệt. Nó đi thẳng vào một đường dẫn tệp, nên
+     * `..%2F..%2F` trong đó là một lượt ghi ra ngoài `storage/app/public`.
+     * Khoá ngoại của dự án là ULID `char(26)` (`CLAUDE.md` mục 6), nên hình
+     * dạng đúng là đóng: 26 ký tự Crockford base32. Bất cứ gì khác — rỗng,
+     * `null`, có dấu `/`, dài 27 — về thùng chung thay vì thành một thư mục.
+     *
+     * Trả về **chữ thường**, vì `HasUlids::newUniqueId()` của Laravel gọi
+     * `strtolower()` nên mọi `owner_id` trong CSDL là chữ thường. Thư mục trên
+     * Linux phân biệt chữ hoa chữ thường, nên nhận cả hai cách viết mà không
+     * chuẩn hoá thì một chủ sở hữu có hai thư mục — và đặt tên thư mục khác
+     * cách viết trong CSDL thì không ai `grep` từ `ls` sang `owners.id` được.
+     */
+    public static function thuMucAnh(?string $ownerId): string
+    {
+        $id = strtolower(trim((string) $ownerId));
+
+        if (preg_match('/^[0-9a-hjkmnp-tv-z]{26}$/', $id) !== 1) {
+            return self::THU_MUC_ANH . '/' . self::THU_MUC_CHUA_RO;
+        }
+
+        return self::THU_MUC_ANH . '/' . $id;
+    }
 
     /**
      * @param  bool  $doDia  đi bộ qua thư mục ảnh để đo dung lượng. Ở 10.000 vị
