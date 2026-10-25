@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use AppRulesAnhKhongQuaNhieuDiem;
 use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Network;
 use App\Models\Owner;
@@ -166,7 +167,8 @@ class ProductResource extends Resource
                     ->image()
                     ->directory('products/covers')
                     ->disk('public')
-                    ->maxSize(51200),
+                    ->maxSize(51200)
+                    ->rules([new AnhKhongQuaNhieuDiem]),
                 Forms\Components\FileUpload::make('photos')
                     ->label('Thư viện ảnh')
                     ->image()
@@ -174,7 +176,8 @@ class ProductResource extends Resource
                     ->directory('products/photos')
                     ->disk('public')
                     ->maxSize(51200)
-                    ->reorderable(),
+                    ->reorderable()
+                    ->rules([new AnhKhongQuaNhieuDiem]),
             ]),
 
             Forms\Components\Section::make('Thông số kỹ thuật')->schema([

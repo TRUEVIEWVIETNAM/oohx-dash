@@ -6,6 +6,8 @@ use App\Models\Network;
 use App\Models\Screen;
 use App\Models\Site;
 use App\Models\VenueCategory;
+use App\Rules\AnhKhongQuaNhieuDiem;
+use App\Services\AnhDanXuatService;
 use App\Services\PoiContextEnricher;
 use App\Services\SoatAnhKhoService;
 use Filament\Forms;
@@ -158,6 +160,42 @@ abstract class BaseScreenResource extends Resource
     protected static function oAnhManHinh(): Forms\Components\FileUpload
     {
         return Forms\Components\FileUpload::make('spec.photos')
+            /*
+             * ══ Dấu chấm trong TÊN làm mọi luật từng tệp bất động ══
+             *
+             * `BaseFileUpload::getValidationRules()` (vendor dòng 608-617)
+             * dựng một `Validator` **riêng** cho từng tệp:
+             *
+             *     Validator::make([$name => $files], ["{$name}.*" => [...]])
+             *
+             * với `$name = $this->getName()`. Ở đây tên là `spec.photos`, nên
+             * khoá luật thành `spec.photos.*` — và Laravel đọc dấu chấm là
+             * **mảng lồng**: nó đi tìm `spec` → `photos` → từng phần tử, trong
+             * khi dữ liệu có đúng một khoá phẳng tên `'spec.photos'`. Không
+             * khớp, nên **không luật nào chạy**. Đo thật 25/10/2026:
+             *
+             *     khoá có dấu chấm  → fails: 0
+             *     khoá không dấu chấm → fails: 1
+             *     khoá lồng thật     → fails: 1
+             *
+             * Hệ quả: `acceptedFileTypes` và `maxSize` mà lát 2 thêm vào đã
+             * **bất động từ đầu**. Chốt của lát 2 dựng `Validator` bằng khoá
+             * riêng của nó nên nó chứng minh luật *được đăng ký*, không chứng
+             * minh luật *được áp*. Đó là một chỗ xanh giả, và nó là của tôi.
+             *
+             * Lớp còn lại vẫn thật: cổng upload tạm của Livewire
+             * (`config/livewire.php:66`) chạy ở endpoint riêng của Livewire,
+             * không đi qua đường này, nên trần 50MB và danh sách
+             * `extensions:`/`mimes:` vẫn có hiệu lực suốt thời gian đó.
+             *
+             * `->name()` đổi **tên**, không đổi **state path**: state path vẫn
+             * là `spec.photos`, nên đường nạp (`mutateFormDataBeforeFill`) và
+             * đường lưu (`SavesScreenRelationships` đọc `$data['spec']`) không
+             * đổi một dòng. `getName()` được `BaseFileUpload` dùng ở đúng một
+             * chỗ — chính bộ luật trên — và `getLabel()` đã có nhãn tường minh
+             * nên không rơi về tên.
+             */
+            ->name('photos')
             ->label('Ảnh màn hình')
             ->image()
             // Hẹp hơn `image/*` mà `->image()` vừa đặt: ba loại này là tập mà
@@ -166,6 +204,20 @@ abstract class BaseScreenResource extends Resource
             // `getAcceptedFileTypes()`, nên luật máy chủ cũng là ba loại này.
             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
             ->maxSize(8192) // KB — 8MB mỗi tệp
+            /*
+             * Trần **số điểm ảnh**, một thang khác hẳn dung lượng ở trên.
+             *
+             * Một PNG 8MB toàn vùng phẳng có thể là 20.000×20.000 = 400 triệu
+             * điểm: `maxSize` cho qua, và ảnh đó ra trang công khai không có
+             * `srcset` (vì không sinh được bản dẫn xuất) nên mọi trình duyệt
+             * tải đúng bản gốc và tab trên điện thoại treo.
+             *
+             * Filament áp luật của `->rules()` cho **từng tệp** khi ô là
+             * `multiple()`: `BaseFileUpload::getValidationRules()` dựng một
+             * `Validator` riêng với khoá `"{$name}.*"`. Nên luật này nhận một
+             * `TemporaryUploadedFile`, không nhận cả mảng.
+             */
+            ->rules([new AnhKhongQuaNhieuDiem])
             ->multiple()
             ->reorderable()
             ->maxFiles(10)
@@ -180,7 +232,13 @@ abstract class BaseScreenResource extends Resource
                 static::ownerIdChoAnh($record, $get),
             ))
             ->imagePreviewHeight('160')
-            ->helperText('Tối đa 10 ảnh, mỗi ảnh ≤ 8MB, định dạng JPG/PNG/WebP. '
+            // Nói cả hai trần, vì chúng là hai thang khác nhau và người dùng
+            // chỉ thấy một: một tệp 3MB vẫn bị từ chối nếu nó là ảnh 20.000px.
+            // Con số triệu điểm đọc từ cùng hằng mà luật dùng, nên câu chữ
+            // không trôi khỏi phép kiểm.
+            ->helperText('Tối đa 10 ảnh, mỗi ảnh ≤ 8MB và ≤ '
+                . (int) (AnhDanXuatService::TOI_DA_PIXEL / 1_000_000)
+                . ' triệu điểm ảnh, định dạng JPG/PNG/WebP. '
                 . 'Ảnh lớn hơn 2000px được thu nhỏ ngay trên máy anh/chị trước khi gửi.')
             ->columnSpan(2);
     }

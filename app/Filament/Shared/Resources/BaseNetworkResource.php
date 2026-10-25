@@ -2,6 +2,7 @@
 
 namespace App\Filament\Shared\Resources;
 
+use AppRulesAnhKhongQuaNhieuDiem;
 use App\Models\Network;
 use App\Models\Screen;
 use App\Models\VenueCategory;
@@ -128,12 +129,14 @@ abstract class BaseNetworkResource extends Resource
                     ->imageResizeTargetWidth('400')
                     ->imageResizeTargetHeight('400')
                     ->maxSize(1024)
+                    ->rules([new AnhKhongQuaNhieuDiem])
                     ->helperText('Logo network, nền trong suốt. Khuyến nghị 400×400px PNG, tối đa 1MB.'),
 
                 Forms\Components\FileUpload::make('banner')
                     ->label('Ảnh bìa')
                     ->image()
                     ->directory('networks/banners')
+                    ->rules([new AnhKhongQuaNhieuDiem])
                     ->disk('public')
                     ->imageResizeMode('cover')
                     ->imageCropAspectRatio('21:9')

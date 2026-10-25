@@ -2,6 +2,7 @@
 
 namespace App\Filament\Publisher\Resources;
 
+use AppRulesAnhKhongQuaNhieuDiem;
 use App\Filament\Publisher\Resources\ProductResource\Pages;
 use App\Models\Network;
 use App\Models\Product;
@@ -121,9 +122,11 @@ class ProductResource extends Resource
                 Forms\Components\Textarea::make('short_description')->label('Mô tả ngắn')->rows(2),
                 Forms\Components\RichEditor::make('description')->label('Mô tả chi tiết'),
                 Forms\Components\FileUpload::make('cover_photo')
-                    ->label('Ảnh bìa')->image()->directory('products/covers')->disk('public')->maxSize(51200),
+                    ->label('Ảnh bìa')->image()->directory('products/covers')->disk('public')->maxSize(51200)
+                    ->rules([new AnhKhongQuaNhieuDiem]),
                 Forms\Components\FileUpload::make('photos')
-                    ->label('Thư viện ảnh')->image()->multiple()->directory('products/photos')->disk('public')->maxSize(51200)->reorderable(),
+                    ->label('Thư viện ảnh')->image()->multiple()->directory('products/photos')->disk('public')->maxSize(51200)->reorderable()
+                    ->rules([new AnhKhongQuaNhieuDiem]),
             ]),
 
             Forms\Components\Section::make('Thông số kỹ thuật')->schema([

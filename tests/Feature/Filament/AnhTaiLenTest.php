@@ -265,6 +265,21 @@ class AnhTaiLenTest extends TestCase
      * ngày ai đổi `maxSize` thì các ca dưới đây đổi theo, và ca
      * `test_ba_han_muc_da_chot` là chỗ con số bị ghim.
      *
+     * ══ Giới hạn của cách đo này, phát hiện 25/10/2026 ══
+     *
+     * Hàm này dựng `Validator` bằng **khoá riêng của nó**, nên nó chứng minh
+     * hai luật kia *được đăng ký* — không chứng minh chúng *được áp*. Và suốt
+     * thời gian từ lát 2, chúng **không** được áp: tên ô là `spec.photos`, nên
+     * `BaseFileUpload` dựng khoá luật `spec.photos.*`, mà Laravel đọc dấu chấm
+     * là mảng lồng trong khi dữ liệu có một khoá phẳng. Không khớp, không luật
+     * nào chạy.
+     *
+     * Đã sửa bằng `->name('photos')` (giữ state path `spec.photos`), và ba ca
+     * trong `AnhBomTest` nay đi qua **đúng** closure mà Filament chạy — đó là
+     * chỗ chứng minh luật được áp. Giữ các ca ở đây vì chúng vẫn canh đúng con
+     * số và đúng tập định dạng, nhưng đừng đọc chúng như một bằng chứng rằng
+     * đường thật có kiểm.
+     *
      * @return list<string>
      */
     private function luatMayChu(): array

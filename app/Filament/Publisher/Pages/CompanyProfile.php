@@ -2,6 +2,7 @@
 
 namespace App\Filament\Publisher\Pages;
 
+use AppRulesAnhKhongQuaNhieuDiem;
 use App\Models\Owner;
 use App\Models\VietnamCommune;
 use App\Models\VietnamProvince;
@@ -88,6 +89,7 @@ class CompanyProfile extends Page implements HasForms
                                     ->disk('public')
                                     ->directory('owners/logos')
                                     ->maxSize(5120)
+                                    ->rules([new AnhKhongQuaNhieuDiem])
                                     ->imagePreviewHeight('120')
                                     ->helperText('Khuyến nghị: vuông, tối thiểu 200x200px'),
 
@@ -97,6 +99,7 @@ class CompanyProfile extends Page implements HasForms
                                     ->disk('public')
                                     ->directory('owners/covers')
                                     ->maxSize(10240)
+                                    ->rules([new AnhKhongQuaNhieuDiem])
                                     ->imagePreviewHeight('160')
                                     ->helperText('Khuyến nghị: 1200x400px'),
                             ]),
