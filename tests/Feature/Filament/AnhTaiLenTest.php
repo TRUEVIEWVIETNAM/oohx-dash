@@ -364,11 +364,24 @@ class AnhTaiLenTest extends TestCase
     public function test_closure_directory_dat_dung_ten_tham_so(): void
     {
         // `Component::resolveDefaultClosureDependencyForEvaluationByName()`
-        // tra theo TÊN. Tên khác thì Filament rơi xuống `app()->make(...)` và
-        // dựng một đối tượng MỚI: `$record` thành một Screen trắng, `$get`
-        // thành một thứ không đọc được biểu mẫu. Ảnh im lặng vào thùng chung,
-        // hoặc vào thư mục của người khác. `CLAUDE.md` mục 4 ghi cái bẫy này,
-        // và lượt đột biến thứ năm của lát 3 đã đi qua được cả 12 ca.
+        // tra theo TÊN; không khớp tên thì rơi xuống phép tra theo KIỂU rồi
+        // `app()->make($kiểu)`. `CLAUDE.md` mục 4 ghi cái bẫy này.
+        //
+        // ══ Đo thật, vì hậu quả KHÔNG giống nhau ở mọi tham số ══
+        //
+        // Ba lượt đột biến của lát 2 cho ba kết quả khác nhau:
+        //
+        //  - `?Screen $record` → `?Screen $hoSo`: **vẫn chạy đúng**. Phép tra
+        //    theo kiểu có nhánh `$record::class => [$record]`, nên kiểu cứu
+        //    được cái tên. Chỉ bộ quét này đỏ.
+        //  - `callable $get` → `callable $g`: **nổ** `BindingResolutionException`
+        //    — `callable` không phải một lớp để container dựng.
+        //  - `Builder $query` → `Builder $q` (bộ lọc của lát 3): **im lặng**
+        //    làm sai, vì container dựng được một `Builder` mới.
+        //
+        // Nên cái đáng sợ là ca thứ ba, và nó là ca duy nhất không có cách
+        // nào phát hiện lúc chạy. Bộ quét giữ cả ba để không phải đoán mỗi
+        // lần xem tham số này rơi vào loại nào.
         $choPhep = ['record', 'get', 'set', 'state', 'livewire', 'model', 'operation', 'context', 'component'];
         $thay = [];
 
@@ -400,6 +413,68 @@ class AnhTaiLenTest extends TestCase
         foreach ($thay as $ten) {
             $this->assertContains($ten, $choPhep, "`->directory(fn (\${$ten}))` — Filament tra theo tên, tên này không có.");
         }
+    }
+
+    // ══ Ô thật, gắn vào một biểu mẫu sống ═════════════════════════════════
+
+    /**
+     * `getDirectory()` của chính ô mà biểu mẫu dùng.
+     *
+     * Đây là ca duy nhất đi qua `evaluate()` của Filament thật, nên nó là ca
+     * duy nhất chứng minh hai hàm thuần ở trên **được nối vào**. Lượt đột
+     * biến thứ tám (đổi `->directory(closure)` thành `->directory(hằng)`) chỉ
+     * làm đỏ ca canh rỗng của bộ quét — một tín hiệu gián tiếp.
+     *
+     * Cần một container vì `evaluate()` tra `record` qua `getContainer()`.
+     */
+    private function thuMucCuaO(?Screen $man): string
+    {
+        $chu = new class extends \Livewire\Component implements \Filament\Forms\Contracts\HasForms
+        {
+            use \Filament\Forms\Concerns\InteractsWithForms;
+
+            public array $data = [];
+
+            public function render()
+            {
+                return '';
+            }
+        };
+
+        $form = \Filament\Forms\Form::make($chu)->statePath('data');
+
+        if ($man !== null) {
+            // `ComponentContainer::getRecord()` trả về `model` khi đó là một
+            // instance. `Form::record()` không tồn tại ở Filament 3.
+            $form = $form->model($man);
+        }
+
+        $form->schema([$this->o()]);
+
+        // `schema()` chỉ lưu mảng; container được gắn vào từng component ở
+        // `getComponents()`. Lấy ô ra TỪ ĐÂY, không dùng lại biến bên ngoài —
+        // không gọi hàm này thì `$component->container` chưa được khởi tạo.
+        $o = $form->getComponents()[0];
+
+        return (string) $o->getDirectory();
+    }
+
+    public function test_o_that_ghi_vao_thu_muc_cua_chu_so_huu(): void
+    {
+        $chu = Owner::factory()->create(['status' => 'active']);
+        $man = $this->manHinhCuaOwner($chu);
+
+        $this->assertSame(
+            "screen-photos/{$chu->id}",
+            $this->thuMucCuaO($man),
+            'Ô tải ảnh không chia thư mục theo chủ sở hữu.',
+        );
+    }
+
+    public function test_o_that_khong_biet_chu_thi_ve_thung_chung(): void
+    {
+        // Tạo mới, chưa chọn chủ sở hữu, không ai đăng nhập.
+        $this->assertSame('screen-photos/chua-ro-chu', $this->thuMucCuaO(null));
     }
 
     // ══ Bất biến nối với lát 0 ════════════════════════════════════════════
