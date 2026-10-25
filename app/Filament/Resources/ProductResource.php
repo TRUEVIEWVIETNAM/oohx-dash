@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources;
 
-use AppRulesAnhKhongQuaNhieuDiem;
+use App\Rules\AnhKhongQuaNhieuDiem;
 use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Network;
 use App\Models\Owner;

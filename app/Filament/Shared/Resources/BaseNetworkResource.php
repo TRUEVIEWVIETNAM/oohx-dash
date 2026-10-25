@@ -2,7 +2,7 @@
 
 namespace App\Filament\Shared\Resources;
 
-use AppRulesAnhKhongQuaNhieuDiem;
+use App\Rules\AnhKhongQuaNhieuDiem;
 use App\Models\Network;
 use App\Models\Screen;
 use App\Models\VenueCategory;

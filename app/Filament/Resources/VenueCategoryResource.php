@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources;
 
-use AppRulesAnhKhongQuaNhieuDiem;
+use App\Rules\AnhKhongQuaNhieuDiem;
 use App\Filament\Resources\VenueCategoryResource\Pages;
 use App\Filament\Resources\VenueCategoryResource\RelationManagers;
 use App\Models\VenueCategory;

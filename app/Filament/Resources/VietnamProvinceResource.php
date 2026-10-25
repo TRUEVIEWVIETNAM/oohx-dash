@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources;
 
-use AppRulesAnhKhongQuaNhieuDiem;
+use App\Rules\AnhKhongQuaNhieuDiem;
 use App\Filament\Resources\VietnamProvinceResource\Pages;
 use App\Models\VietnamProvince;
 use App\Models\VietnamRegion;

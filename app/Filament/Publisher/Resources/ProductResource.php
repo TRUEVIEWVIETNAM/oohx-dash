@@ -2,7 +2,7 @@
 
 namespace App\Filament\Publisher\Resources;
 
-use AppRulesAnhKhongQuaNhieuDiem;
+use App\Rules\AnhKhongQuaNhieuDiem;
 use App\Filament\Publisher\Resources\ProductResource\Pages;
 use App\Models\Network;
 use App\Models\Product;

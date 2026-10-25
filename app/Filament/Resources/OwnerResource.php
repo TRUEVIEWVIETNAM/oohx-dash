@@ -1,7 +1,7 @@
 <?php
 namespace App\Filament\Resources;
 
-use AppRulesAnhKhongQuaNhieuDiem;
+use App\Rules\AnhKhongQuaNhieuDiem;
 use App\Models\Owner;
 use Filament\Forms;
 use Filament\Forms\Form;

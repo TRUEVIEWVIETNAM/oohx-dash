@@ -279,6 +279,31 @@ class AnhBomTest extends TestCase
                 . 'dung lượng tệp không chặn được một PNG 20.000×20.000.',
             );
 
+            /*
+             * ══ Và lớp phải GIẢI ĐƯỢC TÊN, không chỉ được viết ra ══
+             *
+             * Bản đầu của bộ quét này chỉ đếm `new AnhKhongQuaNhieuDiem` và
+             * **mù** với đúng lỗi đã xảy ra: tám tệp nhận dòng
+             * `use AppRulesAnhKhongQuaNhieuDiem;` — dấu gạch chéo ngược bị
+             * heredoc của shell nuốt. Cú pháp hợp lệ (nó nhập một lớp ở
+             * namespace gốc), `php -l` xanh, bộ quét xanh, và biểu mẫu
+             * `/admin` trả **500** ngay khi mở: `Class
+             * "App\Filament\Resources\AnhKhongQuaNhieuDiem" not found`.
+             *
+             * CI bắt được qua `OwnerRevenueShareHiddenTest` — một ca không
+             * liên quan gì tới ảnh, chỉ tình cờ mở biểu mẫu media owner. Đó
+             * là may, không phải một lớp canh.
+             *
+             * Dựng chuỗi từ `::class` để nó không trôi khi lớp đổi namespace.
+             */
+            $this->assertStringContainsString(
+                'use ' . AnhKhongQuaNhieuDiem::class . ';',
+                $ma,
+                $tep->getRelativePathname() . ' dùng `new AnhKhongQuaNhieuDiem` mà thiếu '
+                . 'dòng `use` đúng. Thiếu nó thì PHP tìm lớp trong namespace của chính '
+                . 'tệp, và biểu mẫu trả 500 lúc mở — không phải lúc tải ảnh.',
+            );
+
             $soO += $anh;
             $soTep++;
         }

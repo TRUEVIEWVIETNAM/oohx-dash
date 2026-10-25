@@ -2,7 +2,7 @@
 
 namespace App\Filament\Publisher\Pages;
 
-use AppRulesAnhKhongQuaNhieuDiem;
+use App\Rules\AnhKhongQuaNhieuDiem;
 use App\Models\Owner;
 use App\Models\VietnamCommune;
 use App\Models\VietnamProvince;
