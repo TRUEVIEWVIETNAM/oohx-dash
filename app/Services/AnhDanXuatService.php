@@ -225,6 +225,46 @@ class AnhDanXuatService
     }
 
     /**
+     * URL của **một** bề rộng, hoặc `null` khi chưa có tệp ấy.
+     *
+     * ══ Vì sao tồn tại, bên cạnh `srcsetCho()` ══
+     *
+     * `srcset` để trình duyệt tự chọn, và nó đáng giá khi ô ảnh đổi kích thước
+     * theo khung nhìn. Có một chỗ không như vậy: popup bản đồ. `.map-popup`
+     * rộng tối đa **340 CSS px** (`frontpage.css:2464-2465`) và `.mpop-img` là
+     * 16:9, nên ô đó cần ~1020px ở DPR 3 và **không bao giờ** cần một bản gốc
+     * 2000px. Một bề rộng cố định là đủ, và nó tiết kiệm hơn `srcset` ở đúng
+     * chỗ này:
+     *
+     *  - **`srcset` tốn một trường cho MỖI pin.** Đo trên production
+     *    25/10/2026: endpoint bản đồ trả 70,3KB cho 104 pin; thêm một chuỗi
+     *    `srcset` mỗi pin là **+11,8KB (+17%)**, và ở trần 500 pin là ~+57KB.
+     *    Payload ấy phải trả ở **mỗi** lượt kéo bản đồ.
+     *  - **Lợi ích thì chỉ một ảnh mỗi lần mở popup.** `photo_url` của pin có
+     *    đúng một chỗ tiêu thụ: `PopupBanDo.tsx`. Một phiên thực tế — 10 lượt
+     *    kéo, 3 lần mở popup — trả ~570KB để tiết kiệm ~162KB. Lỗ.
+     *
+     * Nên bản đồ đổi **giá trị** của `photo_url` chứ không thêm khoá: cùng một
+     * trường, URL dài thêm ~18 ký tự (+2KB cho 104 pin), và một lượt `exists()`
+     * cho mỗi pin thay vì hai.
+     *
+     * Không có nhánh dự phòng sang bề rộng nhỏ hơn: `w480` trong một ô 340px
+     * ở DPR 2 là một ảnh mờ thấy được, tệ hơn bản gốc nó vừa thay.
+     */
+    public static function urlBeRong(?string $duongGoc, int $beRong, ?Filesystem $dia = null): ?string
+    {
+        $duong = self::duongDanXuat($duongGoc, $beRong);
+
+        if ($duong === null) {
+            return null;
+        }
+
+        $dia ??= Storage::disk('public');
+
+        return $dia->exists($duong) ? ScreenSpec::photoUrlOf($duong) : null;
+    }
+
+    /**
      * `srcset` cho một dãy đường dẫn, **giữ đúng chỉ số**.
      *
      * Phần tử `null` ở đúng vị trí ảnh chưa có bản dẫn xuất. Nén dãy lại cho

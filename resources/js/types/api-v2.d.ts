@@ -3494,6 +3494,21 @@ export interface components {
                 currency: "VND" | "USD";
                 unit?: string | null;
             };
+            /**
+             * @description Ảnh cho popup của pin, **đã chọn đúng cỡ cho ô đó** — đổi
+             *     25/10/2026.
+             *
+             *     Trả bản dẫn xuất `w1280` khi đã có tệp ấy, ngược lại trả bản gốc.
+             *     `.map-popup` rộng tối đa 340 CSS px và ảnh của nó là 16:9, nên ô
+             *     này cần ~1020px ở DPR 3 — `w1280` vừa đủ, và nó không bao giờ cần
+             *     một bản gốc 2000px.
+             *
+             *     DTO này **cố tình không có** `photo_srcset`, khác
+             *     `ScreenSummary`. Lý do là số đo, không phải sơ suất: endpoint bản
+             *     đồ trả 70,3KB cho 104 pin, và một chuỗi `srcset` mỗi pin là +17%
+             *     (~+57KB ở trần 500 pin) — trả ở **mỗi** lượt kéo bản đồ, trong khi
+             *     lợi ích chỉ là một ảnh mỗi lần mở popup.
+             */
             photo_url?: string | null;
         };
         FilterFacet: {

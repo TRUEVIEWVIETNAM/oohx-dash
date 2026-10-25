@@ -3,6 +3,7 @@
 namespace App\Http\Resources\V2;
 
 use App\Http\Resources\V2\Concerns\SuyRaLoaiManHinh;
+use App\Services\AnhDanXuatService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -22,9 +23,22 @@ class MapPinResource extends JsonResource
 
     public static $wrap = null;
 
+    /**
+     * Bề rộng bản dẫn xuất mà popup bản đồ dùng.
+     *
+     * Đọc từ CSS thật: `.map-popup` max-width 340px (`frontpage.css:2464`),
+     * `.mpop-img` tỉ lệ 16:9 (dòng 2469). 340px ở DPR 3 cần ~1020px.
+     */
+    private const BE_RONG_POPUP = 1280;
+
     public function toArray(Request $request): array
     {
         $loai = $this->resolveScreenType();
+
+        // Một lượt đi chuỗi dự phòng, lấy cả URL và đường dẫn trong disk.
+        // Gọi `$this->display_photo` rồi gọi lại để lấy đường dẫn là đi hết
+        // năm bậc hai lần cho **mỗi** pin, và endpoint này trả tới 500 pin.
+        $anh = $this->displayPhotoWithSource();
 
         return [
             'slug' => $this->slug,
@@ -94,7 +108,33 @@ class MapPinResource extends JsonResource
             // bằng USD ra ngoài với nhãn VND (Codex R39).
             'price' => $this->priceOf(),
 
-            'photo_url' => $this->display_photo,
+            /*
+             * ══ Bản `w1280` khi có, bản gốc khi chưa — 25/10/2026 ══
+             *
+             * DTO này **không** có `photo_srcset`, và đó là một quyết định có
+             * số đo. Đo trên production: endpoint bản đồ trả 70,3KB cho 104
+             * pin; một chuỗi `srcset` mỗi pin là +11,8KB (+17%), ở trần 500
+             * pin là ~+57KB — trả ở **mỗi** lượt kéo bản đồ. Còn lợi ích thì
+             * chỉ một ảnh mỗi lần mở popup: `photo_url` của pin có đúng một
+             * chỗ tiêu thụ, `PopupBanDo.tsx`. Một phiên 10 lượt kéo + 3 popup
+             * trả ~570KB để tiết kiệm ~162KB. Lỗ, nên không thêm.
+             *
+             * Thay vào đó đổi **giá trị** của cùng trường này. `.map-popup`
+             * rộng tối đa 340 CSS px và `.mpop-img` là 16:9, nên ô đó cần
+             * ~1020px ở DPR 3 — `w1280` vừa đủ, và nó không bao giờ cần một
+             * bản gốc 2000px mà lát 2 cho phép tải lên.
+             *
+             * Một lượt `exists()` cho mỗi pin, không hai: không dự phòng sang
+             * `w480`, vì `w480` trong một ô 340px ở DPR 2 là một ảnh mờ thấy
+             * được — tệ hơn bản gốc nó vừa thay.
+             *
+             * Hôm nay đây là **no-op**: hai ảnh bìa của kho hẹp hơn 1280px nên
+             * lệnh `oohx:sinh-anh-dan-xuat` không sinh bản `w1280` nào (đo
+             * thật: lệnh báo "2 tệp đã sinh", không phải 4). Nó bắt đầu có tác
+             * dụng đúng lúc ảnh biển thật về.
+             */
+            'photo_url' => AnhDanXuatService::urlBeRong($anh['path'], self::BE_RONG_POPUP)
+                ?? $anh['url'],
         ];
     }
 
