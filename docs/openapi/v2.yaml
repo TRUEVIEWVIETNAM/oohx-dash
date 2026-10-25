@@ -2237,6 +2237,26 @@ components:
                 unit:     { type: [string, 'null'], enum: [week, month, null] }
         photo_url: { type: [string, 'null'] }
 
+        photo_srcset:
+          type: [string, 'null']
+          description: |
+            Giá trị cho thuộc tính `srcset` của `photo_url` — thêm 25/10/2026
+            (lát 4 của `docs/PLAN-ANH-VI-TRI.md`).
+
+            Dạng `"<url> 480w, <url> 1280w"`, chỉ liệt những bề rộng **đã có
+            tệp trên đĩa**. `null` khi chưa có bản nào, và giao diện phải bỏ
+            hẳn thuộc tính `srcset` khi đó — `srcset=""` vẫn là một thuộc tính
+            trình duyệt phải đọc.
+
+            Máy chủ dựng cả chuỗi chứ không trả riêng từng bề rộng: client
+            ghép là client dựng đường dẫn tệp, và một đường dẫn client đoán ra
+            là một `<img>` trỏ vào 404 khi tệp chưa sinh.
+
+            **Không** chứa bản gốc: mỗi mục `srcset` phải khai bề rộng thật,
+            và bề rộng bản gốc chỉ biết được bằng cách mở tệp ra đo ở mỗi lượt
+            yêu cầu. `photo_url` vẫn là bản gốc, cho trình duyệt không hiểu
+            `srcset`.
+
         distance_km:
           type: [number, 'null']
           description: |
@@ -2743,7 +2763,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/ScreenSummary'
         - type: object
-          required: [photo_urls, photo_source, specs, site, owner, insights, nearby_pois, similar, availability]
+          required: [photo_urls, photo_srcsets, photo_source, specs, site, owner, insights, nearby_pois, similar, availability]
           properties:
             description: { type: [string, 'null'] }
             photo_urls:
@@ -2754,6 +2774,20 @@ components:
                 owner / loại điểm đặt. Không có ảnh nào thì **mảng rỗng** —
                 không trả URL của một dịch vụ ảnh giữ chỗ nào.
               items: { type: string }
+            photo_srcsets:
+              type: array
+              description: |
+                `srcset` của **từng** ảnh trong `photo_urls` — thêm 25/10/2026
+                (lát 4 của `docs/PLAN-ANH-VI-TRI.md`).
+
+                **Cùng độ dài và cùng thứ tự với `photo_urls`**, và phần tử
+                `null` ở đúng vị trí ảnh chưa có bản dẫn xuất. Dãy không bao
+                giờ được nén lại cho gọn: giao diện ghép `photo_urls[i]` với
+                `photo_srcsets[i]`, nên một dãy ngắn hơn là mỗi ảnh từ ô đó về
+                sau mang `srcset` của ảnh khác.
+
+                Dạng mỗi phần tử giống `ScreenSummary.photo_srcset`.
+              items: { type: [string, 'null'] }
             photo_source:
               type: [string, 'null']
               enum: [screen, site, network, owner_cover, venue_category, null]

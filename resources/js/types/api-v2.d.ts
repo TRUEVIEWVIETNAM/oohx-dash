@@ -3064,6 +3064,25 @@ export interface components {
             };
             photo_url?: string | null;
             /**
+             * @description Giá trị cho thuộc tính `srcset` của `photo_url` — thêm 25/10/2026
+             *     (lát 4 của `docs/PLAN-ANH-VI-TRI.md`).
+             *
+             *     Dạng `"<url> 480w, <url> 1280w"`, chỉ liệt những bề rộng **đã có
+             *     tệp trên đĩa**. `null` khi chưa có bản nào, và giao diện phải bỏ
+             *     hẳn thuộc tính `srcset` khi đó — `srcset=""` vẫn là một thuộc tính
+             *     trình duyệt phải đọc.
+             *
+             *     Máy chủ dựng cả chuỗi chứ không trả riêng từng bề rộng: client
+             *     ghép là client dựng đường dẫn tệp, và một đường dẫn client đoán ra
+             *     là một `<img>` trỏ vào 404 khi tệp chưa sinh.
+             *
+             *     **Không** chứa bản gốc: mỗi mục `srcset` phải khai bề rộng thật,
+             *     và bề rộng bản gốc chỉ biết được bằng cách mở tệp ra đo ở mỗi lượt
+             *     yêu cầu. `photo_url` vẫn là bản gốc, cho trình duyệt không hiểu
+             *     `srcset`.
+             */
+            photo_srcset?: string | null;
+            /**
              * @description Khoảng cách đường chim bay từ toạ độ người gọi gửi lên tới **site**,
              *     km, làm tròn hai chữ số. Thêm 22/10/2026.
              *
@@ -3509,6 +3528,19 @@ export interface components {
              *     không trả URL của một dịch vụ ảnh giữ chỗ nào.
              */
             photo_urls: string[];
+            /**
+             * @description `srcset` của **từng** ảnh trong `photo_urls` — thêm 25/10/2026
+             *     (lát 4 của `docs/PLAN-ANH-VI-TRI.md`).
+             *
+             *     **Cùng độ dài và cùng thứ tự với `photo_urls`**, và phần tử
+             *     `null` ở đúng vị trí ảnh chưa có bản dẫn xuất. Dãy không bao
+             *     giờ được nén lại cho gọn: giao diện ghép `photo_urls[i]` với
+             *     `photo_srcsets[i]`, nên một dãy ngắn hơn là mỗi ảnh từ ô đó về
+             *     sau mang `srcset` của ảnh khác.
+             *
+             *     Dạng mỗi phần tử giống `ScreenSummary.photo_srcset`.
+             */
+            photo_srcsets: (string | null)[];
             /**
              * @description Ảnh đầu của `photo_urls` đến từ **bậc nào** của chuỗi dự phòng.
              *

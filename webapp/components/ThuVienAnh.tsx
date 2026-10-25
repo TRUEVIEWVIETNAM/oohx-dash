@@ -44,14 +44,43 @@ const NGUON_THAY_THE: Record<string, string> = {
     venue_category: 'Đây là ảnh minh hoạ loại địa điểm, chưa có ảnh chụp vị trí',
 };
 
+/*
+ * `sizes` cho hai cỡ ảnh của thư viện — lát 4, 25/10/2026.
+ *
+ * `srcset` với đơn vị `w` **bắt buộc** đi cùng `sizes`: thiếu `sizes` thì
+ * trình duyệt mặc định ô ảnh rộng `100vw` và luôn chọn bản lớn nhất, tức
+ * `srcset` không tiết kiệm được gì. Hai con số dưới đây đọc từ CSS thật:
+ *
+ *   `.gallery` ở `resources/css/frontpage.css:2043` là `1.65fr 1fr` trong
+ *   khung `--mw: 1280px` trừ padding 52px — nên ảnh chính ≈ 1176 × 1,65/2,65
+ *   ≈ 730px, và mỗi thumbnail ≈ 1176 × 1/2,65 ≈ 444px. Dưới 768px lưới về
+ *   một cột (ảnh chính `100vw`) và thumbnail thành hai cột (`50vw`).
+ *
+ * Hai hằng này sẽ lệch nếu ai đổi tỉ lệ lưới trong CSS. Lệch theo chiều nào
+ * cũng chỉ là chọn bản to hơn hay nhỏ hơn một bậc, không phải ảnh vỡ — nên
+ * chúng là một phép tối ưu có chú thích, không phải một bất biến cần chốt.
+ */
+const SIZES_CHINH = '(max-width: 767px) 100vw, 730px';
+const SIZES_THUMB = '(max-width: 767px) 50vw, 444px';
+
 export function ThuVienAnh({
     anh,
+    srcset,
     ten,
     conTrong,
     soNgay,
     nguon,
 }: {
     anh: string[];
+    /**
+     * `photo_srcsets` của API — **cùng thứ tự** với `anh`, phần tử `null` ở
+     * ảnh chưa có bản dẫn xuất (lát 4).
+     *
+     * Tuỳ chọn, và thiếu thì mọi ảnh về `<img>` không `srcset` như trước lát
+     * 4. Dãy ngắn hơn `anh` cũng không sao: `?? null` ở mỗi chỗ đọc giữ ảnh
+     * đó không có `srcset` thay vì gán cho nó `srcset` của ảnh khác.
+     */
+    srcset?: (string | null)[];
     ten: string;
     conTrong: boolean;
     soNgay: number;
@@ -126,6 +155,11 @@ export function ThuVienAnh({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src={anh[chon]}
+                        // `?? undefined`, không `?? ''`: React in ra
+                        // `srcset=""` cho chuỗi rỗng, và một thuộc tính rỗng
+                        // là một thuộc tính trình duyệt vẫn phải xử lý.
+                        srcSet={srcset?.[chon] ?? undefined}
+                        sizes={srcset?.[chon] ? SIZES_CHINH : undefined}
                         alt={ten}
                         style={{ cursor: 'zoom-in' }}
                         onClick={() => setMoLightbox(true)}
@@ -197,7 +231,13 @@ export function ThuVienAnh({
                                 style={{ cursor: 'pointer' }}
                             >
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={thumb} loading="lazy" alt="" />
+                                <img
+                                    src={thumb}
+                                    srcSet={srcset?.[i] ?? undefined}
+                                    sizes={srcset?.[i] ? SIZES_THUMB : undefined}
+                                    loading="lazy"
+                                    alt=""
+                                />
 
                                 {i === 4 && soAnh > 5 ? (
                                     <div className="gal-more">+{soAnh - 5}</div>
@@ -237,6 +277,13 @@ export function ThuVienAnh({
                         </svg>
                     </button>
 
+                    {/*
+                      Lightbox giữ **bản gốc**, cố ý không có `srcset` (lát 4).
+                      Người dùng mở lightbox để xem to; đưa cho họ bản `w1280`
+                      ở đây là làm đúng cái việc mà nút này sinh ra để tránh.
+                      Bản dẫn xuất lo đường danh sách và ảnh trong trang, không
+                      lo đường này.
+                    */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img className="lb-img" src={anh[chon]} alt={ten} />
 

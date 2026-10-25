@@ -56,6 +56,26 @@ import { OTick } from '@/components/OTick';
  * ảnh thấp hơn, một dòng tiêu đề, không có bảng thông số, ẩn nút. CSS đã có
  * sẵn (`.sc-compact *`), nên đây chỉ là một cờ.
  */
+/*
+ * `sizes` của ảnh thẻ — lát 4, 25/10/2026.
+ *
+ * `srcset` với đơn vị `w` **bắt buộc** đi cùng `sizes`: thiếu nó thì trình
+ * duyệt mặc định ô ảnh rộng `100vw` và luôn chọn bản lớn nhất, tức `srcset`
+ * không tiết kiệm được gì.
+ *
+ * Ba ngưỡng đọc từ `.inv-grid` (`resources/css/frontpage.css:1991-1993` và lưới
+ * ba cột ở dòng 1722): một cột dưới 520px, hai cột tới 1199px, ba cột từ
+ * 1200px.
+ *
+ * Một chỗ dùng **không** khớp con số này: trong `.ex-panel` của `/explore`,
+ * `.sc-card` là lưới ngang và ảnh chỉ rộng 108px (dòng 1471–1473). Ở đó trình
+ * duyệt chọn bản to hơn cần thiết — nhưng "to hơn cần thiết" ở đây vẫn là
+ * `w480` thay vì một bản gốc 2000px, nên khoảng lệch này nhỏ hơn nhiều cái nó
+ * vừa đóng. Một `sizes` thứ hai cho đúng ô đó cần một prop mới và một luồng
+ * prop xuyên bốn thành phần; để sau, nếu đo được là đáng.
+ */
+const SIZES_THE = '(max-width: 519px) 100vw, (max-width: 1199px) 50vw, 33vw';
+
 type Availability = {
     window_days?: number;
     remaining_sov_pct?: number;
@@ -133,7 +153,21 @@ export function ScreenCard({
                     // được phục vụ xong, và là một đường tải ảnh hộ nếu
                     // `remotePatterns` nới ra sau này.
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={screen.photo_url} alt={screen.name ?? ''} loading="lazy" />
+                    <img
+                        src={screen.photo_url}
+                        /*
+                          Bản hẹp hơn của cùng ảnh (lát 4, 25/10/2026). `src`
+                          vẫn là bản gốc, nên trình duyệt không hiểu `srcset`
+                          không mất gì.
+
+                          `?? undefined`, không `?? ''`: React in `srcset=""`
+                          ra HTML cho chuỗi rỗng.
+                        */
+                        srcSet={screen.photo_srcset ?? undefined}
+                        sizes={screen.photo_srcset ? SIZES_THE : undefined}
+                        alt={screen.name ?? ''}
+                        loading="lazy"
+                    />
                 ) : null}
 
                 {availability?.has_capacity ? (

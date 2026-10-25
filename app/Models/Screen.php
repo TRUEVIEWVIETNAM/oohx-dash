@@ -273,29 +273,61 @@ class Screen extends Model
      * branch, so `site->network`, `owner` and `inventory->vnCategory` would be
      * lazy-loaded for every row of the list endpoints even when step 1 hits.
      *
-     * @return array{url: ?string, source: ?string}
+     * ══ Vì sao có cả `path` (lát 4, 25/10/2026) ══
+     *
+     * `url` là URL công khai đã dựng xong. Để tìm bản dẫn xuất `w480`/`w1280`
+     * thì cần **đường dẫn trong disk**, và lần ngược từ URL về đường dẫn là
+     * cắt chuỗi `asset('storage/')` ra khỏi đầu — tức dựng lại phép dựng URL
+     * theo chiều ngược, ở một chỗ thứ hai. Đúng hình dạng lỗi R38 mà lát 1 vừa
+     * gộp lại thành một đường.
+     *
+     * Nên chuỗi dự phòng trả luôn đường dẫn thô của bậc nó dừng ở. Giá trị có
+     * thể là một URL đầy đủ (cột `photos` của đường nhập kho nhận cả dạng đó),
+     * và `AnhDanXuatService::duongDanXuat()` trả `null` cho dạng ấy — một ảnh
+     * ở máy chủ người khác thì không có tệp nào ở đây để thu nhỏ.
+     *
+     * @return array{url: ?string, source: ?string, path: ?string}
      */
     public function displayPhotoWithSource(): array
     {
         // 1. Screen spec photo (already formatted as full URL by spec accessor)
         $specPhoto = $this->spec?->photo;
         if ($specPhoto) {
-            return ['url' => $specPhoto, 'source' => 'screen'];
+            return [
+                'url'    => $specPhoto,
+                'source' => 'screen',
+                // Cùng phép lọc mà accessor `photo` đi qua, nên phần tử đầu ở
+                // đây đúng là phần tử sinh ra `$specPhoto` — không phải
+                // `photos[0]` thô, vốn có thể là một ô rỗng đã bị lọc.
+                'path'   => $this->spec?->photoPaths()[0] ?? null,
+            ];
         }
 
         // 2. Site banner
         if ($this->site?->banner) {
-            return ['url' => asset('storage/' . $this->site->banner), 'source' => 'site'];
+            return [
+                'url'    => asset('storage/' . $this->site->banner),
+                'source' => 'site',
+                'path'   => $this->site->banner,
+            ];
         }
 
         // 3. Network banner (via site)
         if ($this->site?->network?->banner) {
-            return ['url' => asset('storage/' . $this->site->network->banner), 'source' => 'network'];
+            return [
+                'url'    => asset('storage/' . $this->site->network->banner),
+                'source' => 'network',
+                'path'   => $this->site->network->banner,
+            ];
         }
 
         // 4. Owner cover
         if ($this->owner?->cover_url) {
-            return ['url' => asset('storage/' . $this->owner->cover_url), 'source' => 'owner_cover'];
+            return [
+                'url'    => asset('storage/' . $this->owner->cover_url),
+                'source' => 'owner_cover',
+                'path'   => $this->owner->cover_url,
+            ];
         }
 
         // 5. Venue category thumb
@@ -303,10 +335,11 @@ class Screen extends Model
             return [
                 'url'    => asset('storage/' . $this->inventory->vnCategory->thumb),
                 'source' => 'venue_category',
+                'path'   => $this->inventory->vnCategory->thumb,
             ];
         }
 
-        return ['url' => null, 'source' => null];
+        return ['url' => null, 'source' => null, 'path' => null];
     }
 
     public function spec(): HasOne

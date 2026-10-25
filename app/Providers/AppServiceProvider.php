@@ -12,8 +12,10 @@ use App\Models\OwnerUser;
 use App\Models\Refund;
 use App\Models\Screen;
 use App\Models\ScreenInventory;
+use App\Models\ScreenSpec;
 use App\Observers\ScreenInventoryObserver;
 use App\Observers\ScreenObserver;
+use App\Observers\ScreenSpecObserver;
 use App\Models\Network;
 use App\Models\Site;
 use App\Policies\CampaignPolicy;
@@ -55,6 +57,11 @@ class AppServiceProvider extends ServiceProvider
 
         // Mọi đường sửa giá đều để lại phiên bản — xem ScreenInventoryObserver.
         ScreenInventory::observe(ScreenInventoryObserver::class);
+
+        // Ảnh vừa vào cột `photos` thì bản dẫn xuất `w480`/`w1280` phải có
+        // ngay sau đó — xem ScreenSpecObserver. Đặt ở observer chứ không ở
+        // biểu mẫu Filament để đường nhập kho và seeder cũng đi qua.
+        ScreenSpec::observe(ScreenSpecObserver::class);
 
         $this->registerRateLimiters();
 

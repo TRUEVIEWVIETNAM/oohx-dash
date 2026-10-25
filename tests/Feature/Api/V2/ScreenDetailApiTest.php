@@ -420,12 +420,23 @@ class ScreenDetailApiTest extends TestCase
     }
 
     /**
-     * `photo_source` là trường DUY NHẤT lát 5 thêm vào DTO.
+     * Mọi trường thêm vào DTO từ lát 5 tới nay, **đếm đủ**.
      *
      * Một lát đổi `/api/v2` là chỗ dễ nhất để một trường thứ hai đi kèm mà
-     * không ai chú ý — nên đếm luôn bộ khoá tầng ngoài.
+     * không ai chú ý — nên đếm luôn bộ khoá tầng ngoài, và danh sách dưới đây
+     * dài thêm mỗi lần có một lát cố ý thêm trường.
+     *
+     *  - `photo_source` — lát 5 của `docs/PLAN-CHI-TIET-VI-TRI.md` (24/10/2026)
+     *  - `photo_srcset`, `photo_srcsets` — lát 4 của `docs/PLAN-ANH-VI-TRI.md`
+     *    (25/10/2026). Hai trường vì DTO danh sách mang **một** ảnh còn DTO chi
+     *    tiết mang cả thư viện; ca này chạy trên đường chi tiết nên thấy cả
+     *    hai, vì `ScreenDetail` thừa kế `ScreenSummary`.
+     *
+     * Thứ tự trong `assertSame` là thứ tự khoá thật của phản hồi:
+     * `array_merge()` giữ khoá của mảng bên trái trước, nên `photo_srcset` của
+     * resource cha đứng trước hai khoá của resource con.
      */
-    public function test_lat_5_khong_them_truong_nao_ngoai_photo_source(): void
+    public function test_khong_them_truong_nao_ngoai_ba_truong_da_khai(): void
     {
         $screen = $this->screen([], ['photos' => ['screens/mot.jpg']]);
 
@@ -433,7 +444,10 @@ class ScreenDetailApiTest extends TestCase
 
         $moi = array_diff(array_keys($data), self::KHOA_TRUOC_LAT_5);
 
-        $this->assertSame(['photo_source'], array_values($moi));
+        $this->assertSame(
+            ['photo_srcset', 'photo_srcsets', 'photo_source'],
+            array_values($moi),
+        );
     }
 
     // ── Insights ────────────────────────────────────────────────────────────
