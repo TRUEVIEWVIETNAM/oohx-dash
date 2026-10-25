@@ -61,15 +61,29 @@ class OohxEstimateResource extends Resource
                     ->copyable()
                     ->copyableState(fn (?string $state) => $state)
                     ->copyMessage('Đã copy UUID')
-                    ->searchable(query: function (Builder $q, string $search): Builder {
-                        return $q->whereHas('screen', fn ($q) => $q->where('external_id', 'ilike', "%{$search}%"));
+                    /*
+                     * Tham số **phải** tên `$query` — cùng cái bẫy của filter,
+                     * ở một lối khác.
+                     *
+                     * `Columns\Concerns\InteractsWithTableQuery::applySearchConstraint()`
+                     * gọi `evaluate($this->searchQuery, ['query' => …, 'search'
+                     * => …, 'searchQuery' => …])`, và `Column` cũng không dạy
+                     * container kiểu `Builder`. Một tên khác thì điều kiện đi
+                     * vào một Builder rỗng; Laravel bỏ hẳn một nhóm `where`
+                     * không có điều kiện nào, nên ô tìm kiếm **không lọc gì** —
+                     * gõ vào và danh sách y nguyên, không lỗi nào để lần ra.
+                     *
+                     * Đo ở `tests/Feature/Filament/BoLocDuToanTest.php`.
+                     */
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('screen', fn ($man) => $man->where('external_id', 'ilike', "%{$search}%"));
                     })
                     ->tooltip(fn (?string $state) => $state),
 
                 Tables\Columns\TextColumn::make('screen.name')
                     ->label('Màn hình')
-                    ->searchable(query: function (Builder $q, string $search): Builder {
-                        return $q->whereHas('screen', fn ($q) => $q->where('name', 'ilike', "%{$search}%"));
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('screen', fn ($man) => $man->where('name', 'ilike', "%{$search}%"));
                     })
                     ->wrap()
                     ->limit(50),
@@ -77,10 +91,10 @@ class OohxEstimateResource extends Resource
                 Tables\Columns\TextColumn::make('screen.city')
                     ->label('Tỉnh/thành')
                     ->badge()
-                    ->sortable(query: function (Builder $q, string $direction): Builder {
-                        return $q->join('core.screens as s', 's.id', '=', 'output.screen_traffic_estimates.screen_id')
-                                 ->orderBy('s.city', $direction)
-                                 ->select('output.screen_traffic_estimates.*');
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->join('core.screens as s', 's.id', '=', 'output.screen_traffic_estimates.screen_id')
+                                     ->orderBy('s.city', $direction)
+                                     ->select('output.screen_traffic_estimates.*');
                     }),
 
                 Tables\Columns\TextColumn::make('screen.indoor_outdoor')
@@ -232,9 +246,28 @@ class OohxEstimateResource extends Resource
                         ->orderBy('city')
                         ->pluck('city', 'city')
                         ->toArray())
-                    ->query(fn (Builder $q, array $data) => ! empty($data['value'])
-                        ? $q->whereHas('screen', fn ($q) => $q->where('city', $data['value']))
-                        : $q),
+                    /*
+                     * Tham số **phải** tên `$query`.
+                     *
+                     * `Filters\Concerns\InteractsWithTableQuery::apply()` gọi
+                     * `evaluate($callback, ['data' => …, 'query' => $query, …])`
+                     * và `EvaluatesClosures` tra theo **tên** trước. `BaseFilter`
+                     * không dạy container kiểu `Builder`, nên một tên khác rơi
+                     * xuống `app()->make(Builder::class)`: một Builder rỗng,
+                     * không bảng, không **model**.
+                     *
+                     * Ở hai bộ lọc `whereHas` dưới đây hậu quả nặng hơn một
+                     * filter im lặng: Builder không model thì không lần được
+                     * quan hệ `screen`, nên chọn một tỉnh/thành làm trang nổ.
+                     * Lượt **mở** trang vẫn bình thường (`$data['value']` rỗng
+                     * nên nhánh `: $query` chạy), nên lỗi này lọt qua mọi lần
+                     * ai đó chỉ ghé qua xem trang có lên không.
+                     *
+                     * Đo ở `tests/Feature/Filament/BoLocDuToanTest.php`.
+                     */
+                    ->query(fn (Builder $query, array $data) => ! empty($data['value'])
+                        ? $query->whereHas('screen', fn ($man) => $man->where('city', $data['value']))
+                        : $query),
 
                 SelectFilter::make('indoor_outdoor')
                     ->label('Trong nhà / ngoài trời')
@@ -242,9 +275,9 @@ class OohxEstimateResource extends Resource
                         'indoor'  => 'Indoor',
                         'outdoor' => 'Outdoor',
                     ])
-                    ->query(fn (Builder $q, array $data) => ! empty($data['value'])
-                        ? $q->whereHas('screen', fn ($q) => $q->where('indoor_outdoor', $data['value']))
-                        : $q),
+                    ->query(fn (Builder $query, array $data) => ! empty($data['value'])
+                        ? $query->whereHas('screen', fn ($man) => $man->where('indoor_outdoor', $data['value']))
+                        : $query),
 
                 SelectFilter::make('confidence_tier')
                     ->label('Bậc tin cậy')
@@ -253,11 +286,11 @@ class OohxEstimateResource extends Resource
                         'mid'  => 'Medium (0.5 – 0.7)',
                         'low'  => 'Low (< 0.5)',
                     ])
-                    ->query(fn (Builder $q, array $data) => match ($data['value'] ?? null) {
-                        'high'  => $q->where('confidence_score', '>=', 0.7),
-                        'mid'   => $q->whereBetween('confidence_score', [0.5, 0.7])->where('confidence_score', '<', 0.7),
-                        'low'   => $q->where('confidence_score', '<', 0.5),
-                        default => $q,
+                    ->query(fn (Builder $query, array $data) => match ($data['value'] ?? null) {
+                        'high'  => $query->where('confidence_score', '>=', 0.7),
+                        'mid'   => $query->whereBetween('confidence_score', [0.5, 0.7])->where('confidence_score', '<', 0.7),
+                        'low'   => $query->where('confidence_score', '<', 0.5),
+                        default => $query,
                     }),
 
                 SelectFilter::make('estimation_method')

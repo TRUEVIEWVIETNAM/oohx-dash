@@ -76,9 +76,16 @@ class OohxRecomputeJobResource extends Resource
 
                 Tables\Columns\TextColumn::make('target_label')
                     ->label('Mục tiêu')
-                    ->searchable(query: function (\Illuminate\Database\Eloquent\Builder $q, string $search) {
-                        return $q->where('city', 'ilike', "%{$search}%")
-                            ->orWhereHas('screen', fn ($q) => $q->where('external_id', 'ilike', "%{$search}%"));
+                    /*
+                     * Tham số **phải** tên `$query`:
+                     * `Columns\Concerns\InteractsWithTableQuery::applySearchConstraint()`
+                     * tra theo tên trước, và `Column` không dạy container kiểu
+                     * `Builder`, nên một tên khác làm ô tìm kiếm không lọc gì.
+                     * Đo ở `tests/Feature/Filament/BoLocDuToanTest.php`.
+                     */
+                    ->searchable(query: function (\Illuminate\Database\Eloquent\Builder $query, string $search) {
+                        return $query->where('city', 'ilike', "%{$search}%")
+                            ->orWhereHas('screen', fn ($man) => $man->where('external_id', 'ilike', "%{$search}%"));
                     })
                     ->wrap()
                     ->limit(50),
