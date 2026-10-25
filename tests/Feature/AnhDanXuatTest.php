@@ -617,6 +617,16 @@ class AnhDanXuatTest extends TestCase
 
         $this->assertStringContainsString('1 đường dẫn ảnh phân biệt', $ra);
         $this->assertStringContainsString('2 tệp đã sinh', $ra);
+
+        // Hai khẳng định trên **không** đo được phép gộp: bỏ phép gộp đi thì
+        // lệnh vẫn ra "1 đường dẫn" và "2 tệp", chỉ mở cùng tệp đó ba lần.
+        // Thứ đo được là bảng kết quả — không gộp thì nó có thêm hai hàng "Đã
+        // có đủ, không làm gì" cho hai lượt thừa.
+        $this->assertStringNotContainsString(
+            AnhDanXuatService::NHAN_KQ[AnhDanXuatService::KQ_DA_CO],
+            $ra,
+            'Lệnh xử lý cùng một đường dẫn nhiều hơn một lần.',
+        );
     }
 
     public function test_soat_khong_ghi_tep_nao(): void

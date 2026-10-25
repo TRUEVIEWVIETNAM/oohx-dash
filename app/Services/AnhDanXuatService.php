@@ -351,32 +351,6 @@ class AnhDanXuatService
             : $this->ra(self::KQ_DA_SINH, null, $wGoc, $daSinh);
     }
 
-    /**
-     * Sinh cho **toàn bộ ảnh của một màn hình** — đường mà observer gọi.
-     *
-     * Chỉ ảnh của chính màn hình (`spec->photoPaths()`). Ảnh thay thế (bìa chủ
-     * sở hữu, banner địa điểm) thuộc bản ghi khác và do lệnh định kỳ lo: một
-     * lượt lưu màn hình không phải lúc đi sinh ảnh cho ảnh bìa của người khác.
-     *
-     * @return array<string, array{ket_qua: string, da_sinh: list<int>, ly_do: ?string, be_rong_goc: ?int}>
-     */
-    public function sinhChoSpec(ScreenSpec $spec, bool $lai = false, ?Filesystem $dia = null): array
-    {
-        $ra = [];
-
-        foreach ($spec->photoPaths() as $duong) {
-            $ra[$duong] = $this->sinhCho($duong, $lai, $dia);
-        }
-
-        return $ra;
-    }
-
-    /** Thư mục bản dẫn xuất của một bề rộng — để lệnh và chốt nói cùng một chuỗi. */
-    public static function thuMucBeRong(int $beRong): string
-    {
-        return self::THU_MUC . '/w' . $beRong;
-    }
-
     /** GD có mặt và biết định dạng này? */
     public static function gdLam(int $imageType): bool
     {
