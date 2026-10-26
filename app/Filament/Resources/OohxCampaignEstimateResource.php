@@ -132,11 +132,25 @@ class OohxCampaignEstimateResource extends Resource
                         'medium' => '8 – 30 days',
                         'long'   => '> 30 days',
                     ])
-                    ->query(fn (Builder $q, array $data) => match ($data['value'] ?? null) {
-                        'short'  => $q->where('duration_days', '<=', 7),
-                        'medium' => $q->whereBetween('duration_days', [8, 30]),
-                        'long'   => $q->where('duration_days', '>', 30),
-                        default  => $q,
+                    /*
+                     * Tham số **phải** tên `$query`.
+                     *
+                     * `Filters\Concerns\InteractsWithTableQuery::apply()` gọi
+                     * `evaluate($callback, ['data' => …, 'query' => $query, …])`
+                     * và `EvaluatesClosures` tra theo **tên** trước. `BaseFilter`
+                     * không dạy container kiểu `Builder`, nên một tên khác rơi
+                     * xuống `app()->make(Builder::class)`: một Builder rỗng,
+                     * không bảng, trên connection mặc định. `apply()` còn bỏ giá
+                     * trị trả về, nên mọi `where()` ở đây đi vào hư không và
+                     * filter **im lặng** mất tác dụng.
+                     *
+                     * Đo ở `tests/Feature/Filament/BoLocDuToanTest.php`.
+                     */
+                    ->query(fn (Builder $query, array $data) => match ($data['value'] ?? null) {
+                        'short'  => $query->where('duration_days', '<=', 7),
+                        'medium' => $query->whereBetween('duration_days', [8, 30]),
+                        'long'   => $query->where('duration_days', '>', 30),
+                        default  => $query,
                     }),
 
                 SelectFilter::make('confidence_tier')
@@ -146,11 +160,11 @@ class OohxCampaignEstimateResource extends Resource
                         'mid'  => 'Medium (0.5 – 0.7)',
                         'low'  => 'Low (< 0.5)',
                     ])
-                    ->query(fn (Builder $q, array $data) => match ($data['value'] ?? null) {
-                        'high' => $q->where('avg_confidence', '>=', 0.7),
-                        'mid'  => $q->whereBetween('avg_confidence', [0.5, 0.7])->where('avg_confidence', '<', 0.7),
-                        'low'  => $q->where('avg_confidence', '<', 0.5),
-                        default => $q,
+                    ->query(fn (Builder $query, array $data) => match ($data['value'] ?? null) {
+                        'high' => $query->where('avg_confidence', '>=', 0.7),
+                        'mid'  => $query->whereBetween('avg_confidence', [0.5, 0.7])->where('avg_confidence', '<', 0.7),
+                        'low'  => $query->where('avg_confidence', '<', 0.5),
+                        default => $query,
                     }),
             ])
             ->actions([
