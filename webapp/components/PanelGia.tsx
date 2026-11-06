@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import type { ScreenDetail } from '@/lib/api';
+import { congNgay, ngayKetThuc, ngaySau } from '@/lib/ky-han';
+import { NutThemVaoKeHoach } from './NutThemVaoKeHoach';
 
 /**
  * Panel giá ở cột phải trang chi tiết.
@@ -26,12 +28,27 @@ import type { ScreenDetail } from '@/lib/api';
  *    hai của một chính sách — đúng loại bản sao đã gây ra lỗi trên.
  *  - Số tiền thật xuất hiện khi thêm vào giỏ, do `/api/v2/cart` trả về.
  *
- * ══ Nút "Thêm vào Plan" ══
+ * ══ Nút "Thêm vào kế hoạch" — sửa 06/11/2026 ══
  *
- * Khu người mua chưa chuyển sang Next (lộ trình để nó ở giai đoạn sau), nên
- * nút dẫn tới `/login` kèm `next` để sau khi đăng nhập quay lại đúng trang
- * này. Một nút gửi `POST` vào đường chưa tồn tại thì tệ hơn một nút nói thật
- * nó cần đăng nhập.
+ * Bản trước viết cứng một liên kết `/login` với nhãn "Đăng nhập để booking",
+ * kèm lý do: *"Khu người mua chưa chuyển sang Next … Một nút gửi `POST` vào
+ * đường chưa tồn tại thì tệ hơn một nút nói thật nó cần đăng nhập."*
+ *
+ * Nửa sau vẫn đúng và được giữ. Nửa đầu thì hết đúng: `POST /api/v2/cart/items`
+ * đã có, cùng origin, nhận thẳng `screen_slug`. Cái giá của việc không sửa là
+ * người **đã** đăng nhập — avatar hiện rõ ở thanh đầu — vẫn bị nút bảo đi
+ * đăng nhập, và không có cách nào đặt chỗ từ trang họ đang đứng.
+ *
+ * Nút nay nằm ở `NutThemVaoKeHoach`, dùng chung với hai nút của trang gói.
+ * Nhánh khách giữ nguyên từng chữ, và đó cũng là nhánh máy chủ render — xem
+ * docblock của component đó về vì sao trạng thái đăng nhập không được vào HTML
+ * đã cache.
+ *
+ * Ô **"Số màn hình"** không đi vào giỏ, và đó không phải sót:
+ * `CartService::estimateCost()` lấy `screen_count` từ
+ * `inventory->effective_screen_count` kèm chú thích "screen_count KHÔNG nhận
+ * từ client". Nên ô ấy chỉ đổi con số ước tính trên panel này. Nó là một lệch
+ * có sẵn mà việc nối nút làm lộ ra, và là một việc riêng.
  */
 
 type KieuBan = 'io' | 'cpm';
@@ -44,13 +61,8 @@ function tien(n: number, donVi: string): string {
     return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(n) + ' ' + donVi;
 }
 
-/** `YYYY-MM-DD` của hôm nay + n ngày, tính ở UTC để máy chủ và trình duyệt khớp. */
-function ngaySau(n: number): string {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() + n);
-
-    return d.toISOString().slice(0, 10);
-}
+/** Số ngày của cửa sổ CPM khi người mua không chọn khoảng. */
+const NGAY_CUA_SO_CPM = 30;
 
 export function PanelGia({ screen }: { screen: ScreenDetail }) {
     const ioRate = screen.pricing?.io_rate?.amount ?? 0;
@@ -90,6 +102,10 @@ export function PanelGia({ screen }: { screen: ScreenDetail }) {
     const conTrong = screen.availability?.remaining_sov_pct ?? 0;
     const soNgay = screen.availability?.window_days ?? 30;
     const duongDangNhap = `/login?next=${encodeURIComponent(`/explore/${screen.slug}`)}`;
+
+    // Trừ một ngày vì khoảng tính cả hai đầu mút — cùng lý do với
+    // `ngayKetThuc()`, xem docblock của `lib/ky-han.ts`.
+    const ngayKetThucCpm = congNgay(batDau, NGAY_CUA_SO_CPM - 1);
 
     if (!coGia) {
         return (
@@ -268,22 +284,46 @@ export function PanelGia({ screen }: { screen: ScreenDetail }) {
                 </div>
 
                 <div className="bp-ctas">
-                    <Link
-                        href={duongDangNhap}
-                        className="btn btn-p btn-lg"
-                        style={{
-                            width: '100%',
-                            justifyContent: 'center',
-                            borderRadius: 12,
-                            height: 52,
-                            textDecoration: 'none',
-                        }}
+                    <NutThemVaoKeHoach
+                        duongDangNhap={duongDangNhap}
+                        /*
+                         * Tính lúc bấm, không lúc render: ngày bắt đầu, kiểu
+                         * bán, số kỳ và số CPM đều là state người dùng đang
+                         * sửa.
+                         *
+                         * `duration_units` và `quantity` cố ý vắng — xem
+                         * docblock của `lib/gui-len-laravel.ts`. Máy chủ suy số kỳ từ
+                         * khoảng ngày, và `screen_count` nó lấy từ cấu hình
+                         * kho chứ không nhận từ client.
+                         */
+                        than={() =>
+                            kieu === 'cpm'
+                                ? {
+                                      screen_slug: screen.slug ?? '',
+                                      start_date: batDau,
+                                      // Panel CPM không hỏi khoảng ngày, nên
+                                      // dùng đúng cửa sổ mặc định của máy chủ
+                                      // (`CartService` cũng lấy +30 ngày khi
+                                      // thiếu). Khoảng này quyết định số CPM
+                                      // tối thiểu, nên tự chọn một cửa sổ ngắn
+                                      // hơn để "dễ qua" là lách chính phép
+                                      // kiểm đó.
+                                      end_date: ngayKetThucCpm,
+                                      pricing_model: 'cpm',
+                                      booked_cpms: soCpm,
+                                  }
+                                : {
+                                      screen_slug: screen.slug ?? '',
+                                      start_date: batDau,
+                                      end_date: ngayKetThuc(batDau, soKy, theoTuan),
+                                      pricing_model: 'io',
+                                  }
+                        }
                     >
                         <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true" style={{ width: 18, height: 18 }}>
                             <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                         </svg>{' '}
-                        Đăng nhập để booking
-                    </Link>
+                    </NutThemVaoKeHoach>
                 </div>
             </div>
 
