@@ -102,27 +102,79 @@ Lát này **không dựng gì trên VPS** và không cần quyết định nào 
 hiệu lực: `main` đứng ở `858edca`, và vì `deploy.yml:4-6` chỉ nghe `push` vào
 `main`, không lượt deploy nào có thể xảy ra nữa nếu không có một merge.
 
-## Lát 2 — Tham số hoá `deploy.sh`, và workflow cho dev
+## Lát 2 — Tham số hoá `deploy.sh`, và workflow cho dev ✅ 06/11/2026
 
-Ba biến, mỗi biến có mặc định bằng giá trị hiện tại:
+**Bốn** biến, không phải ba — biến thứ tư lộ ra khi viết: bước [11] gọi script
+root viết cứng đường dẫn production, nên một lượt deploy dev sẽ đồng bộ conf
+của production và chạy canary **vào** production. Tức dev có đường làm
+production đỏ. Phải có cờ bỏ qua tới khi lát 3 xong.
 
 ```sh
 APP_DIR="${OOHX_APP_DIR:-/www/wwwroot/dash.oohx.net}"
 BRANCH="${OOHX_BRANCH:-main}"
 SERVICE="${OOHX_SERVICE:-oohx-webapp}"
+SYNC="${OOHX_SYNC:-1}"
 ```
 
-Rồi thay bốn chỗ `oohx-webapp` viết cứng (`:514,579,586,597`) bằng `$SERVICE`.
-Không đổi gì khác trong script.
+Bốn chỗ `oohx-webapp` viết cứng đổi sang `$SERVICE`; bước [11] thêm nhánh
+`if [ "$SYNC" != "1" ]` **đứng trước** nhánh kiểm `-x "$SYNC_BIN"` (đảo thứ tự
+thì dev vẫn rơi vào đường gọi script của production). Header in thêm dòng
+`Service:`.
 
-`deploy-dev.yml` là bản sao của `deploy.yml` với bốn khác biệt:
+`deploy-dev.yml` khác `deploy.yml` ở bốn chỗ:
 
 | | `deploy.yml` | `deploy-dev.yml` |
 |---|---|---|
-| trigger | `push: [main]` | `workflow_dispatch` trước, `push: [dev]` sau khi VPS sẵn |
-| `concurrency.group` | `production-deploy` | **`vps-deploy`** — và `deploy.yml` cũng đổi sang `vps-deploy` |
-| `envs:` của ssh-action | `MAPTILER_*` | thêm `OOHX_APP_DIR,OOHX_BRANCH,OOHX_SERVICE` |
-| lệnh | `cd /www/wwwroot/dash.oohx.net; bash deploy.sh` | `cd /www/wwwroot/dev.oohx.net; bash deploy.sh` |
+| trigger | `push: [main]` | `workflow_dispatch` trước, `push: [dev]` sau khi lát 4 xong |
+| `concurrency` | group `production-deploy`, `cancel-in-progress: true` | **cùng chuỗi** `production-deploy`, `cancel-in-progress: false` |
+| `envs:` của ssh-action | `MAPTILER_*` | thêm cả bốn `OOHX_*` |
+| lệnh | `cd /www/wwwroot/dash.oohx.net` | `cd /www/wwwroot/dev.oohx.net` |
+
+**Đổi ý so với bản đầu của plan: không đổi tên `concurrency.group` thành
+`vps-deploy`.** Lý do là một quan sát về cách GitHub khoá: nó khoá theo **chuỗi**,
+không theo cái tên. `deploy.yml` nằm trên `main`, và với sự kiện `push` thì
+GitHub dùng tệp workflow **của nhánh được push** — nên đổi tên ở hai tệp chỉ có
+hiệu lực sau khi về `main`, tức sau khi mở băng. Dùng lại đúng chuỗi
+`production-deploy` thì ổ khoá có hiệu lực **ngay hôm nay**, không tốn một lượt
+deploy production nào để sửa một cái tên. Cái tên giờ hơi lệch nghĩa (nó là ổ
+khoá của cả VPS) và điều đó được ghi trong chú thích của cả hai tệp.
+
+**Chiều của việc huỷ có ý nghĩa, và nó phải đúng chiều.** GitHub đọc
+`cancel-in-progress` từ lượt chạy **đang vào hàng**, không phải lượt đang chạy:
+
+| Tình huống | Kết quả |
+|---|---|
+| dev vào khi production đang chạy | dev **xếp hàng đợi** (`false`) |
+| production vào khi dev đang chạy | production **huỷ** dev (`true`) |
+
+Nên production luôn thắng, và dev không bao giờ ngắt được một lượt deploy
+production đang giữa migration. Giá phải trả: một lượt deploy dev bị huỷ giữa
+đường có thể để dev nằm trong maintenance mode (bước [1] gọi `php artisan down`)
+— chữa bằng `php artisan up` trong thư mục dev rồi chạy lại.
+
+### Bộ thử: `tests/shell/thu-bien-moi-truong.sh` (29 ca)
+
+Cả bốn biến hỏng theo cùng một kiểu — **sai mà vẫn xanh** — nên không chiều nào
+tự làm CI đỏ. Bộ thử trích bốn dòng gán ra khỏi `deploy.sh` thật rồi source,
+và canh chín chiều:
+
+| Chiều | Bắt được gì |
+|---|---|
+| bộ trích không rỗng | một tệp rỗng làm mọi khẳng định khác xanh |
+| không tham số | mặc định phải **bằng đúng** production |
+| có tham số | cả bốn nhận được, không biến nào đè biến nào |
+| biến rỗng | rơi về mặc định, không thành chuỗi rỗng |
+| tên service | còn **một** lần `oohx-webapp` trong cả `deploy.sh` (dòng mặc định) |
+| nhánh bỏ qua | tồn tại, và đứng **trước** nhánh kiểm script root |
+| `env:` ↔ `envs:` | so **hai chiều**: khai mà không mang sang, và mang sang mà không khai |
+| `concurrency.group` | hai workflow cùng **chuỗi**, và dev khai `false` |
+| bộ test | dev gọi lại `tests.yml` và `needs: tests` |
+
+Ca đắt nhất là `env:` ↔ `envs:` hai chiều. Thiếu một tên trong `envs:` thì biến
+sống trong runner, máy chủ rơi về mặc định production, deploy báo **success** —
+cùng cái bẫy đã làm khóa MapTiler không tới production ngày 18/10/2026.
+
+`tests.yml` cũng thêm `dev` và `docs/**` vào `push:`.
 
 **Bẫy đã biết:** `appleboy/ssh-action` chỉ mang sang phiên SSH những biến có tên
 trong `envs:`. Thiếu tên trong danh sách đó thì biến sống trong runner, máy chủ
