@@ -34,7 +34,8 @@ jobs:
                    tests/shell/thu-kiem-conf.sh \
                    tests/shell/thu-dat-env.sh \
                    tests/shell/thu-nap-lai.sh \
-                   tests/shell/thu-don-cache.sh; do
+                   tests/shell/thu-don-cache.sh \
+                   tests/shell/thu-cho-next.sh; do
             bash -n "$f" && echo "OK  $f"
           done
 
@@ -97,6 +98,15 @@ jobs:
       # có gì trong repo để dựng lại ngay.
       - name: Phép kiểm cho hàm dọn cache Next
         run: bash tests/shell/thu-don-cache.sh
+
+      # `cho_next_het_qua_do()` đứng chắn trước canary ở MỌI lượt deploy, và
+      # hỏng theo hai chiều đều tệ: chờ quá ít thì quay lại lỗi 06/11/2026
+      # (canary gõ cửa Next 400ms sau `systemctl restart`, bốn đường 503,
+      # deploy đỏ trong khi production lên bình thường ngay sau đó); chờ quá
+      # nhiều thì một conf chưa dán ngốn trọn hạn chờ rồi báo nguyên nhân sai,
+      # và mỗi lượt deploy chậm thêm một phút.
+      - name: Phép kiểm cho hàm chờ Next.js nghe lại
+        run: bash tests/shell/thu-cho-next.sh
 
   # Trang công khai trên Next.js (giai đoạn 6).
   #
