@@ -590,6 +590,14 @@ const TRANG = [
             'sizes="(max-width: 767px) 50vw, 444px"',
             'anh-dan-xuat/w1280/screens/a.jpg 1280w',
 
+            // ── `nút booking theo phiên` (06/11/2026) ──
+            //
+            // HTML máy chủ phải là nhánh **khách**. Trang này cache 60 giây:
+            // render nhánh người mua vào HTML nghĩa là bản cache phát một nút
+            // "Thêm vào kế hoạch" cho khách vãng lai, bấm vào là 401. Nhánh
+            // người mua thay vào ở trình duyệt sau khi `/api/v2/me` trả lời.
+            'Đăng nhập để booking',
+
             // Lát 4 — bố cục hai cột và hàng số liệu
             'class="detail-layout"',
             'class="detail-sidebar"',
@@ -742,6 +750,12 @@ const TRANG = [
             'class="avail-grid"',
         ],
         khong: [
+            // `nút booking theo phiên` (06/11/2026): nhánh người mua KHÔNG
+            // được nằm trong HTML đã cache — xem chú thích ở `co` phía trên.
+            'Thêm vào kế hoạch',
+            'Đang thêm',
+            'Xem kế hoạch',
+
             // ── Lát 3, soát production 24/10/2026 ──
             //
             // React chèn `<!-- -->` giữa hai text node liền kề. `Th{m.thang}`
@@ -1222,6 +1236,18 @@ const TRANG = [
             'class="sc-l"',
             'class="sc-v"',
 
+            // ── `nút booking theo phiên` (06/11/2026) ──
+            //
+            // HTML máy chủ phải là nhánh **khách**, và đúng nhánh đó. Trang
+            // này cache 60 giây: render nhánh người mua vào HTML nghĩa là bản
+            // cache phát một nút "Thêm vào kế hoạch" cho khách vãng lai, bấm
+            // vào là 401 — cùng họ với cái bẫy `AuthState` đã ghi, nơi hậu quả
+            // là tên và email của người A hiện cho người B.
+            //
+            // Nhánh người mua thay vào ở trình duyệt sau khi `/api/v2/me` trả
+            // lời, nên nó không thể có mặt ở đây.
+            'Đăng nhập để booking',
+
             // Lát 7 — panel giá có TAB (fixture là `listing_mode: both`)
             'class="bp"',
             'class="bp-tabs"',
@@ -1260,6 +1286,12 @@ const TRANG = [
 
             // Mã loại gói lọt ra thay vì nhãn.
             '>package</span>',
+
+            // `nút booking theo phiên` (06/11/2026): nhánh người mua KHÔNG
+            // được nằm trong HTML đã cache — xem chú thích ở `co` phía trên.
+            'Thêm vào kế hoạch',
+            'Đang thêm',
+            'Xem kế hoạch',
         ],
     },
 ];

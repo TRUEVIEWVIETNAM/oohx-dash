@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import type { ProductDetail } from '@/lib/api';
+import { NutThemVaoKeHoach } from './NutThemVaoKeHoach';
 
 /**
  * Panel giá của trang gói sản phẩm, kèm danh sách màn hình chọn được.
@@ -34,10 +35,22 @@ import type { ProductDetail } from '@/lib/api';
  * `/api/v2/cart` trả về khi thêm vào kế hoạch. Cùng cách `PanelGia` của trang
  * màn hình (lát 4) làm.
  *
- * ══ Nút "Thêm vào Plan" dẫn tới `/login` ══
+ * ══ Nút "Thêm vào kế hoạch" — sửa 06/11/2026 ══
  *
- * Khu người mua chưa chuyển sang Next. Một nút `POST /cart/add` vào đường
- * chưa tồn tại tệ hơn một nút nói thật là nó cần đăng nhập.
+ * Bản trước viết cứng hai liên kết `/login` nhãn "Đăng nhập để booking", lý
+ * do: *"Khu người mua chưa chuyển sang Next. Một nút `POST /cart/add` vào
+ * đường chưa tồn tại tệ hơn một nút nói thật là nó cần đăng nhập."*
+ *
+ * Nguyên tắc vẫn đúng, tiền đề thì hết: đường đã tồn tại, và nó là
+ * `POST /api/v2/cart/items` chứ không phải `/cart/add` của Blade — cùng
+ * origin, cookie phiên Sanctum, nhận thẳng `product_slug` và
+ * `selected_screen_slugs`. Giữ nguyên nút cũ nghĩa là người đã đăng nhập vẫn
+ * bị bảo đi đăng nhập.
+ *
+ * Hai nút nay là `NutThemVaoKeHoach`, dùng chung với trang màn hình. Nhánh
+ * "Mua cả gói" gửi `buy_mode: 'package'`; nhánh "Chọn lẻ" gửi
+ * `buy_mode: 'individual'` kèm danh sách slug đã tick, và bị vô hiệu khi chưa
+ * tick ô nào.
  */
 
 type Kieu = 'package' | 'individual';
@@ -105,19 +118,25 @@ function PanelGiaGoi({
                 </div>
             ) : null}
 
-            <Link
-                href={duongDangNhap}
-                className="btn btn-p btn-lg"
-                style={{
-                    width: '100%',
-                    justifyContent: 'center',
-                    borderRadius: 12,
-                    height: 52,
-                    textDecoration: 'none',
-                }}
-            >
-                Đăng nhập để booking
-            </Link>
+            <NutThemVaoKeHoach
+                duongDangNhap={duongDangNhap}
+                voHieu={daChon.size === 0}
+                lyDoVoHieu="Chọn ít nhất một màn hình"
+                /*
+                 * `selected_screen_slugs` tính lúc bấm: `daChon` đổi mỗi lần
+                 * người dùng tick một ô ở cột trái.
+                 *
+                 * `AddToCartRequest::prepareForValidation()` quy đổi slug sang
+                 * id qua `Screen::publiclyVisible()`, nên một slug không công
+                 * khai rơi xuống `exists` và trả 422 có tên trường — không âm
+                 * thầm bỏ qua.
+                 */
+                than={() => ({
+                    product_slug: product.slug ?? '',
+                    buy_mode: 'individual',
+                    selected_screen_slugs: [...daChon],
+                })}
+            />
         </div>
     );
 
@@ -240,19 +259,21 @@ function PanelGiaGoi({
                         ) : null}
 
                         <div className="bp-body">
-                            <Link
-                                href={duongDangNhap}
-                                className="btn btn-p btn-lg"
-                                style={{
-                                    width: '100%',
-                                    justifyContent: 'center',
-                                    borderRadius: 12,
-                                    height: 52,
-                                    textDecoration: 'none',
-                                }}
-                            >
-                                Đăng nhập để booking
-                            </Link>
+                            <NutThemVaoKeHoach
+                                duongDangNhap={duongDangNhap}
+                                /*
+                                 * Mua cả gói: chỉ `product_slug` và `buy_mode`.
+                                 * Khoảng ngày là `nullable` ở nhánh sản phẩm
+                                 * của `AddToCartRequest`, nên không gửi — máy
+                                 * chủ đặt mặc định, và một khoảng ngày do
+                                 * panel bịa ra là một con số người mua chưa
+                                 * từng chọn.
+                                 */
+                                than={() => ({
+                                    product_slug: product.slug ?? '',
+                                    buy_mode: 'package',
+                                })}
+                            />
                         </div>
                     </div>
                 ) : null}

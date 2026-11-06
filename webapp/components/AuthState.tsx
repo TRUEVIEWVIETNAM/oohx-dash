@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePhien } from '@/lib/phien';
+import { layTokenCsrf } from '@/lib/gui-len-laravel';
 
 /**
  * Phần header phụ thuộc người đăng nhập, điền ở TRÌNH DUYỆT.
@@ -40,27 +41,24 @@ import { usePhien } from '@/lib/phien';
  * lại giá trị đó trong header `X-XSRF-TOKEN`. `VerifyCsrfToken` chấp nhận
  * header này bên cạnh `_token`.
  *
+ * Thủ tục ấy nay ở `lib/gui-len-laravel.ts`: từ 06/11/2026 nút "Thêm vào kế hoạch" cần
+ * đúng nó, và hai bản của một thủ tục bảo mật là thứ CLAUDE.md §1 cấm. Phần
+ * giải mã URL — thiếu nó thì 419, một lỗi trông y hệt "phiên hết hạn" — nằm
+ * trong tệp đó.
+ *
  * Cân nhắc đã bỏ: để nút này thành `<a href="/my/settings">` nhãn "Đăng xuất".
  * Nó chạy được theo nghĩa người dùng tới được chỗ đăng xuất, nhưng là một nhãn
  * nói sai việc nó làm — đúng loại lỗi audit F-15 vừa dọn khỏi trang công khai.
  * Thà làm đúng mười lăm dòng.
  */
 async function dangXuat(): Promise<void> {
-    await fetch('/sanctum/csrf-cookie', { credentials: 'include' });
-
-    const token = document.cookie
-        .split('; ')
-        .find((c) => c.startsWith('XSRF-TOKEN='))
-        ?.split('=')[1];
+    const token = await layTokenCsrf();
 
     await fetch('/logout', {
         method: 'POST',
         credentials: 'include',
         headers: {
-            // Laravel mã hoá giá trị cookie theo kiểu URL, nên phải giải mã
-            // trước khi gửi lại — gửi nguyên chuỗi đã mã hoá thì token không
-            // khớp và trả 419.
-            'X-XSRF-TOKEN': token ? decodeURIComponent(token) : '',
+            'X-XSRF-TOKEN': token,
             Accept: 'application/json',
         },
     });
