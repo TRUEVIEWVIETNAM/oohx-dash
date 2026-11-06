@@ -1046,6 +1046,59 @@ dung_conf "127.0.0.1:3002" "$D/khong-address" "$D/khong-address-dung"
 kd 'sed không tự thêm dòng address khi file không có' \
     "$(grep -c '^  address' "$D/khong-address-dung")" '0'
 
+# ── Thứ tự: thay → KIỂM → dán ──────────────────────────────────────────────
+#
+# Ba ca này canh ĐỊA CHỈ của ba lời gọi, không canh hành vi của hàm. Lý do:
+# `kiem_conf` vẫn đúng y nguyên nếu ai đó đưa nó `$REPO_CONF` thay vì
+# `$CONF_DAN` — nó sẽ từ chối file repo khi đồng bộ dev (đúng), và NHẬN file
+# repo khi đồng bộ production (cũng đúng, vì hai file giống nhau từng byte).
+# Nên một lượt deploy production vẫn xanh hết, và chỗ hỏng chỉ lộ ra ở dev.
+#
+# Cùng lẽ đó cho `cp` và `cmp`: dán file repo lên dev là dán conf cổng 3001
+# vào vhost của dev, và `cmp` so file repo thì nó báo "không đổi" ở dev trong
+# khi conf đang chạy mang cổng khác.
+kd 'phép kiểm chạy trên bản DỰNG' \
+    "$(grep -c 'kiem_conf "$CONF_DAN"' "$SRC")" '1'
+
+kd 'không còn phép kiểm nào chạy trên file repo' \
+    "$(grep -c 'kiem_conf "$REPO_CONF"' "$SRC")" '0'
+
+kd 'bản được dán là bản DỰNG' \
+    "$(grep -c 'cp "$CONF_DAN" "$PROXY_CONF"' "$SRC")" '1'
+
+kd 'bước [2] so bản DỰNG với bản đang chạy' \
+    "$(grep -c 'cmp -s "$CONF_DAN" "$PROXY_CONF"' "$SRC")" '1'
+
+# File tạm phải được xoá bằng mọi đường ra, kể cả đường `lui_lai` + `exit 1`.
+kd 'file tạm có trap xoá khi thoát' \
+    "$(grep -cE '^trap .*CONF_DAN.* EXIT$' "$SRC")" '1'
+
+# ── Thư mục rewrite của MỌI site đều bị bỏ qua ở bước [4] ──────────────────
+#
+# Cái bẫy của v3 qua một cửa mới, và nó KHÔNG hiện ra ở môi trường gây ra nó.
+# `urlrewrite-nextjs.conf:42` nhắc `127.0.0.1:3001` trong một dòng ghi chú, và
+# file ấy được dán y nguyên vào thư mục rewrite của cả hai site. Nên một lượt
+# đồng bộ PRODUCTION bắt được file rewrite của DEV, đưa nó qua `kiem_conf` —
+# phép kiểm dành cho conf proxy — rồi DỪNG. Dựng dev lên là làm production
+# thôi deploy được, trong khi không ai chạm gì vào production.
+RWB="$D/rw-bo-qua.sh"
+{
+    sed -n '/^SITE_CHO_PHEP=(/,/^)/p' "$SRC"
+    echo 'OLS_VHOST_DIR="/www/server/panel/vhost/openlitespeed"'
+    sed -n '/^RW_BO_QUA=()$/,/^done$/p' "$SRC"
+    echo 'printf "%s\\n" "${RW_BO_QUA[@]}"'
+} > "$RWB"
+
+kd 'trích được khối dựng danh sách bỏ qua' \
+    "$(bash -n "$RWB" >/dev/null 2>&1 && echo hop-le || echo hong)" 'hop-le'
+
+kd 'có MỘT thư mục rewrite bỏ qua cho mỗi site trong bảng' \
+    "$(bash "$RWB" 2>/dev/null | grep -c 'urlrewrite$')" \
+    "$(echo "$BANG" | wc -l | tr -d ' ')"
+
+kd 'thư mục rewrite của dev nằm trong danh sách bỏ qua' \
+    "$(bash "$RWB" 2>/dev/null | grep -c '/proxy/dev[.]oohx[.]net/urlrewrite$')" '1'
+
 echo
 echo "── tổng: $so_dung đúng, $so_sai sai ──"
 rm -rf "$D" "$TMP"
