@@ -1,0 +1,106 @@
+name: Deploy Laravel to VPS (dev)
+
+# Lượt deploy cho `dev.oohx.net` — môi trường thử, cùng VPS với production.
+# Xem `docs/PLAN-MOI-TRUONG-DEV.md`.
+#
+# ══ Vì sao chỉ `workflow_dispatch` ở lát 2 ══
+#
+# Đích `dev.oohx.net` chưa tồn tại: chưa có vhost, chưa có CSDL `dev_oohx_net`,
+# chưa có service `oohx-webapp-dev`, chưa có bản sao mã nguồn ở
+# `/www/wwwroot/dev.oohx.net`. Một trigger `push: [dev]` khai trước khi hạ tầng
+# tồn tại sẽ làm MỌI push vào `dev` đỏ, và một workflow đỏ thường trực là cách
+# nhanh nhất để người ta thôi đọc màu của CI.
+#
+# Đổi sang `push: [dev]` sau khi lát 4 (dựng hạ tầng) xong và lượt chạy tay đầu
+# tiên xanh.
+on:
+  workflow_dispatch:
+
+# ══ Ổ KHOÁ là CHUỖI, không phải cái tên ══
+#
+# `next build` là bước ngốn bộ nhớ nhất của cả đường deploy. Hai lượt build
+# trùng nhau trên MỘT máy thì cái chết vì thiếu bộ nhớ có thể rơi vào
+# production, không phải dev — nên chốt chặn phải cơ học, không phải kỷ luật.
+#
+# Chuỗi dưới đây PHẢI bằng đúng `concurrency.group` của `deploy.yml`. Nó đang
+# là `production-deploy`, và cái tên ấy giờ hơi lệch nghĩa — nó là ổ khoá của
+# cả VPS, không riêng production. Giữ nguyên chuỗi là có chủ ý: `deploy.yml`
+# nằm trên `main`, mà `main` đang đóng băng cho Sở kiểm tra. Đổi tên ở hai tệp
+# đòi một commit vào `main`, tức một lượt deploy production — trả bằng một
+# lượt deploy để sửa một cái tên là không đáng. GitHub khoá theo chuỗi; chuỗi
+# này đúng.
+#
+# ══ `cancel-in-progress: false` — và chiều của nó có ý nghĩa ══
+#
+# GitHub đọc cờ này từ lượt chạy ĐANG VÀO hàng, không phải lượt đang chạy. Nên:
+#
+#   - dev vào khi production đang chạy → dev XẾP HÀNG đợi (cờ này = false);
+#   - production vào khi dev đang chạy → production HUỶ dev
+#     (`deploy.yml` khai `cancel-in-progress: true`).
+#
+# Tức production luôn thắng, và dev không bao giờ ngắt được một lượt deploy
+# production đang chạy migration. Đó là chiều đúng.
+#
+# Giá của chiều đó: một lượt deploy dev bị huỷ giữa đường có thể để dev nằm
+# trong maintenance mode (bước [1] gọi `php artisan down`). Chữa bằng
+# `php artisan up` trong thư mục dev, rồi chạy lại workflow này.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  # Cùng bộ test, cùng mức khắt khe như production. Một môi trường thử không
+  # chạy test là một môi trường không nói được điều gì về `main`.
+  tests:
+    uses: ./.github/workflows/tests.yml
+
+  deploy:
+    needs: tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          # Khóa nền bản đồ: dùng chung với production. `deploy.sh` đồng bộ nó
+          # vào `.env` của thư mục đang deploy, nên khóa không chéo môi trường.
+          MAPTILER_KEY: ${{ secrets.MAPTILER_KEY }}
+          MAPTILER_STYLE: ${{ secrets.MAPTILER_STYLE }}
+
+          # Bốn tham số môi trường. `deploy.sh` có mặc định bằng đúng
+          # production cho cả bốn, nên THIẾU một biến ở đây không làm deploy
+          # đỏ — nó làm lượt deploy dev lặng lẽ chạy như production.
+          #
+          # `OOHX_BRANCH` là biến đáng sợ nhất trong bốn: thiếu nó thì máy chủ
+          # dev chạy `git reset --hard origin/main` ở bước [3], tức kéo
+          # production vào thư mục dev, và deploy vẫn xanh.
+          OOHX_APP_DIR: /www/wwwroot/dev.oohx.net
+          OOHX_BRANCH: dev
+          OOHX_SERVICE: oohx-webapp-dev
+
+          # `0` = bỏ qua bước [11]. Script root `oohx-sync-proxy` v9 viết cứng
+          # đường dẫn production, nên gọi nó từ đây là đồng bộ conf của
+          # production và chạy canary vào production. Đổi thành `1` sau khi v10
+          # đa-site lên (lát 3) và sudoers cấp quyền `--site dev.oohx.net`.
+          OOHX_SYNC: '0'
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+
+          # `envs` là danh sách TÊN biến được mang sang phiên SSH. Thiếu một
+          # tên ở đây thì biến tương ứng sống trong runner của GitHub, máy chủ
+          # không thấy gì, và deploy VẪN XANH. Đây là cùng cái bẫy đã làm khóa
+          # MapTiler không tới production hồi 18/10/2026.
+          envs: MAPTILER_KEY,MAPTILER_STYLE,OOHX_APP_DIR,OOHX_BRANCH,OOHX_SERVICE,OOHX_SYNC
+          script_stop: true
+
+          # `cd` lặp lại đường dẫn của `OOHX_APP_DIR` một lần nữa, có chủ ý:
+          # `deploy.sh` nằm TRONG thư mục được deploy, nên phải tới đúng thư
+          # mục mới gọi được bản script của nhánh đó. Hai chỗ này lệch nhau là
+          # chạy script của môi trường A trên thư mục của môi trường B.
+          script: |
+            set -e
+            cd /www/wwwroot/dev.oohx.net
+            bash deploy.sh

@@ -215,8 +215,41 @@
 set -e
 trap 'php artisan up || true' ERR
 
-APP_DIR="/www/wwwroot/dash.oohx.net"
-BRANCH="main"
+# ══ Bốn tham số môi trường, mặc định BẰNG ĐÚNG production ══
+#
+# Từ 06/11/2026 script này chạy cho hai môi trường — `oohx.net` trên nhánh
+# `main` và `dev.oohx.net` trên nhánh `dev`. Xem `docs/PLAN-MOI-TRUONG-DEV.md`.
+#
+# Mọi biến có mặc định bằng giá trị đang chạy trên production, nên gọi
+# `bash deploy.sh` không tham số phải cho ra hành vi y như trước lát này. Đó
+# không phải sự thận trọng chung: script này thay toàn bộ mã nguồn và chạy
+# migration trên CSDL production.
+#
+# ══ Bẫy: biến không tới được máy chủ thì deploy VẪN XANH ══
+#
+# `appleboy/ssh-action` chỉ mang sang phiên SSH những biến có TÊN trong danh
+# sách `envs:`. Thiếu tên ở đó thì biến sống trong runner của GitHub, máy chủ
+# không thấy gì, và không lỗi nào được ghi — đúng cái bẫy `deploy.yml` đã ghi
+# lại cho khóa MapTiler.
+#
+# Với `OOHX_BRANCH` thì hậu quả nặng hơn một khóa bản đồ: máy chủ dev sẽ lặng
+# lẽ `git reset --hard origin/main` ở bước [3], tức KÉO PRODUCTION VÀO THƯ MỤC
+# DEV. Nên dòng `Branch :` in ngay dưới đây không phải để trang trí — nó là
+# chỗ duy nhất phát hiện chuyện đó.
+APP_DIR="${OOHX_APP_DIR:-/www/wwwroot/dash.oohx.net}"
+BRANCH="${OOHX_BRANCH:-main}"
+SERVICE="${OOHX_SERVICE:-oohx-webapp}"
+
+# Bước [11] gọi script root `oohx-sync-proxy`, và bản v9 của nó viết cứng
+# đường dẫn production: `REPO_ROOT`, `detail/oohx.net.conf`, cổng 3001, và bốn
+# lần `--resolve oohx.net` ở canary. Gọi nó từ lượt deploy của dev sẽ đồng bộ
+# conf của PRODUCTION và chạy canary vào production — không phải việc của dev,
+# và là một đường để một lượt deploy dev làm production đỏ.
+#
+# Nên tới khi v10 đa-site lên (lát 3 của plan), dev đặt `OOHX_SYNC=0` và bỏ
+# qua hẳn bước đó; vhost của dev quản bằng tay. Production không đặt gì.
+SYNC="${OOHX_SYNC:-1}"
+
 PHP_BIN="php"
 COMPOSER_BIN="composer"
 
@@ -228,6 +261,7 @@ echo "=============================="
 echo "User   : $(whoami)"
 echo "Path   : $(pwd)"
 echo "Branch : $BRANCH"
+echo "Service: $SERVICE"
 
 echo ""
 echo "[1/11] Enable maintenance mode"
@@ -511,9 +545,9 @@ echo "[10/11] Build app Next.js — chỉ khi service đã được dựng"
 #
 # Điều kiện là sự tồn tại của unit systemd, không phải sự tồn tại của thư mục:
 # thư mục luôn có (nó nằm trong repo), còn unit chỉ có khi ai đó đã cố ý bật.
-if [ -f /etc/systemd/system/oohx-webapp.service ]; then
+if [ -f "/etc/systemd/system/$SERVICE.service" ]; then
     if ! command -v npm >/dev/null 2>&1; then
-        echo "LỖI: service oohx-webapp đã cài nhưng không có npm để build."
+        echo "LỖI: service $SERVICE đã cài nhưng không có npm để build."
         exit 1
     fi
 
@@ -576,16 +610,16 @@ if [ -f /etc/systemd/system/oohx-webapp.service ]; then
     # đã đổi là đúng loại lỗi âm thầm mà bước [5] vừa được thêm để chặn cho
     # asset của Laravel. `trap ... ERR` ở đầu file vẫn đưa ứng dụng trở lại
     # online, nên trang không bị tắt.
-    if ! sudo -n systemctl restart oohx-webapp 2>/dev/null; then
-        echo "LỖI: build xong nhưng KHÔNG restart được oohx-webapp."
+    if ! sudo -n systemctl restart "$SERVICE" 2>/dev/null; then
+        echo "LỖI: build xong nhưng KHÔNG restart được $SERVICE."
         echo "     Service vẫn đang chạy bản build CŨ."
         echo ""
         echo "     Nguyên nhân thường gặp: user $(whoami) không được phép"
         echo "     restart unit đó mà không cần mật khẩu. Cấp đúng một quyền đó:"
         echo ""
-        echo "       echo '$(whoami) ALL=(root) NOPASSWD: /usr/bin/systemctl restart oohx-webapp' \\"
-        echo "         > /etc/sudoers.d/oohx-webapp-restart"
-        echo "       chmod 440 /etc/sudoers.d/oohx-webapp-restart"
+        echo "       echo '$(whoami) ALL=(root) NOPASSWD: /usr/bin/systemctl restart $SERVICE' \\"
+        echo "         > /etc/sudoers.d/$SERVICE-restart"
+        echo "       chmod 440 /etc/sudoers.d/$SERVICE-restart"
         echo "       visudo -c"
         echo ""
         echo "     Phạm vi hẹp có chủ ý: đúng MỘT lệnh, đúng MỘT unit."
@@ -594,7 +628,7 @@ if [ -f /etc/systemd/system/oohx-webapp.service ]; then
 
     echo "Next.js : đã build và restart"
 else
-    echo "Bỏ qua: /etc/systemd/system/oohx-webapp.service chưa tồn tại."
+    echo "Bỏ qua: /etc/systemd/system/$SERVICE.service chưa tồn tại."
     echo "        Trang công khai vẫn do Laravel phục vụ toàn bộ."
 fi
 
@@ -637,7 +671,14 @@ SYNC_SRC="docs/deploy/nextjs-proxy/oohx-sync-proxy.sh"
 # vẫn nằm nguyên ở đó.
 #
 # Nên thông báo dưới đây nói đúng cái quan sát được, và để ngỏ khả năng kia.
-if [ ! -x "$SYNC_BIN" ]; then
+if [ "$SYNC" != "1" ]; then
+    # Môi trường này không quản vhost. Xem chú thích ở `SYNC=` đầu file: script
+    # root v9 viết cứng đường dẫn production, nên gọi nó từ dev là đồng bộ conf
+    # của production và chạy canary vào production.
+    echo "Bỏ qua đồng bộ: OOHX_SYNC=$SYNC — môi trường này không quản vhost."
+    echo "       Cấu hình proxy của nó dựng bằng tay một lần."
+    echo "       Xem docs/PLAN-MOI-TRUONG-DEV.md (lát 3: script root đa-site)."
+elif [ ! -x "$SYNC_BIN" ]; then
     echo "Bỏ qua đồng bộ: $SYNC_BIN không chạy được từ user $(whoami)."
     echo "       (chưa cài, hoặc đã cài mà user này không thấy — hai thứ khác nhau)"
     echo "       Repo đang khai $(grep -cE '^context ' docs/deploy/nextjs-proxy/nextjs.conf) context."
