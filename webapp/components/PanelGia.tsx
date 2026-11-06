@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import type { ScreenDetail } from '@/lib/api';
+import { congNgay, ngayKetThuc, ngaySau } from '@/lib/ky-han';
 import { NutThemVaoKeHoach } from './NutThemVaoKeHoach';
 
 /**
@@ -60,60 +61,8 @@ function tien(n: number, donVi: string): string {
     return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(n) + ' ' + donVi;
 }
 
-/** `YYYY-MM-DD` của hôm nay + n ngày, tính ở UTC để máy chủ và trình duyệt khớp. */
-function ngaySau(n: number): string {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() + n);
-
-    return d.toISOString().slice(0, 10);
-}
-
 /** Số ngày của cửa sổ CPM khi người mua không chọn khoảng. */
 const NGAY_CUA_SO_CPM = 30;
-
-/**
- * Ngày kết thúc của `soKy` kỳ kể từ `batDau`, theo đúng cách máy chủ đếm kỳ.
- *
- * ══ Vì sao trừ một ngày ══
- *
- * `BillablePeriodCalculator::calendarMonths()` đếm mỗi kỳ là
- * `[mốc, mốc + 1 tháng - 1 ngày]`, và docblock của nó nêu thẳng ví dụ:
- * *"15/01 – 14/02 = 1 kỳ. 15/01 – 15/02 = 2 kỳ."* Gửi `end = start + n tháng`
- * tròn trĩnh là tự khai thêm một kỳ, tức **trả tiền gấp đôi cho tháng cuối**
- * ở một đơn một kỳ. Nhánh tuần cũng vậy: `ceil(days / 7)` với `days` tính cả
- * hai đầu mút.
- *
- * Tính ở UTC, cùng lý do `ngaySau()`: hai bên phải đọc ra cùng một ngày lịch.
- * `setUTCMonth` của JS tự tràn (31/01 + 1 tháng = 02/03) trong khi máy chủ
- * dùng `addMonthsNoOverflow` (→ 28/02), nên bước lùi về cuối tháng đích là
- * bắt buộc, không phải làm đẹp.
- */
-function ngayKetThuc(batDau: string, soKy: number, theoTuan: boolean): string {
-    const d = new Date(`${batDau}T00:00:00Z`);
-
-    if (Number.isNaN(d.getTime())) return batDau;
-
-    if (theoTuan) {
-        d.setUTCDate(d.getUTCDate() + soKy * 7 - 1);
-
-        return d.toISOString().slice(0, 10);
-    }
-
-    const ngayGoc = d.getUTCDate();
-
-    d.setUTCDate(1);
-    d.setUTCMonth(d.getUTCMonth() + soKy);
-
-    // Tháng đích ngắn hơn: 31/01 + 1 tháng phải là 28/02, không phải 02/03.
-    const ngayCuoiThangDich = new Date(
-        Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0),
-    ).getUTCDate();
-
-    d.setUTCDate(Math.min(ngayGoc, ngayCuoiThangDich));
-    d.setUTCDate(d.getUTCDate() - 1);
-
-    return d.toISOString().slice(0, 10);
-}
 
 export function PanelGia({ screen }: { screen: ScreenDetail }) {
     const ioRate = screen.pricing?.io_rate?.amount ?? 0;
@@ -154,15 +103,9 @@ export function PanelGia({ screen }: { screen: ScreenDetail }) {
     const soNgay = screen.availability?.window_days ?? 30;
     const duongDangNhap = `/login?next=${encodeURIComponent(`/explore/${screen.slug}`)}`;
 
-    const ngayKetThucCpm = useMemo(() => {
-        const d = new Date(`${batDau}T00:00:00Z`);
-
-        if (Number.isNaN(d.getTime())) return batDau;
-
-        d.setUTCDate(d.getUTCDate() + NGAY_CUA_SO_CPM - 1);
-
-        return d.toISOString().slice(0, 10);
-    }, [batDau]);
+    // Trừ một ngày vì khoảng tính cả hai đầu mút — cùng lý do với
+    // `ngayKetThuc()`, xem docblock của `lib/ky-han.ts`.
+    const ngayKetThucCpm = congNgay(batDau, NGAY_CUA_SO_CPM - 1);
 
     if (!coGia) {
         return (

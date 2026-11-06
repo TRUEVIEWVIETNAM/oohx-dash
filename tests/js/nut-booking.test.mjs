@@ -48,6 +48,7 @@ const PANEL_MAN_HINH = 'webapp/components/PanelGia.tsx';
 const PANEL_GOI = 'webapp/components/PanelGiaGoi.tsx';
 
 const { themVaoGio } = await import('../../webapp/lib/gui-len-laravel.ts');
+const { ngayKetThuc, congNgay } = await import('../../webapp/lib/ky-han.ts');
 
 // ── Khung giả cho trình duyệt ───────────────────────────────────────────────
 
@@ -259,6 +260,63 @@ test('mạng hỏng ra mã riêng chứ không giả vờ là lỗi dữ liệu'
 
     assert.equal(kq.ok, false);
     assert.equal(kq.ma, 'mang');
+});
+
+// ── Ngày kết thúc: một ngày lệch là tiền gấp đôi ────────────────────────────
+
+test('ngày kết thúc theo tháng khớp đúng ví dụ của máy chủ', () => {
+    // Nguyên văn docblock `BillablePeriodCalculator::calendarMonths()`:
+    // "15/01 – 14/02 = 1 kỳ. 15/01 – 15/02 = 2 kỳ."
+    //
+    // Nên một kỳ kể từ 15/01 phải kết thúc 14/02. Dôi một ngày là máy chủ đếm
+    // hai kỳ và người mua trả tiền hai tháng cho một đơn một tháng — không
+    // ngoại lệ nào, không cảnh báo nào.
+    assert.equal(ngayKetThuc('2026-01-15', 1, false), '2026-02-14');
+    assert.equal(ngayKetThuc('2026-01-01', 6, false), '2026-06-30');
+    assert.equal(ngayKetThuc('2026-01-01', 12, false), '2026-12-31');
+});
+
+test('tháng đích ngắn hơn thì kẹp về cuối tháng, không tràn', () => {
+    // Máy chủ dùng `addMonthsNoOverflow`: 31/01 + 1 tháng = 28/02.
+    // `setUTCMonth` của JS thì tràn sang 02/03 hoặc 03/03.
+    assert.equal(ngayKetThuc('2026-01-31', 1, false), '2026-02-27');
+    assert.equal(ngayKetThuc('2028-01-31', 1, false), '2028-02-28', 'Năm nhuận có 29/02.');
+    assert.equal(ngayKetThuc('2026-03-31', 1, false), '2026-04-29');
+});
+
+test('ngày kết thúc theo tuần đếm cả hai đầu mút', () => {
+    // `ioUnits` nhánh tuần là `ceil(days / 7)` với `days` tính cả hai đầu, nên
+    // một tuần từ 10/11 phải hết ngày 16/11 — 17/11 đã là tuần thứ hai.
+    assert.equal(ngayKetThuc('2026-11-10', 1, true), '2026-11-16');
+    assert.equal(ngayKetThuc('2026-11-10', 4, true), '2026-12-07');
+});
+
+test('phép tính ngày không đổi theo múi giờ của máy chạy', () => {
+    // Ngày bắt đầu/kết thúc là ngày theo **lịch**. CI chạy ở UTC nên một phép
+    // tính bằng giờ địa phương vẫn xanh ở đó và sai trên máy người dùng.
+    const truoc = process.env.TZ;
+
+    try {
+        process.env.TZ = 'Pacific/Honolulu'; // UTC−10
+        assert.equal(ngayKetThuc('2026-01-15', 1, false), '2026-02-14');
+        assert.equal(congNgay('2026-01-15', 29), '2026-02-13');
+
+        process.env.TZ = 'Pacific/Kiritimati'; // UTC+14
+        assert.equal(ngayKetThuc('2026-01-15', 1, false), '2026-02-14');
+        assert.equal(congNgay('2026-01-15', 29), '2026-02-13');
+    } finally {
+        if (truoc === undefined) delete process.env.TZ;
+        else process.env.TZ = truoc;
+    }
+});
+
+test('ngày không hợp lệ trả về nguyên chuỗi vào, không trả Invalid Date', () => {
+    // Ô `<input type="date">` để trống cho chuỗi rỗng. Một `end_date` bằng
+    // "Invalid Date" hay "NaN-NaN-NaN" đi lên máy chủ sẽ thành 422 có tên
+    // trường — nhưng tên trường đó trỏ vào `end_date`, trong khi chỗ người
+    // dùng cần sửa là ô ngày bắt đầu.
+    assert.equal(ngayKetThuc('', 1, false), '');
+    assert.equal(congNgay('khong-phai-ngay', 5), 'khong-phai-ngay');
 });
 
 // ── Bất biến trên mã giao diện ──────────────────────────────────────────────
