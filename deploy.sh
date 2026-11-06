@@ -250,6 +250,23 @@ SERVICE="${OOHX_SERVICE:-oohx-webapp}"
 # qua hẳn bước đó; vhost của dev quản bằng tay. Production không đặt gì.
 SYNC="${OOHX_SYNC:-1}"
 
+# ══ Biến thứ năm, và mặc định của nó là RỖNG — không phải "oohx.net" ══
+#
+# Script root `oohx-sync-proxy` từ v10 nhận `--site <tên>` để chọn site. Nhưng
+# dòng sudoers của production kết thúc bằng `""`, và trong sudoers đó nghĩa là
+# "đúng không đối số nào". Nên gọi `--site oohx.net` — tên hoàn toàn đúng — sẽ
+# bị **sudo** từ chối trước khi script chạy một dòng nào. Mỗi tổ hợp đối số
+# cần một dòng sudoers riêng của nó.
+#
+# Vì vậy mặc định là rỗng, và rỗng nghĩa là gọi KHÔNG đối số, y như `deploy.sh`
+# vẫn gọi từ bản đầu. Môi trường nào cần `--site` thì khai tên ở đây VÀ phải
+# có dòng sudoers của riêng nó trên VPS (lát 4 của PLAN-MOI-TRUONG-DEV.md).
+#
+# Đặt "oohx.net" làm mặc định ở đây là đổi cách gọi của production thành một
+# dạng mà sudoers hiện có từ chối — tức làm đỏ bước [11] ở mọi lượt deploy
+# production, trong khi không có gì sai về nội dung.
+PROXY_SITE="${OOHX_SITE:-}"
+
 PHP_BIN="php"
 COMPOSER_BIN="composer"
 
@@ -662,6 +679,24 @@ echo "[11/11] Đồng bộ cấu hình proxy OpenLiteSpeed"
 SYNC_BIN="/usr/local/sbin/oohx-sync-proxy"
 SYNC_SRC="docs/deploy/nextjs-proxy/oohx-sync-proxy.sh"
 
+# ══ Lệnh sudoers phải khớp ĐÚNG tổ hợp đối số sẽ gọi ══
+#
+# Đó là cả giá trị của cơ chế: sudoers so khớp cả đối số, nên một dòng cấp
+# quyền cho `--site dev.oohx.net` KHÔNG cấp quyền cho `--site oohx.net`. Dev
+# không mượn được quyền của production và ngược lại.
+#
+# Hai môi trường dùng HAI FILE sudoers khác nhau, không phải hai dòng trong
+# một file: lệnh gợi ý dưới đây ghi bằng `>`, nên hai dòng trong một file thì
+# dòng thứ hai xoá dòng thứ nhất. Và gỡ quyền của dev khi đó là xoá một file,
+# không phải sửa một dòng trong file mà production đang dựa vào.
+if [ -n "$PROXY_SITE" ]; then
+    SUDOERS_LENH="$SYNC_BIN --site $PROXY_SITE"
+    SUDOERS_TEP="/etc/sudoers.d/oohx-sync-proxy-$PROXY_SITE"
+else
+    SUDOERS_LENH="$SYNC_BIN \"\""
+    SUDOERS_TEP="/etc/sudoers.d/oohx-sync-proxy"
+fi
+
 # `-x` nói "không chạy được từ user này", KHÔNG nói "không tồn tại".
 #
 # Phân biệt đó quan trọng, và bản trước làm sai đúng chỗ này: câu cũ khẳng định
@@ -688,14 +723,15 @@ elif [ ! -x "$SYNC_BIN" ]; then
     echo "         install -o root -g root -m 0755 \\"
     echo "             $(pwd)/$SYNC_SRC \\"
     echo "             $SYNC_BIN"
-    echo "         echo '$(whoami) ALL=(root) NOPASSWD: $SYNC_BIN \"\"' \\"
-    echo "             > /etc/sudoers.d/oohx-sync-proxy"
-    echo "         chmod 440 /etc/sudoers.d/oohx-sync-proxy"
+    echo "         echo '$(whoami) ALL=(root) NOPASSWD: $SUDOERS_LENH' \\"
+    echo "             > $SUDOERS_TEP"
+    echo "         chmod 440 $SUDOERS_TEP"
     echo "         visudo -c"
     echo ""
-    echo "       Hai dấu nháy rỗng ở cuối KHÔNG phải lỗi gõ: trong sudoers, một"
-    echo "       lệnh không kèm đối số nghĩa là CHO PHÉP MỌI ĐỐI SỐ. Dấu \"\" là"
-    echo "       cách viết 'đúng không đối số nào'."
+    echo "       Phần đuôi của dòng sudoers phải khớp ĐÚNG tổ hợp đối số sẽ gọi."
+    echo "       Trong sudoers, một lệnh không kèm đối số nghĩa là CHO PHÉP MỌI"
+    echo "       ĐỐI SỐ — nên \"\" là cách viết 'đúng không đối số nào', và nó"
+    echo "       KHÔNG phải lỗi gõ."
     echo "       Chi tiết và ranh giới quyền: docs/deploy/nextjs-proxy/README.md"
 else
     # ══ Bản đã cài KHÔNG tự cập nhật theo repo ══
@@ -716,23 +752,39 @@ else
         echo "            install -o root -g root -m 0755 $(pwd)/$SYNC_SRC $SYNC_BIN"
     fi
 
-    if sudo -n "$SYNC_BIN"; then
-        echo "Proxy  : đã đồng bộ (script root v$ban_cai)."
+    # ══ MẢNG, không phải chuỗi ══
+    #
+    # `sudo -n "$SYNC_BIN" "$DOI_SO"` với `$DOI_SO` rỗng là truyền MỘT đối số
+    # rỗng, không phải không đối số nào. Script root đếm `$#`, nên nó sẽ thấy
+    # một đối số và thoát 64 — và sudoers của production cũng từ chối trước
+    # đó. Một mảng rỗng thì bung ra thành không gì cả, đúng điều cần.
+    SYNC_ARGS=()
+    if [ -n "$PROXY_SITE" ]; then
+        SYNC_ARGS=(--site "$PROXY_SITE")
+    fi
+
+    if sudo -n "$SYNC_BIN" "${SYNC_ARGS[@]}"; then
+        echo "Proxy  : đã đồng bộ (script root v$ban_cai${PROXY_SITE:+, site $PROXY_SITE})."
     else
         ma_loi=$?
         echo ""
 
-        if [ "$ma_loi" -eq 1 ] && ! sudo -n -l "$SYNC_BIN" >/dev/null 2>&1; then
+        # Phép dò quyền mang ĐÚNG đối số của lời gọi thật. sudoers so khớp cả
+        # đối số, nên dò không-đối-số sẽ báo "không có quyền" trên dev dù dev
+        # có quyền cho đúng --site của nó — tức một chẩn đoán sai in ra ở đúng
+        # lúc người đọc cần log nói thật.
+        if [ "$ma_loi" -eq 1 ] && ! sudo -n -l "$SYNC_BIN" "${SYNC_ARGS[@]}" >/dev/null 2>&1; then
             echo "LỖI: chưa có quyền sudo cho $SYNC_BIN."
             echo ""
             echo "     Cấp một lần, chạy AS ROOT:"
-            echo "       echo '$(whoami) ALL=(root) NOPASSWD: $SYNC_BIN \"\"' \\"
-            echo "           > /etc/sudoers.d/oohx-sync-proxy"
-            echo "       chmod 440 /etc/sudoers.d/oohx-sync-proxy"
+            echo "       echo '$(whoami) ALL=(root) NOPASSWD: $SUDOERS_LENH' \\"
+            echo "           > $SUDOERS_TEP"
+            echo "       chmod 440 $SUDOERS_TEP"
             echo "       visudo -c"
             echo ""
-            echo "     Hai dấu nháy rỗng ở cuối là 'đúng không đối số nào' —"
-            echo "     thiếu chúng thì sudoers cho phép MỌI đối số."
+            echo "     Đuôi dòng phải khớp ĐÚNG tổ hợp đối số: $SUDOERS_LENH"
+            echo "     Một lệnh không kèm đối số trong sudoers cho phép MỌI đối số,"
+            echo "     nên \"\" là cách viết 'đúng không đối số nào'."
         else
             echo "LỖI: $SYNC_BIN thoát với mã $ma_loi — xem log của nó ở trên."
             echo "     Script tự lùi lại khi canary đỏ, nên định tuyến đang là bản"
