@@ -91,16 +91,42 @@ class PurchaseEligibilityService
             ->with('inventory')
             ->get();
 
-        $this->deny(
-            $productScreens->isEmpty(),
-            "Sản phẩm \"{$product->name}\" chưa có màn hình nào để bán."
-        );
-
         if ($buyMode === 'package') {
-            // Mua cả gói: tập màn hình là toàn bộ thành phần của gói, không nhận
-            // danh sách do client gửi.
+            /*
+             * Mua cả gói: tập màn hình là toàn bộ thành phần của gói, không
+             * nhận danh sách do client gửi.
+             *
+             * ══ Gói rỗng vẫn vào giỏ được — chủ dự án chốt 06/11/2026 ══
+             *
+             * Trước đây một `deny($productScreens->isEmpty())` đứng ngay trên
+             * khối này và chặn **cả hai** nhánh. Nó chặn đúng về nghiệp vụ,
+             * nhưng kho đang có gói công khai chưa gắn màn hình nào — ví dụ
+             * `man-hinh-quang-cao-aeon-mall-tan-phu` khai `total_units: 4`
+             * trong khi quan hệ `screens` trống — nên nút đặt chỗ của trang
+             * gói không bấm được.
+             *
+             * Chủ dự án chốt cho thêm vào giỏ, sau khi đã nghe cái giá của nó:
+             * `BundleExpander::productTotal()` ở nhánh `package` trả thẳng
+             * `floor_price` mà **không đọc màn hình nào**, nên dòng giỏ mang
+             * đủ số tiền của gói trong khi không giữ chỗ ở đâu cả.
+             *
+             * Hàng rào vì thế chuyển xuống bước **chốt đơn**:
+             * `CampaignService::createProductLines()` từ chối một gói không
+             * mở ra được dòng đặt chỗ nào. Đó là chỗ muộn nhất còn chặn được,
+             * và là chỗ duy nhất biết chắc tập màn hình lúc trả tiền — giữa
+             * lúc thêm giỏ và lúc chốt đơn owner có thể đã gắn thêm hoặc gỡ
+             * hết màn hình khỏi gói.
+             */
             $screens = $productScreens;
         } else {
+            // Mua lẻ thì danh sách rỗng vẫn là lỗi, và nói đúng lý do: người
+            // mua chọn từng màn hình nên một gói trống là ngõ cụt ngay tại
+            // chỗ, không phải thứ để họ phát hiện ở bước thanh toán.
+            $this->deny(
+                $productScreens->isEmpty(),
+                "Sản phẩm \"{$product->name}\" chưa có màn hình nào để bán."
+            );
+
             $selectedIds = array_values(array_unique($selectedIds ?? []));
 
             $this->deny(empty($selectedIds), 'Chưa chọn màn hình nào.');

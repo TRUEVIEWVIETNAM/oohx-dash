@@ -344,6 +344,34 @@ class CampaignService
         // Dùng CHUNG `productTotal` với lúc thêm giỏ và sửa giỏ: ba nơi tính
         // ba kiểu là lý do guard này từng báo đổi giá khi không ai đổi gì
         // (Codex R28).
+        /*
+         * Gói không mở ra được dòng nào thì DỪNG ở đây — chốt 06/11/2026.
+         *
+         * Từ cùng ngày, một gói chưa gắn màn hình nào vẫn vào giỏ được (xem
+         * `PurchaseEligibilityService::resolveProductScreens`). Giỏ là chỗ
+         * chứa dự định, còn đây là chỗ tiền đổi chủ, nên hàng rào nằm ở đây.
+         *
+         * Thiếu nó thì hỏng **im lặng**, không phải ồn ào:
+         * `productTotal()` ở nhánh `package` trả `floor_price` không đọc màn
+         * hình nào, nên guard "giá vừa thay đổi" ngay dưới đây vẫn khớp;
+         * `splitCost()` gọi `splitVnd($total, [])`, và hàm đó trả `[]` cho
+         * mảng rỗng chứ không chia cho 0. Vòng lặp dưới không chạy lần nào.
+         * Kết quả là một `BookingLineBundle` ghi đủ số tiền của gói, với
+         * `snapshot.screens = []` và **không một `BookingLine` nào** — một
+         * hóa đơn không có vị trí nào để phát sóng, và không có ngoại lệ nào
+         * để lần ra.
+         *
+         * 422 chứ không 409: 409 ở dưới nói "giá vừa đổi, xem lại giỏ", còn
+         * đây là một gói chưa bán được — xem lại giỏ không sửa được gì.
+         */
+        if ($screens->isEmpty()) {
+            throw new HttpException(422, sprintf(
+                'Gói "%s" hiện chưa có vị trí nào, nên chưa chốt đơn được. '
+                . 'Vui lòng bỏ gói này khỏi kế hoạch hoặc liên hệ với chúng tôi để được báo giá.',
+                $product->name,
+            ));
+        }
+
         $expected = $expander->productTotal($product, $buyMode, $screens);
 
         if ($expected !== $totalVnd) {
