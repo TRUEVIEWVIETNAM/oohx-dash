@@ -639,8 +639,16 @@ mkdir -p "$N"
 
 {
     sed -n '/^kiem_nen() {/,/^}/p' "$SRC"
+    # Từ v9 `kiem_nen` gọi tiếp `cho_next_het_qua_do`. Thiếu hàm đó ở đây thì
+    # mọi ca dưới đây đỏ với "command not found" — và đó là cách bộ thử này
+    # báo rằng hợp đồng của `kiem_nen` vừa đổi, chứ không phải một lỗi vặt.
+    # Hành vi riêng của hàm mới có bộ thử của nó: `tests/shell/thu-cho-next.sh`.
+    sed -n '/^cho_next_het_qua_do() {/,/^}/p' "$SRC"
 } > "$TMP.nn"
 bash -n "$TMP.nn" || { echo "HAM kiem_nen TRICH RA KHONG HOP LE"; exit 1; }
+
+grep -q 'cho_next_het_qua_do' "$TMP.nn" \
+    || { echo "kiem_nen KHONG CON CHO NEXT — xem tests/shell/thu-cho-next.sh"; exit 1; }
 
 thu_nen() {
     local ten="$1" mong_doi="$2" ket_qua
@@ -667,6 +675,19 @@ ma() { echo 403; }
 thu_nen nen-403-host-khong-khop-vhost  do
 ma() { echo 404; }
 thu_nen nen-404-sitemap-mat            do
+
+# Hợp đồng mới của `kiem_nen` từ v9: nền xanh THÔI chưa đủ.
+#
+# `/sitemap.xml` do Laravel sinh, nên nó 200 cả khi Next.js chưa nghe lại sau
+# `systemctl restart` — đúng tình huống 06/11/2026, nơi canary đọc 503 ở bốn
+# đường rồi làm đỏ một deploy hoàn toàn đúng. Hạn chờ để 2 giây và `sleep` để
+# thật: hai nhịp là đủ chứng minh, và một `sleep` giả sẽ làm đồng hồ đứng im
+# rồi treo vòng lặp.
+ma() { case "$1" in /sitemap.xml) echo 200 ;; *) echo 503 ;; esac; }
+CHO_NEXT_GIAY=2 thu_nen nen-200-nhung-next-503-mai  do
+
+ma() { case "$1" in /sitemap.xml) echo 200 ;; *) echo 404 ;; esac; }
+thu_nen nen-200-next-404-thi-de-canary-noi         xanh
 
 # ── Phép thử lại: chỉ `000`, không phải mọi mã ─────────────────────────────
 #

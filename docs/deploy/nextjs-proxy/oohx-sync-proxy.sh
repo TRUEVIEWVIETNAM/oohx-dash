@@ -83,6 +83,24 @@ set -e
 # ("đường tôi khai có chạy không"), nên một luật bắt-tất-cả nuốt `/api/v1`,
 # `/cart` và `/sitemap.xml` vẫn làm canary xanh hết.
 #
+# v9 = v8 + chờ Next.js nghe lại trước khi đọc kết quả canary.
+#
+# Lỗi thật, 06/11/2026. `deploy.sh` chạy `systemctl restart oohx-webapp`, in
+# "Next.js : đã build và restart", rồi gọi script này. `systemctl restart` trả
+# về ngay khi systemd nhận lệnh, không chờ ứng dụng nghe cổng. Từ log:
+#
+#     04:37:09.675  Next.js : đã build và restart
+#     04:37:10.084  LỖI canary: /explore trả 503
+#
+# Bốn trăm mili giây. Bốn đường 503, deploy đỏ, và production lên bình thường
+# ngay sau đó — mọi đường 200 khi soát lại. Một job đỏ giả ở MỌI lượt deploy
+# là thứ làm người đọc thôi tin canary, đúng lúc nó đỏ thật thì không ai nhìn.
+#
+# `kiem_nen` cũ không bắt được vì nó đo `/sitemap.xml`, trang do **Laravel**
+# sinh: nền xanh nghĩa là "đường canary dùng được", không phải "Next sẵn
+# sàng". Hai câu khác nhau, và chỉ câu thứ hai mới là điều kiện để đọc kết quả
+# canary.
+#
 # v8 = v7 + bảng `CHUYEN_HUONG`: đường đã khai nhưng cố ý không trả 200.
 #
 # Lỗi thật, 22/10/2026. Lát 7 của `docs/PLAN-GOP-EXPLORE-BAN-DO.md` khai tử
@@ -110,7 +128,7 @@ set -e
 # lần khi KHÔNG NỐI ĐƯỢC (canary giờ chạy mọi lượt deploy, nên một lần curl
 # hỏng tạm sẽ làm đỏ một deploy đúng), và nhánh không-đổi KHÔNG lùi lại khi đỏ
 # (không có lần dán nào để lùi).
-VERSION=8
+VERSION=9
 
 # In số phiên bản rồi thoát — `deploy.sh` dùng cái này để so với bản trong repo.
 # Không cần quyền gì, nên để trước mọi phép kiểm khác.
@@ -700,7 +718,87 @@ kiem_nen() {
         return 1
     fi
     echo "   nền: /sitemap.xml → 200."
+
+    cho_next_het_qua_do || return 1
+
     return 0
+}
+
+# Hạn chờ Next.js nghe lại, tính bằng giây. Env để bộ thử chạy không mất phút.
+CHO_NEXT_GIAY="${CHO_NEXT_GIAY:-60}"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# `cho_next_het_qua_do` — chờ hết khoảnh khắc Next.js chưa nghe lại.
+#
+# ══ Lỗi ngày 06/11/2026 ══
+#
+# `deploy.sh` chạy `systemctl restart oohx-webapp`, in "Next.js : đã build và
+# restart", rồi bước 11 gọi script này. `systemctl restart` trả về ngay khi
+# systemd nhận lệnh, không chờ ứng dụng nghe cổng. Đo từ log lượt deploy hôm
+# đó:
+#
+#     04:37:09.675  Next.js : đã build và restart
+#     04:37:10.084  LỖI canary: /explore trả 503
+#
+# Bốn trăm mili giây. Canary gõ cửa Next trong lúc nó đang khởi động, bốn
+# đường báo 503, deploy đỏ — trong khi production lên bình thường ngay sau đó
+# và mọi đường đều 200.
+#
+# ══ Vì sao `kiem_nen` cũ không bắt được ══
+#
+# Nó đo `/sitemap.xml`, và trang đó do **Laravel** sinh. Nền xanh nghĩa là
+# "đường canary dùng được", không phải "Next đã sẵn sàng" — hai câu khác nhau,
+# và chỉ câu thứ hai mới là điều kiện để đọc kết quả canary.
+#
+# ══ Vì sao `/login` ══
+#
+# Nó nằm trong danh sách `context` proxy sang Next, và là trang **tĩnh** của
+# Next (`○ Static` trong bảng `next build`): không gọi API, không chạm CSDL.
+# Nên nó đo đúng một việc — Next có nghe không — tách khỏi "API có chạy
+# không". `/explore` thì dynamic: một API chậm làm nó 500 và ta sẽ chờ nhầm.
+#
+# ══ Chờ TRẠNG THÁI QUÁ ĐỘ, không phải chờ tới khi xanh ══
+#
+# Chỉ 502/503/504/000 mới đáng chờ: đó là "chưa nối được tới tiến trình phía
+# sau". Mọi mã khác — kể cả 404 — thoát ngay để canary tự đánh giá. Chờ tới
+# khi xanh thì một conf chưa dán (`/login` ra Laravel 404) sẽ ngốn trọn hạn
+# chờ rồi báo một nguyên nhân sai.
+#
+# Hết hạn thì ĐỎ, và đó là đúng: Next không nghe sau một phút là một sự cố
+# thật, chỉ khác là nay nó được gọi đúng tên thay vì hiện ra như bốn dòng
+# "LỖI canary" trỏ vào cấu hình proxy.
+# ─────────────────────────────────────────────────────────────────────────────
+cho_next_het_qua_do() {
+    local bat_dau troi m
+    bat_dau=$(date +%s)
+
+    while :; do
+        m=$(ma /login)
+
+        case "$m" in
+            502|503|504|000) ;;
+            *)
+                troi=$(( $(date +%s) - bat_dau ))
+                if [ "$troi" -gt 0 ]; then
+                    echo "   Next.js nghe lại sau ${troi}s (/login → $m)."
+                fi
+                return 0
+                ;;
+        esac
+
+        troi=$(( $(date +%s) - bat_dau ))
+
+        if [ "$troi" -ge "$CHO_NEXT_GIAY" ]; then
+            echo "LỖI: Next.js vẫn chưa nghe sau ${CHO_NEXT_GIAY}s — /login trả $m." >&2
+            echo "      Đây KHÔNG phải lỗi cấu hình proxy: /sitemap.xml vẫn 200, nên" >&2
+            echo "      đường canary dùng được và Laravel đang phục vụ bình thường." >&2
+            echo "      Kiểm: systemctl status oohx-webapp; ss -ltnp | grep 3001" >&2
+            echo "            journalctl -u oohx-webapp -n 50 --no-pager" >&2
+            return 1
+        fi
+
+        sleep 1
+    done
 }
 
 canary() {
