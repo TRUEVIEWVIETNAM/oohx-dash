@@ -189,7 +189,7 @@ sau khi dựng dev là đọc dòng đó trong log và xác nhận nó nói `dev
 Để `deploy-dev.yml` ở `workflow_dispatch` tới khi lát 4 xong, vì một workflow
 `push: [dev]` tồn tại trước khi hạ tầng dev tồn tại sẽ đỏ ở mọi push.
 
-## Lát 3 — `oohx-sync-proxy` v10: đa-site, danh sách trắng giữ nguyên
+## Lát 3 — `oohx-sync-proxy` v10: đa-site, danh sách trắng giữ nguyên ✅ 07/11/2026
 
 Bảng site nằm **trong** script:
 
@@ -415,19 +415,82 @@ và bước [11] của `deploy.sh` đỏ ở mọi lượt deploy dù nội dung
 không chạy được cho tới khi `dev` đã merge vào `main`, tức là tới lát 6. Đo
 được ngày 07/11/2026, sau khi merge #194.
 
-## Lát 5 — Đo bộ nhớ và đặt mức chặn
+## Lát 5 — Đo bộ nhớ và đặt mức chặn ✅ 07/11/2026
 
-Phương án A chỉ an toàn khi còn dư bộ nhớ cho một `next build`. Cần số đo:
+### Số đo, 07/11/2026
 
-```
-free -h ; df -h /www ; nproc
-```
+| | |
+|---|---|
+| RAM tổng | **7,8 GiB** |
+| RAM `available` | **4,9 GiB** (used 2,4 · buff/cache 4,8 · free 516 Mi) |
+| Swap | 957 MiB, **đã dùng 185 MiB** |
+| Đĩa `/` | 157 GB, dùng 46 GB, **còn 104 GB** (31%) |
+| CPU | 4 nhân |
 
-Luật: **≥8GB thoải mái · 4GB được, kèm `NODE_OPTIONS=--max-old-space-size`
-cho build của dev · ≤2GB thì phương án A không an toàn** và phải quay lại B.
+### Luật của plan đọc theo `total` là đọc sai con số
 
-Ngoài `concurrency` dùng chung, nên cho build của dev chạy `nice -n 10` để
-production luôn được ưu tiên CPU.
+Luật viết ở trên là **≥8GB thoải mái · 4GB được kèm giới hạn · ≤2GB không an
+toàn**. Đọc theo `total` thì 7,8 GiB rơi vào băng trên và không phải làm gì.
+
+Con số đúng là `available` = **4,9 GiB**: một `next build` xin bộ nhớ ngay
+bây giờ, không xin phần hệ điều hành sẽ nhả ra dần. 4,8 GiB kia đang là
+buff/cache. Lấy `available` thì máy nằm đúng **băng giữa** — được, kèm giới
+hạn.
+
+Hai chi tiết nữa đẩy về phía thận trọng:
+
+- **Swap đã chạm tới**: 185 MiB trong tổng 957 MiB, lúc không build gì. Phần
+  đệm khi một build vọt lên chỉ còn ~770 MiB.
+- **Khi OOM killer vào cuộc, nó chọn hộ.** Nó chọn theo cỡ bộ nhớ, và con béo
+  nhất trên máy này là MySQL hoặc chính tiến trình Next đang phục vụ khách.
+  Tức một lượt build của **dev** giết **production**, còn log deploy của dev
+  không nói một chữ nào — nó chỉ thấy build của mình xong hay không.
+
+Đĩa và CPU không phải ràng buộc: 104 GB còn trống thừa cho cây thứ hai cộng
+`node_modules`, và `concurrency` dùng chung đã xếp hàng hai lượt deploy nên 4
+nhân không bị hai build giành.
+
+### Bốn mức chặn
+
+| # | Chặn | Ở đâu |
+|---|---|---|
+| 1 | `concurrency: production-deploy` dùng chung; dev để `cancel-in-progress: false`, production để `true` nên production luôn thắng | lát 2 |
+| 2 | `NODE_OPTIONS=--max-old-space-size=1536` cho build của dev | `OOHX_BUILD_RAM_MB` |
+| 3 | `nice -n 10` cho build của dev | `OOHX_BUILD_NICE` |
+| 4 | Đo `MemAvailable` trước khi build; dưới 2048 MB thì **dừng, đỏ** | `OOHX_RAM_TOI_THIEU_MB` |
+
+**Cả ba biến mặc định RỖNG**, và rỗng nghĩa là production chạy y như trước
+lát 5. Mức chặn là thứ dev tự khoác vào mình, không phải thứ áp lên lượt
+deploy của production trong lúc `main` đang đóng băng.
+
+### Mức thứ tư là mức plan chưa có, và là mức đáng kể nhất
+
+Ba mức đầu làm build **ít khả năng** vỡ. Mức thứ tư quyết định **ai chọn nạn
+nhân** khi nó vẫn vỡ. Dừng sớm một lượt deploy dev là mất vài phút; để OOM
+killer chọn là mất MySQL của sàn thật.
+
+Ba điều đã cân nhắc rồi bỏ:
+
+- **Đo `MemFree` thay `MemAvailable`.** `MemFree` ở đây là 516 MB và sẽ luôn
+  dưới mọi ngưỡng hợp lý, vì Linux dùng phần còn lại làm cache rồi nhả khi
+  cần. Đo nó là chặn nhầm **mọi** lượt deploy.
+- **Đo trước bước 5 (build asset của Laravel) nữa.** Hỏng ở bước 5 để lại
+  trạng thái nửa vời: mã nguồn đã thay, cache chưa xoá, migration chưa chạy.
+  Bước 9 thì hỏng sạch — Laravel đã deploy trọn vẹn, chỉ bản Next là cũ.
+  Phép đo chỉ đặt ở chỗ hỏng sạch được.
+- **Áp trần heap cho cả build của Vite.** Chưa đo bao giờ. Giới hạn một thứ
+  mình chưa đo là đoán, và đoán sai ở đây là làm đỏ một lượt deploy đúng.
+
+Phép đo hỏng **về phía cho qua**: không đọc được `/proc/meminfo`, hoặc tệp
+không có dòng `MemAvailable`, thì nó in một dòng rồi cho đi tiếp. Một phép đo
+không đo được không được biến thành một lần chặn.
+
+### Bộ thử
+
+`tests/shell/thu-bien-moi-truong.sh`: 45 → **70 ca**. Hai mục mới trích chính
+`chay_build_next` và `kiem_ram_truoc_build` ra chạy — với `npm`/`nice` giả ghi
+lại lệnh chúng nhận, và với tệp `meminfo` giả có `MemFree` thấp `MemAvailable`
+cao, đúng hình dạng của máy chủ thật.
 
 ## Lát 6 — Mở băng
 

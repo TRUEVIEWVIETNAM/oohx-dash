@@ -96,6 +96,23 @@ jobs:
           # đúng cái mà cả lát 2 và lát 3 dựng lên để tránh. Để ở đây thì việc
           # mở cờ là đổi một ký tự, không phải nhớ thêm một dòng.
           OOHX_SITE: dev.oohx.net
+
+          # ── Lát 5: mức chặn bộ nhớ ──────────────────────────────────────
+          #
+          # Đo ngày 07/11/2026: `available` 4,9 GiB trên tổng 7,8 GiB, swap
+          # 957 MiB mà đã dùng 185 MiB. Ba con số dưới đây đọc từ đó:
+          #
+          #   1536  heap của `next build`. Dưới một phần ba số RAM còn, nên
+          #         hai thứ khác vẫn thở được nếu build chạm trần.
+          #     10  nice. Build của dev không bao giờ được giành CPU với
+          #         tiến trình đang trả lời khách thật.
+          #   2048  ngưỡng dừng. Dưới mức này thì không build, vì phần đệm
+          #         của swap chỉ còn ~770 MiB — không đủ để đỡ một cú vọt.
+          #
+          # Production KHÔNG khai ba biến này, nên nó chạy y như trước.
+          OOHX_BUILD_RAM_MB: '1536'
+          OOHX_BUILD_NICE: '10'
+          OOHX_RAM_TOI_THIEU_MB: '2048'
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -106,7 +123,7 @@ jobs:
           # tên ở đây thì biến tương ứng sống trong runner của GitHub, máy chủ
           # không thấy gì, và deploy VẪN XANH. Đây là cùng cái bẫy đã làm khóa
           # MapTiler không tới production hồi 18/10/2026.
-          envs: MAPTILER_KEY,MAPTILER_STYLE,OOHX_APP_DIR,OOHX_BRANCH,OOHX_SERVICE,OOHX_SYNC,OOHX_SITE
+          envs: MAPTILER_KEY,MAPTILER_STYLE,OOHX_APP_DIR,OOHX_BRANCH,OOHX_SERVICE,OOHX_SYNC,OOHX_SITE,OOHX_BUILD_RAM_MB,OOHX_BUILD_NICE,OOHX_RAM_TOI_THIEU_MB
           script_stop: true
 
           # `cd` lặp lại đường dẫn của `OOHX_APP_DIR` một lần nữa, có chủ ý:

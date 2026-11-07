@@ -111,8 +111,8 @@ jobs:
       - name: Phép kiểm cho hàm chờ Next.js nghe lại
         run: bash tests/shell/thu-cho-next.sh
 
-      # Từ 06/11/2026 `deploy.sh` chạy cho hai môi trường, chọn bằng năm biến
-      # `OOHX_*`. Cả năm hỏng theo cùng một kiểu: SAI MÀ VẪN XANH.
+      # Từ 06/11/2026 `deploy.sh` chạy cho hai môi trường, chọn bằng tám biến
+      # `OOHX_*`. Cả tám hỏng theo cùng một kiểu: SAI MÀ VẪN XANH.
       #
       # Mặc định lệch khỏi production thì lượt deploy `main` kế tiếp đi sai
       # thư mục hoặc restart sai service, im lặng. Tên biến thiếu trong `envs:`
@@ -123,7 +123,7 @@ jobs:
       # một VPS, nơi cái chết vì thiếu bộ nhớ rơi vào production.
       #
       # Không chiều nào làm CI đỏ, nên chúng phải có phép kiểm.
-      - name: Phép kiểm cho năm tham số môi trường
+      - name: Phép kiểm cho tám tham số môi trường
         run: bash tests/shell/thu-bien-moi-truong.sh
 
   # Trang công khai trên Next.js (giai đoạn 6).
