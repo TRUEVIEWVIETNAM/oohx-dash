@@ -305,6 +305,17 @@ dòng đó thì sudo từ chối và bước [11] đỏ. Hai việc này thuộc
 
 Thứ tự có ý nghĩa: DNS trước, vhost sau, Next sau cùng.
 
+### Ba tệp của lát này đã nằm trong repo
+
+Chín trong mười bước dưới đây cần quyền root. Ba thứ thì không, và để chúng
+cho lúc ngồi trước terminal là để chúng được gõ tay — mỗi lần một kiểu.
+
+| Tệp | Bước | Thay cho việc gõ tay |
+|---|---|---|
+| `docs/deploy/nextjs-proxy/oohx-webapp-dev.service` | 7 | Unit Next của dev. Năm chỗ khác bản production, liệt kê ngay trong tệp. |
+| `docs/deploy/nextjs-proxy/dev-noindex.conf` | 4 | Nguyên văn hai khối chặn Google, và vì sao Cloudflare là lớp chính. |
+| `app/Console/Commands/TayDuLieuDev.php` | 6 | `php artisan oohx:tay-du-lieu-dev` — 35 cột trên 7 bảng, cộng 8 bảng dọn sạch. |
+
 1. **Cloudflare**: hai bản ghi A một cấp — `dev` và `dev-dash` → `172.104.188.62`.
    **Phải một cấp.** Universal SSL chỉ phủ `*.oohx.net` một tầng, nên
    `dash.dev.oohx.net` sẽ không có chứng chỉ.
@@ -316,20 +327,93 @@ Thứ tự có ý nghĩa: DNS trước, vhost sau, Next sau cùng.
    `public/robots.txt`: tệp đó được git theo dõi, và `deploy.sh:247` chạy
    `git reset --hard origin/$BRANCH` nên mọi sửa tay sẽ bị xoá ở lượt deploy kế
    tiếp. Header thì không git-reset được.
+
+   Nguyên văn hai khối ở `docs/deploy/nextjs-proxy/dev-noindex.conf`. **Lớp
+   chính là Cloudflare Transform Rule**, không phải vhost: nó ở ngoài máy chủ
+   nên không một lượt deploy, một lần `lswsctrl restart`, hay một lần aaPanel
+   ghi lại `detail/*.conf` nào xoá được nó — và bot chỉ tới được dev QUA
+   Cloudflare, vì IP gốc không công bố ở đâu cả.
 5. **Mã nguồn**: clone repo vào `/www/wwwroot/dev.oohx.net`, checkout `dev`.
 6. **CSDL**: `dev_oohx_net`, user riêng. Sao từ production rồi **tẩy**:
    `bank_*`, `tax_code`, `business_license_path`, email người mua.
    `.env` của dev giữ `MAIL_MAILER=log`, `FRONTPAGE_DOMAIN=dev.oohx.net`,
    `DASH_DOMAIN=dev-dash.oohx.net`, `OOHX_TRIAL_MODE=true`.
+
+   Tẩy bằng lệnh, không bằng SQL gõ tay:
+
+   ```sh
+   cd /www/wwwroot/dev.oohx.net
+   php artisan oohx:tay-du-lieu-dev --dem                     # xem trước, không ghi
+   php artisan oohx:tay-du-lieu-dev --mo-khoa=<email thật của bạn>
+   ```
+
+   Plan này viết gọn bốn thứ phải tẩy. Đếm trong schema ra **35 cột trên 7
+   bảng, cộng 8 bảng phải dọn sạch**, và ba chỗ không nằm ở nơi ai cũng nghĩ
+   tới: `public_reflections.contact_*` là liên hệ của người dân thật;
+   `quote_requests.contact_email` là NOT NULL nên `SET NULL` đổ giữa đường và
+   để lại một CSDL tẩy nửa vời; `failed_jobs.payload` chứa cả thân email.
+
+   Lệnh tự đếm lại từng cột sau khi ghi và **thoát khác 0 nếu còn một hàng
+   bẩn**. Nó cũng chặn ba lớp, trong đó lớp đầu là **danh sách trắng** tên
+   CSDL — thêm môi trường mới thì phải sửa hằng số, quên sửa thì lệnh từ chối
+   chạy.
+
+   `--mo-khoa` là bắt buộc ở lượt đầu: lệnh băm một chuỗi ngẫu nhiên rồi bỏ
+   đi, nên sau khi tẩy **không còn mật khẩu nào khớp với bất kỳ tài khoản
+   nào**. Tuỳ chọn đó đặt lại một đường đăng nhập và in nó đúng một lần.
+
+   **Bẫy `APP_ENV`:** lệnh từ chối chạy khi `APP_ENV=production`. Môi trường
+   dev là một bản Laravel đã deploy, nên phản xạ là đặt `production` cho nó —
+   đặt vậy thì lệnh tẩy không chạy được. Dev khai `APP_ENV=dev`. Và vẫn giữ
+   `APP_DEBUG=false`: dev có noindex nhưng vẫn mở với cả internet, nên một
+   trang lỗi đầy stack trace ở đó là một trang lỗi đầy stack trace công khai.
 7. **Next**: `oohx-webapp-dev.service` — cổng **3002**,
    `OOHX_API_BASE=https://dev.oohx.net/api/v2`,
    `OOHX_PUBLIC_ORIGIN=https://dev.oohx.net`.
    `OOHX_API_BASE` phải là **tên miền**, không phải `127.0.0.1`
    (`docs/deploy/nextjs-proxy/README.md:340`).
+
+   Unit đầy đủ ở `docs/deploy/nextjs-proxy/oohx-webapp-dev.service`. Thêm hai
+   dòng `/etc/hosts` — `127.0.0.1 dev.oohx.net` và `127.0.0.1
+   dev-dash.oohx.net`. Ở production thiếu hai dòng này chỉ làm mỗi lần dựng
+   trang đi ra Cloudflare rồi quay lại; ở dev thì nó đi qua đúng tầng mà Cache
+   Rule ở bước 2 vừa bảo đừng cache, nên quên một trong hai là đọc một bản dev
+   cũ và sửa mãi không thấy đổi.
 8. **sudoers**: thêm quyền `systemctl restart oohx-webapp-dev` cho user `deploy`,
    và quyền gọi `oohx-sync-proxy --site dev.oohx.net`.
 9. **Cài v10** as root, kiểm `--version` in `10`.
 10. Chạy `deploy-dev.yml` bằng tay, đọc dòng `Branch :` trong log — phải là `dev`.
+
+### Bước 8 và 9 là hai việc, và thứ tự giữa chúng không đổi được
+
+```sh
+# [9] Cài v10 — TỪ CÂY PRODUCTION. Một bản cài phục vụ cả hai site, nên cài
+#     từ cây dev là đưa script của nhánh dev lên phục vụ cả production.
+install -o root -g root -m 0755 \
+    /www/wwwroot/dash.oohx.net/docs/deploy/nextjs-proxy/oohx-sync-proxy.sh \
+    /usr/local/sbin/oohx-sync-proxy
+/usr/local/sbin/oohx-sync-proxy --version      # phải in 10
+
+# [8] Hai dòng sudoers cho dev — một cho script proxy, một cho restart Next.
+echo '<user> ALL=(root) NOPASSWD: /usr/local/sbin/oohx-sync-proxy --site dev.oohx.net' \
+    > /etc/sudoers.d/oohx-sync-proxy-dev.oohx.net
+chmod 440 /etc/sudoers.d/oohx-sync-proxy-dev.oohx.net
+echo '<user> ALL=(root) NOPASSWD: /usr/bin/systemctl restart oohx-webapp-dev' \
+    > /etc/sudoers.d/oohx-webapp-dev-restart
+chmod 440 /etc/sudoers.d/oohx-webapp-dev-restart
+visudo -c
+```
+
+Chỉ **sau khi** cả hai xong mới đổi `OOHX_SYNC` trong `deploy-dev.yml` thành
+`'1'`. Thiếu dòng sudoers thì `sudo` từ chối trước khi script chạy một dòng,
+và bước [11] của `deploy.sh` đỏ ở mọi lượt deploy dù nội dung đúng hết.
+
+### Lát 4 và lát 6 không tách rời được
+
+`workflow_dispatch` chỉ kích được khi tệp workflow đã có trên **nhánh mặc
+định**. `deploy-dev.yml` sống ở `dev`, nên bước 10 ở trên — "chạy bằng tay" —
+không chạy được cho tới khi `dev` đã merge vào `main`, tức là tới lát 6. Đo
+được ngày 07/11/2026, sau khi merge #194.
 
 ## Lát 5 — Đo bộ nhớ và đặt mức chặn
 
