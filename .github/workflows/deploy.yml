@@ -29,6 +29,41 @@ jobs:
     needs: tests
     runs-on: ubuntu-latest
 
+    # ══ CHỐT DUYỆT TAY ══════════════════════════════════════════════════
+    #
+    # `environment:` không phải một cái nhãn. Nó buộc GitHub dừng job này ở
+    # trạng thái "Waiting" và đợi một người trong danh sách người duyệt của
+    # environment `production` bấm "Approve and deploy" trên tab Actions.
+    # Job `tests` ở trên KHÔNG khai dòng này, nên bộ test vẫn chạy ngay sau
+    # mỗi push vào `main` — chỉ bước SSH vào máy chủ phải đợi.
+    #
+    # Vì sao cần: đến 07/11/2026 thì merge một PR vào `main` là deploy
+    # production ngay, không có bước nào ở giữa. Một lần bấm nhầm nút merge
+    # trên giao diện GitHub — hoặc một `gh pr merge` gõ sai số — đẩy
+    # `php artisan down` lên trang thật trong vòng ba phút. Chốt này biến
+    # cái nhầm đó thành một job đứng đợi, hiện rõ trên tab Actions, huỷ được
+    # bằng một nút.
+    #
+    # Hai thứ cấu hình ở phía GitHub, không nằm trong tệp này (xem
+    # `docs/deploy/CHOT-DUYET-DEPLOY.md` để dựng lại):
+    #
+    #   - người duyệt bắt buộc: `tuanna0703`;
+    #   - chính sách nhánh: chỉ `main` được deploy vào environment này, nên
+    #     thêm một nhánh khác vào trigger ở trên cũng không mở được đường
+    #     deploy production — GitHub từ chối ở lớp environment.
+    #
+    # `prevent_self_review` để FALSE có chủ ý: dự án hiện có đúng một người
+    # có quyền. Bật nó lên thì người merge không tự duyệt được, và vì không
+    # có người thứ hai, đường deploy production bị khoá cứng.
+    #
+    # ══ Cái chốt này KHÔNG bảo vệ ══
+    #
+    # `workflow_dispatch` ở trên cũng đi qua job này, nên chạy tay cũng phải
+    # đợi duyệt. Nhưng người có quyền admin repo vẫn xoá được environment
+    # hoặc tự thêm mình vào danh sách duyệt. Đây là chốt chống NHẦM, không
+    # phải chốt chống người cố ý.
+    environment: production
+
     steps:
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
