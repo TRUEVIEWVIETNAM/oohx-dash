@@ -573,6 +573,48 @@ khang_dinh 'workflow production kích theo push vào `main`' \
 khang_dinh 'workflow production KHÔNG kích theo push vào `dev`' \
     "$(printf '%s\n' "$on_prod" | grep -cE '^ *- dev$')" '0'
 
+
+# ══ Chốt duyệt tay: đúng một job phải đợi, và đúng job đó ══════════════════
+#
+# `environment:` là thứ duy nhất trong repo bắt một lượt deploy production
+# dừng lại đợi người. Nó im lặng theo cả hai chiều nếu đặt sai chỗ:
+#
+#   · mất khỏi job `deploy` của production → merge vào `main` lại deploy ngay,
+#     và không có gì đỏ để báo rằng chốt đã rơi;
+#   · thêm vào job `tests` → bộ test cũng đứng đợi duyệt, nên CI của một PR
+#     vào `main` không bao giờ xanh, và `needs: tests` làm deploy treo theo;
+#   · thêm vào workflow DEV → mỗi lần merge vào `dev` phải bấm duyệt, tức mất
+#     đúng cái tự động mà lát 4 bước 10 vừa dựng.
+#
+# Một phần của chốt nằm ở phía GitHub (người duyệt bắt buộc, chính sách chỉ
+# cho nhánh `main`) nên không đo được từ repo. Nó ghi ở
+# `docs/deploy/CHOT-DUYET-DEPLOY.md`, và ca cuối canh sự tồn tại của tệp đó —
+# vì chú thích trong `deploy.yml` trỏ tới nó để dựng lại khi mất.
+
+# Trích đúng một job ra khỏi tệp workflow: từ dòng `  <tên>:` cho tới job kế
+# tiếp. Không dùng `,$p` của sed vì nó đúng chỉ khi job đang xét là job cuối.
+trich_job() {
+    awk -v j="  $2:" '
+        $0 == j                            { trong = 1; next }
+        trong && /^  [a-zA-Z0-9_-]+:/      { trong = 0 }
+        trong                              { print }
+    ' "$1"
+}
+
+khang_dinh 'job deploy của production đợi duyệt qua environment `production`' \
+    "$(trich_job "$WF_PROD" deploy | grep -cE '^ *environment: *production *$')" '1'
+
+khang_dinh 'job tests của production KHÔNG khai environment' \
+    "$(trich_job "$WF_PROD" tests | grep -cE '^ *environment:')" '0'
+
+khang_dinh 'workflow production khai environment ĐÚNG MỘT chỗ' \
+    "$(grep -cE '^ *environment:' "$WF_PROD")" '1'
+
+khang_dinh 'workflow dev KHÔNG khai environment (deploy dev vẫn tự động)' \
+    "$(grep -cE '^ *environment:' "$WF_DEV")" '0'
+
+khang_dinh 'tài liệu dựng lại chốt duyệt còn trong repo' \
+    "$([ -f docs/deploy/CHOT-DUYET-DEPLOY.md ] && echo co || echo khong)" 'co'
 echo ""
 echo "Tổng: $so_dung đúng, $so_sai sai."
 
