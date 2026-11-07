@@ -78,11 +78,24 @@ jobs:
           OOHX_BRANCH: dev
           OOHX_SERVICE: oohx-webapp-dev
 
-          # `0` = bỏ qua bước [11]. Script root `oohx-sync-proxy` v9 viết cứng
-          # đường dẫn production, nên gọi nó từ đây là đồng bộ conf của
-          # production và chạy canary vào production. Đổi thành `1` sau khi v10
-          # đa-site lên (lát 3) và sudoers cấp quyền `--site dev.oohx.net`.
+          # `0` = bỏ qua bước [11]. v10 của `oohx-sync-proxy` (lát 3) đã nhận
+          # `--site`, nên lý do bỏ qua giờ KHÔNG còn là "script viết cứng
+          # production" nữa — nó là hai thứ chưa tồn tại trên VPS:
+          #
+          #   - vhost `dev.oohx.net` với hai dòng include (proxy + urlrewrite);
+          #   - dòng sudoers cho ĐÚNG `--site dev.oohx.net`. Dòng của
+          #     production kết thúc bằng `""` nên nó không cấp quyền cho lời
+          #     gọi này; sudo từ chối trước khi script chạy.
+          #
+          # Cả hai là việc as root của lát 4. Đổi thành `1` sau khi làm xong.
           OOHX_SYNC: '0'
+
+          # Khai sẵn, dù `OOHX_SYNC=0` làm nó chưa được dùng: khi lát 4 bật
+          # cờ trên thành `1` thì thiếu dòng này nghĩa là `deploy.sh` gọi script
+          # root KHÔNG kèm `--site`, tức dev đi đồng bộ conf của production —
+          # đúng cái mà cả lát 2 và lát 3 dựng lên để tránh. Để ở đây thì việc
+          # mở cờ là đổi một ký tự, không phải nhớ thêm một dòng.
+          OOHX_SITE: dev.oohx.net
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -93,7 +106,7 @@ jobs:
           # tên ở đây thì biến tương ứng sống trong runner của GitHub, máy chủ
           # không thấy gì, và deploy VẪN XANH. Đây là cùng cái bẫy đã làm khóa
           # MapTiler không tới production hồi 18/10/2026.
-          envs: MAPTILER_KEY,MAPTILER_STYLE,OOHX_APP_DIR,OOHX_BRANCH,OOHX_SERVICE,OOHX_SYNC
+          envs: MAPTILER_KEY,MAPTILER_STYLE,OOHX_APP_DIR,OOHX_BRANCH,OOHX_SERVICE,OOHX_SYNC,OOHX_SITE
           script_stop: true
 
           # `cd` lặp lại đường dẫn của `OOHX_APP_DIR` một lần nữa, có chủ ý:

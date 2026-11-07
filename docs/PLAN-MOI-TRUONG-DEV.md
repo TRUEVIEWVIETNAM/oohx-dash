@@ -221,14 +221,85 @@ sed "s|^\(\s*address\s*\).*|\1$NEXT_ADDR|" "$REPO_CONF" > "$TMP"
 và **vẫn kiểm `$TMP` qua danh sách trắng như cũ** — phép thay thế không được
 phép bỏ qua bước kiểm. Thứ tự là: thay → kiểm → dán → canary → lùi nếu đỏ.
 
-Bộ thử: `tests/shell/thu-kiem-conf.sh` (hiện 110 ca) thêm các ca cho `--site`
-không có trong bảng, cho phép thay địa chỉ, và cho việc mặc định không tham số
-phải cho ra đúng cấu hình production. `tests/shell/thu-cho-next.sh` (12 ca) chỉ
-cần đổi nếu hàm chờ đổi chữ ký — hiện không cần.
+### Bốn chỗ khác plan, lộ ra khi viết
 
-**Sau khi merge, v10 chỉ có tác dụng khi cài lại as root** — `deploy.sh:662-676`
-so `VERSION=` và in cảnh báo, chứ không tự cập nhật. Chuyện này đã làm hai lượt
+**Bảng có BỐN cột, không ba.** Cột thứ tư là tên service của Next, và nó chỉ đi
+vào **câu gợi ý** trong thông báo lỗi — không lệnh nào trong script chạy nó.
+Phân biệt đó có chủ ý: một tên service cũ trong bảng chỉ làm một dòng log chỉ
+sai chỗ, chứ không restart sai thứ. Mà một dòng log chỉ sai chỗ vẫn tệ, và v9
+đã có đúng lỗi đó: nó in `systemctl status oohx-next`, một unit **chưa bao giờ
+tồn tại** trên máy này, ngay trong thông báo của lần hỏng nặng nhất (06/11).
+
+**`kiem_conf` phải đếm dòng `address`, và trước lát này nó không đếm.** Nhánh
+`address)` chỉ nói "mỗi dòng address đều đúng" — nó im lặng khi KHÔNG CÓ dòng
+nào. Tới v9 đó là một lỗ nhỏ. Từ v10 nó thành chỗ hỏng im lặng thật, vì dòng
+đó do `sed` điền: `sed` không khớp gì thì file vẫn qua mọi phép kiểm khác và
+`extprocessor` ra máy chủ **không có đích nào**. Nên có thêm luật "đúng MỘT
+dòng address" — nhiều hơn một cũng chặn, vì khai `address` lần thứ hai bên
+trong khối `context` là cách giấu một đích thứ hai ở nơi mắt người đọc bỏ qua.
+
+**Bước [4] phải bỏ qua thư mục rewrite của MỌI site, không chỉ site đang chạy.**
+Đây là cái bẫy của v3 quay lại qua một cửa mới. `urlrewrite-nextjs.conf:42`
+nhắc `127.0.0.1:3001` trong một dòng **ghi chú**, và file ấy được dán y nguyên
+vào thư mục rewrite của cả hai site. Nên một lượt đồng bộ production sẽ bắt được
+file rewrite của **dev**, đưa nó qua `kiem_conf` — phép kiểm dành cho conf
+proxy, mà nó là file rewrite — rồi DỪNG. Tức **dựng dev lên là làm production
+thôi deploy được**, trong khi không ai chạm gì vào production.
+
+**`deploy.sh` cần biến thứ năm, và mặc định của nó là RỖNG.** Không có nó thì
+`--site` không có người gọi. Nhưng mặc định không được là `"oohx.net"`: dòng
+sudoers của production kết thúc bằng `""`, tức "đúng không đối số nào", nên
+gọi `--site oohx.net` — tên hoàn toàn đúng — bị **sudo** từ chối trước khi
+script chạy một dòng. Rỗng nghĩa là gọi không đối số, y như `deploy.sh` vẫn
+gọi từ bản đầu. Kèm theo đó: mỗi site một **file** sudoers riêng, vì câu gợi ý
+ghi bằng `>` nên hai dòng trong một file thì dòng thứ hai xoá dòng thứ nhất —
+và dòng bị xoá là dòng production đang dựa vào.
+
+### Bộ thử
+
+| Bộ | Trước | Sau |
+|---|---|---|
+| `tests/shell/thu-kiem-conf.sh` | 110 | **142** (PHẦN 8: bảng, `--site`, dòng `address`) |
+| `tests/shell/thu-bien-moi-truong.sh` | 29 | **45** (biến thứ năm, mảng đối số, dòng sudoers) |
+| `tests/shell/thu-cho-next.sh` | 12 | 12 (chỉ truyền thêm hai biến của bảng) |
+
+PHẦN 8 chạy **chính script thật** cho phần đọc đối số: phần đó nằm trước phép
+kiểm root, nên mã thoát 64 đo được mà không cần quyền gì. Sáu ca cho các dạng
+đối số sai, hai ca cho dạng đúng (chỉ khẳng định **không** phải 64 — không
+root thì 77, mà root thì script đi tiếp rồi dừng ở bước [1]).
+
+Ca đắt nhất là `dựng cho production giống file repo TỪNG BYTE`: lệch một khoảng
+trắng thì `cmp` ở bước [2] báo "có đổi" ở mọi lượt deploy production, và mỗi
+lượt kéo theo một `lswsctrl restart` cùng một lần canary — tốn và ồn, trong khi
+không có gì đổi. Và hai ca soi ngược nhau: `kiem_conf` phải **nhận** bản dựng
+cho 3002 khi đang đồng bộ 3002, và phải **từ chối** file repo thô ở cùng lúc đó
+— tức phép kiểm vẫn có tác dụng sau khi thay.
+
+Ba bộ thử khác (`thu-cho-next`, và hai phần canary trong `thu-kiem-conf`) đỏ
+ngay khi v10 lên, vì chúng trích `ma`/`la_next` ra chạy với `curl` giả và hai
+hàm đó giờ đọc `$SITE`. Chữa bằng cách khai site trong shell của bộ thử, **viết
+thẳng** chứ không đọc từ bảng: PHẦN 8 có một ca canh rằng bảng vẫn khai đúng
+site ấy là mặc định, và đọc từ bảng thì ca đó tự đúng với bất cứ giá trị nào.
+
+**Sau khi merge, v10 chỉ có tác dụng khi cài lại as root** — `deploy.sh` so
+`VERSION=` và in cảnh báo, chứ không tự cập nhật. Chuyện này đã làm hai lượt
 deploy đỏ ngày 06/11/2026.
+
+Cài từ cây **production**, không từ cây dev: một bản cài phục vụ cả hai site,
+nên cài từ `/www/wwwroot/dev.oohx.net` là đưa script của nhánh `dev` lên phục
+vụ production.
+
+```sh
+install -o root -g root -m 0755 \
+    /www/wwwroot/dash.oohx.net/docs/deploy/nextjs-proxy/oohx-sync-proxy.sh \
+    /usr/local/sbin/oohx-sync-proxy
+/usr/local/sbin/oohx-sync-proxy --version   # phải in 10
+```
+
+**Bật đồng bộ cho dev là HAI việc, không một.** `deploy-dev.yml` đã khai
+`OOHX_SITE: dev.oohx.net` sẵn, nhưng `OOHX_SYNC` còn là `'0'`. Đổi nó thành
+`'1'` **chỉ sau khi** dòng sudoers cho `--site dev.oohx.net` tồn tại; thiếu
+dòng đó thì sudo từ chối và bước [11] đỏ. Hai việc này thuộc lát 4.
 
 ## Lát 4 — Dựng hạ tầng dev trên VPS (việc as root của chủ dự án)
 

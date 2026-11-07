@@ -12,6 +12,19 @@ set -u
 SRC="docs/deploy/nextjs-proxy/oohx-sync-proxy.sh"
 TMP="${TMPDIR:-/tmp}/kiem-conf-$$.sh"
 
+# ══ Tên site: v10 đưa nó vào trong chính các hàm canary ══
+#
+# `ma`, `vi_tri` và `la_next` gọi `curl --resolve "$SITE:443:127.0.0.1"`. Các
+# phần dưới đây source những hàm đó ra để chạy với một `curl` giả, nên biến
+# này phải tồn tại trong shell của bộ thử — thiếu nó thì `set -u` làm tám ca
+# đỏ với "unbound variable", tức một thông báo nói về biến chứ không phải về
+# hành vi đang được thử.
+#
+# Viết thẳng ở đây, KHÔNG đọc từ bảng trong script: PHẦN 8 có một ca canh rằng
+# bảng vẫn khai đúng site này là mặc định. Đọc từ bảng thì ca đó tự đúng với
+# bất cứ giá trị nào bảng đưa ra, và nó thôi nói được điều gì.
+SITE="oohx.net"
+
 {
     echo 'NEXT_ADDR="127.0.0.1:3001"'
     sed -n '/^CAM=(/,/^)/p' "$SRC"
@@ -842,6 +855,249 @@ thu_ch / "(khong-co)"
 thu_ch /mapp "(khong-co)"
 
 rm -f "$TMP4"
+
+# ═════════════════════════════════════════════════════════════════════════════
+# PHẦN 8: bảng site, `--site`, và dòng `address` do script điền (v10)
+#
+# Ba thứ lát 3 thêm vào, và cả ba hỏng theo kiểu KHÔNG làm CI đỏ:
+#
+#   - một dòng trong bảng trùng cổng với dòng khác → hai site trỏ cùng một
+#     tiến trình Next, và bước [4] của script coi conf của site kia là "conf
+#     cạnh tranh" rồi DỪNG. Tức dựng site thứ hai lên là làm site thứ nhất
+#     thôi deploy được, mà không ai chạm gì vào nó;
+#   - `--site` nhận một tên ngoài bảng → nếu script tự dựng đường dẫn từ cái
+#     tên nhận được thì một đối số trở thành một đường dẫn, tức mất đúng ranh
+#     giới quyền mà cả script này sinh ra để giữ;
+#   - `sed` không khớp dòng `address` → file vẫn qua mọi phép kiểm khác và
+#     `extprocessor` ra máy chủ mà không có đích nào.
+# ═════════════════════════════════════════════════════════════════════════════
+echo
+echo "── PHẦN 8: bảng site + --site + dòng address ──"
+
+kd() {
+    if [ "$2" = "$3" ]; then
+        printf '  OK    %s\n' "$1"
+        so_dung=$((so_dung + 1))
+    else
+        printf '  SAI   %s\n        mong đợi [%s]\n        thực tế  [%s]\n' "$1" "$3" "$2"
+        so_sai=$((so_sai + 1))
+    fi
+}
+
+# ── Bảng: hình dạng ─────────────────────────────────────────────────────────
+BANG=$(sed -n '/^SITE_CHO_PHEP=(/,/^)/p' "$SRC" | grep -E '^[[:space:]]*"' | tr -d ' "')
+
+kd 'bảng site đọc được, có ít nhất hai dòng' \
+    "$([ "$(echo "$BANG" | wc -l | tr -d ' ')" -ge 2 ] && echo co || echo thieu)" 'co'
+
+kd 'mọi dòng có đúng bốn cột' \
+    "$(echo "$BANG" | awk -F'|' 'NF != 4' | wc -l | tr -d ' ')" '0'
+
+kd 'tên site không trùng nhau' \
+    "$(echo "$BANG" | cut -d'|' -f1 | sort | uniq -d | tr '\n' ' ' | sed 's/ *$//')" ''
+
+# Hai site chung một cổng nghĩa là một tiến trình Next phục vụ cả hai — và khi
+# đó bước [4] bắt được conf của site kia như một conf cạnh tranh rồi dừng.
+kd 'địa chỉ Next không trùng nhau' \
+    "$(echo "$BANG" | cut -d'|' -f3 | sort | uniq -d | tr '\n' ' ' | sed 's/ *$//')" ''
+
+kd 'repo root không trùng nhau' \
+    "$(echo "$BANG" | cut -d'|' -f2 | sort | uniq -d | tr '\n' ' ' | sed 's/ *$//')" ''
+
+# Mọi địa chỉ phải là loopback. Một dòng trỏ ra máy khác là đưa lưu lượng công
+# khai ra khỏi máy này, và từ v10 bảng này là chỗ DUY NHẤT quyết định điều đó
+# — `kiem_conf` chỉ so với giá trị bảng đưa cho nó, nên một bảng sai làm chính
+# phép kiểm đồng ý với cái sai.
+kd 'mọi địa chỉ đều là 127.0.0.1' \
+    "$(echo "$BANG" | cut -d'|' -f3 | grep -vc '^127\.0\.0\.1:[0-9][0-9]*$')" '0'
+
+kd 'mọi repo root nằm ngay trong /www/wwwroot/' \
+    "$(echo "$BANG" | cut -d'|' -f2 | grep -vc '^/www/wwwroot/[A-Za-z0-9._-]*$')" '0'
+
+MAC_DINH=$(grep -m1 '^SITE_MAC_DINH=' "$SRC" | cut -d'"' -f2)
+
+kd 'site mặc định có trong bảng' \
+    "$(echo "$BANG" | cut -d'|' -f1 | grep -cx "$MAC_DINH")" '1'
+
+# Mặc định phải là production: không có `--site` là cách `deploy.sh` của
+# production gọi script từ bản đầu, và là dạng duy nhất dòng sudoers của nó
+# cho phép.
+kd 'site mặc định là production' "$MAC_DINH" 'oohx.net'
+
+# 110 ca ở các phần trên source `kiem_conf` với `NEXT_ADDR` viết tay ở đầu
+# file. Nếu bảng đổi cổng production mà dòng đó ở lại, chúng sẽ thử một địa
+# chỉ không còn tồn tại — và tất cả vẫn xanh.
+kd 'địa chỉ production trong bảng khớp giá trị bộ thử đang dùng' \
+    "$(echo "$BANG" | grep "^$MAC_DINH|" | cut -d'|' -f3)" "$NEXT_ADDR"
+
+# ── Không còn sự thật nào của một site nằm ngoài bảng ───────────────────────
+#
+# Chín chỗ v9 viết cứng: repo root, `detail/<site>.conf`, `proxy/<site>/`,
+# cổng, và bốn lần `--resolve`. Sót một chỗ nghĩa là script sửa một site rồi
+# đo một site khác, và cả hai kết quả đều vô nghĩa mà không gì báo.
+kd 'ngoài bảng không còn dòng mã nào nhắc cổng/thư mục/service của một site' \
+    "$(sed '/^SITE_CHO_PHEP=(/,/^)/d' "$SRC" | grep -vE '^[[:space:]]*#' \
+        | grep -cE '127\.0\.0\.1:300|oohx-webapp|/www/wwwroot/')" '0'
+
+kd 'canary không còn resolve theo tên viết cứng' \
+    "$(grep -c 'resolve "oohx' "$SRC")" '0'
+
+# Năm lời gọi curl: `ma` hai lần (có thử lại), `vi_tri` một, `la_next` hai.
+# Sót một cái là đo site khác với site vừa sửa.
+kd 'cả năm lời gọi curl đều resolve theo $SITE' \
+    "$(grep -c 'resolve "\$SITE:443:127\.0\.0\.1"' "$SRC")" '5'
+
+# ── `--site`: chỉ chọn dòng, không mang đường dẫn ──────────────────────────
+#
+# Chạy CHÍNH script thật. Phần đọc đối số nằm TRƯỚC phép kiểm root, nên những
+# ca dưới đây đo được mà không cần quyền gì — mã 64 là "đối số không dùng
+# được", và nó phải xảy ra trước mọi thứ khác.
+ma_thoat() {
+    bash "$SRC" "$@" >/dev/null 2>&1
+    echo "$?"
+}
+
+kd '--version in đúng số phiên bản của repo' \
+    "$(bash "$SRC" --version 2>/dev/null)" \
+    "$(grep -m1 '^VERSION=' "$SRC" | cut -d= -f2)"
+
+kd 'tên site ngoài bảng → thoát 64' "$(ma_thoat --site khong-co-trong-bang)" '64'
+kd 'tên site là đường dẫn → thoát 64' "$(ma_thoat --site ../../etc)" '64'
+kd 'tên site rỗng → thoát 64' "$(ma_thoat --site '')" '64'
+kd 'cờ gõ sai → thoát 64' "$(ma_thoat --sit oohx.net)" '64'
+kd 'một đối số lẻ → thoát 64' "$(ma_thoat --site)" '64'
+kd 'ba đối số → thoát 64' "$(ma_thoat --site oohx.net thua)" '64'
+
+# Site HỢP LỆ phải đi qua được phần đọc đối số. Không khẳng định mã thoát cụ
+# thể: không root thì 77, mà root thì script đi tiếp rồi dừng ở bước [1] vì
+# không có repo ở đường dẫn đó. Chỉ khẳng định nó KHÔNG bị chặn ở 64.
+kd 'site trong bảng đi qua được phần đọc đối số' \
+    "$([ "$(ma_thoat --site dev.oohx.net)" != "64" ] && echo qua || echo chan-64)" 'qua'
+
+kd 'không đối số cũng đi qua được' \
+    "$([ "$(ma_thoat)" != "64" ] && echo qua || echo chan-64)" 'qua'
+
+# ── Dòng `address` do script điền ──────────────────────────────────────────
+#
+# Lấy đúng lệnh `sed` ra khỏi script thật, không chép lại — chép lại thì thử
+# một phép thay khác.
+LENH_SED=$(grep -m1 '^sed "s|' "$SRC")
+CONF_REPO="docs/deploy/nextjs-proxy/nextjs.conf"
+
+kd 'tìm được lệnh sed dựng conf trong script' \
+    "$([ -n "$LENH_SED" ] && echo co || echo khong)" 'co'
+
+dung_conf() {
+    NEXT_ADDR="$1" REPO_CONF="$2" CONF_DAN="$3" bash -c "$LENH_SED"
+}
+
+# Với production thì `$NEXT_ADDR` bằng đúng chuỗi đã có trong file, nên bản
+# dựng phải giống file repo TỪNG BYTE. Lệch một khoảng trắng thì `cmp` ở bước
+# [2] báo "có đổi" ở mọi lượt deploy production, và mỗi lượt kéo theo một
+# `lswsctrl restart` cùng một lần canary — tốn và ồn, trong khi không có gì đổi.
+dung_conf "$NEXT_ADDR" "$CONF_REPO" "$D/dung-prod"
+kd 'dựng cho production giống file repo TỪNG BYTE' \
+    "$(cmp -s "$CONF_REPO" "$D/dung-prod" && echo giong || echo lech)" 'giong'
+
+dung_conf "127.0.0.1:3002" "$CONF_REPO" "$D/dung-dev"
+kd 'dựng cho dev đổi ĐÚNG MỘT dòng' \
+    "$(diff "$CONF_REPO" "$D/dung-dev" | grep -c '^<')" '1'
+
+kd 'dòng được đổi là dòng address' \
+    "$(diff "$CONF_REPO" "$D/dung-dev" | grep '^>' | grep -c 'address.*127\.0\.0\.1:3002')" '1'
+
+kd 'số context không đổi sau khi dựng' \
+    "$(grep -cE '^context ' "$D/dung-dev")" "$(grep -cE '^context ' "$CONF_REPO")"
+
+# ── Thay KHÔNG được phép bỏ qua phép kiểm ─────────────────────────────────
+#
+# `kiem_conf` chạy trên bản ĐÃ DỰNG. Hai ca dưới đây là bằng chứng rằng phép
+# kiểm vẫn có tác dụng sau khi thay: nó phải nhận bản dựng cho địa chỉ đang
+# đồng bộ, và phải từ chối một file mang địa chỉ khác.
+NEXT_ADDR_CU="$NEXT_ADDR"
+NEXT_ADDR="127.0.0.1:3002"
+
+kd 'kiem_conf NHẬN bản dựng cho 3002 khi đang đồng bộ 3002' \
+    "$(kiem_conf "$D/dung-dev" dev >/dev/null 2>&1 && echo nhan || echo tu-choi)" 'nhan'
+
+kd 'kiem_conf TỪ CHỐI file repo thô khi đang đồng bộ 3002' \
+    "$(kiem_conf "$CONF_REPO" tho >/dev/null 2>&1 && echo nhan || echo tu-choi)" 'tu-choi'
+
+NEXT_ADDR="$NEXT_ADDR_CU"
+
+# ── Đúng MỘT dòng `address` ────────────────────────────────────────────────
+#
+# Nhánh `address)` của `kiem_conf` chỉ nói "mỗi dòng address đều đúng" — nó im
+# lặng khi KHÔNG CÓ dòng nào. Tới v9 đó là một lỗ nhỏ; từ v10 nó thành chỗ
+# hỏng im lặng thật, vì dòng đó do `sed` điền: `sed` không khớp gì thì file vẫn
+# qua mọi phép kiểm khác và `extprocessor` ra máy chủ mà không có đích nào.
+hop_le khong-address
+grep -v '^  address' "$D/khong-address" > "$D/khong-address.moi"
+mv "$D/khong-address.moi" "$D/khong-address"
+thu khong-address tu-choi
+
+hop_le hai-address
+sed -i 's|^  address .*|&\n  address                 127.0.0.1:3001|' "$D/hai-address"
+thu hai-address tu-choi
+
+# Và `sed` KHÔNG tự thêm dòng nào khi file không có dòng để thay — nên thứ tự
+# "thay rồi kiểm" là thứ duy nhất bắt được ca này.
+dung_conf "127.0.0.1:3002" "$D/khong-address" "$D/khong-address-dung"
+kd 'sed không tự thêm dòng address khi file không có' \
+    "$(grep -c '^  address' "$D/khong-address-dung")" '0'
+
+# ── Thứ tự: thay → KIỂM → dán ──────────────────────────────────────────────
+#
+# Ba ca này canh ĐỊA CHỈ của ba lời gọi, không canh hành vi của hàm. Lý do:
+# `kiem_conf` vẫn đúng y nguyên nếu ai đó đưa nó `$REPO_CONF` thay vì
+# `$CONF_DAN` — nó sẽ từ chối file repo khi đồng bộ dev (đúng), và NHẬN file
+# repo khi đồng bộ production (cũng đúng, vì hai file giống nhau từng byte).
+# Nên một lượt deploy production vẫn xanh hết, và chỗ hỏng chỉ lộ ra ở dev.
+#
+# Cùng lẽ đó cho `cp` và `cmp`: dán file repo lên dev là dán conf cổng 3001
+# vào vhost của dev, và `cmp` so file repo thì nó báo "không đổi" ở dev trong
+# khi conf đang chạy mang cổng khác.
+kd 'phép kiểm chạy trên bản DỰNG' \
+    "$(grep -c 'kiem_conf "$CONF_DAN"' "$SRC")" '1'
+
+kd 'không còn phép kiểm nào chạy trên file repo' \
+    "$(grep -c 'kiem_conf "$REPO_CONF"' "$SRC")" '0'
+
+kd 'bản được dán là bản DỰNG' \
+    "$(grep -c 'cp "$CONF_DAN" "$PROXY_CONF"' "$SRC")" '1'
+
+kd 'bước [2] so bản DỰNG với bản đang chạy' \
+    "$(grep -c 'cmp -s "$CONF_DAN" "$PROXY_CONF"' "$SRC")" '1'
+
+# File tạm phải được xoá bằng mọi đường ra, kể cả đường `lui_lai` + `exit 1`.
+kd 'file tạm có trap xoá khi thoát' \
+    "$(grep -cE '^trap .*CONF_DAN.* EXIT$' "$SRC")" '1'
+
+# ── Thư mục rewrite của MỌI site đều bị bỏ qua ở bước [4] ──────────────────
+#
+# Cái bẫy của v3 qua một cửa mới, và nó KHÔNG hiện ra ở môi trường gây ra nó.
+# `urlrewrite-nextjs.conf:42` nhắc `127.0.0.1:3001` trong một dòng ghi chú, và
+# file ấy được dán y nguyên vào thư mục rewrite của cả hai site. Nên một lượt
+# đồng bộ PRODUCTION bắt được file rewrite của DEV, đưa nó qua `kiem_conf` —
+# phép kiểm dành cho conf proxy — rồi DỪNG. Dựng dev lên là làm production
+# thôi deploy được, trong khi không ai chạm gì vào production.
+RWB="$D/rw-bo-qua.sh"
+{
+    sed -n '/^SITE_CHO_PHEP=(/,/^)/p' "$SRC"
+    echo 'OLS_VHOST_DIR="/www/server/panel/vhost/openlitespeed"'
+    sed -n '/^RW_BO_QUA=()$/,/^done$/p' "$SRC"
+    echo 'printf "%s\\n" "${RW_BO_QUA[@]}"'
+} > "$RWB"
+
+kd 'trích được khối dựng danh sách bỏ qua' \
+    "$(bash -n "$RWB" >/dev/null 2>&1 && echo hop-le || echo hong)" 'hop-le'
+
+kd 'có MỘT thư mục rewrite bỏ qua cho mỗi site trong bảng' \
+    "$(bash "$RWB" 2>/dev/null | grep -c 'urlrewrite$')" \
+    "$(echo "$BANG" | wc -l | tr -d ' ')"
+
+kd 'thư mục rewrite của dev nằm trong danh sách bỏ qua' \
+    "$(bash "$RWB" 2>/dev/null | grep -c '/proxy/dev[.]oohx[.]net/urlrewrite$')" '1'
 
 echo
 echo "── tổng: $so_dung đúng, $so_sai sai ──"

@@ -4,7 +4,12 @@
 #
 # Chạy AS ROOT, gọi qua sudo từ `deploy.sh`:
 #
-#     sudo -n /usr/local/sbin/oohx-sync-proxy
+#     sudo -n /usr/local/sbin/oohx-sync-proxy                      # oohx.net
+#     sudo -n /usr/local/sbin/oohx-sync-proxy --site dev.oohx.net  # môi trường dev
+#
+# Không có `--site` thì site là `oohx.net` — production, y như v9 và mọi bản
+# trước nó. MỖI dạng gọi cần MỘT dòng sudoers riêng, vì dòng sudoers ghi cả
+# đối số (xem khối RANH GIỚI QUYỀN ở dưới).
 #
 # ══════════════════════════════════════════════════════════════════════════════
 # VÌ SAO LÀ MỘT SCRIPT ROOT, KHÔNG PHẢI MẤY DÒNG SUDOERS
@@ -38,12 +43,31 @@
 # TRẮNG (hàm `kiem_conf`):
 #
 #   - chỉ chấp nhận đúng những directive của một proxy conf;
-#   - `extprocessor` phải tên `nextjs`, `type proxy`, địa chỉ phải đúng
-#     `127.0.0.1:3001` — không cho trỏ ra ngoài máy;
+#   - `extprocessor` phải tên `nextjs`, `type proxy`, và địa chỉ phải đúng
+#     địa chỉ của site đang đồng bộ — cột thứ ba của `SITE_CHO_PHEP`, tức
+#     `127.0.0.1` với một cổng cố định. Không cho trỏ ra ngoài máy;
+#   - phải có ĐÚNG MỘT dòng `address`. Từ v10 script tự điền dòng đó, nên
+#     "không có dòng nào" là một hỏng im lặng mới: file qua được phép kiểm
+#     trong khi `extprocessor` không có đích nào;
 #   - `context` phải là đường dẫn chữ-số-gạch, KHÔNG được là `/`, và không
 #     được trùng nhóm cấm (`/api`, `/my`, `/cart`, `/booking`, `/livewire`,
 #     `sitemap.xml`, `robots.txt`);
 #   - gặp bất cứ dòng nào ngoài danh sách thì DỪNG, không dán.
+#
+# ══ `--site` KHÔNG mang đường dẫn, nó CHỌN MỘT DÒNG ══
+#
+# Từ v10 script phục vụ hai site. Nhưng đối số vẫn do bên gọi — user deploy —
+# kiểm soát, nên nó không được phép mang đường dẫn: một script root nhận đường
+# dẫn từ bên gọi là một script root dán file tuỳ ý vào chỗ tuỳ ý.
+#
+# Nên `--site <tên>` chỉ chọn một dòng trong bảng `SITE_CHO_PHEP` viết cứng
+# dưới đây. Tên không có trong bảng thì thoát ngay với mã 64. Thêm một site =
+# sửa script này rồi cài lại as root: bên gọi chọn được dòng nào, không viết
+# được dòng nào.
+#
+# Và dòng `address` của conf do script TỰ ĐIỀN từ bảng, không đọc từ file
+# repo. Cổng là thứ duy nhất phân biệt hai môi trường, nên nó không được phép
+# đến từ cái file mà user deploy ghi được.
 #
 # Nên kịch bản xấu nhất một conf độc hại làm được là mở thêm/bớt một đường dẫn
 # công khai trỏ vào chính tiến trình Next.js trên máy này. Không chạy được lệnh,
@@ -67,6 +91,11 @@
 #     install -o root -g root -m 0755 \
 #         /www/wwwroot/dash.oohx.net/docs/deploy/nextjs-proxy/oohx-sync-proxy.sh \
 #         /usr/local/sbin/oohx-sync-proxy
+#
+# MỘT bản cài phục vụ MỌI site — `--site` chỉ chọn dòng, không chọn script.
+# Nên đường dẫn trong lệnh trên quyết định phiên bản nào được cài: cài từ cây
+# `dev.oohx.net` là đưa script của nhánh `dev` lên phục vụ cả production.
+# Cài từ cây production, trừ khi cố ý thử bản mới.
 #
 set -e
 
@@ -128,7 +157,26 @@ set -e
 # lần khi KHÔNG NỐI ĐƯỢC (canary giờ chạy mọi lượt deploy, nên một lần curl
 # hỏng tạm sẽ làm đỏ một deploy đúng), và nhánh không-đổi KHÔNG lùi lại khi đỏ
 # (không có lần dán nào để lùi).
-VERSION=9
+# v10 = v9 + hai site, một file conf.
+#
+# `dev.oohx.net` dựng trên cùng VPS (xem `docs/PLAN-MOI-TRUONG-DEV.md`). v9
+# viết cứng chín thứ cho một site: repo root, `detail/oohx.net.conf`,
+# `proxy/oohx.net/`, cổng 3001, và bốn lần `--resolve oohx.net` trong canary.
+# Gọi bản v9 từ một lượt deploy dev là đồng bộ conf của PRODUCTION và chạy
+# canary VÀO production — tức dev có đường làm production đỏ. Đó là lý do
+# `deploy.sh` phải có cờ `OOHX_SYNC=0` ở lát 2.
+#
+# Chín chỗ đó giờ đọc từ MỘT bảng (`SITE_CHO_PHEP`), và `--site` chỉ chọn một
+# dòng trong bảng.
+#
+# ══ Vì sao KHÔNG phải hai file nextjs.conf ══
+#
+# Hai môi trường cần hai cổng nhưng cùng danh sách 13 context. Hai file trong
+# repo là hai bản sẽ trôi khỏi nhau — và `nextjs.conf:177-179` đã ghi rõ danh
+# sách context là chỗ dễ sai nhất. Nên repo giữ đúng một file, script thay duy
+# nhất dòng `address`, và `kiem_conf` chạy trên bản ĐÃ THAY. Phép thay không
+# được phép bỏ qua phép kiểm.
+VERSION=10
 
 # In số phiên bản rồi thoát — `deploy.sh` dùng cái này để so với bản trong repo.
 # Không cần quyền gì, nên để trước mọi phép kiểm khác.
@@ -137,14 +185,73 @@ if [ "${1:-}" = "--version" ]; then
     exit 0
 fi
 
-# ══ Không nhận đối số nào khác ═══════════════════════════════════════════════
+# ══ Bảng site — nguồn sự thật duy nhất cho mọi đường dẫn và mọi cổng ════════
 #
-# Mọi đối số đều do bên gọi (user deploy) kiểm soát. Một script root nhận đường
-# dẫn từ bên gọi là một script root dán file tuỳ ý vào chỗ tuỳ ý. Đường dẫn ở
-# đây viết cứng, và `$#` phải bằng 0.
-if [ "$#" -ne 0 ]; then
-    echo "LỖI: script này không nhận đối số (nhận được: $*)." >&2
-    echo "      Đường dẫn viết cứng có chủ ý — xem khối RANH GIỚI QUYỀN." >&2
+# Mỗi dòng: `tên-site|repo-root|địa-chỉ-Next|service-của-Next`
+#
+# Ba cột đầu script DÙNG để dựng đường dẫn và để gọi canary. Cột thứ tư chỉ đi
+# vào CÂU GỢI Ý trong thông báo lỗi — không một lệnh nào trong script chạy nó.
+# Phân biệt đó có chủ ý: một tên service cũ trong bảng chỉ làm một dòng log
+# chỉ sai chỗ, chứ không restart sai thứ. Mà một dòng log chỉ sai chỗ vẫn tệ:
+# v9 in `systemctl status oohx-next`, một unit chưa bao giờ tồn tại trên máy
+# này, và câu đó nằm đúng trong thông báo của lần hỏng nặng nhất.
+#
+# Tên site vừa là tên vhost (`detail/<tên>.conf`, `proxy/<tên>/`) vừa là tên
+# canary đưa vào `--resolve`. Hai thứ đó PHẢI là cùng một chuỗi: canary gọi
+# với header `Host: <tên>`, nên nó chỉ đo đúng cái vhost mà script vừa sửa.
+# Lệch nhau là sửa một site rồi đo một site khác, và cả hai kết quả đều vô
+# nghĩa mà không có gì báo.
+SITE_CHO_PHEP=(
+    "oohx.net|/www/wwwroot/dash.oohx.net|127.0.0.1:3001|oohx-webapp"
+    "dev.oohx.net|/www/wwwroot/dev.oohx.net|127.0.0.1:3002|oohx-webapp-dev"
+)
+
+# Không có `--site` thì production — để `deploy.sh` của production gọi y như
+# nó vẫn gọi từ v1, và để dòng sudoers hiện có (kết thúc bằng `""`, tức "đúng
+# không đối số nào") vẫn đúng.
+SITE_MAC_DINH="oohx.net"
+
+# ══ Đối số: đúng hai dạng, không hơn ════════════════════════════════════════
+#
+# Mọi đối số đều do bên gọi (user deploy) kiểm soát, nên ở đây không có đối số
+# nào nhận đường dẫn. `--site` chỉ chọn một dòng trong bảng trên.
+SITE="$SITE_MAC_DINH"
+
+case "$#" in
+    0) ;;
+    2)
+        if [ "$1" != "--site" ]; then
+            echo "LỖI: đối số không hiểu: '$1'." >&2
+            echo "      Dạng duy nhất có đối số là: --site <tên>." >&2
+            echo "      Xem khối RANH GIỚI QUYỀN." >&2
+            exit 64
+        fi
+        SITE="$2"
+        ;;
+    *)
+        echo "LỖI: script này nhận 0 hoặc 2 đối số (nhận được $#: $*)." >&2
+        echo "      Dạng duy nhất có đối số là: --site <tên>." >&2
+        exit 64
+        ;;
+esac
+
+# Chọn dòng. Tên không có trong bảng thì DỪNG — không đoán, và nhất là không
+# tự dựng đường dẫn từ cái tên nhận được.
+DONG_SITE=""
+for d in "${SITE_CHO_PHEP[@]}"; do
+    case "$d" in
+        "$SITE|"*) DONG_SITE="$d"; break ;;
+    esac
+done
+
+if [ -z "$DONG_SITE" ]; then
+    echo "LỖI: site '$SITE' không có trong bảng SITE_CHO_PHEP." >&2
+    echo "      Chỉ những site sau được phép:" >&2
+    for d in "${SITE_CHO_PHEP[@]}"; do
+        echo "        ${d%%|*}" >&2
+    done
+    echo "      Thêm site mới = sửa script này rồi cài lại as root. Có chủ ý:" >&2
+    echo "      bên gọi chọn được dòng nào, không viết được dòng nào." >&2
     exit 64
 fi
 
@@ -153,12 +260,19 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 77
 fi
 
-# ── Đường dẫn, tất cả viết cứng ─────────────────────────────────────────────
-REPO_ROOT="/www/wwwroot/dash.oohx.net"
+# ── Đường dẫn: dựng từ DÒNG đã chọn, không từ đối số ────────────────────────
+#
+# Bốn giá trị ra khỏi bảng ở đây, và từ dòng này trở xuống script không đọc
+# `$1`/`$2` nữa. `SITE` được gán lại từ bảng chứ không giữ nguyên chuỗi người
+# gọi đưa vào: hai chuỗi bằng nhau theo phép so ở trên, nhưng lấy từ bảng thì
+# mọi đường dẫn bên dưới chắc chắn dựng từ dữ liệu của script.
+IFS='|' read -r SITE REPO_ROOT NEXT_ADDR NEXT_SERVICE <<< "$DONG_SITE"
+NEXT_PORT="${NEXT_ADDR##*:}"
+
 REPO_CONF="$REPO_ROOT/docs/deploy/nextjs-proxy/nextjs.conf"
 OLS_VHOST_DIR="/www/server/panel/vhost/openlitespeed"
-VHOST_CONF="$OLS_VHOST_DIR/detail/oohx.net.conf"
-PROXY_DIR="$OLS_VHOST_DIR/proxy/oohx.net"
+VHOST_CONF="$OLS_VHOST_DIR/detail/$SITE.conf"
+PROXY_DIR="$OLS_VHOST_DIR/proxy/$SITE"
 PROXY_CONF="$PROXY_DIR/nextjs.conf"
 
 # Luật rewrite: thư mục RIÊNG, và nó được nạp từ TRONG khối `rewrite { }` của
@@ -175,7 +289,12 @@ REPO_REWRITE="$REPO_ROOT/docs/deploy/nextjs-proxy/urlrewrite-nextjs.conf"
 # `deploy.sh` đã tránh một lần.
 BAK_SUFFIX=".truoc-dong-bo"
 LSWSCTRL="/usr/local/lsws/bin/lswsctrl"
-NEXT_ADDR="127.0.0.1:3001"
+
+# Conf sẽ dán: bản repo với dòng `address` do script điền. Dựng ở bước [1],
+# xoá khi thoát bằng mọi đường — `trap EXIT` sống song song với `trap ERR`
+# của `lui_lai` ở bước [5], và `lui_lai` chỉ tắt ERR nên cái này vẫn chạy.
+CONF_DAN="$(mktemp "${TMPDIR:-/tmp}/oohx-sync-proxy-conf.XXXXXX")"
+trap 'rm -f "$CONF_DAN"' EXIT
 
 # ── Danh sách đường dẫn KHÔNG BAO GIỜ được proxy ────────────────────────────
 #
@@ -216,7 +335,7 @@ CAM=(
 kiem_conf() {
     local f="$1"
     local nhan="$2"
-    local so_dong=0 so_context=0 co_extprocessor=0 mo=0 dong=0
+    local so_dong=0 so_context=0 co_extprocessor=0 so_address=0 mo=0 dong=0
     local dong_txt khoa gia_tri
 
     if [ ! -f "$f" ]; then
@@ -338,6 +457,7 @@ kiem_conf() {
                     echo "      Một địa chỉ khác nghĩa là trỏ lưu lượng công khai ra ngoài máy này." >&2
                     return 1
                 }
+                so_address=$((so_address + 1))
                 ;;
 
             handler)
@@ -375,6 +495,21 @@ kiem_conf() {
 
     if [ "$so_context" -lt 1 ]; then
         echo "   $nhan: không khai context nào. Dán vào là vô nghĩa." >&2
+        return 1
+    fi
+
+    # ══ Đúng MỘT dòng `address` ══
+    #
+    # Phép so ở nhánh `address)` chỉ nói "mỗi dòng address đều đúng" — nó im
+    # lặng khi KHÔNG CÓ dòng nào. Tới v9 điều đó chỉ là một lỗ nhỏ; từ v10 nó
+    # thành chỗ hỏng im lặng thật, vì dòng đó do `sed` ở bước [1] điền: `sed`
+    # không khớp gì thì file vẫn qua mọi phép kiểm khác và `extprocessor` ra
+    # máy chủ mà không có đích nào.
+    #
+    # Nhiều hơn một cũng chặn: một conf khai `address` lần thứ hai bên trong
+    # khối `context` là cách giấu một đích thứ hai ở nơi mắt người đọc bỏ qua.
+    if [ "$so_address" -ne 1 ]; then
+        echo "   $nhan: phải có đúng MỘT dòng address, đếm được $so_address." >&2
         return 1
     fi
 
@@ -578,8 +713,8 @@ bi_phu() {
 # ═════════════════════════════════════════════════════════════════════════════
 # Canary: kiểm qua ĐÚNG virtual host, từ chính máy này.
 #
-# `--resolve` thay vì gọi `https://oohx.net` thường: như vậy header `Host` và
-# SNI đều đúng `oohx.net` (nên khớp virtual host), mà kết nối không ra khỏi máy
+# `--resolve` thay vì gọi `https://$SITE` thường: như vậy header `Host` và
+# SNI đều đúng tên site (nên khớp virtual host), mà kết nối không ra khỏi máy
 # — không vòng qua Cloudflare, nên không thêm độ trễ, không thêm một điểm hỏng,
 # và không tính vào hạn mức tần suất của người dùng thật.
 #
@@ -601,12 +736,12 @@ bi_phu() {
 ma() {
     local m
     m=$(curl -s -k -o /dev/null -w '%{http_code}' --max-time 15 \
-        --resolve "oohx.net:443:127.0.0.1" "https://oohx.net$1" 2>/dev/null) || m="000"
+        --resolve "$SITE:443:127.0.0.1" "https://$SITE$1" 2>/dev/null) || m="000"
 
     if [ -z "$m" ] || [ "$m" = "000" ]; then
         sleep 2
         m=$(curl -s -k -o /dev/null -w '%{http_code}' --max-time 15 \
-            --resolve "oohx.net:443:127.0.0.1" "https://oohx.net$1" 2>/dev/null) || m="000"
+            --resolve "$SITE:443:127.0.0.1" "https://$SITE$1" 2>/dev/null) || m="000"
     fi
 
     echo "${m:-000}"
@@ -665,25 +800,25 @@ dich_chuyen_huong() {
 vi_tri() {
     local loc
 
-    loc=$(curl -s -k -I --max-time 15 --resolve "oohx.net:443:127.0.0.1" \
-        "https://oohx.net$1" 2>/dev/null \
+    loc=$(curl -s -k -I --max-time 15 --resolve "$SITE:443:127.0.0.1" \
+        "https://$SITE$1" 2>/dev/null \
         | tr -d '\r' | awk 'tolower($1) == "location:" { print $2; exit }') || loc=""
 
-    loc=${loc#https://oohx.net}
-    loc=${loc#http://oohx.net}
+    loc=${loc#https://$SITE}
+    loc=${loc#http://$SITE}
 
     printf '%s' "$loc"
 }
 
 la_next() {
     local than
-    than=$(curl -s -k --max-time 15 --resolve "oohx.net:443:127.0.0.1" \
-        "https://oohx.net$1" 2>/dev/null) || than=""
+    than=$(curl -s -k --max-time 15 --resolve "$SITE:443:127.0.0.1" \
+        "https://$SITE$1" 2>/dev/null) || than=""
 
     if [ -z "$than" ]; then
         sleep 2
-        than=$(curl -s -k --max-time 15 --resolve "oohx.net:443:127.0.0.1" \
-            "https://oohx.net$1" 2>/dev/null) || than=""
+        than=$(curl -s -k --max-time 15 --resolve "$SITE:443:127.0.0.1" \
+            "https://$SITE$1" 2>/dev/null) || than=""
     fi
 
     printf '%s' "$than" | grep -c '/_next/static' || true
@@ -711,10 +846,10 @@ kiem_nen() {
     nen=$(ma /sitemap.xml)
     if [ "$nen" != "200" ]; then
         echo "LỖI: canary không chạy được ở máy này — /sitemap.xml trả $nen qua" >&2
-        echo "      --resolve oohx.net:443:127.0.0.1, trong khi nó phải 200 bất kể" >&2
+        echo "      --resolve $SITE:443:127.0.0.1, trong khi nó phải 200 bất kể" >&2
         echo "      conf proxy thế nào (Laravel sinh nó)." >&2
         echo "      KHÔNG kết luận gì về định tuyến: không đo được thì không nói." >&2
-        echo "      Kiểm tay: curl -ski --resolve oohx.net:443:127.0.0.1 https://oohx.net/sitemap.xml | head" >&2
+        echo "      Kiểm tay: curl -ski --resolve $SITE:443:127.0.0.1 https://$SITE/sitemap.xml | head" >&2
         return 1
     fi
     echo "   nền: /sitemap.xml → 200."
@@ -792,8 +927,8 @@ cho_next_het_qua_do() {
             echo "LỖI: Next.js vẫn chưa nghe sau ${CHO_NEXT_GIAY}s — /login trả $m." >&2
             echo "      Đây KHÔNG phải lỗi cấu hình proxy: /sitemap.xml vẫn 200, nên" >&2
             echo "      đường canary dùng được và Laravel đang phục vụ bình thường." >&2
-            echo "      Kiểm: systemctl status oohx-webapp; ss -ltnp | grep 3001" >&2
-            echo "            journalctl -u oohx-webapp -n 50 --no-pager" >&2
+            echo "      Kiểm: systemctl status $NEXT_SERVICE; ss -ltnp | grep $NEXT_PORT" >&2
+            echo "            journalctl -u $NEXT_SERVICE -n 50 --no-pager" >&2
             return 1
         fi
 
@@ -965,18 +1100,39 @@ canary() {
 }
 
 # ═════════════════════════════════════════════════════════════════════════════
-echo "── oohx-sync-proxy v$VERSION ──"
+# Site nằm ngay dòng đầu của log, cùng chỗ với số phiên bản. Hai môi trường
+# dùng CÙNG một file script và CÙNG một `deploy.sh`, nên đây là dòng duy nhất
+# trong log nói script vừa chạy trên site nào — cùng vai với dòng `Branch :`
+# của `deploy.sh` ở lát 2.
+echo "── oohx-sync-proxy v$VERSION · site $SITE ──"
 
-# ── 1. Kiểm conf của repo TRƯỚC khi chạm vào bất cứ gì ──────────────────────
-echo "[1/7] Kiểm conf trong repo theo danh sách trắng"
+# ── 1. Dựng conf sẽ dán, rồi kiểm BẢN ĐÃ DỰNG ───────────────────────────────
+#
+# ══ Thay → kiểm → dán, đúng thứ tự đó ══
+#
+# `kiem_conf` chạy trên `$CONF_DAN`, không trên `$REPO_CONF`: phép thay địa chỉ
+# không được phép bỏ qua phép kiểm. Kiểm bản repo rồi thay sau là để một bước
+# sửa file nằm SAU lớp bảo vệ duy nhất của script.
+#
+# Phần ngoặc `\(...\)` ôm cả khoảng trắng canh cột, nên với `oohx.net` —
+# nơi `$NEXT_ADDR` bằng đúng chuỗi đã có trong file — bản dựng ra giống file
+# repo TỪNG BYTE. Nhờ vậy `cmp` ở bước [2] vẫn nói "không đổi" ở lượt deploy
+# production đầu tiên sau khi cài v10, và không có lần `lswsctrl restart` nào
+# chỉ vì đổi phiên bản script.
+echo "[1/7] Dựng conf cho $SITE rồi kiểm theo danh sách trắng"
 if [ ! -f "$REPO_CONF" ]; then
     echo "LỖI: không có $REPO_CONF." >&2
     exit 1
 fi
-kiem_conf "$REPO_CONF" "repo" || {
-    echo "LỖI: conf trong repo không qua được phép kiểm. KHÔNG dán gì." >&2
+
+sed "s|^\([[:space:]]*address[[:space:]]*\).*|\1$NEXT_ADDR|" "$REPO_CONF" > "$CONF_DAN"
+
+kiem_conf "$CONF_DAN" "conf dựng cho $SITE" || {
+    echo "LỖI: conf dựng cho $SITE không qua được phép kiểm. KHÔNG dán gì." >&2
+    echo "      (Bản dựng = $REPO_CONF với dòng address đổi thành $NEXT_ADDR.)" >&2
     exit 1
 }
+echo "   address của $SITE: $NEXT_ADDR"
 
 if [ ! -f "$REPO_REWRITE" ]; then
     echo "LỖI: không có $REPO_REWRITE." >&2
@@ -993,7 +1149,7 @@ kiem_rewrite "$REPO_REWRITE" "rewrite" || {
 # luật rewrite sẽ không bao giờ tới máy chủ, và lượt deploy vẫn báo "không đổi"
 # — đúng kiểu hỏng im lặng mà cả chặng này đã mất nhiều vòng vì nó.
 echo "[2/7] So với bản đang chạy"
-if [ -f "$PROXY_CONF" ] && cmp -s "$REPO_CONF" "$PROXY_CONF" \
+if [ -f "$PROXY_CONF" ] && cmp -s "$CONF_DAN" "$PROXY_CONF" \
     && [ -f "$REWRITE_CONF" ] && cmp -s "$REPO_REWRITE" "$REWRITE_CONF"; then
     echo "   Không đổi: cả conf proxy lẫn luật rewrite đang chạy đều khớp repo."
 
@@ -1037,8 +1193,8 @@ if [ -f "$PROXY_CONF" ] && cmp -s "$REPO_CONF" "$PROXY_CONF" \
     echo "     đang có." >&2
     echo "" >&2
     echo "     Nghĩa là nguyên nhân KHÔNG nằm trong hai file script này quản:" >&2
-    echo "       - Next.js chết hoặc không nghe ở 127.0.0.1:3001" >&2
-    echo "         systemctl status oohx-next; ss -ltnp | grep 3001" >&2
+    echo "       - Next.js chết hoặc không nghe ở $NEXT_ADDR" >&2
+    echo "         systemctl status $NEXT_SERVICE; ss -ltnp | grep $NEXT_PORT" >&2
     echo "       - một conf khác đang khai context/rewrite chồng lên" >&2
     echo "         grep -rn 'context /' /www/server/panel/vhost/openlitespeed/ --include='*.conf'" >&2
     echo "       - hành vi 404 của Laravel đổi (fallback, route, middleware)" >&2
@@ -1063,7 +1219,7 @@ if [ ! -f "$VHOST_CONF" ]; then
     exit 1
 fi
 
-if ! grep -q "proxy/oohx.net" "$VHOST_CONF"; then
+if ! grep -q "proxy/$SITE" "$VHOST_CONF"; then
     echo "LỖI: $VHOST_CONF KHÔNG include $PROXY_DIR." >&2
     echo "      Dán conf vào đó sẽ không có tác dụng gì." >&2
     echo "      Thêm dòng này vào $VHOST_CONF rồi chạy lại:" >&2
@@ -1078,7 +1234,7 @@ echo "   có include."
 # Thư mục rewrite được nạp từ TRONG khối `rewrite { }`, nên nó là một dòng
 # include KHÁC và phải kiểm riêng. Thiếu nó thì file luật dán vào im lặng
 # không có tác dụng — trang chủ vẫn ra Laravel và không gì báo.
-if ! grep -q "proxy/oohx.net/urlrewrite" "$VHOST_CONF"; then
+if ! grep -q "proxy/$SITE/urlrewrite" "$VHOST_CONF"; then
     echo "LỖI: $VHOST_CONF KHÔNG include $REWRITE_DIR." >&2
     echo "      Luật rewrite dán vào đó sẽ không có tác dụng gì." >&2
     echo "      Thêm dòng này vào TRONG khối 'rewrite { }' của $VHOST_CONF:" >&2
@@ -1145,14 +1301,36 @@ echo "[4/7] Tìm conf khác đang trỏ $NEXT_ADDR"
 #
 # Thư mục rewrite bị loại theo ĐƯỜNG DẪN, không theo nội dung: mọi file trong
 # đó là luật rewrite theo định nghĩa, và chúng được kiểm bằng `kiem_rewrite`.
+# ══ Loại thư mục rewrite của MỌI site trong bảng, không chỉ site đang chạy ══
+#
+# Cùng cái bẫy của v3, qua một cửa mới. v3 chỉ loại `$PROXY_CONF` và hỏng từ
+# lần chạy THỨ HAI, vì file rewrite do chính script cài có nhắc địa chỉ Next
+# trong phần ghi chú. Từ v10 địa chỉ đó còn nằm trong file rewrite của site
+# KHÁC: `urlrewrite-nextjs.conf:42` nhắc `127.0.0.1:3001` trong một dòng ghi
+# chú, và file ấy được dán y nguyên vào thư mục rewrite của cả hai site.
+#
+# Nên một lượt đồng bộ production sẽ bắt được file rewrite của DEV, đưa nó qua
+# `kiem_conf` — phép kiểm dành cho conf proxy, mà nó là file rewrite — rồi
+# DỪNG. Tức dựng dev lên là làm production thôi deploy được, trong khi không ai
+# chạm gì vào production. Lọc theo ĐƯỜNG DẪN vì mọi file trong thư mục rewrite
+# là luật rewrite theo định nghĩa, và chúng được kiểm bằng `kiem_rewrite`.
+RW_BO_QUA=()
+for d in "${SITE_CHO_PHEP[@]}"; do
+    RW_BO_QUA+=("$OLS_VHOST_DIR/proxy/${d%%|*}/urlrewrite")
+done
+
 LA=()
 while read -r f; do
     [ -z "$f" ] && continue
     [ "$f" = "$PROXY_CONF" ] && continue
 
-    case "$f" in
-        "$REWRITE_DIR"/*) continue ;;
-    esac
+    bo_qua=0
+    for d in "${RW_BO_QUA[@]}"; do
+        case "$f" in
+            "$d"/*) bo_qua=1; break ;;
+        esac
+    done
+    [ "$bo_qua" -eq 1 ] && continue
 
     LA+=("$f")
 done < <(grep -rl --include='*.conf' "$NEXT_ADDR" "$OLS_VHOST_DIR" /usr/local/lsws/conf 2>/dev/null || true)
@@ -1262,7 +1440,7 @@ for f in "${LA[@]}"; do
     echo "   cách ly: $f → $f$BAK_SUFFIX"
 done
 
-cp "$REPO_CONF" "$PROXY_CONF"
+cp "$CONF_DAN" "$PROXY_CONF"
 chown root:root "$PROXY_CONF"
 chmod 644 "$PROXY_CONF"
 echo "   đã dán $PROXY_CONF ($(grep -cE '^context ' "$PROXY_CONF") context)."

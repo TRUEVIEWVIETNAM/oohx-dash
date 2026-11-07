@@ -65,6 +65,17 @@ grep -q 'sleep 1' "$HAM"       || { echo "HAM TRICH RA KHONG CHO LAN NAO"; exit 
 # bộ thử này dùng biến và treo vô hạn ngay lần chạy đầu tiên: kịch bản
 # '503 503 200' không bao giờ tới được 200, mà hạn chờ cũng không bao giờ
 # tới. Tệp thì sống qua subshell.
+# ══ Hai biến của bảng site, truyền vào vì nhánh HẾT HẠN in chúng ══
+#
+# Từ v10 câu lỗi hết hạn gợi ý `systemctl status $NEXT_SERVICE` và
+# `ss -ltnp | grep $NEXT_PORT`. Hai giá trị đó ra từ bảng site trong script
+# thật, còn ở đây chỉ có đúng cái hàm được trích ra — nên thiếu chúng thì
+# `set -u` làm ba ca hết-hạn đỏ với "unbound variable": một thông báo nói về
+# biến, không nói về hành vi đang được thử.
+#
+# Giá trị cụ thể không quan trọng ở đây, chúng chỉ đi vào câu chữ của thông
+# báo. Việc bảng khai đúng chúng là phần của `tests/shell/thu-kiem-conf.sh`
+# (PHẦN 8).
 chay() {
     local kich_ban="$1" han="$2"
     local dem_luot="$D/luot" dem_giay="$D/giay"
@@ -73,6 +84,7 @@ chay() {
     echo 0 > "$dem_giay"
 
     KICH_BAN="$kich_ban" CHO_NEXT_GIAY="$han" \
+    NEXT_SERVICE="oohx-webapp" NEXT_PORT="3001" \
     DEM_LUOT="$dem_luot" DEM_GIAY="$dem_giay" bash -c '
         set -u
 
