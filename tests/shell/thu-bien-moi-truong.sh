@@ -245,13 +245,17 @@ khang_dinh 'tám biến OOHX_* đều có mặt' \
 khang_dinh 'OOHX_BRANCH của workflow dev là `dev`' \
     "$(grep -cE '^          OOHX_BRANCH: dev$' "$WF_DEV")" '1'
 
-khang_dinh 'OOHX_SYNC của workflow dev là 0' \
-    "$(grep -cE "^          OOHX_SYNC: '0'\$" "$WF_DEV")" '1'
+# Bật thành `1` ngày 07/11/2026, sau khi lát 4 dựng vhost `dev.oohx.net` và
+# dòng sudoers cho đúng `--site dev.oohx.net`, VÀ sau khi phép kiểm
+# `sudo -u deploy sudo -n ... --site dev.oohx.net` chạy xanh as root.
+khang_dinh 'OOHX_SYNC của workflow dev là 1' \
+    "$(grep -cE "^          OOHX_SYNC: '1'\$" "$WF_DEV")" '1'
 
-# Khai sẵn dù `OOHX_SYNC=0` làm nó chưa được dùng. Lý do nằm ở lát 4: khi cờ
-# trên bật thành `1`, thiếu dòng này nghĩa là `deploy.sh` gọi script root
-# KHÔNG kèm `--site`, tức một lượt deploy dev đi đồng bộ conf của production
-# — đúng cái mà cả lát 2 và lát 3 dựng lên để tránh.
+# Cờ trên đã bật, nên dòng này giờ ĐƯỢC DÙNG thật. Thiếu nó nghĩa là
+# `deploy.sh` gọi script root KHÔNG kèm `--site`, tức một lượt deploy dev đi
+# đồng bộ conf của production — đúng cái mà cả lát 2 và lát 3 dựng lên để
+# tránh. Và nó sẽ không đỏ: dòng sudoers của production nhận lời gọi không
+# đối số, nên sudo cho qua và conf của production bị ghi bằng cổng của dev.
 khang_dinh 'OOHX_SITE của workflow dev là dev.oohx.net' \
     "$(grep -cE '^          OOHX_SITE: dev\.oohx\.net$' "$WF_DEV")" '1'
 
@@ -513,6 +517,28 @@ khang_dinh 'OOHX_RAM_TOI_THIEU_MB của workflow dev là 2048' \
 # production trong lúc `main` đóng băng.
 khang_dinh 'workflow production không khai biến nào của lát 5' \
     "$(grep -cE '^          OOHX_(BUILD_RAM_MB|BUILD_NICE|RAM_TOI_THIEU_MB):' "$WF_PROD")" '0'
+
+# ══ Hai biến mà production phải KHÔNG khai, và vì sao mỗi cái nguy theo một
+#    kiểu khác ══
+#
+# `deploy.sh` khai `SYNC="${OOHX_SYNC:-1}"`, tức production đồng bộ conf proxy
+# nhờ MẶC ĐỊNH, không nhờ một dòng nào trong workflow. Nên:
+#
+#   · `OOHX_SYNC: '0'` ở production = ngừng đồng bộ. `nextjs.conf` đổi trong
+#     repo nhưng không bao giờ được dán lên máy chủ; production phục vụ conf
+#     cũ và lượt deploy VẪN XANH. Đột biến này lọt ở lượt đo 07/11/2026 —
+#     hai ca dưới đây là thứ được thêm vì nó lọt.
+#   · `OOHX_SITE` ở production = gọi script kèm `--site`, tức một tổ hợp đối
+#     số mà dòng sudoers của production (kết thúc bằng `""`) từ chối. Cái này
+#     đỏ ở mọi lượt deploy, nên thấy được — nhưng vẫn không nên có.
+#
+# `OOHX_SYNC: '1'` ở production thì vô hại (bằng đúng mặc định), nên hai ca
+# này canh sự VẮNG MẶT của tên biến, không canh giá trị.
+khang_dinh 'workflow production KHÔNG khai OOHX_SYNC' \
+    "$(grep -cE '^ *OOHX_SYNC:' "$WF_PROD")" '0'
+
+khang_dinh 'workflow production KHÔNG khai OOHX_SITE' \
+    "$(grep -cE '^ *OOHX_SITE:' "$WF_PROD")" '0'
 
 echo ""
 echo "Tổng: $so_dung đúng, $so_sai sai."
