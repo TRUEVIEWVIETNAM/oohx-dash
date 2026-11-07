@@ -1,0 +1,75 @@
+# Unit systemd cho Next.js của MÔI TRƯỜNG DEV (lát 4 của PLAN-MOI-TRUONG-DEV).
+#
+# Đặt tại: /etc/systemd/system/oohx-webapp-dev.service
+#
+# Đây là bản song sinh của `oohx-webapp.service`. Mọi chú thích giải thích *vì
+# sao* nằm ở tệp đó; tệp này chỉ ghi lại những chỗ KHÁC, và vì sao chúng khác.
+#
+# ══ Năm chỗ khác, không một chỗ nào được quên ══
+#
+#   1. cổng 3002 (production 3001) — hai tiến trình `next start` trên cùng máy
+#      không chia nhau được một cổng. Bảng site của `oohx-sync-proxy` v10 khai
+#      đúng cặp này; sai một con số ở đây là proxy của dev trỏ vào production.
+#   2. WorkingDirectory `/www/wwwroot/dev.oohx.net/webapp`
+#   3. `OOHX_API_BASE=https://dev.oohx.net/api/v2`
+#   4. `OOHX_PUBLIC_ORIGIN=https://dev.oohx.net`
+#   5. SyslogIdentifier `oohx-webapp-dev` — để `journalctl -u` của hai môi
+#      trường không trộn vào nhau khi đang truy một lỗi.
+#
+# ══ Dòng `/etc/hosts` là BẮT BUỘC ở dev, không phải tuỳ chọn ══
+#
+# Trên production, thiếu dòng `/etc/hosts` chỉ làm mỗi lần dựng trang đi ra
+# Cloudflare rồi quay lại — chậm, vẫn chạy. Ở dev thì KHÁC: Cache Rule *Bypass
+# cache* cho `dev.oohx.net` (bước 2 của lát 4) nằm ở Cloudflare, nên một vòng
+# ra ngoài là một lần nữa đi qua đúng tầng mà ta vừa bảo đừng cache — và nếu
+# quên dựng Cache Rule đó thì trang dev sẽ trả bản cache 60 giây của chính nó,
+# tức là ta đọc một bản dev CŨ và sửa mãi không thấy đổi.
+#
+# Nên thêm vào `/etc/hosts` của máy chủ:
+#
+#     127.0.0.1  dev.oohx.net
+#     127.0.0.1  dev-dash.oohx.net
+#
+# ══ Vì sao KHÔNG dùng `next dev` dù đây là môi trường dev ══
+#
+# Môi trường này để thử **bản sẽ lên production**, không để viết code. `next
+# dev` biên dịch lại theo từng request, để lộ thông tin gỡ lỗi, và quan trọng
+# nhất: nó không chạy cùng đường mã với `next start`, nên một lỗi chỉ xảy ra ở
+# bản build sẽ không bao giờ hiện ra ở đây. Mục đích của dev là bắt đúng loại
+# lỗi đó trước khi nó ra production.
+
+[Unit]
+Description=OOHX webapp (Next.js) cho moi truong dev
+Documentation=https://github.com/TRUEVIEWVIETNAM/oohx-dash/tree/main/docs/deploy/nextjs-proxy
+After=network.target
+
+[Service]
+Type=simple
+User=deploy
+Group=www
+WorkingDirectory=/www/wwwroot/dev.oohx.net/webapp
+
+ExecStart=/usr/bin/node /www/wwwroot/dev.oohx.net/webapp/node_modules/next/dist/bin/next start --port 3002 --hostname 127.0.0.1
+
+Environment=NODE_ENV=production
+Environment=PORT=3002
+Environment=HOSTNAME=127.0.0.1
+Environment=OOHX_API_BASE=https://dev.oohx.net/api/v2
+Environment=OOHX_PUBLIC_ORIGIN=https://dev.oohx.net
+
+Restart=always
+RestartSec=3
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=oohx-webapp-dev
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

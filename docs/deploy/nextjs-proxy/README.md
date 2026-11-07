@@ -133,6 +133,16 @@ Ba điểm dễ sai:
 
 Cột thứ tư chỉ đi vào **câu gợi ý** của thông báo lỗi; không lệnh nào trong script chạy nó.
 
+Ba tệp đi kèm môi trường dev, để không ai phải nhớ lại:
+
+| Tệp | Dùng khi |
+|---|---|
+| `oohx-webapp-dev.service` | Dựng tiến trình Next của dev. Cổng 3002, và hai dòng `/etc/hosts` là **bắt buộc** ở dev, không phải tối ưu. |
+| `dev-noindex.conf` | Chặn `dev.oohx.net` khỏi Google. Cloudflare Transform Rule là lớp chính; vhost là lớp phụ và **chưa ai chạy nó trên máy chủ**. |
+| `php artisan oohx:tay-du-lieu-dev` | Tẩy bản sao CSDL. Chạy `--dem` trước, và `--mo-khoa=<email>` ở lượt đầu — sau khi tẩy thì không còn mật khẩu nào khớp tài khoản nào. |
+
+`.env` của dev phải khai `APP_ENV=dev`, không `production`: lệnh tẩy từ chối chạy ở `production`, và phản xạ khi dựng một bản Laravel đã deploy là đặt đúng giá trị đó.
+
 Dòng sudoers cho một site, chạy as root:
 
 ```sh
