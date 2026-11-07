@@ -429,18 +429,21 @@ Chỉ **sau khi** cả hai xong mới đổi `OOHX_SYNC` trong `deploy-dev.yml` 
 `'1'`. Thiếu dòng sudoers thì `sudo` từ chối trước khi script chạy một dòng,
 và bước [11] của `deploy.sh` đỏ ở mọi lượt deploy dù nội dung đúng hết.
 
-**Trạng thái 07/11/2026: `OOHX_SYNC` vẫn là `'0'`.** Cả [8] và [9] đã xong, và
-conf proxy của dev đã được dán — nhưng bằng một lời gọi **as root**, không qua
-`sudo` của user `deploy`. Hai thứ đó không chứng minh cho nhau: `sudo -l -U
-deploy` cho thấy dòng quyền *có mặt*, còn thứ `deploy.sh` thật sự chạy là
-`sudo -n`. Phép kiểm đúng, chạy as root:
+**`OOHX_SYNC` đổi thành `'1'` ngày 07/11/2026** — nhưng không phải vì [8] và
+[9] đã xong. Conf proxy của dev được dán bằng một lời gọi **as root**, còn thứ
+`deploy.sh` thật sự chạy là `sudo -n` dưới user `deploy`. Hai đường đó không
+chứng minh cho nhau, và `sudo -l -U deploy` cũng không: nó cho thấy dòng quyền
+*có mặt*, không cho thấy nó *khớp đối số*.
+
+Phép kiểm đúng, chạy as root:
 
 ```sh
 sudo -u deploy sudo -n /usr/local/sbin/oohx-sync-proxy --site dev.oohx.net
 ```
 
-Xanh thì đổi `OOHX_SYNC` thành `'1'`. Đỏ thì cái sai nằm ở dòng sudoers chứ
-không ở script, và đổi cờ chỉ làm mọi lượt deploy dev đỏ theo.
+Kết quả: 7/7 bước, "không đổi", canary xanh, thoát `0`. Đỏ thì cái sai nằm ở
+dòng sudoers chứ không ở script, và đổi cờ khi đó chỉ làm mọi lượt deploy dev
+đỏ theo.
 
 ### Năm chỗ plan không nói, tìm ra lúc chạy thật
 

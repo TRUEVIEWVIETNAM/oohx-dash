@@ -78,17 +78,27 @@ jobs:
           OOHX_BRANCH: dev
           OOHX_SERVICE: oohx-webapp-dev
 
-          # `0` = bỏ qua bước [11]. v10 của `oohx-sync-proxy` (lát 3) đã nhận
-          # `--site`, nên lý do bỏ qua giờ KHÔNG còn là "script viết cứng
-          # production" nữa — nó là hai thứ chưa tồn tại trên VPS:
+          # `1` = chạy bước [11], đồng bộ conf proxy của dev.
           #
-          #   - vhost `dev.oohx.net` với hai dòng include (proxy + urlrewrite);
-          #   - dòng sudoers cho ĐÚNG `--site dev.oohx.net`. Dòng của
-          #     production kết thúc bằng `""` nên nó không cấp quyền cho lời
-          #     gọi này; sudo từ chối trước khi script chạy.
+          # Cờ này ở `'0'` suốt lát 2 và lát 3 vì hai thứ chưa tồn tại trên
+          # VPS: vhost `dev.oohx.net` với hai dòng include (proxy +
+          # urlrewrite), và dòng sudoers cho ĐÚNG `--site dev.oohx.net` — dòng
+          # của production kết thúc bằng `""` nên nó không cấp quyền cho lời
+          # gọi này, và sudo từ chối trước khi script chạy một dòng.
           #
-          # Cả hai là việc as root của lát 4. Đổi thành `1` sau khi làm xong.
-          OOHX_SYNC: '0'
+          # Lát 4 dựng cả hai, ngày 07/11/2026. Nhưng việc dựng xong KHÔNG đủ
+          # để đổi cờ: conf proxy của dev được dán bằng một lời gọi **as
+          # root**, còn thứ `deploy.sh` thật sự chạy là `sudo -n` dưới user
+          # `deploy`. Hai đường đó khác nhau, và `sudo -l -U deploy` chỉ cho
+          # thấy dòng quyền CÓ MẶT chứ không cho thấy nó KHỚP đối số.
+          #
+          # Phép kiểm đã chạy as root trước khi đổi cờ này:
+          #
+          #   sudo -u deploy sudo -n /usr/local/sbin/oohx-sync-proxy \
+          #       --site dev.oohx.net
+          #
+          # Kết quả 07/11/2026: 7/7 bước, "không đổi", canary xanh, thoát 0.
+          OOHX_SYNC: '1'
 
           # Khai sẵn, dù `OOHX_SYNC=0` làm nó chưa được dùng: khi lát 4 bật
           # cờ trên thành `1` thì thiếu dòng này nghĩa là `deploy.sh` gọi script
