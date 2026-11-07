@@ -301,7 +301,10 @@ install -o root -g root -m 0755 \
 `'1'` **chỉ sau khi** dòng sudoers cho `--site dev.oohx.net` tồn tại; thiếu
 dòng đó thì sudo từ chối và bước [11] đỏ. Hai việc này thuộc lát 4.
 
-## Lát 4 — Dựng hạ tầng dev trên VPS (việc as root của chủ dự án)
+## Lát 4 — Dựng hạ tầng dev trên VPS ✅ 07/11/2026 (trừ bước 10)
+
+Chín trong mười bước đã chạy trên máy chủ ngày 07/11/2026. Bước 10 còn chờ
+lát 6 — lý do ở mục "Lát 4 và lát 6 không tách rời được" cuối lát này.
 
 Thứ tự có ý nghĩa: DNS trước, vhost sau, Next sau cùng.
 
@@ -395,18 +398,121 @@ install -o root -g root -m 0755 \
 /usr/local/sbin/oohx-sync-proxy --version      # phải in 10
 
 # [8] Hai dòng sudoers cho dev — một cho script proxy, một cho restart Next.
+#     TÊN TỆP KHÔNG ĐƯỢC CÓ DẤU CHẤM. Xem ngay dưới khối này.
 echo '<user> ALL=(root) NOPASSWD: /usr/local/sbin/oohx-sync-proxy --site dev.oohx.net' \
-    > /etc/sudoers.d/oohx-sync-proxy-dev.oohx.net
-chmod 440 /etc/sudoers.d/oohx-sync-proxy-dev.oohx.net
+    > /etc/sudoers.d/oohx-sync-proxy-dev
+chmod 440 /etc/sudoers.d/oohx-sync-proxy-dev
 echo '<user> ALL=(root) NOPASSWD: /usr/bin/systemctl restart oohx-webapp-dev' \
     > /etc/sudoers.d/oohx-webapp-dev-restart
 chmod 440 /etc/sudoers.d/oohx-webapp-dev-restart
 visudo -c
+sudo -l -U <user>      # phải thấy CẢ BỐN dòng: hai của production, hai của dev
 ```
+
+**Tên tệp sudoers không được chứa dấu `.`** — và bản đầu của plan này viết
+`/etc/sudoers.d/oohx-sync-proxy-dev.oohx.net`, tức sai. `/etc/sudoers.d/README`
+trên chính máy chủ nói rõ: sudo chỉ đọc những tệp trong thư mục đó **không kết
+thúc bằng `~` và không chứa dấu `.`**. Tên có hai dấu chấm nên sudo bỏ qua cả
+tệp.
+
+Cái làm nó khó truy: `visudo -c` vẫn báo `parsed OK`, vì nó cũng bỏ qua tệp ấy.
+Không lỗi nào xuất hiện ở đâu. Triệu chứng duy nhất là bước [11] của
+`deploy.sh` đỏ ở **mọi** lượt deploy dev với một dòng "sudo từ chối", và người
+đọc log sẽ đi tìm cái sai trong *nội dung* dòng sudoers — nơi không có gì sai.
+
+Nên dòng `sudo -l -U <user>` ở cuối khối không phải trang trí: nó là phép kiểm
+duy nhất phân biệt được "tệp đúng" với "tệp bị bỏ qua". Tệp của production tên
+`oohx-sync-proxy`, không dấu chấm, nên nó vẫn chạy suốt — và đó là lý do cái
+bẫy này không lộ ra sớm hơn.
 
 Chỉ **sau khi** cả hai xong mới đổi `OOHX_SYNC` trong `deploy-dev.yml` thành
 `'1'`. Thiếu dòng sudoers thì `sudo` từ chối trước khi script chạy một dòng,
 và bước [11] của `deploy.sh` đỏ ở mọi lượt deploy dù nội dung đúng hết.
+
+**Trạng thái 07/11/2026: `OOHX_SYNC` vẫn là `'0'`.** Cả [8] và [9] đã xong, và
+conf proxy của dev đã được dán — nhưng bằng một lời gọi **as root**, không qua
+`sudo` của user `deploy`. Hai thứ đó không chứng minh cho nhau: `sudo -l -U
+deploy` cho thấy dòng quyền *có mặt*, còn thứ `deploy.sh` thật sự chạy là
+`sudo -n`. Phép kiểm đúng, chạy as root:
+
+```sh
+sudo -u deploy sudo -n /usr/local/sbin/oohx-sync-proxy --site dev.oohx.net
+```
+
+Xanh thì đổi `OOHX_SYNC` thành `'1'`. Đỏ thì cái sai nằm ở dòng sudoers chứ
+không ở script, và đổi cờ chỉ làm mọi lượt deploy dev đỏ theo.
+
+### Năm chỗ plan không nói, tìm ra lúc chạy thật
+
+Plan viết bước 6 là "sao từ production rồi tẩy" và bước 4 là "khai header ở
+vhost". Cả hai câu đều đúng về ý và thiếu ở chỗ quyết định.
+
+**1. `.env` của dev cần đổi 20 khoá, không phải bốn.** Plan kể bốn
+(`MAIL_MAILER`, `FRONTPAGE_DOMAIN`, `DASH_DOMAIN`, `OOHX_TRIAL_MODE`). Ba nhóm
+nữa mà quên thì dev chạm vào production:
+
+| Khoá | Vì sao |
+|---|---|
+| `SESSION_COOKIE=oohx-dev-session` | production không khai khoá này nên đang dùng mặc định `oohx-session`, và `SESSION_DOMAIN` của cả hai phải là `.oohx.net` (`dev.oohx.net` và `dev-dash.oohx.net` không có hậu tố chung nào hẹp hơn). Trùng tên cookie trên cùng domain, hai CSDL session khác nhau: đăng nhập dev ghi đè cookie của production, trình duyệt gửi nó sang `oohx.net`, production không tìm thấy session đó và đẩy người ta ra. Qua lại mãi, không lỗi nào hiện ra. |
+| `DB_OOHX_CONTROL_USERNAME` / `_PASSWORD` = cặp **readonly** | `oohx_control` không phải kết nối của lệnh artisan — nó là kết nối của luồng web Filament (`ConfigManagerService`, `JobOrchestrator`, `CollectorManager`, `Filament/Resources/OohxConfig/*`). Chép nguyên bốn khoá `DB_OOHX_*` nghĩa là ai mở `/admin` trên **dev** và bấm lưu thì ghi vào PostgreSQL của **production**: đổi công thức, đổi hệ số vùng, xếp job tính lại cho sàn thật. |
+| `ANTHROPIC_API_KEY`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `OOHX_SSH_KEY`, `OOHX_INGEST_CMD` → **rỗng** | `FILESYSTEM_DISK=local` và `AWS_BUCKET=` rỗng nên S3 không nằm trên đường chạy, nhưng khoá còn đó là khoá còn dùng được. `OOHX_INGEST_CMD` trỏ vào cây thật và ghi vào `oohx_data`. |
+
+**2. `.env` production có khoá trùng, và dòng SAU thắng.** `SESSION_DOMAIN` và
+`DB_OOHX_CONTROL_USERNAME` mỗi cái xuất hiện hai lần. Đo ngày 07/11/2026 bằng
+đúng repository mà `Illuminate\Support\Env::getRepository()` dựng
+(`createWithDefaultAdapters` + `PutenvAdapter` + `->immutable()`): **dòng cuối
+ghi đè dòng trước**. `->immutable()` chỉ chặn ghi đè những biến đã có *từ bên
+ngoài* trước lượt nạp.
+
+Hệ quả cho việc dựng `.env` dev: một `sed` thay **lần xuất hiện đầu** — cách
+viết mặc định — để nguyên dòng thứ hai, tức dòng thật sự có hiệu lực. Nên thứ
+tự đúng là **dọn khoá trùng trước, rồi mới thay giá trị, rồi đếm lại từng khoá
+phải đúng một dòng**.
+
+**3. Tám bảng không được chép dữ liệu sang dev.** "Tẩy" là xoá *sau khi* đã
+ghi, và `failed_jobs.payload` chứa cả thân email của người dùng thật. Chép nó
+sang đĩa dev rồi xoá là để dữ liệu ấy nằm trên đĩa một quãng — và nằm trong tệp
+dump cho tới khi tệp bị xoá. Tám bảng mà `oohx:tay-du-lieu-dev` **dọn sạch**
+(`sessions`, `password_reset_tokens`, `personal_access_tokens`,
+`user_invitations`, `failed_jobs`, `jobs`, `cache`, `cache_locks`) không có giá
+trị nào ở dev, nên `mysqldump` chúng ở dạng `--no-data`. Cộng `impression_logs`
+nếu nó quá 500 MB.
+
+**4. `extraHeaders` ở vhost KHÔNG với tới phản hồi đi qua proxy.** Khối ở
+`dev-noindex.conf` đã dán vào `detail/dev.oohx.net.conf`, `lswsctrl restart` đã
+chạy, OpenLiteSpeed không báo lỗi — và `X-Robots-Tag` không xuất hiện trên `/`
+lẫn `/explore`. Lý do sâu hơn cú pháp: cả hai đường đều đi qua `context` reverse
+proxy sang Next, nên phản hồi mang header của backend. Mà 13 context ấy do
+`oohx-sync-proxy` sinh ra và ghi đè mỗi lượt deploy, nên không sửa tay vào đó
+được.
+
+**Với kiến trúc này, Cloudflare không phải "lớp chính" mà là lớp DUY NHẤT.**
+Transform Rule `dev noindex` (Response Header Transform, `Set static`,
+`http.host eq "dev.oohx.net" or http.host eq "dev-dash.oohx.net"`) triển khai
+07/11/2026; đo lại thấy header có trên `/`, `/explore` và
+`dev-dash.oohx.net/admin/login`, và `0` dòng trên cả ba đường production.
+
+**5. Hai thứ nhỏ hơn nhưng quên thì mất một lượt.** aaPanel đặt cờ immutable
+(`chattr +i`) lên `.user.ini`, nên `chown -R` trong thư mục site luôn trả
+`Operation not permitted` cho đúng tệp đó — và để nó thuộc `root` là **đúng**.
+Và trong aaPanel phải đặt **Running directory = `/public`** sau khi clone; thiếu
+dòng đó thì docRoot trỏ vào gốc repo, tức `.env`, `app/`, `vendor/` nằm dưới web.
+
+### Ngoài phạm vi lát 4: hai điều phát hiện trên production
+
+Khi đọc `.env` production để dựng `.env` dev, thấy hai thứ không liên quan tới
+môi trường dev nhưng không để lại được:
+
+- **`APP_ENV=local` và `APP_DEBUG=true` trên production**, và `php artisan about`
+  xác nhận chúng đã nướng vào `bootstrap/cache/config.php` từ lượt deploy
+  06/11. Mọi exception chưa bắt trả về trang gỡ lỗi kèm **giá trị biến môi
+  trường** — tức `APP_KEY`, `DB_PASSWORD`, `ANTHROPIC_API_KEY`,
+  `AWS_SECRET_ACCESS_KEY` nằm cách một lỗi 500 công khai. `APP_ENV=local` cũng
+  làm lớp chặn `app()->environment('production')` của `oohx:tay-du-lieu-dev` và
+  `oohx:gia-lap-kho` không nhận ra production. Sửa 07/11/2026 bằng ba dòng
+  trong `.env` + `php artisan config:cache`; bốn đường dẫn vẫn 200 sau đó.
+- **Hai tài khoản đăng ký rác** trong `users` của sàn thật (tên miền email dùng
+  một lần). Chưa đụng tới.
 
 ### Lát 4 và lát 6 không tách rời được
 

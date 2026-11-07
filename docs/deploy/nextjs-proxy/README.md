@@ -128,7 +128,8 @@ Ba điểm dễ sai:
 | Điểm | Vì sao |
 |---|---|
 | **Một bản cài phục vụ mọi site** | `--site` chọn dòng, không chọn script. Cài từ cây `dev.oohx.net` là đưa script của nhánh `dev` lên phục vụ cả production. |
-| **Mỗi site một dòng sudoers** | sudoers so khớp cả đối số. Dòng của production kết thúc bằng `""` (đúng không đối số nào) nên nó **không** cấp quyền cho `--site dev.oohx.net`, và ngược lại. Dùng hai file: `/etc/sudoers.d/oohx-sync-proxy` và `/etc/sudoers.d/oohx-sync-proxy-dev.oohx.net`. |
+| **Mỗi site một dòng sudoers** | sudoers so khớp cả đối số. Dòng của production kết thúc bằng `""` (đúng không đối số nào) nên nó **không** cấp quyền cho `--site dev.oohx.net`, và ngược lại. Dùng hai file: `/etc/sudoers.d/oohx-sync-proxy` và `/etc/sudoers.d/oohx-sync-proxy-dev`. |
+| **Tên file sudoers KHÔNG được chứa dấu `.`** | sudo chỉ đọc những file trong `/etc/sudoers.d` không kết thúc bằng `~` và **không chứa dấu chấm** — `/etc/sudoers.d/README` trên máy chủ nói vậy. Một file tên `oohx-sync-proxy-dev.oohx.net` bị bỏ qua **hoàn toàn**, và `visudo -c` vẫn báo `parsed OK` vì nó cũng bỏ qua file đó. Triệu chứng duy nhất: bước [11] đỏ ở mọi lượt deploy với "sudo từ chối", trong khi nội dung dòng sudoers không sai gì. Kiểm bằng `sudo -l -U <user>`, không bằng `visudo -c`. |
 | **Cột thứ ba phải khác nhau** | Hai site chung một cổng nghĩa là một tiến trình Next phục vụ cả hai, và bước [4] sẽ coi conf của site kia là "conf cạnh tranh" rồi dừng — tức dựng site thứ hai lên làm site thứ nhất thôi deploy được. |
 
 Cột thứ tư chỉ đi vào **câu gợi ý** của thông báo lỗi; không lệnh nào trong script chạy nó.
@@ -147,9 +148,10 @@ Dòng sudoers cho một site, chạy as root:
 
 ```sh
 echo '<user> ALL=(root) NOPASSWD: /usr/local/sbin/oohx-sync-proxy --site dev.oohx.net' \
-    > /etc/sudoers.d/oohx-sync-proxy-dev.oohx.net
-chmod 440 /etc/sudoers.d/oohx-sync-proxy-dev.oohx.net
+    > /etc/sudoers.d/oohx-sync-proxy-dev
+chmod 440 /etc/sudoers.d/oohx-sync-proxy-dev
 visudo -c
+sudo -l -U <user>      # phép kiểm THẬT: dòng mới phải có mặt trong danh sách
 ```
 
 `deploy.sh` truyền `--site` khi và chỉ khi `OOHX_SITE` không rỗng. Mặc định của biến đó là **rỗng**, không phải `oohx.net`: điền tên site cho production nghĩa là gọi một tổ hợp đối số mà dòng sudoers của nó từ chối, và bước [11] đỏ ở mọi lượt deploy dù nội dung đúng hết.
