@@ -97,7 +97,10 @@ install -o root -g root -m 0755 \
 #    in tên user đó.
 #    Hai dấu nháy rỗng ở cuối KHÔNG phải lỗi gõ. Trong sudoers, một lệnh không
 #    kèm đối số nghĩa là CHO PHÉP MỌI ĐỐI SỐ; dấu "" là cách viết "đúng không
-#    đối số nào". Script cũng tự từ chối đối số, nên đây là lớp thứ hai.
+#    đối số nào".
+#    Dòng này cấp quyền cho ĐÚNG lời gọi không đối số, tức site mặc định
+#    `oohx.net`. Từ v10 script nhận thêm `--site <tên>`, và mỗi tổ hợp đối số
+#    cần một dòng sudoers riêng — xem "Hai site trên một VPS" dưới đây.
 echo '<user> ALL=(root) NOPASSWD: /usr/local/sbin/oohx-sync-proxy ""' \
     > /etc/sudoers.d/oohx-sync-proxy
 chmod 440 /etc/sudoers.d/oohx-sync-proxy
@@ -106,6 +109,54 @@ visudo -c
 # 3. Chạy thử ngay, as root. Nó tự lùi lại nếu canary đỏ.
 /usr/local/sbin/oohx-sync-proxy
 ```
+
+### Hai site trên một VPS (v10)
+
+Từ v10 script phục vụ nhiều site. Bảng site nằm **trong** script, không trong tham số:
+
+```sh
+SITE_CHO_PHEP=(
+    "oohx.net|/www/wwwroot/dash.oohx.net|127.0.0.1:3001|oohx-webapp"
+    "dev.oohx.net|/www/wwwroot/dev.oohx.net|127.0.0.1:3002|oohx-webapp-dev"
+)
+```
+
+`--site <tên>` chỉ **chọn một dòng** trong bảng đó; tên ngoài bảng thì thoát 64. Mọi đường dẫn, mọi cổng vẫn viết cứng trong script — bên gọi chọn được dòng nào, không viết được dòng nào. Thêm một site = sửa script rồi cài lại as root.
+
+Ba điểm dễ sai:
+
+| Điểm | Vì sao |
+|---|---|
+| **Một bản cài phục vụ mọi site** | `--site` chọn dòng, không chọn script. Cài từ cây `dev.oohx.net` là đưa script của nhánh `dev` lên phục vụ cả production. |
+| **Mỗi site một dòng sudoers** | sudoers so khớp cả đối số. Dòng của production kết thúc bằng `""` (đúng không đối số nào) nên nó **không** cấp quyền cho `--site dev.oohx.net`, và ngược lại. Dùng hai file: `/etc/sudoers.d/oohx-sync-proxy` và `/etc/sudoers.d/oohx-sync-proxy-dev`. |
+| **Tên file sudoers KHÔNG được chứa dấu `.`** | sudo chỉ đọc những file trong `/etc/sudoers.d` không kết thúc bằng `~` và **không chứa dấu chấm** — `/etc/sudoers.d/README` trên máy chủ nói vậy. Một file tên `oohx-sync-proxy-dev.oohx.net` bị bỏ qua **hoàn toàn**, và `visudo -c` vẫn báo `parsed OK` vì nó cũng bỏ qua file đó. Triệu chứng duy nhất: bước [11] đỏ ở mọi lượt deploy với "sudo từ chối", trong khi nội dung dòng sudoers không sai gì. Kiểm bằng `sudo -l -U <user>`, không bằng `visudo -c`. |
+| **Cột thứ ba phải khác nhau** | Hai site chung một cổng nghĩa là một tiến trình Next phục vụ cả hai, và bước [4] sẽ coi conf của site kia là "conf cạnh tranh" rồi dừng — tức dựng site thứ hai lên làm site thứ nhất thôi deploy được. |
+
+Cột thứ tư chỉ đi vào **câu gợi ý** của thông báo lỗi; không lệnh nào trong script chạy nó.
+
+Ba tệp đi kèm môi trường dev, để không ai phải nhớ lại:
+
+| Tệp | Dùng khi |
+|---|---|
+| `oohx-webapp-dev.service` | Dựng tiến trình Next của dev. Cổng 3002, và hai dòng `/etc/hosts` là **bắt buộc** ở dev, không phải tối ưu. |
+| `dev-noindex.conf` | Chặn `dev.oohx.net` khỏi Google. Cloudflare Transform Rule là lớp chính; vhost là lớp phụ và **chưa ai chạy nó trên máy chủ**. |
+| `php artisan oohx:tay-du-lieu-dev` | Tẩy bản sao CSDL. Chạy `--dem` trước, và `--mo-khoa=<email>` ở lượt đầu — sau khi tẩy thì không còn mật khẩu nào khớp tài khoản nào. |
+
+`.env` của dev phải khai `APP_ENV=dev`, không `production`: lệnh tẩy từ chối chạy ở `production`, và phản xạ khi dựng một bản Laravel đã deploy là đặt đúng giá trị đó.
+
+Dòng sudoers cho một site, chạy as root:
+
+```sh
+echo '<user> ALL=(root) NOPASSWD: /usr/local/sbin/oohx-sync-proxy --site dev.oohx.net' \
+    > /etc/sudoers.d/oohx-sync-proxy-dev
+chmod 440 /etc/sudoers.d/oohx-sync-proxy-dev
+visudo -c
+sudo -l -U <user>      # phép kiểm THẬT: dòng mới phải có mặt trong danh sách
+```
+
+`deploy.sh` truyền `--site` khi và chỉ khi `OOHX_SITE` không rỗng. Mặc định của biến đó là **rỗng**, không phải `oohx.net`: điền tên site cho production nghĩa là gọi một tổ hợp đối số mà dòng sudoers của nó từ chối, và bước [11] đỏ ở mọi lượt deploy dù nội dung đúng hết.
+
+**Một `nextjs.conf` cho mọi site.** Hai môi trường cần hai cổng nhưng cùng danh sách 13 context, và hai file trong repo là hai bản sẽ trôi khỏi nhau. Nên script đọc đúng một file, thay duy nhất dòng `address` theo bảng, rồi **kiểm bản đã thay** qua danh sách trắng. Thứ tự là thay → kiểm → dán; phép thay không được phép bỏ qua phép kiểm. Với `oohx.net` thì bản dựng giống file repo từng byte, nên `cmp` ở bước [2] vẫn nói "không đổi".
 
 Bước 3 làm những việc sau, theo đúng thứ tự đó, và **dừng trước khi đổi gì** nếu một phép kiểm trượt:
 
@@ -203,7 +254,7 @@ v8 thêm bảng `CHUYEN_HUONG`, mỗi dòng là `<đường> <mã> <đích>`. Ca
 
 Đường **không** trong bảng vẫn chịu luật 200 như cũ. `tests/shell/thu-kiem-conf.sh` phần 7 canh cả hai mặt: `/map` ra đúng cặp mã–đích, và năm đường khác phải rơi ra khỏi bảng — một hàm trả rỗng-mà-thành-công sẽ biến mọi context thành "được phép chuyển hướng".
 
-> **Cài lại trên VPS.** `/usr/local/sbin/oohx-sync-proxy` **không** tự cập nhật theo repo (xem mục quyền ở dưới). Cho tới khi có người cài bản v8 as root, bước đồng bộ proxy còn đỏ ở mọi lượt deploy — Laravel và Next vẫn lên bình thường.
+> **Cài lại trên VPS.** `/usr/local/sbin/oohx-sync-proxy` **không** tự cập nhật theo repo (xem mục quyền ở dưới). Bản v8 đã được cài ngày 22/10/2026 và v9 ngày 06/11/2026; v10 (đa-site) thì chưa — cho tới khi có người cài as root, bước đồng bộ proxy chạy bản v9, tức vẫn chỉ biết một site, và `deploy.sh` in cảnh báo lệch phiên bản ở mỗi lượt.
 
 #### Canary chạy cả khi conf KHÔNG đổi (v7)
 

@@ -215,8 +215,77 @@
 set -e
 trap 'php artisan up || true' ERR
 
-APP_DIR="/www/wwwroot/dash.oohx.net"
-BRANCH="main"
+# ══ Bốn tham số môi trường, mặc định BẰNG ĐÚNG production ══
+#
+# Từ 06/11/2026 script này chạy cho hai môi trường — `oohx.net` trên nhánh
+# `main` và `dev.oohx.net` trên nhánh `dev`. Xem `docs/PLAN-MOI-TRUONG-DEV.md`.
+#
+# Mọi biến có mặc định bằng giá trị đang chạy trên production, nên gọi
+# `bash deploy.sh` không tham số phải cho ra hành vi y như trước lát này. Đó
+# không phải sự thận trọng chung: script này thay toàn bộ mã nguồn và chạy
+# migration trên CSDL production.
+#
+# ══ Bẫy: biến không tới được máy chủ thì deploy VẪN XANH ══
+#
+# `appleboy/ssh-action` chỉ mang sang phiên SSH những biến có TÊN trong danh
+# sách `envs:`. Thiếu tên ở đó thì biến sống trong runner của GitHub, máy chủ
+# không thấy gì, và không lỗi nào được ghi — đúng cái bẫy `deploy.yml` đã ghi
+# lại cho khóa MapTiler.
+#
+# Với `OOHX_BRANCH` thì hậu quả nặng hơn một khóa bản đồ: máy chủ dev sẽ lặng
+# lẽ `git reset --hard origin/main` ở bước [3], tức KÉO PRODUCTION VÀO THƯ MỤC
+# DEV. Nên dòng `Branch :` in ngay dưới đây không phải để trang trí — nó là
+# chỗ duy nhất phát hiện chuyện đó.
+APP_DIR="${OOHX_APP_DIR:-/www/wwwroot/dash.oohx.net}"
+BRANCH="${OOHX_BRANCH:-main}"
+SERVICE="${OOHX_SERVICE:-oohx-webapp}"
+
+# Bước [11] gọi script root `oohx-sync-proxy`, và bản v9 của nó viết cứng
+# đường dẫn production: `REPO_ROOT`, `detail/oohx.net.conf`, cổng 3001, và bốn
+# lần `--resolve oohx.net` ở canary. Gọi nó từ lượt deploy của dev sẽ đồng bộ
+# conf của PRODUCTION và chạy canary vào production — không phải việc của dev,
+# và là một đường để một lượt deploy dev làm production đỏ.
+#
+# Nên tới khi v10 đa-site lên (lát 3 của plan), dev đặt `OOHX_SYNC=0` và bỏ
+# qua hẳn bước đó; vhost của dev quản bằng tay. Production không đặt gì.
+SYNC="${OOHX_SYNC:-1}"
+
+# ══ Biến thứ năm, và mặc định của nó là RỖNG — không phải "oohx.net" ══
+#
+# Script root `oohx-sync-proxy` từ v10 nhận `--site <tên>` để chọn site. Nhưng
+# dòng sudoers của production kết thúc bằng `""`, và trong sudoers đó nghĩa là
+# "đúng không đối số nào". Nên gọi `--site oohx.net` — tên hoàn toàn đúng — sẽ
+# bị **sudo** từ chối trước khi script chạy một dòng nào. Mỗi tổ hợp đối số
+# cần một dòng sudoers riêng của nó.
+#
+# Vì vậy mặc định là rỗng, và rỗng nghĩa là gọi KHÔNG đối số, y như `deploy.sh`
+# vẫn gọi từ bản đầu. Môi trường nào cần `--site` thì khai tên ở đây VÀ phải
+# có dòng sudoers của riêng nó trên VPS (lát 4 của PLAN-MOI-TRUONG-DEV.md).
+#
+# Đặt "oohx.net" làm mặc định ở đây là đổi cách gọi của production thành một
+# dạng mà sudoers hiện có từ chối — tức làm đỏ bước [11] ở mọi lượt deploy
+# production, trong khi không có gì sai về nội dung.
+PROXY_SITE="${OOHX_SITE:-}"
+
+# ══ Ba biến của lát 5, và cả ba mặc định RỖNG ══
+#
+# Đo trên VPS ngày 07/11/2026: RAM tổng **7,8 GiB**, nhưng `available` chỉ
+# **4,9 GiB** — 4,8 GiB còn lại đang là buff/cache. Swap 957 MiB mà **đã dùng
+# 185 MiB** lúc không build gì. CPU 4 nhân. Đĩa còn 104 GB, không phải ràng
+# buộc.
+#
+# Con số quyết định là `available`, không phải `total`: một `next build` xin
+# bộ nhớ ngay bây giờ, không xin phần hệ điều hành sẽ nhả ra dần. 4,9 GiB đặt
+# máy này vào băng giữa của PLAN-MOI-TRUONG-DEV — "được, kèm giới hạn".
+#
+# Cả ba mặc định RỖNG, và rỗng nghĩa là **production chạy y như trước**: không
+# `nice`, không `NODE_OPTIONS`, không phép đo nào. Mức chặn là thứ dev tự
+# khoác vào mình, không phải thứ áp lên lượt deploy của production trong lúc
+# `main` đang đóng băng.
+BUILD_RAM_MB="${OOHX_BUILD_RAM_MB:-}"
+BUILD_NICE="${OOHX_BUILD_NICE:-}"
+RAM_TOI_THIEU_MB="${OOHX_RAM_TOI_THIEU_MB:-}"
+
 PHP_BIN="php"
 COMPOSER_BIN="composer"
 
@@ -228,6 +297,7 @@ echo "=============================="
 echo "User   : $(whoami)"
 echo "Path   : $(pwd)"
 echo "Branch : $BRANCH"
+echo "Service: $SERVICE"
 
 echo ""
 echo "[1/11] Enable maintenance mode"
@@ -365,6 +435,79 @@ dat_env() {
     rm -f .env.dang-ghi
 
     echo "   $ten: đã cập nhật"
+}
+
+# ══════════════════════════════════════════════════════════════════════════
+# Lát 5 — mức chặn bộ nhớ cho build của Next
+# ══════════════════════════════════════════════════════════════════════════
+#
+# Ba mức chặn đầu (`concurrency` dùng chung, `nice`, giới hạn heap) làm build
+# **ít khả năng** vỡ. Mức thứ tư — phép đo dưới đây — quyết định **ai chọn nạn
+# nhân** khi nó vẫn vỡ.
+#
+# Không có phép đo này thì người chọn là OOM killer của nhân Linux, và nó chọn
+# theo cỡ bộ nhớ: trên máy chủ này con béo nhất là MySQL hoặc chính tiến trình
+# Next đang phục vụ khách. Tức một lượt build của **dev** giết **production**,
+# và log deploy của dev không nói một chữ nào về việc đó — nó chỉ thấy build
+# của mình xong hay không.
+#
+# Dừng sớm một lượt deploy dev là mất vài phút. Để OOM killer chọn là mất
+# MySQL của sàn thật.
+
+kiem_ram_truoc_build() {
+    if [ -z "$RAM_TOI_THIEU_MB" ]; then
+        return 0
+    fi
+
+    # Đường dẫn qua biến để bộ thử trỏ được vào tệp giả. Chỉ có ngần ấy mục
+    # đích; trên máy chủ nó luôn là /proc/meminfo.
+    tep_mem="${OOHX_MEMINFO:-/proc/meminfo}"
+
+    if [ ! -r "$tep_mem" ]; then
+        echo "   RAM: không đọc được $tep_mem — bỏ qua phép đo."
+        return 0
+    fi
+
+    con_kb=$(awk '/^MemAvailable:/ { print $2; exit }' "$tep_mem")
+
+    if [ -z "$con_kb" ]; then
+        echo "   RAM: $tep_mem không có dòng MemAvailable — bỏ qua phép đo."
+        return 0
+    fi
+
+    con_mb=$((con_kb / 1024))
+
+    if [ "$con_mb" -ge "$RAM_TOI_THIEU_MB" ]; then
+        echo "   RAM: còn ${con_mb} MB (ngưỡng ${RAM_TOI_THIEU_MB} MB) — đủ để build."
+        return 0
+    fi
+
+    echo "LỖI: còn ${con_mb} MB RAM, dưới ngưỡng ${RAM_TOI_THIEU_MB} MB." >&2
+    echo "      Dừng TRƯỚC khi build, có chủ ý: bản Next cũ vẫn đang phục vụ," >&2
+    echo "      và Laravel đã deploy xong trọn vẹn ở các bước trước. Chạy lại" >&2
+    echo "      khi máy rảnh, hoặc xem thứ gì đang giữ bộ nhớ:" >&2
+    echo "         free -h; ps -eo pid,rss,comm --sort=-rss | head" >&2
+
+    return 1
+}
+
+# `MemAvailable` chứ không phải `MemFree`: `MemFree` trên máy chủ này là 516
+# MB và sẽ luôn dưới mọi ngưỡng hợp lý, vì Linux dùng phần còn lại làm cache
+# và nhả ra khi cần. Đo `MemFree` là đo sai rồi chặn nhầm mọi lượt deploy.
+
+chay_build_next() {
+    if [ -n "$BUILD_RAM_MB" ]; then
+        NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=$BUILD_RAM_MB"
+        export NODE_OPTIONS
+        echo "   heap của Node: tối đa ${BUILD_RAM_MB} MB"
+    fi
+
+    if [ -n "$BUILD_NICE" ]; then
+        echo "   ưu tiên CPU: nice -n $BUILD_NICE — nhường tiến trình đang phục vụ khách"
+        nice -n "$BUILD_NICE" npm run build
+    else
+        npm run build
+    fi
 }
 
 echo "[3b/11] Đồng bộ khóa MapTiler từ GitHub Secrets"
@@ -511,9 +654,9 @@ echo "[10/11] Build app Next.js — chỉ khi service đã được dựng"
 #
 # Điều kiện là sự tồn tại của unit systemd, không phải sự tồn tại của thư mục:
 # thư mục luôn có (nó nằm trong repo), còn unit chỉ có khi ai đó đã cố ý bật.
-if [ -f /etc/systemd/system/oohx-webapp.service ]; then
+if [ -f "/etc/systemd/system/$SERVICE.service" ]; then
     if ! command -v npm >/dev/null 2>&1; then
-        echo "LỖI: service oohx-webapp đã cài nhưng không có npm để build."
+        echo "LỖI: service $SERVICE đã cài nhưng không có npm để build."
         exit 1
     fi
 
@@ -552,9 +695,13 @@ if [ -f /etc/systemd/system/oohx-webapp.service ]; then
         fi
     fi
 
+    # Đo TRƯỚC `npm ci`, không phải ngay trước `next build`: `npm ci` cũng
+    # ăn bộ nhớ, và hỏng sớm là hỏng rẻ.
+    kiem_ram_truoc_build || exit 1
+
     don_cache_next webapp
 
-    ( cd webapp && npm ci && npm run build )
+    ( cd webapp && npm ci && chay_build_next )
 
     # Restart SAU khi build xong, không trước: `next start` nạp `.next` lúc khởi
     # động, nên restart trước khi build là khởi động lại trên bản cũ rồi để bản
@@ -576,16 +723,16 @@ if [ -f /etc/systemd/system/oohx-webapp.service ]; then
     # đã đổi là đúng loại lỗi âm thầm mà bước [5] vừa được thêm để chặn cho
     # asset của Laravel. `trap ... ERR` ở đầu file vẫn đưa ứng dụng trở lại
     # online, nên trang không bị tắt.
-    if ! sudo -n systemctl restart oohx-webapp 2>/dev/null; then
-        echo "LỖI: build xong nhưng KHÔNG restart được oohx-webapp."
+    if ! sudo -n systemctl restart "$SERVICE" 2>/dev/null; then
+        echo "LỖI: build xong nhưng KHÔNG restart được $SERVICE."
         echo "     Service vẫn đang chạy bản build CŨ."
         echo ""
         echo "     Nguyên nhân thường gặp: user $(whoami) không được phép"
         echo "     restart unit đó mà không cần mật khẩu. Cấp đúng một quyền đó:"
         echo ""
-        echo "       echo '$(whoami) ALL=(root) NOPASSWD: /usr/bin/systemctl restart oohx-webapp' \\"
-        echo "         > /etc/sudoers.d/oohx-webapp-restart"
-        echo "       chmod 440 /etc/sudoers.d/oohx-webapp-restart"
+        echo "       echo '$(whoami) ALL=(root) NOPASSWD: /usr/bin/systemctl restart $SERVICE' \\"
+        echo "         > /etc/sudoers.d/$SERVICE-restart"
+        echo "       chmod 440 /etc/sudoers.d/$SERVICE-restart"
         echo "       visudo -c"
         echo ""
         echo "     Phạm vi hẹp có chủ ý: đúng MỘT lệnh, đúng MỘT unit."
@@ -594,7 +741,7 @@ if [ -f /etc/systemd/system/oohx-webapp.service ]; then
 
     echo "Next.js : đã build và restart"
 else
-    echo "Bỏ qua: /etc/systemd/system/oohx-webapp.service chưa tồn tại."
+    echo "Bỏ qua: /etc/systemd/system/$SERVICE.service chưa tồn tại."
     echo "        Trang công khai vẫn do Laravel phục vụ toàn bộ."
 fi
 
@@ -628,6 +775,24 @@ echo "[11/11] Đồng bộ cấu hình proxy OpenLiteSpeed"
 SYNC_BIN="/usr/local/sbin/oohx-sync-proxy"
 SYNC_SRC="docs/deploy/nextjs-proxy/oohx-sync-proxy.sh"
 
+# ══ Lệnh sudoers phải khớp ĐÚNG tổ hợp đối số sẽ gọi ══
+#
+# Đó là cả giá trị của cơ chế: sudoers so khớp cả đối số, nên một dòng cấp
+# quyền cho `--site dev.oohx.net` KHÔNG cấp quyền cho `--site oohx.net`. Dev
+# không mượn được quyền của production và ngược lại.
+#
+# Hai môi trường dùng HAI FILE sudoers khác nhau, không phải hai dòng trong
+# một file: lệnh gợi ý dưới đây ghi bằng `>`, nên hai dòng trong một file thì
+# dòng thứ hai xoá dòng thứ nhất. Và gỡ quyền của dev khi đó là xoá một file,
+# không phải sửa một dòng trong file mà production đang dựa vào.
+if [ -n "$PROXY_SITE" ]; then
+    SUDOERS_LENH="$SYNC_BIN --site $PROXY_SITE"
+    SUDOERS_TEP="/etc/sudoers.d/oohx-sync-proxy-$PROXY_SITE"
+else
+    SUDOERS_LENH="$SYNC_BIN \"\""
+    SUDOERS_TEP="/etc/sudoers.d/oohx-sync-proxy"
+fi
+
 # `-x` nói "không chạy được từ user này", KHÔNG nói "không tồn tại".
 #
 # Phân biệt đó quan trọng, và bản trước làm sai đúng chỗ này: câu cũ khẳng định
@@ -637,7 +802,14 @@ SYNC_SRC="docs/deploy/nextjs-proxy/oohx-sync-proxy.sh"
 # vẫn nằm nguyên ở đó.
 #
 # Nên thông báo dưới đây nói đúng cái quan sát được, và để ngỏ khả năng kia.
-if [ ! -x "$SYNC_BIN" ]; then
+if [ "$SYNC" != "1" ]; then
+    # Môi trường này không quản vhost. Xem chú thích ở `SYNC=` đầu file: script
+    # root v9 viết cứng đường dẫn production, nên gọi nó từ dev là đồng bộ conf
+    # của production và chạy canary vào production.
+    echo "Bỏ qua đồng bộ: OOHX_SYNC=$SYNC — môi trường này không quản vhost."
+    echo "       Cấu hình proxy của nó dựng bằng tay một lần."
+    echo "       Xem docs/PLAN-MOI-TRUONG-DEV.md (lát 3: script root đa-site)."
+elif [ ! -x "$SYNC_BIN" ]; then
     echo "Bỏ qua đồng bộ: $SYNC_BIN không chạy được từ user $(whoami)."
     echo "       (chưa cài, hoặc đã cài mà user này không thấy — hai thứ khác nhau)"
     echo "       Repo đang khai $(grep -cE '^context ' docs/deploy/nextjs-proxy/nextjs.conf) context."
@@ -647,14 +819,15 @@ if [ ! -x "$SYNC_BIN" ]; then
     echo "         install -o root -g root -m 0755 \\"
     echo "             $(pwd)/$SYNC_SRC \\"
     echo "             $SYNC_BIN"
-    echo "         echo '$(whoami) ALL=(root) NOPASSWD: $SYNC_BIN \"\"' \\"
-    echo "             > /etc/sudoers.d/oohx-sync-proxy"
-    echo "         chmod 440 /etc/sudoers.d/oohx-sync-proxy"
+    echo "         echo '$(whoami) ALL=(root) NOPASSWD: $SUDOERS_LENH' \\"
+    echo "             > $SUDOERS_TEP"
+    echo "         chmod 440 $SUDOERS_TEP"
     echo "         visudo -c"
     echo ""
-    echo "       Hai dấu nháy rỗng ở cuối KHÔNG phải lỗi gõ: trong sudoers, một"
-    echo "       lệnh không kèm đối số nghĩa là CHO PHÉP MỌI ĐỐI SỐ. Dấu \"\" là"
-    echo "       cách viết 'đúng không đối số nào'."
+    echo "       Phần đuôi của dòng sudoers phải khớp ĐÚNG tổ hợp đối số sẽ gọi."
+    echo "       Trong sudoers, một lệnh không kèm đối số nghĩa là CHO PHÉP MỌI"
+    echo "       ĐỐI SỐ — nên \"\" là cách viết 'đúng không đối số nào', và nó"
+    echo "       KHÔNG phải lỗi gõ."
     echo "       Chi tiết và ranh giới quyền: docs/deploy/nextjs-proxy/README.md"
 else
     # ══ Bản đã cài KHÔNG tự cập nhật theo repo ══
@@ -675,23 +848,39 @@ else
         echo "            install -o root -g root -m 0755 $(pwd)/$SYNC_SRC $SYNC_BIN"
     fi
 
-    if sudo -n "$SYNC_BIN"; then
-        echo "Proxy  : đã đồng bộ (script root v$ban_cai)."
+    # ══ MẢNG, không phải chuỗi ══
+    #
+    # `sudo -n "$SYNC_BIN" "$DOI_SO"` với `$DOI_SO` rỗng là truyền MỘT đối số
+    # rỗng, không phải không đối số nào. Script root đếm `$#`, nên nó sẽ thấy
+    # một đối số và thoát 64 — và sudoers của production cũng từ chối trước
+    # đó. Một mảng rỗng thì bung ra thành không gì cả, đúng điều cần.
+    SYNC_ARGS=()
+    if [ -n "$PROXY_SITE" ]; then
+        SYNC_ARGS=(--site "$PROXY_SITE")
+    fi
+
+    if sudo -n "$SYNC_BIN" "${SYNC_ARGS[@]}"; then
+        echo "Proxy  : đã đồng bộ (script root v$ban_cai${PROXY_SITE:+, site $PROXY_SITE})."
     else
         ma_loi=$?
         echo ""
 
-        if [ "$ma_loi" -eq 1 ] && ! sudo -n -l "$SYNC_BIN" >/dev/null 2>&1; then
+        # Phép dò quyền mang ĐÚNG đối số của lời gọi thật. sudoers so khớp cả
+        # đối số, nên dò không-đối-số sẽ báo "không có quyền" trên dev dù dev
+        # có quyền cho đúng --site của nó — tức một chẩn đoán sai in ra ở đúng
+        # lúc người đọc cần log nói thật.
+        if [ "$ma_loi" -eq 1 ] && ! sudo -n -l "$SYNC_BIN" "${SYNC_ARGS[@]}" >/dev/null 2>&1; then
             echo "LỖI: chưa có quyền sudo cho $SYNC_BIN."
             echo ""
             echo "     Cấp một lần, chạy AS ROOT:"
-            echo "       echo '$(whoami) ALL=(root) NOPASSWD: $SYNC_BIN \"\"' \\"
-            echo "           > /etc/sudoers.d/oohx-sync-proxy"
-            echo "       chmod 440 /etc/sudoers.d/oohx-sync-proxy"
+            echo "       echo '$(whoami) ALL=(root) NOPASSWD: $SUDOERS_LENH' \\"
+            echo "           > $SUDOERS_TEP"
+            echo "       chmod 440 $SUDOERS_TEP"
             echo "       visudo -c"
             echo ""
-            echo "     Hai dấu nháy rỗng ở cuối là 'đúng không đối số nào' —"
-            echo "     thiếu chúng thì sudoers cho phép MỌI đối số."
+            echo "     Đuôi dòng phải khớp ĐÚNG tổ hợp đối số: $SUDOERS_LENH"
+            echo "     Một lệnh không kèm đối số trong sudoers cho phép MỌI đối số,"
+            echo "     nên \"\" là cách viết 'đúng không đối số nào'."
         else
             echo "LỖI: $SYNC_BIN thoát với mã $ma_loi — xem log của nó ở trên."
             echo "     Script tự lùi lại khi canary đỏ, nên định tuyến đang là bản"

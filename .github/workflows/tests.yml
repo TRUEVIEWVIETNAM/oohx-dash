@@ -2,7 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [main, 'feat/**', 'fix/**']
+    # `dev` có từ 06/11/2026: nhánh tích hợp trong lúc `main` đóng băng cho Sở
+    # kiểm tra đăng ký giấy phép. Xem `docs/PLAN-MOI-TRUONG-DEV.md`.
+    branches: [main, dev, 'feat/**', 'fix/**', 'docs/**']
   pull_request:
   # Cho deploy.yml gọi lại đúng workflow này, để deploy chỉ chạy sau khi test xanh
   # TRÊN ĐÚNG SHA sắp deploy. `needs:` không nối được hai workflow khác file.
@@ -35,7 +37,8 @@ jobs:
                    tests/shell/thu-dat-env.sh \
                    tests/shell/thu-nap-lai.sh \
                    tests/shell/thu-don-cache.sh \
-                   tests/shell/thu-cho-next.sh; do
+                   tests/shell/thu-cho-next.sh \
+                   tests/shell/thu-bien-moi-truong.sh; do
             bash -n "$f" && echo "OK  $f"
           done
 
@@ -107,6 +110,21 @@ jobs:
       # và mỗi lượt deploy chậm thêm một phút.
       - name: Phép kiểm cho hàm chờ Next.js nghe lại
         run: bash tests/shell/thu-cho-next.sh
+
+      # Từ 06/11/2026 `deploy.sh` chạy cho hai môi trường, chọn bằng tám biến
+      # `OOHX_*`. Cả tám hỏng theo cùng một kiểu: SAI MÀ VẪN XANH.
+      #
+      # Mặc định lệch khỏi production thì lượt deploy `main` kế tiếp đi sai
+      # thư mục hoặc restart sai service, im lặng. Tên biến thiếu trong `envs:`
+      # của workflow thì `appleboy/ssh-action` không mang nó sang phiên SSH,
+      # máy chủ dev rơi về mặc định và chạy `git reset --hard origin/main` —
+      # tức kéo production vào thư mục dev, với deploy báo "success". Và hai
+      # `concurrency.group` lệch chuỗi thì hai `next build` chạy cùng lúc trên
+      # một VPS, nơi cái chết vì thiếu bộ nhớ rơi vào production.
+      #
+      # Không chiều nào làm CI đỏ, nên chúng phải có phép kiểm.
+      - name: Phép kiểm cho tám tham số môi trường
+        run: bash tests/shell/thu-bien-moi-truong.sh
 
   # Trang công khai trên Next.js (giai đoạn 6).
   #
