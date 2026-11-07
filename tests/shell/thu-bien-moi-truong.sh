@@ -540,6 +540,39 @@ khang_dinh 'workflow production KHÔNG khai OOHX_SYNC' \
 khang_dinh 'workflow production KHÔNG khai OOHX_SITE' \
     "$(grep -cE '^ *OOHX_SITE:' "$WF_PROD")" '0'
 
+# ══ Trigger: mỗi workflow nghe ĐÚNG một nhánh, và không nghe nhánh kia ══
+#
+# Trích khối `on:` ra riêng rồi mới tìm tên nhánh. Tìm thẳng trong cả tệp là
+# tìm nhầm: `OOHX_BRANCH: dev` và hàng chục dòng chú thích cũng chứa chữ
+# "dev" lẫn "main".
+#
+# Nhánh chéo là lỗi im lặng theo hai kiểu khác nhau:
+#
+#   · `main` trong trigger của workflow DEV → mỗi lượt deploy production kéo
+#     theo một lượt deploy dev, tranh `concurrency` và tranh bộ nhớ với chính
+#     cái build vừa chạy.
+#   · `dev` trong trigger của workflow PRODUCTION → mỗi push vào `dev` chạm
+#     vào thư mục production. `OOHX_BRANCH` mặc định là `main` nên nó deploy
+#     lại `main`, tức không đổi nội dung — nhưng nó `php artisan down` trang
+#     thật, mỗi lần có ai merge vào `dev`.
+on_dev=$(sed -n '/^on:/,/^[a-z]/p' "$WF_DEV")
+on_prod=$(sed -n '/^on:/,/^[a-z]/p' "$WF_PROD")
+
+khang_dinh 'workflow dev kích theo push vào `dev`' \
+    "$(printf '%s\n' "$on_dev" | grep -cE '^ *- dev$')" '1'
+
+khang_dinh 'workflow dev giữ cả `workflow_dispatch`' \
+    "$(printf '%s\n' "$on_dev" | grep -cE '^ *workflow_dispatch:')" '1'
+
+khang_dinh 'workflow dev KHÔNG kích theo push vào `main`' \
+    "$(printf '%s\n' "$on_dev" | grep -cE '^ *- main$')" '0'
+
+khang_dinh 'workflow production kích theo push vào `main`' \
+    "$(printf '%s\n' "$on_prod" | grep -cE '^ *- main$')" '1'
+
+khang_dinh 'workflow production KHÔNG kích theo push vào `dev`' \
+    "$(printf '%s\n' "$on_prod" | grep -cE '^ *- dev$')" '0'
+
 echo ""
 echo "Tổng: $so_dung đúng, $so_sai sai."
 
