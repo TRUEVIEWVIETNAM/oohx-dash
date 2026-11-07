@@ -518,6 +518,28 @@ khang_dinh 'OOHX_RAM_TOI_THIEU_MB của workflow dev là 2048' \
 khang_dinh 'workflow production không khai biến nào của lát 5' \
     "$(grep -cE '^          OOHX_(BUILD_RAM_MB|BUILD_NICE|RAM_TOI_THIEU_MB):' "$WF_PROD")" '0'
 
+# ══ Hai biến mà production phải KHÔNG khai, và vì sao mỗi cái nguy theo một
+#    kiểu khác ══
+#
+# `deploy.sh` khai `SYNC="${OOHX_SYNC:-1}"`, tức production đồng bộ conf proxy
+# nhờ MẶC ĐỊNH, không nhờ một dòng nào trong workflow. Nên:
+#
+#   · `OOHX_SYNC: '0'` ở production = ngừng đồng bộ. `nextjs.conf` đổi trong
+#     repo nhưng không bao giờ được dán lên máy chủ; production phục vụ conf
+#     cũ và lượt deploy VẪN XANH. Đột biến này lọt ở lượt đo 07/11/2026 —
+#     hai ca dưới đây là thứ được thêm vì nó lọt.
+#   · `OOHX_SITE` ở production = gọi script kèm `--site`, tức một tổ hợp đối
+#     số mà dòng sudoers của production (kết thúc bằng `""`) từ chối. Cái này
+#     đỏ ở mọi lượt deploy, nên thấy được — nhưng vẫn không nên có.
+#
+# `OOHX_SYNC: '1'` ở production thì vô hại (bằng đúng mặc định), nên hai ca
+# này canh sự VẮNG MẶT của tên biến, không canh giá trị.
+khang_dinh 'workflow production KHÔNG khai OOHX_SYNC' \
+    "$(grep -cE '^ *OOHX_SYNC:' "$WF_PROD")" '0'
+
+khang_dinh 'workflow production KHÔNG khai OOHX_SITE' \
+    "$(grep -cE '^ *OOHX_SITE:' "$WF_PROD")" '0'
+
 echo ""
 echo "Tổng: $so_dung đúng, $so_sai sai."
 
