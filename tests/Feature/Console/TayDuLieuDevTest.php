@@ -156,6 +156,11 @@ class TayDuLieuDevTest extends TestCase
             'remember_token' => Str::random(60),
         ]);
 
+        // Người thứ hai không phải để cho đủ: `users.email` là UNIQUE, nên
+        // đặt cùng một giá trị cho mọi hàng là một lệnh đổ giữa đường. Hai
+        // hàng là số ít nhất chứng minh được điều đó.
+        $v = User::factory()->create(['email' => 'nguoi.khac@gmail.com']);
+
         $this->artisan('oohx:tay-du-lieu-dev')->assertSuccessful();
 
         $hang = DB::table('users')->where('id', $u->id)->first();
@@ -163,6 +168,11 @@ class TayDuLieuDevTest extends TestCase
         $this->assertSame("u{$u->id}@dev.invalid", $hang->email);
         $this->assertSame("Người dùng {$u->id}", $hang->name);
         $this->assertNull($hang->remember_token);
+
+        $khac = DB::table('users')->where('id', $v->id)->value('email');
+
+        $this->assertSame("u{$v->id}@dev.invalid", $khac);
+        $this->assertNotSame($hang->email, $khac);
     }
 
     /**
@@ -183,6 +193,13 @@ class TayDuLieuDevTest extends TestCase
 
         $this->assertNotSame($truoc, $sau);
         $this->assertFalse(Hash::check('mat-khau-that-cua-nguoi-ta', $sau));
+
+        // Và cái thay vào không phải một giá trị biết trước. Không ca test
+        // nào chứng minh được "không ai đoán được" cho mọi chuỗi, nhưng hai
+        // chuỗi dưới đây là hai thứ người ta thực sự đặt vào chỗ này: mật
+        // khẩu mặc định của factory, và rỗng.
+        $this->assertFalse(Hash::check('password', $sau));
+        $this->assertFalse(Hash::check('', $sau));
     }
 
     public function test_to_chuc_nguoi_mua_sach_ma_so_thue_va_hoa_don(): void
