@@ -389,7 +389,14 @@ BUILD_FN="$D/chay-build.sh"
 GIA_BIN="$D/bin"
 mkdir -p "$GIA_BIN"
 
-printf '%s\n' '#!/bin/bash' 'printf "npm %s\n" "$*" >> "$GHI"' > "$GIA_BIN/npm"
+# `npm` giả ghi lại CẢ `NODE_OPTIONS` mà nó nhận được, không chỉ đối số.
+#
+# Đây là chỗ bản đầu của bộ thử này sai, và đột biến bắt được: nó đọc
+# `$NODE_OPTIONS` trong chính shell gọi hàm. Một dòng gán KHÔNG `export` vẫn
+# cho đúng giá trị ở đó, nhưng tiến trình con — tức `node` thật — không thấy
+# gì. Trần heap sẽ không có tác dụng, và không ai biết.
+printf '%s\n' '#!/bin/bash' 'printf "npm %s\n" "$*" >> "$GHI"' \
+    'printf "NODE_OPTIONS=%s\n" "${NODE_OPTIONS:-}" >> "$GHI"' > "$GIA_BIN/npm"
 printf '%s\n' '#!/bin/bash' 'printf "nice %s\n" "$*" >> "$GHI"' \
     'shift 2; exec "$@"' > "$GIA_BIN/nice"
 chmod +x "$GIA_BIN/npm" "$GIA_BIN/nice"
@@ -399,29 +406,34 @@ sed -n '/^chay_build_next() {$/,/^}$/p' "$SH" > "$BUILD_FN"
 khang_dinh 'trích được hàm chay_build_next' \
     "$(bash -n "$BUILD_FN" >/dev/null 2>&1 && echo hop-le || echo hong)" 'hop-le'
 
+# `$3` là NODE_OPTIONS có sẵn trong môi trường trước khi hàm chạy.
 build() {
     GHI="$D/ghi.txt"
     : > "$GHI"
 
     env -u NODE_OPTIONS GHI="$GHI" PATH="$GIA_BIN:$PATH" \
-        BUILD_RAM_MB="$1" BUILD_NICE="$2" \
-        bash -c '. "$0"; chay_build_next >/dev/null 2>&1; printf "%s" "$NODE_OPTIONS"' "$BUILD_FN" \
-        > "$D/node-options.txt"
+        BUILD_RAM_MB="$1" BUILD_NICE="$2" ${3:+NODE_OPTIONS=$3} \
+        bash -c '. "$0"; chay_build_next >/dev/null 2>&1' "$BUILD_FN"
 
     cat "$GHI"
 }
 
-khang_dinh 'không đặt gì → npm run build trần, không nice' \
-    "$(build '' '' | tr '\n' ';')" 'npm run build;'
+khang_dinh 'không đặt gì → npm run build trần' \
+    "$(build '' '' | grep -c '^npm run build$')" '1'
 
-khang_dinh 'không đặt gì → NODE_OPTIONS vẫn rỗng' \
-    "$(build '' '' >/dev/null; cat "$D/node-options.txt")" ''
+khang_dinh 'không đặt gì → không đi qua nice' \
+    "$(build '' '' | grep -c '^nice ')" '0'
+
+khang_dinh 'không đặt gì → tiến trình con thấy NODE_OPTIONS rỗng' \
+    "$(build '' '' | sed -n 's/^NODE_OPTIONS=//p')" ''
 
 khang_dinh 'có BUILD_NICE → build chạy qua nice' \
     "$(build '' 10 | grep -c '^nice -n 10 ')" '1'
 
-khang_dinh 'có BUILD_RAM_MB → NODE_OPTIONS mang đúng trần heap' \
-    "$(build 1536 '' >/dev/null; cat "$D/node-options.txt")" '--max-old-space-size=1536'
+# Khẳng định này đọc giá trị mà `npm` CON nhìn thấy, không phải giá trị trong
+# shell cha — xem chú thích ở `npm` giả bên trên.
+khang_dinh 'có BUILD_RAM_MB → tiến trình con nhận đúng trần heap' \
+    "$(build 1536 '' | sed -n 's/^NODE_OPTIONS=//p')" '--max-old-space-size=1536'
 
 khang_dinh 'cả hai cùng lúc → vừa nice vừa có trần heap' \
     "$(build 1536 10 | grep -c '^nice -n 10 npm run build$')" '1'
@@ -430,9 +442,7 @@ khang_dinh 'cả hai cùng lúc → vừa nice vừa có trần heap' \
 # lặng lẽ vứt đi mọi tuỳ chọn Node mà môi trường đã đặt — và vứt im lặng, vì
 # build vẫn chạy xong.
 khang_dinh 'NODE_OPTIONS sẵn có được giữ lại, không bị đè' \
-    "$(GHI="$D/ghi-noi.txt" NODE_OPTIONS=--enable-source-maps PATH="$GIA_BIN:$PATH" \
-        BUILD_RAM_MB=1536 BUILD_NICE='' \
-        bash -c '. "$0"; chay_build_next >/dev/null 2>&1; printf "%s" "$NODE_OPTIONS"' "$BUILD_FN")" \
+    "$(build 1536 '' --enable-source-maps | sed -n 's/^NODE_OPTIONS=//p')" \
     '--enable-source-maps --max-old-space-size=1536'
 
 # ── Chiều 13: phép đo RAM, và nó phải đo MemAvailable ─────────────────────
