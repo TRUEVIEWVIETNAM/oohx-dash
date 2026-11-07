@@ -487,7 +487,7 @@ không đo được không được biến thành một lần chặn.
 
 ### Bộ thử
 
-`tests/shell/thu-bien-moi-truong.sh`: 45 → **70 ca**. Hai mục mới trích chính
+`tests/shell/thu-bien-moi-truong.sh`: 45 → **72 ca**. Hai mục mới trích chính
 `chay_build_next` và `kiem_ram_truoc_build` ra chạy — với `npm`/`nice` giả ghi
 lại lệnh chúng nhận, và với tệp `meminfo` giả có `MemFree` thấp `MemAvailable`
 cao, đúng hình dạng của máy chủ thật.
