@@ -267,6 +267,25 @@ SYNC="${OOHX_SYNC:-1}"
 # production, trong khi không có gì sai về nội dung.
 PROXY_SITE="${OOHX_SITE:-}"
 
+# ══ Ba biến của lát 5, và cả ba mặc định RỖNG ══
+#
+# Đo trên VPS ngày 07/11/2026: RAM tổng **7,8 GiB**, nhưng `available` chỉ
+# **4,9 GiB** — 4,8 GiB còn lại đang là buff/cache. Swap 957 MiB mà **đã dùng
+# 185 MiB** lúc không build gì. CPU 4 nhân. Đĩa còn 104 GB, không phải ràng
+# buộc.
+#
+# Con số quyết định là `available`, không phải `total`: một `next build` xin
+# bộ nhớ ngay bây giờ, không xin phần hệ điều hành sẽ nhả ra dần. 4,9 GiB đặt
+# máy này vào băng giữa của PLAN-MOI-TRUONG-DEV — "được, kèm giới hạn".
+#
+# Cả ba mặc định RỖNG, và rỗng nghĩa là **production chạy y như trước**: không
+# `nice`, không `NODE_OPTIONS`, không phép đo nào. Mức chặn là thứ dev tự
+# khoác vào mình, không phải thứ áp lên lượt deploy của production trong lúc
+# `main` đang đóng băng.
+BUILD_RAM_MB="${OOHX_BUILD_RAM_MB:-}"
+BUILD_NICE="${OOHX_BUILD_NICE:-}"
+RAM_TOI_THIEU_MB="${OOHX_RAM_TOI_THIEU_MB:-}"
+
 PHP_BIN="php"
 COMPOSER_BIN="composer"
 
@@ -416,6 +435,79 @@ dat_env() {
     rm -f .env.dang-ghi
 
     echo "   $ten: đã cập nhật"
+}
+
+# ══════════════════════════════════════════════════════════════════════════
+# Lát 5 — mức chặn bộ nhớ cho build của Next
+# ══════════════════════════════════════════════════════════════════════════
+#
+# Ba mức chặn đầu (`concurrency` dùng chung, `nice`, giới hạn heap) làm build
+# **ít khả năng** vỡ. Mức thứ tư — phép đo dưới đây — quyết định **ai chọn nạn
+# nhân** khi nó vẫn vỡ.
+#
+# Không có phép đo này thì người chọn là OOM killer của nhân Linux, và nó chọn
+# theo cỡ bộ nhớ: trên máy chủ này con béo nhất là MySQL hoặc chính tiến trình
+# Next đang phục vụ khách. Tức một lượt build của **dev** giết **production**,
+# và log deploy của dev không nói một chữ nào về việc đó — nó chỉ thấy build
+# của mình xong hay không.
+#
+# Dừng sớm một lượt deploy dev là mất vài phút. Để OOM killer chọn là mất
+# MySQL của sàn thật.
+
+kiem_ram_truoc_build() {
+    if [ -z "$RAM_TOI_THIEU_MB" ]; then
+        return 0
+    fi
+
+    # Đường dẫn qua biến để bộ thử trỏ được vào tệp giả. Chỉ có ngần ấy mục
+    # đích; trên máy chủ nó luôn là /proc/meminfo.
+    tep_mem="${OOHX_MEMINFO:-/proc/meminfo}"
+
+    if [ ! -r "$tep_mem" ]; then
+        echo "   RAM: không đọc được $tep_mem — bỏ qua phép đo."
+        return 0
+    fi
+
+    con_kb=$(awk '/^MemAvailable:/ { print $2; exit }' "$tep_mem")
+
+    if [ -z "$con_kb" ]; then
+        echo "   RAM: $tep_mem không có dòng MemAvailable — bỏ qua phép đo."
+        return 0
+    fi
+
+    con_mb=$((con_kb / 1024))
+
+    if [ "$con_mb" -ge "$RAM_TOI_THIEU_MB" ]; then
+        echo "   RAM: còn ${con_mb} MB (ngưỡng ${RAM_TOI_THIEU_MB} MB) — đủ để build."
+        return 0
+    fi
+
+    echo "LỖI: còn ${con_mb} MB RAM, dưới ngưỡng ${RAM_TOI_THIEU_MB} MB." >&2
+    echo "      Dừng TRƯỚC khi build, có chủ ý: bản Next cũ vẫn đang phục vụ," >&2
+    echo "      và Laravel đã deploy xong trọn vẹn ở các bước trước. Chạy lại" >&2
+    echo "      khi máy rảnh, hoặc xem thứ gì đang giữ bộ nhớ:" >&2
+    echo "         free -h; ps -eo pid,rss,comm --sort=-rss | head" >&2
+
+    return 1
+}
+
+# `MemAvailable` chứ không phải `MemFree`: `MemFree` trên máy chủ này là 516
+# MB và sẽ luôn dưới mọi ngưỡng hợp lý, vì Linux dùng phần còn lại làm cache
+# và nhả ra khi cần. Đo `MemFree` là đo sai rồi chặn nhầm mọi lượt deploy.
+
+chay_build_next() {
+    if [ -n "$BUILD_RAM_MB" ]; then
+        NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=$BUILD_RAM_MB"
+        export NODE_OPTIONS
+        echo "   heap của Node: tối đa ${BUILD_RAM_MB} MB"
+    fi
+
+    if [ -n "$BUILD_NICE" ]; then
+        echo "   ưu tiên CPU: nice -n $BUILD_NICE — nhường tiến trình đang phục vụ khách"
+        nice -n "$BUILD_NICE" npm run build
+    else
+        npm run build
+    fi
 }
 
 echo "[3b/11] Đồng bộ khóa MapTiler từ GitHub Secrets"
@@ -603,9 +695,13 @@ if [ -f "/etc/systemd/system/$SERVICE.service" ]; then
         fi
     fi
 
+    # Đo TRƯỚC `npm ci`, không phải ngay trước `next build`: `npm ci` cũng
+    # ăn bộ nhớ, và hỏng sớm là hỏng rẻ.
+    kiem_ram_truoc_build || exit 1
+
     don_cache_next webapp
 
-    ( cd webapp && npm ci && npm run build )
+    ( cd webapp && npm ci && chay_build_next )
 
     # Restart SAU khi build xong, không trước: `next start` nạp `.next` lúc khởi
     # động, nên restart trước khi build là khởi động lại trên bản cũ rồi để bản

@@ -1,11 +1,12 @@
 #!/bin/bash
-# Thử năm tham số môi trường của `deploy.sh`, và hợp đồng giữa nó với
+# Thử tám tham số môi trường của `deploy.sh`, và hợp đồng giữa nó với
 # `.github/workflows/deploy-dev.yml`.
 #
 # ══ Vì sao phần này đáng một bộ thử riêng ══
 #
-# Cả năm biến (`OOHX_APP_DIR`, `OOHX_BRANCH`, `OOHX_SERVICE`, `OOHX_SYNC`,
-# `OOHX_SITE`) hỏng theo cùng một kiểu: **sai mà vẫn xanh**.
+# Cả tám biến (`OOHX_APP_DIR`, `OOHX_BRANCH`, `OOHX_SERVICE`, `OOHX_SYNC`,
+# `OOHX_SITE`, `OOHX_BUILD_RAM_MB`, `OOHX_BUILD_NICE`,
+# `OOHX_RAM_TOI_THIEU_MB`) hỏng theo cùng một kiểu: **sai mà vẫn xanh**.
 #
 #   - Mặc định lệch khỏi production → một lượt deploy `main` lặng lẽ đi sai
 #     thư mục, sai nhánh, hoặc restart sai service. Không lỗi nào được ghi.
@@ -21,7 +22,13 @@
 #     production (kết thúc bằng `""`) KHÔNG cấp quyền. Ở đây thì ngược lại:
 #     bước [11] đỏ ở mọi lượt deploy production, trong khi nội dung đúng hết.
 #
-# Không chiều nào trong bốn chiều trên làm CI đỏ, nên chúng phải có phép kiểm.
+#   - Ba biến của lát 5 có mặc định KHÁC rỗng → production bỗng chạy build
+#     dưới `nice` và dưới một trần heap mà không ai chọn cho nó, trong lúc
+#     `main` đang đóng băng. Hoặc ngược lại: `OOHX_RAM_TOI_THIEU_MB` rơi về
+#     mặc định rỗng ở dev → phép đo biến mất, và lần thiếu bộ nhớ kế tiếp do
+#     OOM killer phân xử. Cả hai chiều đều xanh.
+#
+# Không chiều nào trong năm chiều trên làm CI đỏ, nên chúng phải có phép kiểm.
 #
 # Bộ thử đọc giá trị từ CHÍNH `deploy.sh` (trích rồi source), không chép lại —
 # chép lại là thử một bản khác.
@@ -50,25 +57,25 @@ khang_dinh() {
 
 rm -rf "$D" && mkdir -p "$D"
 
-echo "── Thử năm tham số môi trường của deploy.sh ──"
+echo "── Thử tám tham số môi trường của deploy.sh ──"
 
-# ── Trích năm dòng gán từ script thật ──────────────────────────────────────
+# ── Trích tám dòng gán từ script thật ──────────────────────────────────────
 #
-# Lấy đúng năm dòng gán, bỏ mọi chú thích giữa chúng. Khoảng trích kết thúc ở
-# `PROXY_SITE=` — dòng cuối của khối. Thêm biến thứ sáu mà không dời mốc này
-# nghĩa là biến đó không được thử, và bộ thử vẫn xanh.
-sed -n '/^APP_DIR=/,/^PROXY_SITE=/p' "$SH" \
-    | grep -E '^(APP_DIR|BRANCH|SERVICE|SYNC|PROXY_SITE)=' > "$BIEN"
+# Lấy đúng tám dòng gán, bỏ mọi chú thích giữa chúng. Khoảng trích kết thúc ở
+# `RAM_TOI_THIEU_MB=` — dòng cuối của khối. Thêm biến thứ chín mà không dời
+# mốc này nghĩa là biến đó không được thử, và bộ thử vẫn xanh.
+sed -n '/^APP_DIR=/,/^RAM_TOI_THIEU_MB=/p' "$SH" \
+    | grep -E '^(APP_DIR|BRANCH|SERVICE|SYNC|PROXY_SITE|BUILD_RAM_MB|BUILD_NICE|RAM_TOI_THIEU_MB)=' > "$BIEN"
 
 so_dong=$(wc -l < "$BIEN" | tr -d ' ')
 
 # Bộ trích không rỗng: một tệp rỗng làm MỌI khẳng định dưới đây xanh vì biến
 # nào cũng rỗng và so với rỗng là bằng nhau. Ca này canh chính bộ trích.
-khang_dinh 'trích được đúng năm dòng gán' "$so_dong" '5'
+khang_dinh 'trích được đúng tám dòng gán' "$so_dong" '8'
 
-if [ "$so_dong" != "5" ]; then
+if [ "$so_dong" != "8" ]; then
     echo ""
-    echo "KHONG TRICH DUOC NAM DONG GAN TU $SH — dung lai."
+    echo "KHONG TRICH DUOC TAM DONG GAN TU $SH — dung lai."
     rm -rf "$D"
     exit 1
 fi
@@ -78,8 +85,8 @@ bash -n "$BIEN" || { echo "NAM DONG TRICH RA KHONG HOP LE"; rm -rf "$D"; exit 1;
 # Mỗi dòng phải dùng dạng `${BIEN:-mặc định}`. Một dòng gán thẳng vẫn chạy,
 # vẫn cho mặc định đúng, và KHÔNG nhận được tham số — tức dev im lặng chạy
 # như production.
-khang_dinh 'cả năm dòng đều đọc biến môi trường' \
-    "$(grep -cE '^\w+="\$\{OOHX_[A-Z_]+:-' "$BIEN")" '5'
+khang_dinh 'cả tám dòng đều đọc biến môi trường' \
+    "$(grep -cE '^\w+="\$\{OOHX_[A-Z_]+:-' "$BIEN")" '8'
 
 # ── Chiều 1: không tham số → ĐÚNG production ───────────────────────────────
 #
@@ -88,11 +95,12 @@ khang_dinh 'cả năm dòng đều đọc biến môi trường' \
 
 doc() {
     env -u OOHX_APP_DIR -u OOHX_BRANCH -u OOHX_SERVICE -u OOHX_SYNC -u OOHX_SITE \
-        "$@" bash -c '. "$0"; printf "%s|%s|%s|%s|%s" "$APP_DIR" "$BRANCH" "$SERVICE" "$SYNC" "$PROXY_SITE"' "$BIEN"
+        -u OOHX_BUILD_RAM_MB -u OOHX_BUILD_NICE -u OOHX_RAM_TOI_THIEU_MB \
+        "$@" bash -c '. "$0"; printf "%s|%s|%s|%s|%s|%s|%s|%s" "$APP_DIR" "$BRANCH" "$SERVICE" "$SYNC" "$PROXY_SITE" "$BUILD_RAM_MB" "$BUILD_NICE" "$RAM_TOI_THIEU_MB"' "$BIEN"
 }
 
-khang_dinh 'không tham số → đúng năm giá trị production' \
-    "$(doc)" '/www/wwwroot/dash.oohx.net|main|oohx-webapp|1|'
+khang_dinh 'không tham số → đúng tám giá trị production' \
+    "$(doc)" '/www/wwwroot/dash.oohx.net|main|oohx-webapp|1||||'
 
 # ══ Và giá trị thứ năm phải RỖNG, không phải "oohx.net" ══
 #
@@ -124,8 +132,35 @@ khang_dinh 'OOHX_SYNC đổi được cờ đồng bộ' \
 khang_dinh 'OOHX_SITE đổi được site của script root' \
     "$(doc OOHX_SITE=dev.oohx.net | cut -d'|' -f5)" 'dev.oohx.net'
 
-khang_dinh 'năm biến đổi cùng lúc, không biến nào đè biến nào' \
-    "$(doc OOHX_APP_DIR=/a OOHX_BRANCH=b OOHX_SERVICE=c OOHX_SYNC=0 OOHX_SITE=s)" '/a|b|c|0|s'
+khang_dinh 'tám biến đổi cùng lúc, không biến nào đè biến nào' \
+    "$(doc OOHX_APP_DIR=/a OOHX_BRANCH=b OOHX_SERVICE=c OOHX_SYNC=0 OOHX_SITE=s \
+          OOHX_BUILD_RAM_MB=1 OOHX_BUILD_NICE=2 OOHX_RAM_TOI_THIEU_MB=3)" '/a|b|c|0|s|1|2|3'
+
+# ══ Ba biến của lát 5: mặc định RỖNG là một quyết định, không phải chỗ trống ══
+#
+# Rỗng ở đây nghĩa là production chạy **y như trước lát 5**: không `nice`,
+# không trần heap, không phép đo nào. Mức chặn là thứ dev tự khoác vào mình.
+#
+# Điền một con số vào mặc định — kể cả con số "an toàn" — là đổi cách build
+# của production trong lúc `main` đang đóng băng cho Sở kiểm tra, và đổi nó
+# bằng một dòng mà không ai duyệt.
+khang_dinh 'mặc định của OOHX_BUILD_RAM_MB là RỖNG' \
+    "$(doc | cut -d'|' -f6)" ''
+
+khang_dinh 'mặc định của OOHX_BUILD_NICE là RỖNG' \
+    "$(doc | cut -d'|' -f7)" ''
+
+khang_dinh 'mặc định của OOHX_RAM_TOI_THIEU_MB là RỖNG' \
+    "$(doc | cut -d'|' -f8)" ''
+
+khang_dinh 'OOHX_BUILD_RAM_MB đổi được trần heap' \
+    "$(doc OOHX_BUILD_RAM_MB=1536 | cut -d'|' -f6)" '1536'
+
+khang_dinh 'OOHX_BUILD_NICE đổi được mức nhường CPU' \
+    "$(doc OOHX_BUILD_NICE=10 | cut -d'|' -f7)" '10'
+
+khang_dinh 'OOHX_RAM_TOI_THIEU_MB đổi được ngưỡng dừng' \
+    "$(doc OOHX_RAM_TOI_THIEU_MB=2048 | cut -d'|' -f8)" '2048'
 
 # Biến rỗng KHÔNG được coi là "đã đặt": `${X:-mặc định}` trả mặc định khi X
 # rỗng, và đó là hành vi đúng — một `OOHX_BRANCH=` rỗng đi tới máy chủ thì
@@ -202,8 +237,8 @@ khang_dinh 'mọi biến khai trong env: đều có tên trong envs:' \
 khang_dinh 'mọi tên trong envs: đều được khai ở env:' \
     "$(comm -13 <(echo "$khoa_env") <(echo "$ten_envs") | tr '\n' ' ' | sed 's/ *$//')" ''
 
-khang_dinh 'năm biến OOHX_* đều có mặt' \
-    "$(echo "$ten_envs" | grep -c '^OOHX_')" '5'
+khang_dinh 'tám biến OOHX_* đều có mặt' \
+    "$(echo "$ten_envs" | grep -c '^OOHX_')" '8'
 
 # ── Chiều 7: giá trị của dev phải thật sự là của dev ──────────────────────
 
@@ -340,6 +375,144 @@ khang_dinh 'câu gợi ý dùng $SUDOERS_LENH ở cả hai chỗ' \
 
 khang_dinh 'đường dẫn sudoers của script root chỉ còn ở hai dòng gán' \
     "$(grep -c '/etc/sudoers.d/oohx-sync-proxy' "$SH")" '2'
+
+# ── Chiều 12: lệnh build thật sự mang mức chặn ────────────────────────────
+#
+# Hai biến `BUILD_*` có đúng giá trị trong shell mà không đi vào lệnh `npm run
+# build` thì chúng là hai dòng gán vô nghĩa — và đó đúng là dạng "sai mà vẫn
+# xanh" mà cả bộ thử này tồn tại để bắt.
+#
+# Trích chính hàm `chay_build_next` ra chạy, với `npm` và `nice` giả ghi lại
+# lệnh chúng nhận được.
+
+BUILD_FN="$D/chay-build.sh"
+GIA_BIN="$D/bin"
+mkdir -p "$GIA_BIN"
+
+# `npm` giả ghi lại CẢ `NODE_OPTIONS` mà nó nhận được, không chỉ đối số.
+#
+# Đây là chỗ bản đầu của bộ thử này sai, và đột biến bắt được: nó đọc
+# `$NODE_OPTIONS` trong chính shell gọi hàm. Một dòng gán KHÔNG `export` vẫn
+# cho đúng giá trị ở đó, nhưng tiến trình con — tức `node` thật — không thấy
+# gì. Trần heap sẽ không có tác dụng, và không ai biết.
+printf '%s\n' '#!/bin/bash' 'printf "npm %s\n" "$*" >> "$GHI"' \
+    'printf "NODE_OPTIONS=%s\n" "${NODE_OPTIONS:-}" >> "$GHI"' > "$GIA_BIN/npm"
+printf '%s\n' '#!/bin/bash' 'printf "nice %s\n" "$*" >> "$GHI"' \
+    'shift 2; exec "$@"' > "$GIA_BIN/nice"
+chmod +x "$GIA_BIN/npm" "$GIA_BIN/nice"
+
+sed -n '/^chay_build_next() {$/,/^}$/p' "$SH" > "$BUILD_FN"
+
+khang_dinh 'trích được hàm chay_build_next' \
+    "$(bash -n "$BUILD_FN" >/dev/null 2>&1 && echo hop-le || echo hong)" 'hop-le'
+
+# `$3` là NODE_OPTIONS có sẵn trong môi trường trước khi hàm chạy.
+build() {
+    GHI="$D/ghi.txt"
+    : > "$GHI"
+
+    env -u NODE_OPTIONS GHI="$GHI" PATH="$GIA_BIN:$PATH" \
+        BUILD_RAM_MB="$1" BUILD_NICE="$2" ${3:+NODE_OPTIONS=$3} \
+        bash -c '. "$0"; chay_build_next >/dev/null 2>&1' "$BUILD_FN"
+
+    cat "$GHI"
+}
+
+khang_dinh 'không đặt gì → npm run build trần' \
+    "$(build '' '' | grep -c '^npm run build$')" '1'
+
+khang_dinh 'không đặt gì → không đi qua nice' \
+    "$(build '' '' | grep -c '^nice ')" '0'
+
+khang_dinh 'không đặt gì → tiến trình con thấy NODE_OPTIONS rỗng' \
+    "$(build '' '' | sed -n 's/^NODE_OPTIONS=//p')" ''
+
+khang_dinh 'có BUILD_NICE → build chạy qua nice' \
+    "$(build '' 10 | grep -c '^nice -n 10 ')" '1'
+
+# Khẳng định này đọc giá trị mà `npm` CON nhìn thấy, không phải giá trị trong
+# shell cha — xem chú thích ở `npm` giả bên trên.
+khang_dinh 'có BUILD_RAM_MB → tiến trình con nhận đúng trần heap' \
+    "$(build 1536 '' | sed -n 's/^NODE_OPTIONS=//p')" '--max-old-space-size=1536'
+
+khang_dinh 'cả hai cùng lúc → vừa nice vừa có trần heap' \
+    "$(build 1536 10 | grep -c '^nice -n 10 npm run build$')" '1'
+
+# Và trần heap phải NỐI vào `NODE_OPTIONS` sẵn có, không đè lên nó. Ghi đè là
+# lặng lẽ vứt đi mọi tuỳ chọn Node mà môi trường đã đặt — và vứt im lặng, vì
+# build vẫn chạy xong.
+khang_dinh 'NODE_OPTIONS sẵn có được giữ lại, không bị đè' \
+    "$(build 1536 '' --enable-source-maps | sed -n 's/^NODE_OPTIONS=//p')" \
+    '--enable-source-maps --max-old-space-size=1536'
+
+# ── Chiều 13: phép đo RAM, và nó phải đo MemAvailable ─────────────────────
+#
+# `MemFree` trên máy chủ này là 516 MB và sẽ luôn dưới mọi ngưỡng hợp lý, vì
+# Linux dùng phần còn lại làm cache rồi nhả ra khi cần. Đo `MemFree` là chặn
+# nhầm MỌI lượt deploy — một kiểu hỏng ồn ào, nhưng vẫn là hỏng.
+
+RAM_FN="$D/kiem-ram.sh"
+sed -n '/^kiem_ram_truoc_build() {$/,/^}$/p' "$SH" > "$RAM_FN"
+
+khang_dinh 'trích được hàm kiem_ram_truoc_build' \
+    "$(bash -n "$RAM_FN" >/dev/null 2>&1 && echo hop-le || echo hong)" 'hop-le'
+
+# MemFree thấp, MemAvailable cao — đúng hình dạng của máy chủ thật.
+printf '%s\n' 'MemTotal:        8166188 kB' 'MemFree:          528384 kB' \
+    'MemAvailable:    5033984 kB' > "$D/meminfo-du"
+
+printf '%s\n' 'MemTotal:        8166188 kB' 'MemFree:          528384 kB' \
+    'MemAvailable:    1048576 kB' > "$D/meminfo-thieu"
+
+printf '%s\n' 'MemTotal:        8166188 kB' 'MemFree:          528384 kB' > "$D/meminfo-khong-co-dong"
+
+ram() {
+    RAM_TOI_THIEU_MB="$1" OOHX_MEMINFO="$2" \
+        bash -c '. "$0"; kiem_ram_truoc_build >/dev/null 2>&1; echo "$?"' "$RAM_FN"
+}
+
+khang_dinh 'ngưỡng rỗng → không đo gì, luôn cho qua' \
+    "$(ram '' "$D/meminfo-thieu")" '0'
+
+khang_dinh 'MemAvailable trên ngưỡng → cho qua' \
+    "$(ram 2048 "$D/meminfo-du")" '0'
+
+khang_dinh 'MemAvailable dưới ngưỡng → ĐỎ' \
+    "$(ram 2048 "$D/meminfo-thieu")" '1'
+
+# Hai ca hỏng-về-phía-cho-qua. Một phép đo không đo được KHÔNG được biến thành
+# một lần chặn: máy nào không có /proc/meminfo thì vẫn phải deploy được.
+khang_dinh 'không đọc được tệp → bỏ qua phép đo, không chặn' \
+    "$(ram 2048 "$D/khong-ton-tai")" '0'
+
+khang_dinh 'tệp không có dòng MemAvailable → bỏ qua, không chặn' \
+    "$(ram 2048 "$D/meminfo-khong-co-dong")" '0'
+
+# Và chính chỗ gọi: một hàm đúng mà không ai gọi thì không chặn gì.
+khang_dinh 'deploy.sh gọi phép đo và thoát khi nó đỏ' \
+    "$(grep -c '^    kiem_ram_truoc_build || exit 1$' "$SH")" '1'
+
+khang_dinh 'build của Next đi qua chay_build_next, không gọi npm thẳng' \
+    "$(grep -c 'cd webapp && npm ci && chay_build_next' "$SH")" '1'
+
+khang_dinh 'không còn lời gọi npm run build thẳng cho webapp' \
+    "$(grep -c 'cd webapp && npm ci && npm run build' "$SH")" '0'
+
+# ── Chiều 14: ba giá trị của workflow dev ─────────────────────────────────
+
+khang_dinh 'OOHX_BUILD_RAM_MB của workflow dev là 1536' \
+    "$(grep -cE "^          OOHX_BUILD_RAM_MB: '1536'\$" "$WF_DEV")" '1'
+
+khang_dinh 'OOHX_BUILD_NICE của workflow dev là 10' \
+    "$(grep -cE "^          OOHX_BUILD_NICE: '10'\$" "$WF_DEV")" '1'
+
+khang_dinh 'OOHX_RAM_TOI_THIEU_MB của workflow dev là 2048' \
+    "$(grep -cE "^          OOHX_RAM_TOI_THIEU_MB: '2048'\$" "$WF_DEV")" '1'
+
+# Production KHÔNG khai ba biến này. Khai một cái ở đó là đổi cách build của
+# production trong lúc `main` đóng băng.
+khang_dinh 'workflow production không khai biến nào của lát 5' \
+    "$(grep -cE '^          OOHX_(BUILD_RAM_MB|BUILD_NICE|RAM_TOI_THIEU_MB):' "$WF_PROD")" '0'
 
 echo ""
 echo "Tổng: $so_dung đúng, $so_sai sai."
