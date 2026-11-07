@@ -3,17 +3,34 @@ name: Deploy Laravel to VPS (dev)
 # Lượt deploy cho `dev.oohx.net` — môi trường thử, cùng VPS với production.
 # Xem `docs/PLAN-MOI-TRUONG-DEV.md`.
 #
-# ══ Vì sao chỉ `workflow_dispatch` ở lát 2 ══
+# ══ Vì sao `workflow_dispatch` một mình ở lát 2, và vì sao thêm `push` bây giờ ══
 #
-# Đích `dev.oohx.net` chưa tồn tại: chưa có vhost, chưa có CSDL `dev_oohx_net`,
-# chưa có service `oohx-webapp-dev`, chưa có bản sao mã nguồn ở
-# `/www/wwwroot/dev.oohx.net`. Một trigger `push: [dev]` khai trước khi hạ tầng
-# tồn tại sẽ làm MỌI push vào `dev` đỏ, và một workflow đỏ thường trực là cách
-# nhanh nhất để người ta thôi đọc màu của CI.
+# Ở lát 2, đích `dev.oohx.net` chưa tồn tại: chưa có vhost, chưa có CSDL
+# `dev_oohx_net`, chưa có service `oohx-webapp-dev`, chưa có bản sao mã nguồn
+# ở `/www/wwwroot/dev.oohx.net`. Một trigger `push: [dev]` khai trước khi hạ
+# tầng tồn tại sẽ làm MỌI push vào `dev` đỏ, và một workflow đỏ thường trực là
+# cách nhanh nhất để người ta thôi đọc màu của CI.
 #
-# Đổi sang `push: [dev]` sau khi lát 4 (dựng hạ tầng) xong và lượt chạy tay đầu
-# tiên xanh.
+# Lát 4 dựng xong cả bốn thứ đó ngày 07/11/2026, nên điều kiện ấy hết hiệu
+# lực. `workflow_dispatch` ở lại bên cạnh `push`: nó là đường chạy lại một
+# lượt deploy mà không cần một commit rỗng — cần nhất khi một lượt bị huỷ giữa
+# chừng để lại dev trong maintenance mode.
+#
+# ══ Lượt đầu tiên LÀ phép thử, không phải sau phép thử ══
+#
+# Plan viết bước 10 của lát 4 là "chạy `deploy-dev.yml` bằng tay, đọc dòng
+# `Branch :` trong log — phải là `dev`", và xếp nó sau lát 6 vì
+# `workflow_dispatch` chỉ kích được từ nhánh mặc định. Thêm `push: [dev]` làm
+# bước đó tự xảy ra sớm hơn: merge vào `dev` kích luôn lượt deploy, và nó
+# không cần `main` biết gì — GitHub đọc workflow từ chính nhánh được push.
+#
+# Nên lượt deploy dev đầu tiên chạy TRƯỚC khi `main` mở băng. Nếu đường deploy
+# dev có chỗ hỏng thì ta thấy ở dev, không thấy lần đầu ngay sau một lượt
+# deploy production.
 on:
+  push:
+    branches:
+      - dev
   workflow_dispatch:
 
 # ══ Ổ KHOÁ là CHUỖI, không phải cái tên ══

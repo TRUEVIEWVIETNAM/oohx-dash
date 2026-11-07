@@ -385,7 +385,10 @@ cho lúc ngồi trước terminal là để chúng được gõ tay — mỗi l�
 8. **sudoers**: thêm quyền `systemctl restart oohx-webapp-dev` cho user `deploy`,
    và quyền gọi `oohx-sync-proxy --site dev.oohx.net`.
 9. **Cài v10** as root, kiểm `--version` in `10`.
-10. Chạy `deploy-dev.yml` bằng tay, đọc dòng `Branch :` trong log — phải là `dev`.
+10. Đọc dòng `Branch :` trong log của lượt deploy dev — phải là `dev`.
+    Không còn phải chạy bằng tay: `deploy-dev.yml` nghe `push: [dev]` từ
+    07/11/2026, nên merge vào `dev` tự kích một lượt. Xem mục "Lát 4 và lát 6
+    tách rời được, bằng một dòng trigger" cuối lát này.
 
 ### Bước 8 và 9 là hai việc, và thứ tự giữa chúng không đổi được
 
@@ -517,12 +520,31 @@ môi trường dev nhưng không để lại được:
 - **Hai tài khoản đăng ký rác** trong `users` của sàn thật (tên miền email dùng
   một lần). Chưa đụng tới.
 
-### Lát 4 và lát 6 không tách rời được
+### Lát 4 và lát 6 tách rời được, bằng một dòng trigger
 
-`workflow_dispatch` chỉ kích được khi tệp workflow đã có trên **nhánh mặc
-định**. `deploy-dev.yml` sống ở `dev`, nên bước 10 ở trên — "chạy bằng tay" —
-không chạy được cho tới khi `dev` đã merge vào `main`, tức là tới lát 6. Đo
-được ngày 07/11/2026, sau khi merge #194.
+Bản đầu của mục này kết luận ngược lại, và kết luận ấy đúng với **giả định**
+của nó chứ không đúng với bài toán.
+
+Giả định: bước 10 phải chạy bằng `workflow_dispatch`. Mà `workflow_dispatch`
+chỉ kích được khi tệp workflow đã có trên **nhánh mặc định**, còn
+`deploy-dev.yml` sống ở `dev` — nên bước 10 phải đợi lát 6. Đo được ngày
+07/11/2026, sau khi merge #194, và đo đúng.
+
+Chỗ sai nằm ở giả định. `push` không có ràng buộc đó: **GitHub đọc workflow từ
+chính nhánh được push**. Một dòng `push: [dev]` làm lượt deploy dev đầu tiên
+xảy ra khi merge vào `dev`, không cần `main` biết gì cả.
+
+Và thứ tự ấy tốt hơn chứ không chỉ sớm hơn. Bước 10 là **phép thử đầu tiên**
+của toàn bộ đường deploy dev — `OOHX_BRANCH` có tới máy chủ không, `OOHX_SYNC`
+có gọi đúng `--site` không, bốn mức chặn bộ nhớ của lát 5 có chạy không. Chạy
+nó trước khi mở băng `main` nghĩa là nếu có chỗ hỏng thì hỏng ở dev. Chạy nó
+sau lát 6 nghĩa là phép thử đầu tiên diễn ra ngay sau một lượt deploy
+production, và hai thứ cùng mới thì khó biết cái nào làm hỏng cái nào.
+
+`workflow_dispatch` ở lại bên cạnh `push`: nó là đường chạy lại một lượt
+deploy mà không cần một commit rỗng — cần nhất khi một lượt bị huỷ giữa chừng
+để lại dev trong maintenance mode (`concurrency` cho production huỷ dev, xem
+lát 2).
 
 ## Lát 5 — Đo bộ nhớ và đặt mức chặn ✅ 07/11/2026
 
