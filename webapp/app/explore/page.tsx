@@ -124,7 +124,15 @@ export default async function ExplorePage({
             <SiteHeader active="explore" />
             <OgType type="website" />
 
-            <main>
+            {/*
+              `.v2` — phạm vi của `webapp/app/oohx.css` (lát 3, 09/11/2026).
+
+              Mất lớp này thì cả trang rơi về `frontpage.css` và **không có lỗi
+              nào bắn ra** — chỉ là một trang trông như bản cũ, với rail lọc
+              rơi về cột 260px của hệ cũ. `webapp/test/khoi-giao-dien.mjs` canh
+              nó trong HTML máy chủ trả về.
+            */}
+            <main className="v2">
 
             {/*
               Hero chỉ có ở kiểu lưới.
@@ -196,7 +204,23 @@ export default async function ExplorePage({
                     tong={meta.total ?? 0}
                     sort={params.sort ?? ''}
                     query={params}
-                    boLoc={<BoLocKho filters={filters} params={params} />}
+                    boLoc={
+                        /*
+                          Biến thể theo kiểu xem — lát 3, 09/11/2026.
+
+                          `rail` ở kiểu lưới: cột 240px dính bên trái, theo
+                          board `Main`. `chip` ở kiểu bản đồ: panel danh sách
+                          của nó rộng chừng 360px và nổi trên canvas, nên một
+                          rail dọc trong đó là một cột lồng trong một cột.
+
+                          Một component, hai hình — xem `BienThe` ở `BoLocKho`.
+                        */
+                        <BoLocKho
+                            filters={filters}
+                            params={params}
+                            bienThe={kieuXem === 'map' ? 'chip' : 'rail'}
+                        />
+                    }
                     oTim={
                         kieuXem === 'map' ? (
                             <MegaSearch

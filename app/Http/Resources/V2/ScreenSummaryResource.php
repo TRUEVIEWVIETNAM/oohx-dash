@@ -138,6 +138,40 @@ class ScreenSummaryResource extends JsonResource
              */
             'photo_srcset' => AnhDanXuatService::srcsetCho($anh['path']),
 
+            /*
+             * ══ Tấm ảnh này là ảnh của BIỂN, hay một ảnh thay thế? ══
+             *
+             * Thêm 09/11/2026 — lát 3 của `docs/PLAN-GHEP-MOCKUP.md`.
+             *
+             * Trường này đã có ở DTO **chi tiết** từ 24/10/2026, với lý do ghi
+             * trong `ScreenDetailResource`: chuỗi ảnh dự phòng có năm bậc và
+             * chỉ bậc đầu là ảnh của chính màn hình; bốn bậc còn lại cho người
+             * mua xem một thứ KHÔNG phải mặt biển họ sắp thuê.
+             *
+             * Nhưng DTO **danh sách** thì không có nó, nên trang `/explore` —
+             * nơi người mua sàng kho — không có cách nào nói ra. Đo trên
+             * production: cả 104 vị trí dùng đúng hai tấm ảnh, và cả hai là ảnh
+             * bìa owner. Lưới 104 thẻ hiện ra như 104 vị trí đều có ảnh.
+             *
+             * Không thêm truy vấn nào: `$anh = $this->displayPhotoWithSource()`
+             * ở đầu hàm đã trả về cả `source`, và tới hôm nay nó bị bỏ đi.
+             *
+             * ── Vì sao đây KHÔNG phải một bản sao như `cong_nghe` đã từng ──
+             *
+             * `ScreenDetailResource` cũng trả `photo_source`, và vì DTO chi
+             * tiết thừa kế DTO này nên khoá bị ghi đè — con thắng, chỗ đứng
+             * của khoá thì theo cha. Hai giá trị ấy trả lời hai câu hỏi khác
+             * nhau về hai phạm vi khác nhau:
+             *
+             *   · ở đây: nguồn của MỘT ảnh hiển thị trên thẻ;
+             *   · ở chi tiết: nguồn của cả THƯ VIỆN `photo_urls`.
+             *
+             * Khác với `cong_nghe` — nơi hai nhánh tra cùng một bảng chữ cho
+             * cùng một cột, tức một phép tính viết hai lần. Ở đây không có
+             * bảng chữ nào để lệch; nhãn hiển thị sống một chỗ, ở
+             * `NHAN_NGUON_ANH` của `ScreenCard`.
+             */
+            'photo_source' => $anh['source'],
 
             /*
              * Khoảng cách tới toạ độ người gọi gửi lên, km — thêm 22/10/2026.

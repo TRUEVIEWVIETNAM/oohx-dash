@@ -46,12 +46,16 @@ const TRANG = Object.keys(MOC_DOM).filter((k) => ! k.startsWith('//'));
  * dưới đây chỉ báo khi một class **không có ai định nghĩa**, nên tập rộng hơn
  * làm nó bỏ sót, không bao giờ làm nó báo oan.
  */
-function classTrongCss() {
-    const raw = readFileSync(resolve(GOC, TEP_CSS), 'utf8')
+function classTrongTep(duong) {
+    const raw = readFileSync(resolve(GOC, duong), 'utf8')
         .replace(/\/\*[\s\S]*?\*\//g, ' ')
         .replace(/url\([^)]*\)/g, ' ');
 
     return new Set([...raw.matchAll(/\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)/g)].map((m) => m[1]));
+}
+
+function classTrongCss() {
+    return classTrongTep(TEP_CSS);
 }
 
 const CO_CSS = classTrongCss();
@@ -635,11 +639,32 @@ const TEP_TSX = moiTepTsx();
  * ở phía API (`reflections.status`), và chép nó vào đây là tạo bản thứ hai của
  * một enum — đúng thứ `NhanEnumMotNoiTest` tồn tại để chống.
  */
-function coNguoiDinhNghia(t) {
-    if (CO_CSS.has(t)) return true;
+/**
+ * Trang Next được đối chiếu với HAI stylesheet — lát 1 của
+ * `docs/PLAN-GHEP-MOCKUP.md`.
+ *
+ * Từ 08/11/2026 `webapp/app/globals.css` không còn là một dòng `@import` duy
+ * nhất: `layout.tsx` nạp thêm `webapp/app/oohx.css`, hệ thiết kế của mockup.
+ * Trang nào bọc nội dung trong `.v2` thì theo hệ mới; trang chưa ghép vẫn theo
+ * `frontpage.css`.
+ *
+ * Nên tập hợp lệ của trang Next là **hợp** của hai tệp, còn tập của trang Blade
+ * thì **không** — Blade không nạp `oohx.css`, và một trang Blade tham chiếu
+ * class của hệ mới sẽ ra DOM không có kiểu nào. Giữ hai tập riêng là thứ giữ
+ * lời hứa đó; gộp làm một là mở đúng cái lỗ mà cả tệp này tồn tại để bịt.
+ */
+const TEP_CSS_NEXT = ['resources/css/frontpage.css', 'webapp/app/oohx.css'];
+
+const CO_CSS_NEXT = new Set([
+    ...CO_CSS,
+    ...classTrongTep('webapp/app/oohx.css'),
+]);
+
+function coNguoiDinhNghia(t, tap = CO_CSS) {
+    if (tap.has(t)) return true;
 
     if (t.endsWith('-')) {
-        for (const c of CO_CSS) if (c.startsWith(t) && c.length > t.length) return true;
+        for (const c of tap) if (c.startsWith(t) && c.length > t.length) return true;
     }
 
     return false;
@@ -650,7 +675,7 @@ test('mọi class của mọi trang Next đều có người định nghĩa tron
 
     for (const d of TEP_TSX) {
         for (const [t, nguon] of classCuaTepTsx(readFileSync(d, 'utf8'))) {
-            if (! coNguoiDinhNghia(t)) {
+            if (! coNguoiDinhNghia(t, CO_CSS_NEXT)) {
                 thieu.push(`${d.slice(resolve(GOC).length + 1)}: .${t} (từ ${nguon})`);
             }
         }
@@ -659,9 +684,26 @@ test('mọi class của mọi trang Next đều có người định nghĩa tron
     assert.deepEqual(
         thieu,
         [],
-        `Các class sau ra DOM từ trang Next mà không có định nghĩa nào trong ${TEP_CSS}:\n  `
+        `Các class sau ra DOM từ trang Next mà không có định nghĩa nào trong `
+        + `${TEP_CSS_NEXT.join(' hoặc ')}:\n  `
         + thieu.join('\n  '),
     );
+});
+
+test('hệ thiết kế mới có mặt trong tập hợp lệ của trang Next', () => {
+    // Không có ca này thì một lỗi đọc `oohx.css` — đổi tên tệp, hay một lần
+    // sửa làm `classTrongTep` trả rỗng — biến phép kiểm trên thành một phép
+    // kiểm chỉ còn `frontpage.css`. Khi đó mọi class của hệ mới thành "không
+    // ai định nghĩa", và cách sửa dễ nhất sẽ là nới phép kiểm chứ không phải
+    // sửa bộ đọc.
+    assert.ok(
+        CO_CSS_NEXT.size > CO_CSS.size,
+        'Tập class của trang Next không rộng hơn tập của `frontpage.css` — `oohx.css` không được đọc.',
+    );
+
+    for (const t of ['v2', 'wrap', 'vt', 'vt-luoi', 'tinh', 'shead', 'ms']) {
+        assert.ok(CO_CSS_NEXT.has(t), `Thiếu \`.${t}\` — bộ đọc \`oohx.css\` đã vỡ.`);
+    }
 });
 
 test('phạm vi Next không rỗng — đổi thư mục hay đổi cú pháp phải đỏ', () => {
@@ -1152,14 +1194,32 @@ test('gỡ mục Bản đồ khỏi menu thì đường tới bản đồ phải
 test('chân trang tách đường của người mua và của media owner', () => {
     const s = readFileSync(resolve(GOC, 'webapp/components/SiteFooter.tsx'), 'utf8');
 
-    assert.match(s, /<h4>Người mua<\/h4>/, 'Chân trang thiếu cột cho người mua.');
-    assert.match(s, /<h4>Media owner<\/h4>/, 'Chân trang thiếu cột cho media owner.');
+    // Cách khớp đổi ở lát 2 (09/11/2026), CÂU HỎI thì không.
+    //
+    // Trước lát 2 bốn cột viết thẳng trong JSX nên khớp được `<h4>Người
+    // mua</h4>`. Nay chúng là dữ liệu (`COT`) và JSX dựng chúng trong một
+    // `.map()`, nên chuỗi ấy không còn trong mã nguồn — và nếu ca này vẫn
+    // khớp nó thì nó đỏ vì markup đổi, không vì hai vai bị gộp lại.
+    assert.match(s, /ten: 'Người mua'/, 'Chân trang thiếu cột cho người mua.');
+    assert.match(s, /ten: 'Media owner'/, 'Chân trang thiếu cột cho media owner.');
 
     // Gộp lại thành một cột là quay về tình trạng trước lát này.
     assert.doesNotMatch(
         s,
-        /<h4>Khám phá<\/h4>/,
+        /ten: 'Khám phá'/,
         'Cột "Khám phá" gom chung hai vai đã được tách — đừng gộp lại.',
+    );
+
+    // Nhãn cột phải là TIÊU ĐỀ thật, không phải một `<p>` trông giống tiêu đề.
+    //
+    // Bản đầu của lát 2 viết `<p className="lbl">`: nhìn y hệt, nhưng trình
+    // đọc màn hình mất danh sách tiêu đề nên không nhảy được giữa bốn cột.
+    // Lỗi loại này không ai thấy bằng mắt, nên nó phải là một khẳng định.
+    assert.match(
+        s,
+        /<h4 className="lbl">\{cot\.ten\}<\/h4>/,
+        'Nhãn cột chân trang không còn là `<h4>`. `.lbl` lo phần hình, thẻ lo phần ' +
+            'nghĩa — một `<p>` trông giống tiêu đề thì không phải tiêu đề.',
     );
 });
 
@@ -1190,6 +1250,43 @@ test('logo chân trang giữ đúng tỉ lệ', () => {
 });
 
 /**
+ * Cùng cái bẫy, ở chỗ MỚI.
+ *
+ * Ca trên canh `.ft-logo img` của `frontpage.css`. Từ lát 2 (09/11/2026) chân
+ * trang Next không dùng logo ảnh nữa, và thanh đầu chuyển sang `.ch-logo img`
+ * trong `oohx.css` — nên ca trên nay canh một luật **không còn ai dùng ở bản
+ * Next**, và vẫn xanh trong khi chỗ rủi ro thật không ai canh.
+ *
+ * `<img width="128" height="32">` vẫn nguyên trong `SiteHeader`, nên nếu luật
+ * mới chỉ đặt `height` thì logo thanh đầu giãn ngang đúng như logo chân trang
+ * đã giãn trên production tới 23/10/2026. Lỗi loại này không ai thấy trong một
+ * lượt soát: logo vẫn đọc được, chỉ bè ra.
+ */
+test('logo thanh đầu hệ mới giữ đúng tỉ lệ', () => {
+    const moi = readFileSync(resolve(GOC, 'webapp/app/oohx.css'), 'utf8');
+    const hdr = readFileSync(resolve(GOC, 'webapp/components/SiteHeader.tsx'), 'utf8');
+
+    // Thuộc tính HTML vẫn khai 128×32, tức cái bẫy vẫn còn đó.
+    assert.match(
+        hdr,
+        /width=\{128\} height=\{32\}/,
+        'Logo thanh đầu không còn khai `width`/`height`. Khai chúng là đúng — thiếu ' +
+            'chúng thì trang giật khi ảnh tải xong — nhưng CSS phải ghi đè `width`.',
+    );
+
+    const luat = moi.match(/\.v2 \.ch-logo img \{([^}]*)\}/);
+    assert.ok(luat, 'Không còn luật cho `.ch-logo img` trong `oohx.css`.');
+
+    assert.match(
+        luat[1],
+        /width:\s*auto/,
+        'CSS đặt chiều cao cho logo thanh đầu mà không đặt `width: auto`, nên trình ' +
+            'duyệt giữ `width="128"` của thuộc tính HTML và logo giãn ngang 1,45 lần — ' +
+            'đúng lỗi đã xảy ra với logo chân trang.',
+    );
+});
+
+/**
  * Chân trang bản Next có BỐN khối, `.ft-g` khai SÁU cột.
  *
  * Hệ quả đo được trên production 23/10/2026 ở 1440px: lưới 1176px, bốn khối
@@ -1203,23 +1300,41 @@ test('logo chân trang giữ đúng tỉ lệ', () => {
 test('chân trang bản Next chia theo số khối thật, không theo số cột khai sẵn', () => {
     const tsx = readFileSync(resolve(GOC, 'webapp/components/SiteFooter.tsx'), 'utf8');
     const css = readFileSync(resolve(GOC, 'resources/css/frontpage.css'), 'utf8');
+    const moi = readFileSync(resolve(GOC, 'webapp/app/oohx.css'), 'utf8');
 
+    // Lát 2 (09/11/2026) chuyển chân trang Next sang hệ mới: lớp lưới nay là
+    // `.ch-ft-luoi` trong `oohx.css`, không còn `.ft-g ft-tu-chia` của
+    // `frontpage.css`. Câu hỏi giữ nguyên — lưới phải chia theo số khối thật.
     assert.match(
         tsx,
-        /className="ft-g ft-tu-chia"/,
-        'Chân trang bản Next mất lớp `ft-tu-chia`, nên nó rơi về lưới sáu cột của ' +
-            'bản Blade và bỏ trống hai rãnh cuối.',
+        /className="wrap ch-ft-luoi"/,
+        'Chân trang bản Next mất lớp lưới `ch-ft-luoi`.',
     );
 
     assert.match(
-        css,
-        /\.ft-tu-chia\s*\{[^}]*display\s*:\s*flex/,
-        '`.ft-tu-chia` không còn là flex. Grid khai cột trước khi biết có bao nhiêu ' +
-            'con, nên nó không tự chia được theo số khối.',
+        moi,
+        /\.v2 \.ch-ft-luoi \{[^}]*display: flex/,
+        '`.ch-ft-luoi` không còn là flex. Grid khai số cột TRƯỚC khi biết có bao ' +
+            'nhiêu con, nên nó không tự chia được theo số khối — và đó đúng là lỗi đo ' +
+            'được trên production 23/10/2026.',
+    );
+
+    // Và không được quay về một lưới cột cứng ở chỗ mới.
+    const khoi = moi.match(/\.v2 \.ch-ft-luoi \{([^}]*)\}/);
+    assert.ok(khoi, 'Không còn luật nào cho `.ch-ft-luoi`.');
+    assert.ok(
+        !/grid-template-columns/.test(khoi[1]),
+        '`.ch-ft-luoi` khai `grid-template-columns` — mọi con số cột ở đây là một ' +
+            'giả định về số khối, và giả định đó đã sai im lặng một lần.',
     );
 
     // Bản Blade phải giữ nguyên grid sáu cột: nó CÓ sáu khối, và flex với
     // cùng `basis` làm khối thứ sáu rớt xuống hàng hai (đo được 23/10/2026).
+    //
+    // `.ft-tu-chia` ở `frontpage.css` nay KHÔNG còn ai dùng — bản Next đã rời
+    // sang `.ch-ft-luoi`. Không gỡ nó: plan ghép mockup cố ý không sửa
+    // `frontpage.css` vì tệp đó còn phục vụ 11 trang Blade, và gỡ một lớp ở đó
+    // là đổi 25 trang cùng lúc để dọn ba dòng chết.
     assert.match(
         css,
         /\.footer-grid,\.ft-g\{[^}]*grid-template-columns/,
@@ -1747,4 +1862,83 @@ test('CSS menu trượt còn đủ và nhường chỗ cho thanh nav từ 1024px
         /\.hdr-nav\s*\{[^}]*display\s*:\s*flex/,
         'Thanh nav không còn hiện từ 1024px.',
     );
+});
+
+/**
+ * Mọi luật `:focus` của hệ mới phải để lại MỘT dấu hiệu thấy được.
+ *
+ * ══ Lỗi này đã xảy ra, hai lần, trong cùng một lượt ══
+ *
+ * Lát 3 viết `.v2 .ms-box:focus-within { box-shadow: none }` để gỡ vòng mờ
+ * kiểu Apple. Nhưng `.v2 .ms-box` ngay trên đã có `border: 2px solid
+ * var(--primary)`, nên luật `:focus-within` chỉ đặt lại đúng màu viền ô đang
+ * có — **không gì đổi khi người dùng tab vào ô tìm kiếm chính của sàn**.
+ *
+ * Lát 4 viết `.v2 .auth-field:focus { outline: none }` cho ô nhập của trang
+ * đăng nhập và đăng ký, với một đổi màu viền 1px thay vào.
+ *
+ * Cả hai không làm trang vỡ, không làm test nào đỏ, và không thấy được trong
+ * một lượt soát bằng mắt — vì soát bằng mắt là soát bằng **chuột**. Chúng chỉ
+ * hiện ra khi có người dùng bàn phím, và người đó không báo lỗi, họ bỏ đi.
+ *
+ * ══ Luật ══
+ *
+ * Một khối `:focus` được phép gỡ `outline` hoặc `box-shadow`, nhưng phải đặt
+ * một trong hai thành giá trị THẬT. Ca này không bắt dùng cách nào — nó chỉ
+ * không cho gỡ cả hai.
+ *
+ * `border-color` một mình KHÔNG tính: trên một đường 1px nó là một đổi nhạt,
+ * và ở `.ms-box` nó đã đúng là nguyên nhân của lỗi đầu tiên.
+ */
+test('mọi luật :focus của hệ mới để lại dấu hiệu thấy được', () => {
+    const css = readFileSync(resolve(GOC, 'webapp/app/oohx.css'), 'utf8');
+
+    const khoi = [...css.matchAll(/([^{}]*:focus[a-z-]*[^{}]*)\{([^}]*)\}/g)];
+
+    assert.ok(
+        khoi.length > 0,
+        'Không còn luật `:focus` nào trong `oohx.css` — hệ mới đang dựa hoàn ' +
+            'toàn vào outline mặc định của trình duyệt, và ba lát trước đã tắt nó ở ' +
+            'vài chỗ.',
+    );
+
+    /**
+     * Giá trị CUỐI của một thuộc tính trong thân luật, hoặc `null`.
+     *
+     * Lấy giá trị ra rồi so, KHÔNG dùng lookahead phủ định trong regex.
+     *
+     * Bản đầu của ca này viết `/box-shadow\s*:\s*(?!none)[^;]+/` và nó bỏ sót
+     * **cả ba** ca xấu. Lý do: `\s*` quay lui được. Gặp `box-shadow: none`,
+     * engine cho `\s*` khớp zero ký tự, nên vị trí kiểm `(?!none)` nằm ở dấu
+     * cách — ở đó bốn ký tự tiếp là `" non"`, lookahead thoả, rồi `[^;]+` ăn
+     * luôn `" none"`. Luật khớp, chốt xanh, không canh gì.
+     *
+     * `matchAll` + lấy phần tử cuối: khai hai lần cùng thuộc tính thì cái sau
+     * thắng, và một luật `box-shadow: 0 0 0 3px …; box-shadow: none` phải bị
+     * coi là `none`.
+     */
+    function giaTriCuoi(than, thuocTinh) {
+        const khop = [...than.matchAll(new RegExp(`${thuocTinh}\\s*:\\s*([^;]+)`, 'g'))];
+
+        return khop.length ? khop[khop.length - 1][1].trim() : null;
+    }
+
+    /** `none`, `0`, và bóng trong suốt `0 0 #0000` đều là "không có gì". */
+    function thatSu(giaTri) {
+        return giaTri !== null && !/^(none|0|0 0 #0000)$/i.test(giaTri);
+    }
+
+    for (const [, chon, than] of khoi) {
+        const sel = chon.trim().replace(/\s+/g, ' ');
+
+        const coOutline = thatSu(giaTriCuoi(than, 'outline'));
+        const coBong = thatSu(giaTriCuoi(than, 'box-shadow'));
+
+        assert.ok(
+            coOutline || coBong,
+            `Luật \`${sel}\` không để lại dấu hiệu focus nào: nó gỡ outline và/hoặc ` +
+                'box-shadow mà không đặt cái nào thành giá trị thật. Đổi `border-color` ' +
+                'một mình không tính — xem docblock của ca này.',
+        );
+    }
 });

@@ -27,8 +27,21 @@
  * Giữ nguyên dãy dự phòng của bản gốc: nếu font tự host chưa về, chữ vẫn rơi
  * về đúng những font mà bản Blade rơi về.
  */
+/*
+ * Montserrat từ lát 4 (09/11/2026), không còn Open Sans.
+ *
+ * Cả 15 trang Next đều bọc nội dung trong `.v2` từ lát 4 — `test/seo.mjs` canh
+ * điều đó trong vòng lặp qua mọi trang — nên không chữ nào còn hiển thị bằng
+ * Open Sans, trong khi tệp font vẫn tải về ở mọi lượt. `Open_Sans` đã gỡ khỏi
+ * `layout.tsx`.
+ *
+ * Dòng này quan trọng hơn nó trông: 43 luật trong `frontpage.css` đọc
+ * `var(--font)`, và `.v2` chỉ khai lại biến đó cho phần tử NẰM TRONG nó. Thiếu
+ * dòng này thì bất cứ phần tử nào ngoài `.v2` sẽ mất cả Open Sans (đã gỡ) lẫn
+ * Montserrat, và rơi về `-apple-system` — tức một font thứ ba.
+ */
 :root {
-    --font: var(--font-open-sans), 'Open Sans', -apple-system, 'Helvetica Neue', sans-serif;
+    --font: var(--font-montserrat), Montserrat, 'Helvetica Neue', Arial, sans-serif;
 }
 
 /*

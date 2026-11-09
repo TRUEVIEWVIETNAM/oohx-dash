@@ -201,32 +201,83 @@ export function KhoiExplore({
                   1176px và lên 4 thẻ 280px.
                 */}
                 <div className="listing-layout ex-mot-cot">
-                    {boLoc}
+                    {/*
+                      ══ Rail lọc 240px — lát 3, 09/11/2026 ══
+
+                      Bộ lọc rời khỏi dải chip nằm ngang và vào một cột dính
+                      bên trái, theo board `Main`.
+
+                      Quyết định 22/10/2026 gỡ cột lọc dọc, và nó dựa trên số
+                      đo thật: cột cũ lấy 260px trong 1176px và CAO 1358px,
+                      trong khi lưới còn 2 thẻ 255px. Tiền đề đó đổi ở lát 1 —
+                      thẻ nay 186px. Tính lại ở điểm gãy 1240px: không rail là
+                      6 cột, có rail là 5. Rail tốn MỘT cột, không nửa lưới.
+
+                      `.ex-mot-cot` vẫn ở đây: nó tắt lưới 260px của
+                      `.listing-layout` trong `frontpage.css`, và `oohx.css`
+                      khai lại hai cột 240px cho riêng `.v2`. Gỡ nó đi là để
+                      trang rơi về cột 260px của hệ cũ — tức một bố cục thứ ba.
+                    */}
+                    <aside className="ex-rail">
+                        {boLoc}
+
+                        {/*
+                          Khối CTA dưới rail — board vẽ nó, và nó nói đúng
+                          hình dạng kho: 85 trong 104 vị trí chưa niêm yết giá,
+                          nên "không thấy giá nào phù hợp" là trạng thái
+                          THƯỜNG, không phải ngoại lệ.
+
+                          Con số không viết cứng ở đây: `BangViTri` ngay dưới
+                          và panel trang chủ đã in nó từ `/api/v2/filters`.
+                          Một con số thứ ba viết tay trong rail là một chỗ nữa
+                          để lệch.
+                        */}
+                        <div className="ex-rail-cta">
+                            <p>Không tìm thấy vị trí phù hợp?</p>
+                            <p>
+                                Gửi một yêu cầu, OOHX chuyển tới media owner tương ứng. Sàn
+                                không thu phí môi giới.
+                            </p>
+                            <Link className="btn btn-s" href="/explore/yeu-cau-bao-gia">
+                                Gửi yêu cầu báo giá
+                            </Link>
+                        </div>
+                    </aside>
 
                     {/*
-                      Dòng định vị đứng giữa bộ lọc và lưới: nó nói về tập
-                      kết quả, nên nó thuộc về chỗ ngay trên tập đó. Ở kiểu
-                      lưới nó đếm thật — xem docblock của `BangViTri`.
+                      Cột phải là MỘT con của lưới, không hai.
+
+                      `.listing-layout` là grid hai cột. Để `BangViTri` và
+                      khối kết quả thành hai con riêng thì dòng định vị chiếm
+                      cột 2 hàng 1, và lưới kết quả rớt xuống cột 1 hàng 2 —
+                      tức nằm DƯỚI rail. Bố cục vỡ mà không có lỗi nào bắn ra.
                     */}
-                    <BangViTri trangThai={viTri} query={query} dem />
+                    <div className="ex-cot-phai">
+                        {/*
+                          Dòng định vị đứng giữa bộ lọc và lưới: nó nói về tập
+                          kết quả, nên nó thuộc về chỗ ngay trên tập đó. Ở kiểu
+                          lưới nó đếm thật — xem docblock của `BangViTri`.
+                        */}
+                        <BangViTri trangThai={viTri} query={query} dem />
 
-                    <div
-                        ref={kqRef}
-                        className="ex-cot-kq"
-                        onMouseOver={reVao}
-                        onMouseLeave={() => setSlugSang(null)}
-                    >
-                        <KhoiKetQua
-                            tong={tong}
-                            sort={sort}
-                            basePath="/explore"
-                            query={query}
-                            nutThem={<DoiKieuXem query={query} kieuXem="grid" />}
+                        <div
+                            ref={kqRef}
+                            className="ex-cot-kq"
+                            onMouseOver={reVao}
+                            onMouseLeave={() => setSlugSang(null)}
                         >
-                            {children}
-                        </KhoiKetQua>
+                            <KhoiKetQua
+                                tong={tong}
+                                sort={sort}
+                                basePath="/explore"
+                                query={query}
+                                nutThem={<DoiKieuXem query={query} kieuXem="grid" />}
+                            >
+                                {children}
+                            </KhoiKetQua>
 
-                        {pagination}
+                            {pagination}
+                        </div>
                     </div>
                 </div>
 

@@ -3,6 +3,31 @@ import type { ScreenSummary } from '@/lib/api';
 import { OTick } from '@/components/OTick';
 
 /**
+ * Nhãn cho từng bậc của chuỗi ảnh dự phòng — lát 3, 09/11/2026.
+ *
+ * Bốn bậc, không năm: `screen` **không có** ở đây vì nó không bao giờ được dán
+ * nhãn. Thiếu nó trong bảng là một hàng rào kiểu: viết
+ * `NHAN_NGUON_ANH['screen']` sẽ không biên dịch được, nên không ai dán nhãn
+ * lên bậc đúng bằng cách vô tình.
+ *
+ * Chữ nói bằng tiếng người mua hiểu, không bằng tên trường của API. Board vẽ
+ * chuyện này thành một ô cảnh báo in thẳng `photo_source: "owner_cover"`; đó
+ * là chữ của bản nháp nói với người duyệt mockup.
+ *
+ * `null` cũng không có: khi `photo_source` là `null` thì không có ảnh nào, nên
+ * không có gì để dán nhãn lên.
+ */
+const NHAN_NGUON_ANH: Record<
+    Exclude<NonNullable<ScreenSummary['photo_source']>, 'screen'>,
+    string
+> = {
+    site: 'Ảnh khu vực',
+    network: 'Ảnh hệ thống',
+    owner_cover: 'Ảnh bìa owner',
+    venue_category: 'Ảnh minh hoạ loại hình',
+};
+
+/**
  * Thẻ một màn hình trong danh sách.
  *
  * ══ Vì sao tệp này được viết lại ngày 14/10/2026 ══
@@ -168,6 +193,41 @@ export function ScreenCard({
                         alt={screen.name ?? ''}
                         loading="lazy"
                     />
+                ) : null}
+
+                {/*
+                  ══ Tấm ảnh này là ảnh của BIỂN, hay một ảnh thay thế? ══
+
+                  Lát 3 của `docs/PLAN-GHEP-MOCKUP.md` (09/11/2026).
+
+                  Chuỗi ảnh dự phòng có năm bậc và chỉ bậc đầu là ảnh của chính
+                  màn hình; bốn bậc còn lại là ảnh của site, của network, bìa
+                  chủ sở hữu, hoặc ảnh mặc định của loại điểm đặt. Trường
+                  `photo_source` được thêm ngày 24/10/2026 đúng vì chuyện đó, và
+                  docblock của `ScreenDetailResource` ghi lý do:
+
+                    "Vị trí đo được ngày 24/10/2026 (`oohx-led-cto-can-tho`) có
+                     đúng một ảnh, và nó là `storage/owners/covers/…`. Trang
+                     hiện ra như một vị trí có ảnh. Không trường nào trong
+                     payload nói khác, nên không client nào nói khác được."
+
+                  Trường đã có từ hôm đó, nhưng `ScreenCard` **chưa bao giờ đọc
+                  nó**. Nên tới trước lát này, người mua duyệt lưới vẫn thấy
+                  104 thẻ đều "có ảnh" — trong khi cả kho dùng đúng hai tấm, và
+                  cả hai là ảnh bìa owner. Pill này là chỗ trường ấy nói ra.
+
+                  Chỉ hiện khi ảnh KHÔNG phải của màn hình. `screen` là bậc
+                  đúng, và dán nhãn lên nó là nói một điều ai cũng mặc định —
+                  tức làm nhãn mất nghĩa ở ba bậc còn lại.
+
+                  Board vẽ chuyện này thành một ô cảnh báo đỏ trên cả lưới, có
+                  chữ nhắc Alibaba và in thẳng `photo_source: "owner_cover"`.
+                  Ô đó KHÔNG ship: nó là chữ nói với người duyệt mockup. Một
+                  pill trên đúng tấm ảnh nói được cùng điều mà không bắt người
+                  mua đọc tên trường của API.
+                */}
+                {screen.photo_url && screen.photo_source && screen.photo_source !== 'screen' ? (
+                    <span className="sc-nguon-anh">{NHAN_NGUON_ANH[screen.photo_source]}</span>
                 ) : null}
 
                 {availability?.has_capacity ? (

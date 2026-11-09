@@ -390,13 +390,43 @@ async function kiemTrang(base, trang) {
         }
     }
 
-    // ── Khung trang: thiếu một trong hai là thiếu thông tin bắt buộc ──
-    if (!html.includes('class="hdr"')) {
+    // ── Khung trang: thiếu một trong ba là thiếu thông tin bắt buộc ──
+    //
+    // Tên lớp đổi ở lát 2 của `docs/PLAN-GHEP-MOCKUP.md` (09/11/2026):
+    // `hdr` → `ch-hdr`, `ft-legal` → `ch-ft-phaply`. Câu hỏi không đổi.
+    if (!html.includes('class="ch-hdr"')) {
         bao(trang.path, 'thiếu thanh điều hướng');
     }
 
-    if (!html.includes('class="ft-legal"')) {
+    if (!html.includes('class="ch-ft-phaply"')) {
         bao(trang.path, 'thiếu khối thông tin pháp lý ở chân trang');
+    }
+
+    // ── Hệ thiết kế: KHÔNG trang nào còn mang hệ cũ (lát 4, 09/11/2026) ──
+    //
+    // `v2` là phạm vi của `webapp/app/oohx.css`. Canh nó ở ĐÂY, trong vòng lặp
+    // chạy qua mọi trang, chứ không liệt từng trang trong
+    // `khoi-giao-dien.mjs`: tuyên bố của lát 4 là về **tập hợp** — mười trang
+    // cuối đã vào hệ, nên từ nay mỗi trang Next mới cũng phải vào.
+    //
+    // Thêm một trang mà quên lớp này thì nó im lặng rơi về `frontpage.css`:
+    // không lỗi nào bắn ra, trang vẫn dựng, mọi ca khác vẫn xanh — chỉ là một
+    // trang trông như bản cũ nằm giữa 15 trang kia. Đó đúng là kiểu hỏng mà
+    // một phép kiểm theo-tập-hợp sinh ra để chữa.
+    if (!html.includes('class="v2"')) {
+        bao(trang.path, 'thiếu lớp `v2` — trang này còn dùng hệ thiết kế cũ');
+    }
+
+    // Dải pháp lý ở ĐẦU trang — mới từ lát 2, và nó là khẳng định thứ ba vì
+    // nó trả lời một câu khác hai cái trên.
+    //
+    // Pháp nhân và mã số thuế là thông tin bắt buộc của một sàn TMĐT. Tới lát
+    // 1 chúng chỉ có ở chân trang, tức phần lớn người đọc không bao giờ thấy;
+    // lát 1 đưa chúng lên đầu nhưng chỉ ở trang chủ. Lát 2 đưa vào
+    // `SiteHeader`, nên mọi trang có — và ca này canh rằng chúng không tụt về
+    // chỉ-chân-trang lần nữa.
+    if (!html.includes('class="ch-phaply"')) {
+        bao(trang.path, 'thiếu dải pháp lý ở đầu trang');
     }
 
     // ── Và khối đó phải có ĐỦ NỘI DUNG, không chỉ có mặt ──

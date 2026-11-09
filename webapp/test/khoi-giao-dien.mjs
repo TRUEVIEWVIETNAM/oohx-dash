@@ -62,23 +62,43 @@ const TRANG = [
             'class="slide-menu"',
             'class="slide-menu-backdrop"',
 
-            'class="hero-badge"',
-            'class="hstat"',
-            'class="hero-hint"',
+            // ── Hệ thiết kế mới (lát 1, 08/11/2026) ──────────────────────
+            //
+            // `v2` là phạm vi của `webapp/app/oohx.css`. Mất lớp này thì cả
+            // trang rơi về `frontpage.css` và **không có lỗi nào bắn ra** —
+            // chỉ là một trang trông như bản cũ. Đó là lỗi im lặng đúng nhất
+            // mà lát này có thể sinh ra, nên nó là khẳng định đầu tiên.
+            'class="v2"',
 
-            // Hero hai cột (18/10/2026): chữ + ô tìm kiếm trái, bản đồ thật
-            // phải. Ba luật dưới canh cái KHUNG — nếu lưới mất, hai cột rơi
-            // về một chồng dọc mà không có lỗi nào bắn ra.
-            'class="hero hero--split"',
-            'hero-luoi',
-            'class="hero-chu"',
-            'map-wrap map-wrap--hero',
+            // Dải pháp lý, TRÊN cả logo. Pháp nhân và mã số thuế là thông tin
+            // bắt buộc của một sàn TMĐT; đặt ở chân trang nghĩa là phần lớn
+            // người đọc không bao giờ thấy.
+            'CÔNG TY TNHH TRUEVIEW',
+            '0109944503',
 
-            'class="ms-box"', // ô tìm kiếm lớn
-            'class="mega-drop"', // hai dropdown của nó
-            'class="map-mock"', // bản đồ nhúng
+            // Ô tìm kiếm lớn và hai dropdown của nó. `MegaSearch` chưa đổi
+            // theo hệ mới (lát 2) nên class vẫn của `frontpage.css` — nó mang
+            // hành vi thật, và đổi hành vi cùng lúc với đổi ngoại hình là tự
+            // làm mất chỗ để dò khi có gì sai.
+            'class="ms-box"',
+            'class="mega-drop"',
+
+            // Bản đồ THẬT ở hero. Board của mockup vẽ mọi khung bản đồ là
+            // khung nét đứt rỗng vì BizmapLive do chủ dự án tích hợp — nhưng
+            // trang chủ đã có bản đồ chạy thật từ 18/10/2026, nên thay nó
+            // bằng một khung rỗng là bước lùi. Ba luật này canh đúng điều đó.
+            'class="map-mock"',
             'class="hp-map-city-bar"',
             'class="map-count"',
+
+            // ── Menu ngang: MỘT khối, không một dải rời ───────────────────
+            //
+            // Chủ dự án chốt hình dạng này ngày 08/11/2026 sau ba lượt sửa
+            // mockup (*"menu ngang thiết kế thành 1 khối full width"*). Khối
+            // mang năm lối vào kho kèm số đếm — chúng thay lưới `cat-grid`
+            // của bố cục cũ, nên liên kết vào kho không mất.
+            'Chào mừng đến với OOHX',
+            'Đưa kho của bạn lên sàn',
 
             // ── Thứ tự sáu khối của thân trang (lát 3, 18/10/2026) ────────
             //
@@ -94,44 +114,66 @@ const TRANG = [
             // `thuTu` canh chính THỨ TỰ đó, không chỉ canh sự có mặt: đổi
             // chỗ hai khối không làm hỏng một khẳng định `co` nào, và đó
             // đúng là kiểu hỏng mà lát này sinh ra để chữa.
-            'class="dk-tabs"', // ② hai tab của khối duyệt kho
-            'role="tablist"',
-            'class="dk-tab"',
-            'class="mua"', // ③ hai ô cách mua
-            'class="lc"',
-            'class="lc lc--nb"', // ô "mua theo gói", viền nổi
-            'class="lc-ds"',
-            'class="steps-grid"', // ④ bốn bước đặt booking
-            'class="step-card"',
-            'class="bao-dam"', // ⑤ ba bảo đảm dưới dải owner
-            'class="bd-o"',
-            'class="owner-cta"', // ⑥ khối mời media owner
-            'class="oc-feat"',
-            'class="oc-card', // thẻ owner (biến thể compact thêm hậu tố)
-
-            // Bốn câu mô tả, nguyên văn bản Blade (chốt 18/10/2026, xác nhận
-            // lại khi duyệt bố cục mới). Bản mock của lát 3 có bốn câu VIẾT
-            // LẠI; luật này canh để không ai lấy nhầm từ đó.
-            'AI search theo khu vực',
-            'So sánh tối đa 5 vị trí',
-            'proof-of-play report tự động',
-
-            // Hai lưới thẻ 'duyệt' (18/10/2026). Bản Blade có ảnh + icon +
-            // tên + số vị trí; bản Next đầu tiên rút xuống một hàng chip chữ
-            // và một danh sách liên kết kiểu chân trang, vì '/filters' và
-            // '/locations' là hai endpoint duy nhất có sẵn và cả hai đều
-            // không mang ảnh.
+            // ── Cặp panel ─────────────────────────────────────────────────
             //
-            // Từ lát 3 chúng là hai TAB của một khối, nhưng cả hai vẫn phải
-            // nằm trong HTML máy chủ trả về: tab không hoạt động ẩn bằng
-            // `hidden`, không bằng việc không render — nếu không, công cụ
-            // tìm kiếm mất một nửa số liên kết vào kho.
-            'class="cat-grid"',
-            'class="cat-card"',
-            'class="cat-icon"',
-            'class="city-grid"',
-            'class="city-card"',
-            'class="city-bg"',
+            // Panel trái KHÔNG mang chữ "hot". Board gọi nó là "Billboard hot"
+            // kèm chip `cần xác nhận` vì không ai biết luật xếp hạng; trên site
+            // thật thì chip đó không đủ — in "hot" cạnh sáu vị trí lấy theo
+            // thứ tự API trả về là một xếp hạng bịa. Nên nó in con số lớn nhất
+            // và thật nhất của kho: số vị trí **chưa** niêm yết giá.
+            'Chưa niêm yết giá',
+            'Gửi yêu cầu báo giá',
+
+            // Panel phải: "Media owner trên sàn", KHÔNG phải "uy tín". Đo
+            // 08/11/2026: cả hai media owner có `verified: false`, nên mỗi thẻ
+            // in đúng trạng thái của nó. Một dấu tích xanh vẽ vô điều kiện là
+            // chỗ mockup trước đã sai một lần.
+            'Media owner trên sàn',
+
+            // Ba bảo đảm. Bố cục mới gỡ khối `bao-dam` rời và chuyển ba câu
+            // vào panel owner — chúng không bị xoá, xem `khong` ở dưới không
+            // hề liệt kê chúng.
+            'Sàn không thu hộ',
+            'Giá do chủ màn hình đặt',
+            'Booking đã xác nhận không đổi',
+
+            // ── Lưới vị trí đã công bố giá ────────────────────────────────
+            //
+            // Nguồn là `?price_status=quoted`, không `/screens/featured`:
+            // endpoint kia đòi ảnh RIÊNG và có giá, và đo 08/11/2026 thì nó
+            // trả **đúng 1 bản ghi** trên 104. Một lưới sáu ô mà dữ liệu đủ
+            // một ô là một lưới sẽ được ai đó "sửa" bằng cách nới điều kiện
+            // lọc — tức bày vị trí chưa có giá ở khối tên là "đã công bố giá".
+            'Vị trí đã công bố giá',
+            'class="vt-luoi"',
+            'class="vt"',
+
+            // Ô cuối lưới nói ra phần bị CHẶN khỏi lưới. Không có nó thì sáu
+            // thẻ có giá đọc như toàn bộ kho.
+            'vị trí chưa có giá',
+
+            // ── Mức độ hoàn thiện dữ liệu kho ─────────────────────────────
+            //
+            // Khối này in chỗ kho còn THIẾU, không in thành tích. Nó là thứ
+            // phân biệt sàn này với một sàn in "104 vị trí" rồi để người mua
+            // tự phát hiện 85 trong số đó chưa có giá.
+            'Mức độ hoàn thiện dữ liệu kho',
+            'class="bar"',
+
+            // ── Lưới tỉnh thành — giữ lại vì SEO ──────────────────────────
+            //
+            // Board bỏ nó. Nhưng lý do nó tồn tại vẫn đúng: hai lưới "duyệt"
+            // phải nằm trong HTML máy chủ trả về, nếu không công cụ tìm kiếm
+            // mất một nửa số liên kết vào kho. Lưới loại hình đã được khối
+            // menu ngang thay (cùng liên kết, cùng số đếm); lưới tỉnh thành
+            // thì không có gì thay, nên nó ở lại.
+            //
+            // Lớp mới `tinh`, không `city-card`: thẻ bên kia mang bán kính
+            // 14px, `box-shadow` và một cú `translateY(-3px)` — ba thứ thuộc
+            // hệ Apple, và dùng lại nó là đặt một thẻ nổi bóng cạnh sáu thẻ
+            // phẳng.
+            'class="tinh-luoi"',
+            'class="tinh"',
 
             // Ảnh hai lưới phải đi qua trình tối ưu của Next (18/10/2026).
             // Đo trên production trước khi sửa: 10,68 MB ảnh cho hai lưới,
@@ -141,11 +183,28 @@ const TRANG = [
             // vài MB, đúng kiểu hỏng mà không ai nhìn thấy.
             '/_next/image',
 
-            // Lưới chân trang. `ft-tu-chia` thêm 23/10/2026: bản Next có bốn
-            // khối còn `.ft-g` khai sáu cột, nên bốn khối chỉ dùng 61% chiều
-            // rộng. Khớp cả hai lớp chứ không riêng `ft-g`, để việc gỡ lớp
-            // thêm — tức quay về lưới cột cứng — cũng làm ca này đỏ.
-            'class="ft-g ft-tu-chia"',
+            // ── Chrome hệ mới (lát 2, 09/11/2026) ───────────────────────
+            //
+            // Thanh đầu và chân trang có mặt trên CẢ 14 trang, nên bốn lớp
+            // này là thứ duy nhất trong tệp canh được rằng lát 2 đã ghép —
+            // và rằng nó không tụt về hệ cũ.
+            //
+            // Dải pháp lý nay nằm TRONG `SiteHeader`, không còn ở
+            // `app/page.tsx`: pháp nhân và mã số thuế là thông tin bắt buộc
+            // trên mọi trang công khai, không riêng trang đầu.
+            'class="ch-phaply"',
+            'class="ch-hdr"',
+            // Hai hàng. Hàng hai `display:none` dưới 768px nhưng vẫn ở trong
+            // HTML, nên công cụ tìm kiếm không mất liên kết nào — và ca này
+            // canh đúng điều đó: nó đọc HTML máy chủ trả về.
+            'class="wrap ch-r1"',
+            'class="ch-r2"',
+
+            // Lưới chân trang. Câu hỏi giữ từ 23/10/2026: lưới phải chia theo
+            // SỐ KHỐI THẬT. Bản cũ dùng `.ft-g ft-tu-chia`, nơi `.ft-g` khai
+            // sáu cột cứng cho bốn khối nên bỏ trống 460px ở 1440px. Lớp mới
+            // là flex, và `class-css.test.mjs` canh chính luật CSS đó.
+            'class="wrap ch-ft-luoi"',
 
             // Thanh "trust". Khối thì giữ, chữ thì đổi ngày 20/10/2026: năm
             // câu của bản Blade thay bằng năm việc kiểm được. Canh nguyên văn
@@ -161,23 +220,28 @@ const TRANG = [
             'Lọc theo tỉnh, loại hình',
             'Gửi yêu cầu không cần đăng ký',
             'Xuất danh sách CSV',
-
-            // Ba bảo đảm của khối ⑤ nói những điều CLAUDE.md ghi là sự thật
-            // của sàn, không phải lời hứa năng lực. Canh nguyên văn để một
-            // lần "làm mạnh câu chữ" phải đi qua một quyết định.
-            'Sàn không thu hộ',
-            'Giá do chủ màn hình đặt',
-            'Booking đã xác nhận không đổi',
         ],
-        // Thứ tự xuất hiện trong HTML, không chỉ sự có mặt. Xem chú thích ở
-        // khối ② trên.
+        /*
+         * Thứ tự xuất hiện trong HTML, không chỉ sự có mặt.
+         *
+         * Bố cục mới (lát 1, 08/11/2026) trả lời theo đúng trình tự người mua
+         * hỏi: kho là gì và pháp nhân nào bán (dải pháp lý) → tìm ở đâu (hero)
+         * → kho có những nhóm nào (menu ngang) → sàn làm được gì (cam kết) →
+         * phần lớn kho ở trạng thái nào (cặp panel) → cái nào có giá (lưới) →
+         * dữ liệu còn thiếu gì (hoàn thiện) → duyệt theo tỉnh.
+         *
+         * Đảo chỗ hai khối không làm hỏng một khẳng định `co` nào, và đó đúng
+         * là kiểu hỏng mà luật này sinh ra để chữa.
+         */
         thuTu: [
-            'class="hero hero--split"',
-            'class="dk-tabs"',
-            'class="mua"',
-            'class="steps-grid"',
-            'class="bao-dam"',
-            'class="owner-cta"',
+            'CÔNG TY TNHH TRUEVIEW',
+            'class="ms-box"',
+            'Chào mừng đến với OOHX',
+            'class="trust"',
+            'Chưa niêm yết giá',
+            'Vị trí đã công bố giá',
+            'Mức độ hoàn thiện dữ liệu kho',
+            'class="tinh-luoi"',
         ],
         khong: [
             'class="sc"',
@@ -328,12 +392,59 @@ const TRANG = [
             // nằm ngang. Lưới nhận cả 1176px.
             'class="listing-layout ex-mot-cot"',
 
-            // ── Dải chip lọc (lát 3, 22/10/2026) ──────────────────────────
-            'class="ex-loc"',
+            // ── Hệ mới + rail lọc (lát 3 ghép mockup, 09/11/2026) ─────────
+            //
+            // `v2` là phạm vi của `webapp/app/oohx.css`. Mất lớp này thì cả
+            // trang rơi về `frontpage.css` và **không có lỗi nào bắn ra** —
+            // kể cả rail, vì `.ex-mot-cot` khi đó lại là một cột thật.
+            'class="v2"',
+
+            // Rail lọc 240px dính. `.ex-mot-cot` Ở TRÊN vẫn phải còn: nó tắt
+            // lưới 260px của `frontpage.css`, và `oohx.css` khai lại hai cột
+            // 240px cho riêng `.v2`. Gỡ nó là rơi về bố cục thứ ba.
+            'class="ex-rail"',
+            'class="ex-rail-cta"',
+
+            // Cột phải là MỘT con của lưới hai cột. Để `BangViTri` và khối
+            // kết quả thành hai con riêng thì dòng định vị chiếm cột 2 hàng 1
+            // và lưới kết quả rớt xuống DƯỚI rail — bố cục vỡ, không lỗi nào
+            // bắn ra.
+            'class="ex-cot-phai"',
+
+            // ── Nguồn ảnh: thẻ phải nói ra khi ảnh KHÔNG của biển ─────────
+            //
+            // Fixture khai `photo_source: "owner_cover"`. Đó là tình trạng
+            // production đo ngày 08/11/2026: cả 104 vị trí dùng đúng hai tấm
+            // ảnh, cả hai là ảnh bìa owner — nên lưới hiện ra như 104 vị trí
+            // đều có ảnh riêng.
+            //
+            // `photo_source` có ở DTO chi tiết từ 24/10/2026 nhưng `ScreenCard`
+            // chưa bao giờ đọc nó, và DTO danh sách thì chưa có nó. Lát 3 thêm
+            // cả hai. Canh ở HTML máy chủ trả về vì đây là thông tin người mua
+            // phải thấy TRƯỚC khi bấm vào.
+            'class="sc-nguon-anh"',
+            'Ảnh bìa owner',
+
+            // ── Bộ lọc (lát 3, 22/10/2026 — hình đổi ở lát 3 ghép mockup) ──
+            //
+            // `class="ex-loc tat-ca"`, không `class="ex-loc"`.
+            //
+            // `tat-ca` là chế độ "cả năm nhóm mở sẵn, xếp thành cột" đã có từ
+            // 22/10 sau chip "Bộ lọc"; biến thể `rail` của `BoLocKho` bật sẵn
+            // chính chế độ đó. Khớp CẢ HAI lớp là chủ ý: mất `tat-ca` nghĩa là
+            // rail thu lại thành một dải chip nằm trong một cột 240px — một
+            // trạng thái không ai thiết kế, và nó không làm vỡ gì để thấy.
+            'class="ex-loc tat-ca"',
             'class="ex-loc-chips"',
             'class="ex-loc-nhom"',
-            'class="fchip"', // chip chưa lọc gì
-            'class="ex-chip-mui"', // mũi xuống của chip
+            'class="fchip"', // nhãn nhóm (ở rail nó thôi là chip bấm được)
+
+            // Mũi xuống của từng nhóm. Vẫn trong HTML ở rail — nó nằm trong
+            // `<summary>` của mỗi nhóm, không phải ở chip bật/tắt (chip đó
+            // `BoLocKho` không dựng ở biến thể rail). CSS ẩn nó trong rail vì
+            // năm nhóm đã mở sẵn; ẩn bằng CSS chứ không gỡ khỏi markup, để
+            // lượt gửi không-JS và biến thể chip dùng cùng một cây.
+            'class="ex-chip-mui"',
 
             // Bảng rớt nằm SẴN trong HTML, dù `<details>` đang đóng.
             //
@@ -571,6 +682,10 @@ const TRANG = [
         path: '/explore/man-hinh-co-gia',
         ten: 'chi tiết màn hình',
         co: [
+            // Hệ mới (lát 3 ghép mockup, 09/11/2026). Mất lớp này thì trang
+            // rơi về `frontpage.css` mà không lỗi nào bắn ra.
+            'class="v2"',
+
             // Lát 4 — thư viện ảnh
             'class="bc"', // breadcrumb
             'class="bc-sep"',
@@ -1194,7 +1309,15 @@ const TRANG = [
 
             // Thanh điều hướng vẫn là của `/explore` — người dùng đang ở
             // giữa một việc bắt đầu từ trang kho.
-            'class="hdr"',
+            //
+            // `ch-hdr`, không `hdr`: lát 2 (09/11/2026) đổi chrome trên CẢ 14
+            // trang. Canh nó ở ĐÂY chứ không chỉ ở trang chủ là có lý do —
+            // trang này thân vẫn là hệ cũ (`ex-hero`, `ex-title` ngay trên),
+            // nên nó chứng minh đúng điều lát 2 hứa: phần đầu và chân đổi
+            // được một mình, không chờ thân trang dựng lại.
+            'class="ch-hdr"',
+            'class="ch-phaply"',
+            'class="wrap ch-ft-luoi"',
         ],
         khong: [
             // Biểu mẫu KHÔNG có trong HTML máy chủ: danh sách rút gọn sống

@@ -1,0 +1,2389 @@
+/*
+ * Hệ thiết kế của mockup — lát 1 của `docs/PLAN-GHEP-MOCKUP.md`.
+ *
+ * ══ Vì sao một tệp riêng, không sửa `frontpage.css` ══
+ *
+ * `resources/css/frontpage.css` (3.820 dòng) là hệ thiết kế **kiểu Apple** và
+ * nó đang phục vụ 25 trang: 14 trang Next qua `@import` của `globals.css`, và
+ * 11 trang Blade khu người mua qua `frontpage/layouts/app.blade.php`.
+ *
+ * Hai hệ này không trộn được. Đo ngày 08/11/2026:
+ *
+ * | | `frontpage.css` | chuẩn mockup |
+ * |---|---|---|
+ * | `box-shadow` | **171 khai báo** | **0** |
+ * | `border-radius` | ~250 khai báo, 6 giá trị (980px, 16, 14, 12, 10, 8, 4) | **6px**, một giá trị |
+ * | Hero | `clamp(40px,8vw,80px)`, letter-spacing −2px | 28–34px |
+ *
+ * Đổi token màu và font trong tệp kia mà giữ 171 cái bóng với 250 bán kính lớn
+ * cho ra một ngoại hình **thứ ba** — không phải site cũ, không phải mockup, và
+ * tệ hơn cả hai. 3.820 dòng ấy được viết *cho* hệ Apple.
+ *
+ * ══ Mọi thứ bọc trong `.v2`, và đó là thứ cho phép ghép từng trang ══
+ *
+ * Token khai trên `:root` vì biến CSS không khai báo không dùng thì vô hại.
+ * Nhưng mọi luật **chạm phần tử** (`body`, `a`, `h1`, reset) đều nằm dưới
+ * `.v2`, nên hai stylesheet cùng nạp mà không giành nhau: trang nào bọc nội
+ * dung trong `.v2` thì theo hệ mới, trang chưa ghép thì y nguyên.
+ *
+ * Thiếu phạm vi này thì lát 1 là một lần ra mắt 14 trang cùng lúc, và không có
+ * cách nào kiểm từng trang.
+ *
+ * Khi lát 4 xong và không trang nào còn dùng `frontpage.css`, bỏ lớp `.v2` đi
+ * là việc cuối cùng — không phải việc đầu tiên.
+ */
+
+/* ── Token ───────────────────────────────────────────────────────────────── */
+
+:root {
+    --primary: #3C50E0;
+    --primary-dark: #2A3BBF;
+    --primary-soft: #ECEFFE;
+    --secondary: #80CAEE;
+    --success: #219653;
+    --success-soft: #E6F6EC;
+    --danger: #D34053;
+    --danger-soft: #FBE8EA;
+    --warning: #FFA70B;
+    --warning-soft: #FFF5E0;
+    --warning-ink: #B26A00;
+    --meta5: #259AE6;
+    --meta5-soft: #E4F2FD;
+    --black: #1C2434;
+    --boxdark: #24303F;
+    --boxdark2: #1A222C;
+    --sidebar-on: #333A48;
+    --body-ink: #64748B;
+    --bodydark: #AEB7C0;
+    --bodydark2: #8A99AF;
+    --stroke: #E2E8F0;
+    --gray: #EFF4FB;
+    --whiten: #F1F5F9;
+    --phaply: #FDF8DC;
+    --phaply-ink: #6B5B00;
+    --phaply-vien: #EFE3A8;
+}
+
+/*
+ * `--body-ink`, không `--body`.
+ *
+ * Bản mockup gọi màu chữ phụ là `--body`. Tên đó không mang sang được: biến
+ * này sống trên `:root` cùng không gian với `frontpage.css`, và tệp kia dùng
+ * `--bg`, `--t1`..`--t4`, `--bl` — không có `--body`, nhưng một biến tên
+ * `--body` đứng cạnh một bộ chữ `--bg`/`--t1` là một cái bẫy đọc: ai cũng
+ * tưởng nó là màu nền của `body`.
+ */
+
+/* ── Nền ─────────────────────────────────────────────────────────────────── */
+
+.v2 {
+    font-family: var(--font-montserrat), Montserrat, 'Helvetica Neue', Arial, sans-serif;
+    color: var(--black);
+    background: #fff;
+    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.v2 *,
+.v2 *::before,
+.v2 *::after {
+    box-sizing: border-box;
+}
+
+.v2 a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.v2 img {
+    display: block;
+    max-width: 100%;
+}
+
+.v2 h1,
+.v2 h2,
+.v2 h3 {
+    margin: 0;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+}
+
+.v2 p {
+    margin: 0;
+}
+
+.v2 ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.v2 button {
+    font-family: inherit;
+}
+
+/* ── Icon ────────────────────────────────────────────────────────────────── */
+
+/*
+ * Material Symbols **Rounded**, không Outlined.
+ *
+ * `layout.tsx` đã nạp bản Outlined cho ba icon của hệ cũ. Chuẩn mockup là
+ * Rounded, nên lát này nạp thêm Rounded và `.ms` trỏ vào nó. Hai font icon
+ * cùng lúc là một vòng mạng thừa, và nó được trả lại ở lát 4 — khi không trang
+ * nào còn dùng Outlined thì bỏ dòng `<link>` kia.
+ *
+ * Gộp ngay bây giờ nghĩa là đổi hình ba icon trên 13 trang chưa ghép, và không
+ * phép kiểm nào của dự án nhìn thấy hình icon.
+ */
+.v2 .ms {
+    font-family: 'Material Symbols Rounded';
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    direction: ltr;
+    font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.v2 .ms-f {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ── Lớp dùng chung ──────────────────────────────────────────────────────── */
+
+.v2 .wrap {
+    max-width: 1240px;
+    width: 100%;
+    margin: 0 auto;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.v2 .card {
+    background: #fff;
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+}
+
+.v2 .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.v2 .btn-s {
+    min-height: 36px;
+    font-size: 13px;
+    padding: 0 12px;
+}
+
+.v2 .btn-p {
+    background: var(--primary);
+    color: #fff;
+}
+
+.v2 .btn-o {
+    background: #fff;
+    color: var(--black);
+    border-color: var(--stroke);
+}
+
+.v2 .lbl {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--body-ink);
+}
+
+.v2 .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 7px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.v2 .num {
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .shead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.v2 .shead h2 {
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.v2 .shead .sub {
+    flex: 1 1 170px;
+    min-width: 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--body-ink);
+    margin: 0;
+}
+
+.v2 .bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--gray);
+    overflow: hidden;
+}
+
+.v2 .bar > i {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+}
+
+/* ── Thẻ vị trí ──────────────────────────────────────────────────────────── */
+
+/*
+ * Giải phẫu lấy từ thẻ sản phẩm của alibaba.com, đo trực tiếp ngày 08/11/2026.
+ *
+ * `.ten` cao cố định 35px (hai dòng) có chủ ý: tên vị trí dài ngắn rất khác
+ * nhau, và để nó tự co thì mỗi thẻ trong lưới cao một kiểu — giá không còn
+ * thẳng hàng, và mắt không so được giá giữa các thẻ nữa.
+ */
+.v2 .vt {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fff;
+    color: inherit;
+}
+
+.v2 .vt .anh {
+    position: relative;
+    display: block;
+    aspect-ratio: 4 / 3;
+    background: var(--gray);
+}
+
+.v2 .vt .anh img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.v2 .vt .than {
+    padding: 10px 11px 11px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.v2 .vt .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 6px;
+}
+
+.v2 .vt .ten {
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    height: 35px;
+    overflow: hidden;
+}
+
+.v2 .vt .tin {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 6px 0 0;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.v2 .vt .gia {
+    margin: 8px 0 0;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .vt .moq {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: var(--body-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .vt .ban {
+    margin: 8px 0 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--stroke);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--body-ink);
+    flex-wrap: wrap;
+}
+
+/* ── Lưới thẻ vị trí ─────────────────────────────────────────────────────── */
+
+/*
+ * `auto-fill` với sàn 186px, đúng con số của board. Ở 1240px trừ đệm ra 6 cột;
+ * ở bề ngang điện thoại ra 1–2 cột mà không cần media query nào.
+ */
+.v2 .vt-luoi {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(186px, 1fr));
+    gap: 12px;
+}
+
+/* ── Thẻ tỉnh thành ──────────────────────────────────────────────────────── */
+
+/*
+ * Lớp riêng, KHÔNG dùng lại `.city-card` của `frontpage.css`.
+ *
+ * Thẻ bên kia mang `border-radius: 14px`, `box-shadow: var(--sh2)` và một cú
+ * `transform: translateY(-3px)` khi trỏ chuột — ba thứ thuộc hệ Apple. Dùng
+ * lại nó trong một trang theo hệ mới là đặt một thẻ nổi bóng cạnh sáu thẻ
+ * phẳng, tức đúng cái "ngoại hình thứ ba" mà docblock đầu tệp nói phải tránh.
+ *
+ * Ảnh phủ kín và một lớp tối phía dưới để chữ trắng đọc được trên mọi ảnh —
+ * ảnh tỉnh thành do quản trị tải lên nên độ sáng không đoán trước được.
+ */
+.v2 .tinh-luoi {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    gap: 12px;
+}
+
+.v2 .tinh {
+    position: relative;
+    display: block;
+    aspect-ratio: 4 / 3;
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--gray);
+    color: #fff;
+}
+
+.v2 .tinh img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.v2 .tinh::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(28, 36, 52, .05) 0%, rgba(28, 36, 52, .72) 100%);
+}
+
+.v2 .tinh .nhan {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 1;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.v2 .tinh .ten {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.v2 .tinh .so {
+    font-size: 11.5px;
+    opacity: .85;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CHROME DÙNG CHUNG — lát 2 của `docs/PLAN-GHEP-MOCKUP.md` (09/11/2026)
+   ════════════════════════════════════════════════════════════════════════════
+
+   Thanh đầu và chân trang có mặt trên CẢ 14 trang Next, nên lát này là lát duy
+   nhất đổi mọi trang cùng lúc. Hai nhóm luật, khác nhau về bản chất:
+
+    1. `.ch-*` — class MỚI, cho markup `SiteHeader`/`SiteFooter` vừa dựng lại.
+    2. Ghi đè trong phạm vi `.v2` lên class CŨ của `frontpage.css` (`.hdr-*`,
+       `.slide-menu*`, `.usr-*`, `.ms-*`, `.mega-*`, `.trust*`). Những
+       component ấy mang HÀNH VI thật — menu trượt khoá cuộn trang, cây tỉnh
+       thành có ô chọn, menu người dùng đóng khi bấm ra ngoài. Đổi ngoại hình
+       bằng CSS và KHÔNG chạm markup nghĩa là nếu có gì sai sau lát này thì nó
+       là lỗi CSS, không phải lỗi hành vi. `.v2 .x` (0,2,0) thắng `.x` (0,1,0)
+       nên không cần `!important` ở đâu.
+
+   ── `--hdr` phải khai lại, và đây là lý do ─────────────────────────────────
+
+   `frontpage.css` khai `--hdr: 52px` rồi nuôi 14 phép tính bằng nó, trong đó
+   ba cái vỡ nhìn thấy được nếu con số sai:
+
+     .ex-app   { height: calc(100vh - var(--hdr) - var(--nav)) }   /explore
+     .tabs-bar { top: var(--hdr) }                          /explore/[slug]
+     .bp, .bg-gui, .pd-detail-sidebar { top: calc(var(--hdr) + 16px) }
+
+   Thanh đầu mới cao hơn hẳn (hai hàng thay một). Giữ 52px thì khung bản đồ của
+   `/explore` dài quá một đoạn đúng bằng phần chênh — trang sinh ra thanh cuộn
+   dọc ở một bố cục cố ý không có — còn thanh tab trang chi tiết dính vào đúng
+   chỗ bị thanh đầu che.
+
+   Khai lại ở ĐÂY an toàn vì `oohx.css` chỉ được `webapp/app/layout.tsx` nạp,
+   tức chỉ 14 trang Next. 11 trang Blade nạp `frontpage.css` qua
+   `resources/views/frontpage/layouts/app.blade.php` và vẫn dùng thanh đầu
+   Blade cao 52px — chúng không thấy dòng này.
+
+   Con số phải khớp CHIỀU CAO THẬT, nên hai hàng có `min-height` cố định thay
+   vì để nội dung quyết định. Dưới 768px hàng hai `display:none` (board mobile
+   không có hàng điều hướng), nên thanh đầu về một hàng và `--hdr` về 53px.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+:root {
+    --hdr: 53px;
+}
+
+@media (min-width: 768px) {
+    :root {
+        --hdr: 92px;
+    }
+}
+
+/* ── Dải pháp lý — TRÊN cả logo ──────────────────────────────────────────── */
+
+/*
+ * Alibaba đặt khối pháp nhân trên cùng và board theo đúng thế. Lý do nó không
+ * ở chân trang: mã số thuế và pháp nhân là thông tin BẮT BUỘC của một sàn
+ * TMĐT, còn chân trang là chỗ phần lớn người đọc không cuộn tới.
+ *
+ * Dải này KHÔNG dính — chỉ `<header>` dính. Nên nó cuộn đi và không ăn vào
+ * `--hdr`.
+ */
+.v2 .ch-phaply {
+    background: var(--phaply);
+    border-bottom: 1px solid var(--phaply-vien);
+    color: var(--phaply-ink);
+    font-size: 11.5px;
+    line-height: 1.6;
+}
+
+.v2 .ch-phaply .wrap {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 14px;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.v2 .ch-phaply b {
+    font-weight: 600;
+}
+
+/* ── Thanh đầu ───────────────────────────────────────────────────────────── */
+
+.v2 .ch-hdr {
+    position: sticky;
+    top: 0;
+    z-index: 400;
+    background: #fff;
+    border-bottom: 1px solid var(--stroke);
+}
+
+.v2 .ch-hdr .wrap {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.v2 .ch-r1 {
+    min-height: 52px;
+}
+
+/*
+ * Logo THẬT, không phải ô icon của board.
+ *
+ * Board vẽ logo là một ô bo 6px màu chính mang icon `tv_signin` cạnh chữ
+ * "OOHX". Đó là chỗ đỡ: lúc dựng mockup tôi không có tệp logo trong canvas.
+ * Site thật có logo thật, nhúng sẵn trong HTML (`lib/logo.ts`) — thay nó bằng
+ * một icon chung là đúng loại bước lùi như thay bản đồ chạy thật bằng một
+ * khung nét đứt.
+ */
+.v2 .ch-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--black);
+}
+
+.v2 .ch-logo img {
+    height: 26px;
+    width: auto;
+}
+
+/* Icon tiện ích. Chỉ từ 768px — dưới đó lối đi nằm trong menu trượt. */
+.v2 .ch-ico {
+    display: none;
+    position: relative;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    color: var(--black);
+}
+
+@media (min-width: 768px) {
+    .v2 .ch-ico {
+        display: flex;
+    }
+}
+
+.v2 .ch-ico:hover {
+    background: var(--gray);
+    border-radius: 6px;
+}
+
+.v2 .ch-ico .ms {
+    font-size: 23px;
+}
+
+/* ── Hàng hai: điều hướng ────────────────────────────────────────────────── */
+
+.v2 .ch-r2 {
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .v2 .ch-r2 {
+        display: block;
+    }
+
+    .v2 .ch-r2 .wrap {
+        flex-wrap: wrap;
+        gap: 20px;
+        min-height: 39px;
+        padding-bottom: 10px;
+        align-items: center;
+    }
+}
+
+.v2 .ch-r2 a {
+    font-size: 13.5px;
+    color: var(--black);
+    white-space: nowrap;
+}
+
+.v2 .ch-r2 a.ch-tatca {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-weight: 600;
+}
+
+.v2 .ch-r2 a.ch-tatca .ms {
+    font-size: 20px;
+}
+
+.v2 .ch-r2 a.ac {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* "Đăng ký cung cấp vị trí" — lối của media owner, board tô màu chính. */
+.v2 .ch-r2 a.ch-owner {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.v2 .ch-day {
+    flex: 1;
+}
+
+/* ── Ghi đè phần CŨ nằm trong thanh đầu ──────────────────────────────────── */
+
+/*
+ * `AuthState` và `MenuTruot` giữ nguyên markup. Ba nhóm luật của
+ * `frontpage.css` phải đổi:
+ *
+ *  · `.hdr-login,.hdr-register{display:none}` tới 768px. Board mobile CÓ nút
+ *    "Đăng nhập", và nó vừa ở 360px (logo 110 + nút 84 + hamburger 36 + khe 18
+ *    = 248px trong 320px khả dụng). Nên mở `.hdr-login` ở mọi bề ngang, giữ
+ *    `.hdr-register` từ 768px — nó đã có trong chân menu trượt.
+ *  · Bo tròn 980px/50% → 6px. Đây là chỗ hệ Apple lộ ra rõ nhất.
+ *  · Bỏ bóng.
+ */
+.v2 .hdr-acts {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 0;
+    flex: 0 0 auto;
+}
+
+.v2 .hdr-login,
+.v2 .hdr-register {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 13px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: none;
+}
+
+.v2 .hdr-login {
+    border: 1px solid var(--stroke);
+    background: #fff;
+    color: var(--black);
+}
+
+.v2 .hdr-register {
+    display: none;
+    border: 1px solid var(--primary);
+    background: var(--primary);
+    color: #fff;
+}
+
+@media (min-width: 768px) {
+    .v2 .hdr-register {
+        display: inline-flex;
+    }
+}
+
+.v2 .hdr-ico {
+    width: 34px;
+    height: 34px;
+    border-radius: 6px;
+    color: var(--black);
+}
+
+.v2 .hdr-ico:hover {
+    background: var(--gray);
+}
+
+.v2 .hdr-cart-badge {
+    border-radius: 9px;
+    background: var(--danger);
+    border: 2px solid #fff;
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .hdr-avatar {
+    border-radius: 6px;
+    background: var(--primary);
+}
+
+.v2 .hdr-hamburger {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--black);
+}
+
+.v2 .hdr-hamburger:hover {
+    background: var(--gray);
+}
+
+.v2 .usr-drop {
+    border-radius: 6px;
+    border: 1px solid var(--stroke);
+    box-shadow: none;
+}
+
+.v2 .usr-drop-head {
+    background: var(--gray);
+    border-bottom-color: var(--stroke);
+}
+
+.v2 .usr-drop-item {
+    border-radius: 6px;
+}
+
+.v2 .usr-drop-item:hover {
+    background: var(--gray);
+}
+
+.v2 .usr-drop-badge {
+    border-radius: 6px;
+    background: var(--primary);
+}
+
+.v2 .usr-drop-logout {
+    color: var(--danger);
+}
+
+.v2 .slide-menu {
+    box-shadow: none;
+    border-left: 1px solid var(--stroke);
+}
+
+.v2 .slide-menu-head,
+.v2 .slide-menu-foot {
+    border-color: var(--stroke);
+}
+
+.v2 .slide-menu-close {
+    border-radius: 6px;
+    background: var(--gray);
+    color: var(--black);
+}
+
+.v2 .slide-menu-nav a {
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--black);
+}
+
+.v2 .slide-menu-nav a:hover {
+    background: var(--gray);
+}
+
+.v2 .slide-menu-nav a.on {
+    background: var(--primary-soft);
+    color: var(--primary);
+}
+
+/* ── Ô tìm kiếm lớn ──────────────────────────────────────────────────────── */
+
+/*
+ * CSS-only, không chạm `MegaSearch.tsx` (562 dòng, hai dropdown, cây tỉnh
+ * thành có ô chọn, thẻ chip). Board vẽ ô tìm đơn giản hơn hẳn phiên bản thật —
+ * nó không có cây tỉnh thành — nên "ghép" ở đây nghĩa là lấy NGÔN NGỮ hình
+ * (viền 2px màu chính, bo 10px, phẳng) áp lên cấu trúc đang chạy, không phải
+ * thay cấu trúc bằng hình vẽ ít tính năng hơn.
+ */
+.v2 .ms-box {
+    border: 2px solid var(--primary);
+    border-radius: 10px;
+    box-shadow: none;
+}
+
+/*
+ * Focus phải THẤY ĐƯỢC, và bản đầu của lát 3 làm mất nó.
+ *
+ * Tôi viết `box-shadow: none` ở đây để gỡ vòng mờ kiểu Apple. Nhưng `.ms-box`
+ * ngay trên đã có `border: 2px solid var(--primary)` — nên `:focus-within` chỉ
+ * đặt lại đúng màu viền nó đang có, tức **không gì đổi khi người dùng tab vào
+ * ô tìm kiếm chính của sàn**. Một ô nhập không có dấu hiệu focus là một ô
+ * không điều khiển được bằng bàn phím.
+ *
+ * Vòng 3px `--primary-soft` thay cho vòng mờ: phẳng, một màu của hệ mới, và
+ * thấy rõ trên nền trắng.
+ */
+.v2 .ms-box:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.v2 .ms-pill,
+.v2 .ms-chip,
+.v2 .ms-tag,
+.v2 .ms-submit {
+    border-radius: 6px;
+}
+
+.v2 .ms-submit {
+    background: var(--primary);
+    min-height: 42px;
+    padding: 0 26px;
+    box-shadow: none;
+}
+
+.v2 .ms-divider {
+    background: var(--stroke);
+}
+
+.v2 .mega-drop {
+    border-radius: 6px;
+    border: 1px solid var(--stroke);
+    box-shadow: none;
+}
+
+.v2 .mega-head,
+.v2 .mega-foot {
+    border-color: var(--stroke);
+}
+
+.v2 .mega-foot {
+    background: var(--gray);
+}
+
+.v2 .mega-head-clear {
+    color: var(--primary);
+}
+
+.v2 .loc-item,
+.v2 .type-card,
+.v2 .type-icon,
+.v2 .loc-check,
+.v2 .loc-dis-tag {
+    border-radius: 6px;
+}
+
+.v2 .loc-item.on {
+    background: var(--primary-soft);
+    color: var(--primary);
+}
+
+.v2 .type-card.on,
+.v2 .type-card:hover {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+}
+
+.v2 .loc-dis-tag.on {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+/* ── Dải cam kết ─────────────────────────────────────────────────────────── */
+
+/*
+ * NĂM nhãn giữ nguyên, chỉ đổi hình. Board vẽ BA ô "tiêu đề + mô tả", và hai
+ * trong ba mô tả ấy là lời hứa tôi không kiểm được bằng mã:
+ *
+ *  · *"đối chiếu ngày treo và ảnh hiện trường trước khi mở nơi nhận tiền"* —
+ *    một tuyên bố về trình tự nghiệp vụ;
+ *  · *"không cộng phí môi giới lên giá niêm yết"* — một tuyên bố về cách giá
+ *    hình thành, trong khi `revenue_share_pct` tồn tại và bị ẩn.
+ *
+ * Năm nhãn hiện tại cố ý yếu hơn và mỗi nhãn ứng một đường trong mã — bảng
+ * đối chiếu ở docblock `KhoiLoiHua.tsx`. Đổi chúng thành ba lời hứa mạnh hơn
+ * là việc cần chủ dự án xác nhận từng câu, không phải việc của một lát ghép
+ * giao diện.
+ */
+.v2 .trust {
+    border-top: 1px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
+    background: #fff;
+}
+
+.v2 .trust-in {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 13px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.v2 .trust-item {
+    flex: 1 1 200px;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding-left: 18px;
+    border-left: 1px solid var(--stroke);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--black);
+}
+
+/*
+ * Gạch phân cách của bản cũ là một `<div>` RIÊNG giữa hai mục. Bố cục mới đặt
+ * gạch lên chính mỗi mục (`border-left`), nên `.trust-sep` thành thừa. Ẩn chứ
+ * không gỡ khỏi markup: chốt `khoi-giao-dien` canh `class="trust-sep"` có mặt
+ * trong HTML, và gỡ nó đi là đổi markup của một component mang hành vi — việc
+ * mà cả phần này cố ý không làm.
+ */
+.v2 .trust-sep {
+    display: none;
+}
+
+/* ── Chân trang ──────────────────────────────────────────────────────────── */
+
+/*
+ * Nền tối, bốn cột liên kết cạnh một cột pháp nhân — theo board.
+ *
+ * Khối pháp lý đầy đủ KHÔNG rút gọn theo board. Board in tên công ty, mã số
+ * thuế, địa chỉ và hotline; hồ sơ Bộ Công Thương còn đòi ngày và cơ quan cấp
+ * mã số doanh nghiệp, người đại diện theo pháp luật, và đầu mối phối hợp với
+ * cơ quan nhà nước. Bỏ chúng cho chân trang gọn hơn là bỏ thông tin bắt buộc.
+ */
+.v2 .ch-ft {
+    background: var(--black);
+    padding-top: 34px;
+}
+
+.v2 .ch-ft-luoi {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+}
+
+.v2 .ch-ft-br {
+    flex: 1 1 260px;
+    min-width: 0;
+}
+
+.v2 .ch-ft-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 11px;
+    color: #fff;
+}
+
+/*
+ * Chân trang dùng mark + chữ của board, KHÔNG dùng `LOGO_DATA_URI`.
+ *
+ * Thanh đầu nền trắng nên logo thật hiện đúng ở đó. Chân trang nền `--black`,
+ * và logo là một tệp PNG — tôi không đọc được màu của nó để biết nó có hiện
+ * trên nền tối hay không. Hai lối thoát đều tệ: để nguyên thì có thể thành một
+ * vệt vô hình, còn `filter: invert()` thì phá một logo nhiều màu thành vệt
+ * trắng. Nên chỗ này lấy đúng hình board vẽ, và ẩn số biến mất.
+ *
+ * Khi có tệp logo bản sáng, đây là chỗ thay — một dòng.
+ */
+.v2 .ch-mark {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.v2 .ch-mark .ms {
+    font-size: 17px;
+}
+
+.v2 .ch-ft-logo .ch-ten {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    color: #fff;
+}
+
+.v2 .ch-ft-mo {
+    margin: 0 0 13px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--bodydark);
+    max-width: 38ch;
+}
+
+.v2 .ch-ft-phaply {
+    font-size: 11.5px;
+    line-height: 1.65;
+    color: var(--bodydark);
+}
+
+.v2 .ch-ft-phaply p {
+    margin: 0 0 3px;
+}
+
+.v2 .ch-ft-ten {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.v2 .ch-ft-phaply a {
+    color: var(--bodydark);
+    text-decoration: underline;
+}
+
+.v2 .ch-ft-col {
+    flex: 1 1 160px;
+    min-width: 0;
+}
+
+.v2 .ch-ft-col .lbl {
+    color: #fff;
+    margin-bottom: 11px;
+    font-size: 10.5px;
+}
+
+.v2 .ch-ft-col ul {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.v2 .ch-ft-col a {
+    font-size: 12.5px;
+    color: var(--bodydark);
+}
+
+.v2 .ch-ft-btm {
+    margin-top: 26px;
+}
+
+.v2 .ch-ft-btm .wrap {
+    padding-top: 15px;
+    padding-bottom: 18px;
+    border-top: 1px solid #2A3444;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.v2 .ch-ft-btm p {
+    margin: 0;
+    flex: 1 1 230px;
+    min-width: 0;
+    font-size: 11.5px;
+    color: var(--bodydark);
+}
+
+.v2 .ch-ft-btm nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.v2 .ch-ft-btm nav a {
+    font-size: 11.5px;
+    color: var(--bodydark);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KHÁM PHÁ + CHI TIẾT — lát 3 của `docs/PLAN-GHEP-MOCKUP.md` (09/11/2026)
+   ════════════════════════════════════════════════════════════════════════════
+
+   Hai trang nặng nhất của sàn: `/explore` và `/explore/[slug]`. Hết lát này
+   toàn bộ đường người mua đi — trang chủ → tìm → chi tiết — nằm trong một hệ.
+
+   Cách làm giống lát 2 và vì cùng lý do: **CSS trong phạm vi `.v2`, markup chỉ
+   đổi ở chỗ cấu trúc buộc phải đổi.** 13 tệp của hai trang này cộng lại 4.264
+   dòng và mang gần hết hành vi thật của sàn — bản đồ Leaflet, cây tỉnh thành
+   có ô chọn, danh sách rút gọn lưu ở trình duyệt, lịch còn trống, panel giá.
+   Viết lại chúng để đổi ngoại hình là đánh cược hành vi lấy màu sắc.
+
+   ── Rail lọc 240px: vì sao nó QUAY LẠI ────────────────────────────────────
+
+   Cột lọc dọc bị gỡ ngày 22/10/2026 và lý do là số đo thật trên production
+   (`BoLocKho` docblock): ở 1440×900, bọc nội dung 1176px, cột lọc lấy **260px
+   (22%)** và **cao 1358px** — cao hơn khung nhìn — để phục vụ 23 ô tick. Gỡ nó
+   thì lưới từ **2 thẻ 255px** lên **4 thẻ 280px**.
+
+   Tiền đề đó đã đổi ở lát 1: thẻ nay rộng **186px**, không 280px. Tính lại ở
+   điểm gãy 1240px của `.wrap`:
+
+     không rail: 1240 − 40 = 1200px → auto-fill minmax(186px) = **6 cột**
+     có rail:    1240 − 40 − 240 − 22 = 938px → **5 cột**
+
+   Rail giờ tốn **một cột**, không phải nửa lưới. Nên nó quay lại — nhưng bằng
+   CHÍNH component đang chạy: `BoLocKho` đã có chế độ `moHet` bật
+   `.ex-loc.tat-ca`, xếp cả năm nhóm thành cột và mở sẵn mọi `<details>`. Lát
+   này chỉ thêm một prop để bật sẵn chế độ đó và một lớp để CSS đặt nó vào cột
+   240px dính.
+
+   Không dựng bộ lọc thứ hai. Docblock `BoLocKho` ghi rõ `/explore` và `/map`
+   gộp lại chính vì đã có **hai** bộ lọc trôi khỏi nhau (405 dòng và 330 dòng
+   cho cùng một kho 104 vị trí); dựng bộ thứ ba cho rail là lặp lại đúng lỗi
+   vừa sửa.
+
+   ── Bốn chỗ board vẽ mà KHÔNG dựng ────────────────────────────────────────
+
+   1. **Lọc "Kích thước tối thiểu (m)"** — `GET /api/v2/screens` không có tham
+      số kích thước nào (`min_price`/`max_price` thì có, và chúng dùng được).
+      Hai ô nhập không lọc được gì là hai ô điều khiển không làm gì — lỗi F-15.
+   2. **Sắp xếp "Kích thước lớn nhất"** và **"Có giá trước"** — enum `sort` chỉ
+      có `price_asc`, `price_desc`, `newest`, `distance`.
+   3. **Khung nét đứt "Nhúng BizmapLive"** trong luồng lưới — trang này đã có
+      bản đồ CHẠY THẬT ở `?view=map` (`BanDoKetQua`, 313 dòng, Leaflet, tới 500
+      pin). Thay nó bằng một khung rỗng là bước lùi, cùng lý do như bản đồ
+      trang chủ ở lát 1.
+   4. **Dải tối "DỮ LIỆU THẬT"**, **ô cảnh báo ảnh nhắc Alibaba và
+      `photo_source: "owner_cover"`**, và ghi chú *"Alibaba có Verified Supplier
+      … hai ô dưới cùng đang bằng 0"* — cả ba là chữ bản nháp nói với người
+      duyệt mockup, không phải chữ nói với người mua.
+
+   Nhưng **sự thật** trong ô cảnh báo ấy thì có ship, ở đúng chỗ của nó: pill
+   "Ảnh bìa owner" trên từng thẻ, đọc `photo_source` của DTO. Xem
+   `.sc-nguon-anh` dưới đây.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* ── Khung hai cột: rail lọc + lưới ──────────────────────────────────────── */
+
+/*
+ * Ghi đè `.listing-layout.ex-mot-cot{grid-template-columns:minmax(0,1fr)}`.
+ * Độ đặc hiệu: `.v2 .listing-layout.ex-mot-cot` là (0,3,0) so với (0,2,0), nên
+ * nó thắng mà không cần `!important`.
+ *
+ * Dưới 1024px `frontpage.css` để `.listing-layout` là `display:block`, tức
+ * rail xếp trên lưới — đúng hành vi muốn có trên điện thoại, không phải đè.
+ */
+@media (min-width: 1024px) {
+    .v2 .listing-layout.ex-mot-cot {
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        gap: 22px;
+        align-items: start;
+        padding: 18px 0 36px;
+    }
+}
+
+.v2 .ex-rail {
+    min-width: 0;
+}
+
+@media (min-width: 1024px) {
+    .v2 .ex-rail {
+        position: sticky;
+        /*
+         * `--hdr` + 28px. Thanh đầu hai hàng dính ở đỉnh, nên một `top: 0`
+         * trần đặt rail nằm dưới gầm nó. `--hdr` khai lại ở lát 2 theo đúng
+         * chiều cao thật, nên phép tính này tự đúng ở cả hai mức.
+         */
+        top: calc(var(--hdr) + 28px);
+        max-height: calc(100vh - var(--hdr) - 48px);
+        overflow-y: auto;
+        /* Thanh cuộn của rail không được đẩy lưới: nó cuộn trong chính nó. */
+        overscroll-behavior: contain;
+    }
+}
+
+/*
+ * Rail là MỘT thẻ, các nhóm nối nhau bằng gạch 1px — khuôn board.
+ *
+ * `.ex-loc` của `frontpage.css` có `margin: 0 0 14px`; trong rail nó là cả
+ * khối nên lề dưới đó thành khoảng trống lạ giữa rail và khối CTA.
+ */
+.v2 .ex-rail .ex-loc {
+    margin: 0;
+    background: #fff;
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.v2 .ex-rail .ex-loc-chips {
+    display: block;
+    overflow: visible;
+}
+
+.v2 .ex-rail .ex-loc-nhom {
+    display: block;
+    width: 100%;
+    padding: 12px 13px;
+    border-bottom: 1px solid var(--stroke);
+}
+
+.v2 .ex-rail .ex-loc-nhom:last-of-type {
+    border-bottom: 0;
+}
+
+/*
+ * Trong rail, `<summary>` thôi là một chip bấm được: cả năm nhóm mở sẵn, nên
+ * nó chỉ còn là NHÃN nhóm. Lấy khuôn `.lbl` của hệ mới.
+ */
+.v2 .ex-rail .fchip {
+    display: flex;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--body-ink);
+    margin-bottom: 7px;
+    cursor: default;
+}
+
+.v2 .ex-rail .fchip:hover {
+    background: none;
+    border: 0;
+    color: var(--body-ink);
+}
+
+.v2 .ex-rail .fchip.on {
+    background: none;
+    color: var(--primary);
+}
+
+.v2 .ex-rail .fchip-count {
+    margin-left: auto;
+    border-radius: 6px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 10px;
+}
+
+/* Mũi xuống vô nghĩa khi nhóm đã mở sẵn. */
+.v2 .ex-rail .ex-chip-mui {
+    display: none;
+}
+
+.v2 .ex-rail .ex-loc-rot {
+    position: static;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    margin-top: 0;
+}
+
+.v2 .ex-rail .sb-title {
+    display: none;
+}
+
+.v2 .ex-rail .sb-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+/* Hàng ô tick: khuôn `.rit` của board — một dòng, số đếm bên phải. */
+.v2 .ex-rail .sb-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    font-size: 12.5px;
+    font-weight: 400;
+    color: var(--black);
+    min-height: 0;
+}
+
+.v2 .ex-rail .sb-item.on {
+    background: none;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.v2 .ex-rail .sb-checkbox {
+    width: 15px;
+    height: 15px;
+    border-radius: 3px;
+    border: 1.5px solid var(--stroke);
+}
+
+.v2 .ex-rail .sb-item.on .sb-checkbox {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.v2 .ex-rail .sb-count {
+    margin-left: auto;
+    font-size: 11.5px;
+    color: var(--body-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .ex-rail .ex-loc-ap {
+    border-radius: 6px;
+    margin-top: 10px;
+}
+
+/*
+ * Chip "Bộ lọc / Thu gọn" và nút "Xoá hết" ở chế độ rail.
+ *
+ * Chip bật/tắt không còn việc gì — năm nhóm đã mở sẵn — nên `BoLocKho` không
+ * dựng nó ở biến thể này. "Xoá hết" thì giữ, và nó lên đầu rail.
+ */
+.v2 .ex-rail .ex-loc-xoa {
+    height: auto;
+    padding: 11px 13px;
+    width: 100%;
+    text-align: left;
+    border-bottom: 1px solid var(--stroke);
+    color: var(--primary);
+    text-decoration: none;
+}
+
+/* ── Khối CTA dưới rail — nền tối, theo board ────────────────────────────── */
+
+.v2 .ex-rail-cta {
+    margin-top: 14px;
+    padding: 13px;
+    background: var(--black);
+    border: 1px solid var(--black);
+    border-radius: 6px;
+}
+
+.v2 .ex-rail-cta p:first-child {
+    margin: 0 0 5px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.v2 .ex-rail-cta p + p {
+    margin: 0 0 11px;
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--bodydark);
+}
+
+.v2 .ex-rail-cta .btn {
+    width: 100%;
+    justify-content: center;
+    background: #fff;
+    border-color: #fff;
+    color: var(--black);
+}
+
+/* ── Dải chip lọc ở kiểu BẢN ĐỒ (không phải rail) ────────────────────────── */
+
+/*
+ * Kiểu xem bản đồ giữ dải chip: panel danh sách của nó rộng ~360px và nằm nổi
+ * trên canvas, nên một rail dọc trong đó là một cột trong một cột.
+ */
+.v2 .fchip {
+    border-radius: 6px;
+    border: 1px solid var(--stroke);
+    font-size: 12.5px;
+    color: var(--black);
+}
+
+.v2 .fchip:hover {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    color: var(--primary);
+}
+
+.v2 .fchip.on {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.v2 .fchip-count {
+    border-radius: 6px;
+}
+
+.v2 .ex-loc-rot {
+    border-radius: 6px;
+    border: 1px solid var(--stroke);
+    box-shadow: none;
+}
+
+.v2 .sb-item {
+    border-radius: 6px;
+}
+
+.v2 .sb-checkbox {
+    border-radius: 3px;
+}
+
+.v2 .sb-item.on .sb-checkbox {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+/* ── Thanh kết quả + cặp Lưới · Bản đồ ───────────────────────────────────── */
+
+.v2 .results-header {
+    border-bottom: 1px solid var(--stroke);
+}
+
+.v2 .rh-count {
+    font-size: 13px;
+    color: var(--body-ink);
+}
+
+.v2 .sort-sel {
+    min-height: 36px;
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--black);
+    box-shadow: none;
+}
+
+/*
+ * `.ex-doi-xem` — cặp liên kết "Lưới · Bản đồ".
+ *
+ * KHÔNG `display:none` ở bất kỳ bề ngang nào, và có một chốt canh đúng điều đó
+ * (`class-css.test.mjs`): từ 23/10/2026 đây là đường duy nhất tới kiểu xem bản
+ * đồ, vì thanh đầu không còn mục nào — kể cả sau lát 2, nơi board vẽ lại mục
+ * "Bản đồ vị trí" mà tôi đã bỏ theo chốt.
+ */
+.v2 .ex-doi-xem {
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.v2 .ex-doi-xem a {
+    border-radius: 0;
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+/* ── Thẻ vị trí ──────────────────────────────────────────────────────────── */
+
+/*
+ * Thẻ dọc dày theo giải phẫu board: ảnh 4:3 → badge → tên 2 dòng → dòng tin →
+ * giá → MOQ → dòng người bán. Hệ cũ dựng nó thành thẻ NGANG 108px ảnh ở
+ * `/explore` (`.sc-card{grid-template-columns:108px minmax(0,1fr)}`), và đó là
+ * một quyết định của bố cục một-cột: thẻ ngang xếp được trong 1176px.
+ *
+ * Với rail và thẻ 186px thì thẻ dọc là hình đúng — cùng hình với lưới trang
+ * chủ (`.vt`), nên người mua thấy MỘT loại thẻ trên cả hai trang.
+ */
+@media (min-width: 1024px) {
+    .v2 .sc-card {
+        display: flex;
+        flex-direction: column;
+        border-radius: 6px;
+        border: 1px solid var(--stroke);
+        box-shadow: none;
+        overflow: hidden;
+    }
+
+    .v2 .sc-card:hover {
+        box-shadow: none;
+        border-color: var(--primary);
+    }
+
+    .v2 .sc-photo {
+        grid-row: auto;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        aspect-ratio: 4 / 3;
+        position: relative;
+    }
+}
+
+.v2 .sc-card {
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.v2 .sc-card:hover {
+    box-shadow: none;
+    border-color: var(--primary);
+}
+
+.v2 .sc-card.ex-the-sang {
+    box-shadow: 0 0 0 2px var(--primary);
+}
+
+.v2 .sc-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--black);
+}
+
+.v2 .sc-badge,
+.v2 .sc-price-quote {
+    border-radius: 6px;
+}
+
+.v2 .sc-price {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--black);
+    letter-spacing: -.01em;
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .sc-foot {
+    border-top: 1px solid var(--stroke);
+}
+
+.v2 .sc-btn {
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+/*
+ * Pill "Ảnh bìa owner" — SỰ THẬT duy nhất tôi lấy từ ô cảnh báo của board.
+ *
+ * Cả 104 vị trí trên sàn dùng đúng hai tấm ảnh, và cả hai là ảnh BÌA của media
+ * owner, không phải mặt biển. `ScreenDetailResource` đã ghi chuyện này từ
+ * 24/10/2026: *"Vị trí đo được ngày 24/10/2026 (`oohx-led-cto-can-tho`) có
+ * đúng một ảnh, và nó là `storage/owners/covers/…`. Trang hiện ra như một vị
+ * trí có ảnh. Không trường nào trong payload nói khác, nên không client nào
+ * nói khác được."*
+ *
+ * Trường `photo_source` được thêm CHÍNH vì câu đó — nhưng `ScreenCard` chưa
+ * bao giờ đọc nó. Nên tới lát này, người mua duyệt lưới vẫn thấy 104 thẻ đều
+ * "có ảnh". Pill này là chỗ trường ấy nói ra.
+ *
+ * Ô cảnh báo của board thì KHÔNG ship: nó nhắc Alibaba và in thẳng
+ * `photo_source: "owner_cover"` — chữ của bản nháp. Một pill trên đúng tấm ảnh
+ * nói được cùng điều đó mà không bắt người mua đọc tên trường của API.
+ */
+.v2 .sc-nguon-anh {
+    position: absolute;
+    left: 7px;
+    bottom: 7px;
+    z-index: 1;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: rgba(28, 36, 52, .82);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: .01em;
+}
+
+/* ── Khay chọn dưới màn ──────────────────────────────────────────────────── */
+
+/*
+ * `ThanhDanhSach` — danh sách rút gọn, lưu ở `localStorage` của từng trình
+ * duyệt. Board vẽ nó thành khay tối dưới màn, và hình đó đúng hơn: một thanh
+ * trắng ở đáy trang trắng thì không ai thấy mình đã chọn gì.
+ */
+.v2 .ds-thanh {
+    background: var(--black);
+    border-top: 1px solid #36414F;
+    box-shadow: none;
+}
+
+.v2 .ds-dem {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.v2 .ds-dem-phu {
+    color: var(--bodydark);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .ds-nut {
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.v2 .ds-nut-phu {
+    background: #2A3444;
+    border-color: #4A5568;
+    color: #fff;
+}
+
+.v2 .ds-panel-than,
+.v2 .ds-panel-dau {
+    background: var(--black);
+    border-color: #36414F;
+}
+
+.v2 .ds-dong {
+    background: #2A3444;
+    border: 1px solid #3F4B5E;
+    border-radius: 6px;
+}
+
+.v2 .ds-dong-ten {
+    color: #fff;
+}
+
+.v2 .ds-dong-phu {
+    color: var(--bodydark);
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .ds-dong-bo,
+.v2 .ds-panel-dong {
+    color: var(--bodydark);
+}
+
+/* ── Kiểu xem bản đồ ─────────────────────────────────────────────────────── */
+
+/*
+ * Chỉ phần vỏ. Canvas Leaflet, pin, cụm và popup giữ nguyên — chúng là hành vi.
+ */
+.v2 .ex-panel,
+.v2 .ex-ct {
+    border-radius: 6px 6px 0 0;
+    box-shadow: none;
+    border: 1px solid var(--stroke);
+}
+
+.v2 .ex-panel-dau {
+    border-bottom: 1px solid var(--stroke);
+}
+
+.v2 .ex-mo-panel {
+    border-radius: 6px;
+    box-shadow: none;
+    border: 1px solid var(--stroke);
+    background: #fff;
+    color: var(--black);
+}
+
+.v2 .ex-vt {
+    font-size: 11.5px;
+    color: var(--body-ink);
+}
+
+/* ── Trang chi tiết ──────────────────────────────────────────────────────── */
+
+/*
+ * ══ CỘT THỨ BA của board: không dựng, và đây là lý do ══
+ *
+ * Board vẽ ba cột: (thư viện ảnh + thẻ owner + bản đồ) | nội dung | hộp đặt
+ * dính. Trang thật có ba VÙNG: thư viện cả bề ngang → hai cột (nội dung + hộp
+ * đặt dính) → bản đồ cả bề ngang → vị trí tương tự.
+ *
+ * Hộp đặt dính bên phải thì đã khớp: `.detail-sidebar` mang `PanelGia` và
+ * `KhoiLienHe`, dính sẵn. Hai thứ còn lại thì KHÔNG nhét vào cột 300px:
+ *
+ *  · `KhoiViTri` là bản đồ CHẠY THẬT kèm điểm quan tâm quanh vị trí. Board vẽ
+ *    mọi bản đồ là khung giữ chỗ nên một ô nhỏ không mất gì; ở đây nó mất một
+ *    bản đồ dùng được. Cùng lý do đã ghi ở lát 1 và ở mục 3 đầu tệp này.
+ *  · Thư viện ảnh là chỗ duy nhất người mua xét được tài sản vật lý. Khuôn
+ *    Alibaba (dải ảnh nhỏ dọc + ảnh lớn trong cột hẹp) hợp với hàng được chụp
+ *    tử tế; ở đây vấn đề ngược lại — hai tấm ảnh bìa owner cho 104 vị trí —
+ *    nên bóp cột ảnh lại không giải quyết gì, mà khi ảnh thật về thì nó thành
+ *    một hạn chế phải tháo.
+ *
+ * Nói thẳng: đây là chỗ tôi KHÔNG làm theo board, không phải chỗ tôi chưa làm.
+ */
+.v2 .detail-layout {
+    padding: 18px 0 36px;
+}
+
+.v2 .dtitle {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.25;
+    color: var(--black);
+}
+
+@media (min-width: 768px) {
+    .v2 .dtitle {
+        font-size: 28px;
+    }
+}
+
+.v2 .dkho {
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--body-ink);
+}
+
+.v2 .daddr,
+.v2 .dmeta {
+    font-size: 13px;
+    color: var(--body-ink);
+}
+
+.v2 .oc-mini {
+    border-radius: 6px;
+    border: 1px solid var(--stroke);
+    box-shadow: none;
+}
+
+.v2 .oc-mini:hover {
+    box-shadow: none;
+    border-color: var(--primary);
+}
+
+.v2 .oc-mini-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--black);
+}
+
+/*
+ * Bốn ô số: nối nhau bằng gạch 1px trong một thẻ, không phải bốn thẻ có bóng.
+ * Cùng khuôn `KEY ATTRIBUTES` của board.
+ */
+.v2 .stats-row {
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    background: var(--stroke);
+    gap: 1px;
+    overflow: hidden;
+}
+
+.v2 .stat-box {
+    background: #fff;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 11px 12px;
+}
+
+.v2 .stat-box:hover {
+    box-shadow: none;
+}
+
+.v2 .stat-n {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--black);
+    letter-spacing: -.01em;
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .stat-l {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--body-ink);
+}
+
+/*
+ * `.stat-src` — câu nói VÌ SAO ô trống. Nó là phần thật nhất của khối này
+ * (lát 2 của `PLAN-CHI-TIET-VI-TRI`), nên nó không bị thu thành chữ xám mờ.
+ */
+.v2 .stat-src {
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: var(--warning-ink);
+}
+
+.v2 .tabs {
+    border-bottom: 1px solid var(--stroke);
+    gap: 0;
+}
+
+.v2 .tab {
+    border-radius: 0;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--body-ink);
+    box-shadow: none;
+}
+
+.v2 .tab.on {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: none;
+}
+
+.v2 .specs-grid {
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.v2 .sc-l {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--body-ink);
+}
+
+.v2 .sc-v {
+    font-size: 13px;
+    color: var(--black);
+}
+
+.v2 .detail-sidebar > * {
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.v2 .similar-section {
+    border-top: 1px solid var(--stroke);
+    background: #fff;
+}
+
+.v2 .inv-card {
+    border-radius: 6px;
+    border: 1px solid var(--stroke);
+    box-shadow: none;
+}
+
+.v2 .inv-card:hover {
+    box-shadow: none;
+    border-color: var(--primary);
+}
+
+.v2 .inv-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--black);
+}
+
+.v2 .inv-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--black);
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .ex-cot-phai {
+    min-width: 0;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   MƯỜI TRANG CÔNG KHAI CÒN LẠI — lát 4 (09/11/2026)
+   ════════════════════════════════════════════════════════════════════════════
+
+   `/owners`, `/owners/[slug]`, `/products`, `/products/[slug]`, `/agency`,
+   `/login`, `/register`, bốn trang chính sách, hai trang phản ánh.
+
+   Hết lát này không trang Next nào còn mang hệ cũ.
+
+   ── Vì sao lát này KHÔNG viết 168 luật ───────────────────────────────────────
+
+   Mười trang và các component của chúng dùng **179 tên class**, trong đó 168
+   chưa có luật nào trong tệp này. Viết tay 168 luật là bốn lần khối lượng của
+   ba lát trước cộng lại, cho những trang ít rủi ro nhất — và phần lớn trong số
+   đó chỉ cần đúng bốn thứ: bỏ bóng, bán kính về 6px, đổi xanh, đổi font.
+
+   Đo trên `resources/css/frontpage.css` ngày 09/11/2026:
+
+   | | tổng khai báo | đọc qua token |
+   |---|---|---|
+   | `border-radius` | 362 | **26** (7%) |
+   | `box-shadow`    | 170 | **89** (52%) |
+   | xanh chính      | 271 | **268** `var(--bl)` (99%) |
+
+   Nên lát này có hai tầng:
+
+    1. **Khai lại token trong `.v2`.** Lật được 99% màu xanh, toàn bộ font đọc
+       qua `var(--font)`, và nửa số bóng — không một luật per-class nào.
+       Thuộc tính tuỳ biến giải trị tại phần tử DÙNG nó, nên một luật
+       `.sc-card{color:var(--bl)}` áp lên phần tử nằm trong `.v2` sẽ đọc `--bl`
+       của `.v2`. Phần tử ngoài `.v2` không thấy gì.
+    2. **Mười khối luật theo HỌ class** cho phần token không với tới: bán kính
+       (chỉ 7% đọc token) và 81 bóng viết literal.
+
+   ── Đây KHÔNG phải lời khuyên tôi đã rút lại ─────────────────────────────────
+
+   Ở `docs/PLAN-GHEP-MOCKUP.md` tôi từng đề nghị *"ghép font + token màu trước,
+   không đụng bố cục"* rồi rút lại, vì đổi font và màu mà **giữ** 171 cái bóng
+   với 250 bán kính lớn thì ra một ngoại hình thứ ba, tệ hơn cả hai.
+
+   Việc ở đây ngược lại: token bóng về `0 0 #0000` và token bán kính về 6px —
+   tức tầng 1 GỠ chính cái Apple-ness ấy, không giữ nó. Và ba lát trước đã dựng
+   lại những trang có bố cục riêng; mười trang này là danh sách, biểu mẫu và
+   văn bản chính sách, nơi bố cục một cột của hệ cũ đã đúng.
+
+   Nói thẳng mức độ: đây là một lượt ghép **nhẹ hơn** ba lát trước. Trang chủ,
+   `/explore` và trang chi tiết được dựng lại theo board; mười trang này được
+   đưa vào hệ. Chỗ nào board vẽ một bố cục khác hẳn — ví dụ `P-ChiTietGoi` —
+   thì đó là một lát riêng, không phải việc lát này lặng lẽ làm một nửa.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* ── Tầng 1: khai lại token của hệ cũ, chỉ trong `.v2` ───────────────────── */
+
+.v2 {
+    /*
+     * Bóng: `0 0 #0000`, KHÔNG `none`.
+     *
+     * Năm luật trong `frontpage.css` ghép token với một bóng khác, ví dụ
+     * `box-shadow: 0 0 0 4px rgba(42,79,246,.1), var(--sh2)`. Với `none` thì
+     * danh sách thành `…, none` — **không hợp lệ**, nên trình duyệt bỏ CẢ khai
+     * báo, và một trong năm chỗ đó là vòng focus của ô tìm kiếm. Mất vòng
+     * focus là mất dấu hiệu bàn phím duy nhất của ô đó.
+     *
+     * `0 0 #0000` là một bóng hợp lệ, trong suốt, không vẽ gì.
+     */
+    --sh1: 0 0 #0000;
+    --sh2: 0 0 #0000;
+    --sh3: 0 0 #0000;
+    --sh4: 0 0 #0000;
+
+    /* Bán kính: một giá trị. Token chỉ với tới 7% khai báo — xem tầng 2. */
+    --r1: 6px;
+    --r2: 6px;
+    --r3: 6px;
+    --r4: 6px;
+    --r5: 6px;
+
+    /* Xanh chính: 268 trong 271 chỗ đọc qua token, nên tầng này gần như trọn. */
+    --bl: #3C50E0;
+    --bl-h: #2A3BBF;
+    --bl-lt: #ECEFFE;
+    --bl-g: rgba(60, 80, 224, .1);
+
+    /*
+     * Chữ: ĐÚNG chuỗi của `.v2` ở đầu tệp, không một bản thứ hai.
+     *
+     * `var(--font-montserrat)` phải đứng TRƯỚC: đó là biến `next/font` đặt
+     * trên `<html>`, và giá trị của nó là tên họ font thật được tải
+     * (`__Montserrat_…`). Đặt chữ `Montserrat` trần lên trước là bảo trình
+     * duyệt thử một font hệ thống trước font đã tải — chạy được, nhưng sai thứ
+     * tự và sẽ khác `.v2` ở trên.
+     */
+    --font: var(--font-montserrat), Montserrat, 'Helvetica Neue', Arial, sans-serif;
+    --t1: #1C2434;
+    --t2: #1C2434;
+    --t3: #64748B;
+    --t4: #8A99AF;
+    --ln: #E2E8F0;
+    --ln2: #E2E8F0;
+    --bg2: #F1F5F9;
+    --bg3: #EFF4FB;
+
+    /* Trạng thái. `--red` nuôi cả nút đăng xuất và ô lỗi biểu mẫu. */
+    --grn: #219653;
+    --red: #D34053;
+    --org: #FFA70B;
+}
+
+/* ── Tầng 2: bán kính và bóng viết literal, theo HỌ class ────────────────── */
+
+/*
+ * Mỗi khối dưới đây là MỘT họ, và thứ tự các khối theo thứ tự trang trong
+ * plan. Không khối nào chạm `border-radius: 50%` hay `980px` của những thứ
+ * **phải** tròn — chấm trạng thái, ảnh đại diện, nút tròn — nên chúng được
+ * liệt riêng ở cuối thay vì bị một luật chung làm vuông.
+ */
+
+/* ① `/owners` — thẻ media owner */
+
+.v2 .oc-card,
+.v2 .oc-card-logo,
+.v2 .oc-card-stat,
+.v2 .oc-card-tag,
+.v2 .oc-card-feat-badge,
+.v2 .oc-card-cover {
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.v2 .oc-card {
+    border: 1px solid var(--stroke);
+}
+
+.v2 .oc-card:hover {
+    box-shadow: none;
+    border-color: var(--primary);
+}
+
+.v2 .oc-card-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--black);
+}
+
+.v2 .oc-card-stat-n {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--black);
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .oc-card-stat-l {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--body-ink);
+}
+
+/* ② `/owners/[slug]` — hồ sơ media owner */
+
+.v2 .fp-card,
+.v2 .fp-cover,
+.v2 .fp-stat,
+.v2 .fp-venue-tag,
+.v2 .fp-featured-card,
+.v2 .fp-info-row,
+.v2 .fp-sidebar,
+.v2 .fp-overview {
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.v2 .fp-card,
+.v2 .fp-featured-card {
+    border: 1px solid var(--stroke);
+}
+
+.v2 .fp-name {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    color: var(--black);
+}
+
+.v2 .fp-tagline,
+.v2 .fp-meta {
+    font-size: 13px;
+    color: var(--body-ink);
+}
+
+.v2 .fp-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--black);
+}
+
+.v2 .fp-stat-n {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--black);
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .fp-stat-l,
+.v2 .fp-info-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--body-ink);
+}
+
+/* Thanh tab của hồ sơ — cùng hình với tab trang chi tiết vị trí. */
+.v2 .fp-tabs {
+    border-bottom: 1px solid var(--stroke);
+}
+
+/* ③ `/products` + `/products/[slug]` — gói chiến dịch */
+
+.v2 .pd-card,
+.v2 .pd-photo,
+.v2 .pd-badge,
+.v2 .pd-badge-cat,
+.v2 .pd-btn,
+.v2 .pd-detail-hero-img,
+.v2 .pd-detail-thumb,
+.v2 .pd-screen-item,
+.v2 .pd-screen-thumb {
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.v2 .pd-card {
+    border: 1px solid var(--stroke);
+}
+
+.v2 .pd-card:hover {
+    box-shadow: none;
+    border-color: var(--primary);
+}
+
+.v2 .pd-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--black);
+}
+
+.v2 .pd-price {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--black);
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .pd-desc,
+.v2 .pd-loc,
+.v2 .pd-owner,
+.v2 .pd-units {
+    font-size: 12.5px;
+    color: var(--body-ink);
+}
+
+/* Hộp mua của gói — cùng khuôn `PanelGia` của trang chi tiết vị trí. */
+.v2 .bp,
+.v2 .bp-head,
+.v2 .bp-body,
+.v2 .bp-foot,
+.v2 .bp-tabs {
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.v2 .bp {
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.v2 .bp-head,
+.v2 .bp-foot {
+    border-color: var(--stroke);
+}
+
+.v2 .bp-price {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--black);
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .bp-lbl {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--body-ink);
+}
+
+/* ④ `/login` + `/register` — khung xác thực */
+
+.v2 .auth-card,
+.v2 .auth-field,
+.v2 .auth-submit,
+.v2 .auth-error,
+.v2 .auth-row {
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.v2 .auth-card {
+    border: 1px solid var(--stroke);
+}
+
+.v2 .auth-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    color: var(--black);
+}
+
+.v2 .auth-sub,
+.v2 .auth-footer {
+    font-size: 13px;
+    color: var(--body-ink);
+}
+
+.v2 .auth-field {
+    border: 1px solid var(--stroke);
+}
+
+/*
+ * Cùng vòng focus như ô tìm kiếm — xem `.ms-box:focus-within`.
+ *
+ * `outline: none` một mình là cách phổ biến nhất để làm một biểu mẫu không
+ * dùng được bằng bàn phím. Nó chỉ chấp nhận được khi có một dấu hiệu khác
+ * thay vào, và đổi màu viền từ `--stroke` sang `--primary` là một đổi nhạt
+ * trên một đường 1px.
+ */
+.v2 .auth-field:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.v2 .auth-error {
+    background: var(--danger-soft);
+    border: 1px solid #F4C4CA;
+    color: #8C2230;
+}
+
+/* ⑤ Bốn trang chính sách */
+
+/*
+ * Chữ chính sách là VĂN BẢN, không phải giao diện. Nên khối này đổi ít nhất
+ * trong cả lát: bề rộng dòng, cỡ chữ và khoảng dòng của hệ cũ đã đúng cho việc
+ * đọc dài, và bóp chúng theo cỡ chữ 12,5px của thẻ danh sách là làm một trang
+ * pháp lý khó đọc hơn để nó trông giống phần còn lại.
+ */
+.v2 .pol,
+.v2 .pol-f,
+.v2 .pol-f2,
+.v2 .pol-form,
+.v2 .pol-submit,
+.v2 .pol-draft,
+.v2 .pol-err,
+.v2 .pol-ok {
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.v2 .pol-h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    color: var(--black);
+}
+
+.v2 .pol-crumb,
+.v2 .pol-meta {
+    font-size: 12.5px;
+    color: var(--body-ink);
+}
+
+/* Ô cảnh báo bản nháp — vàng, cùng bảng với dải pháp lý ở thanh đầu. */
+.v2 .pol-draft {
+    background: var(--phaply);
+    border: 1px solid var(--phaply-vien);
+    color: var(--phaply-ink);
+}
+
+.v2 .pol-err {
+    background: var(--danger-soft);
+    border: 1px solid #F4C4CA;
+    color: #8C2230;
+}
+
+.v2 .pol-ok {
+    background: var(--success-soft);
+    border: 1px solid #BFE5CC;
+    color: #14603A;
+}
+
+/* ⑥ Hai trang phản ánh */
+
+.v2 .rfl,
+.v2 .rfl-res,
+.v2 .rfl-none,
+.v2 .req {
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.v2 .rfl-res,
+.v2 .rfl-none {
+    border: 1px solid var(--stroke);
+}
+
+.v2 .rfl-subject {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--black);
+}
+
+.v2 .rfl-meta,
+.v2 .rfl-content {
+    font-size: 12.5px;
+    color: var(--body-ink);
+}
+
+/* ⑦ `/agency` và các dải đầu trang dùng chung */
+
+.v2 .ph,
+.v2 .pg-hero {
+    border-bottom: 1px solid var(--stroke);
+    background: linear-gradient(180deg, #F6F8FE 0%, #fff 100%);
+}
+
+.v2 .ph-title {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    color: var(--black);
+}
+
+.v2 .ph-map-btn,
+.v2 .sb-card,
+.v2 .sb-input,
+.v2 .filter-float-count,
+.v2 .cat-chips .fchip {
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.v2 .sb-card {
+    border: 1px solid var(--stroke);
+}
+
+/* ⑧ Mẩu dùng chung nhiều trang */
+
+.v2 .badge,
+.v2 .avail-badge,
+.v2 .btn-sm,
+.v2 .trial-notice-in {
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.v2 .bc,
+.v2 .bc-sep {
+    font-size: 12px;
+    color: var(--body-ink);
+}
+
+.v2 .u {
+    text-decoration: underline;
+}
+
+/* ⑨ Nút đánh giá sao — giữ nguyên hình, chỉ đổi màu */
+
+.v2 .own-rating-avg {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--black);
+    font-variant-numeric: tabular-nums;
+}
+
+.v2 .own-rating-cnt,
+.v2 .own-rv-date,
+.v2 .own-rv-org {
+    font-size: 12px;
+    color: var(--body-ink);
+}
+
+.v2 .own-rv {
+    border-bottom: 1px solid var(--stroke);
+}
+
+/*
+ * ⑩ Những thứ PHẢI tròn — liệt riêng, không để luật chung làm vuông.
+ *
+ * Tám khối trên nhắm theo tên class, nên chúng không chạm gì ngoài danh sách.
+ * Khối này tồn tại để nói ra chủ ý: khi một luật `border-radius: 6px` quét quá
+ * rộng ở lần sửa sau, đây là danh sách phải kiểm lại.
+ *
+ * `fp-avatar` là ảnh đại diện owner; `avail-dot` là chấm còn-trống;
+ * `drawer-drag-bar` là tay kéo của sheet; `rv-stars` là dãy sao.
+ */
+.v2 .fp-avatar,
+.v2 .avail-dot {
+    border-radius: 50%;
+}
+
+.v2 .drawer-drag-bar {
+    border-radius: 980px;
+}

@@ -215,22 +215,51 @@ function nhanChip(nhom: Nhom, tap: Set<string>): string {
     return tap.size === 1 ? dau : `${dau} +${tap.size - 1}`;
 }
 
+/**
+ * Hai hình của CÙNG một bộ lọc — lát 3 của `docs/PLAN-GHEP-MOCKUP.md`.
+ *
+ * `chip` — dải chip nằm ngang. Dùng ở kiểu xem **bản đồ**, nơi panel danh sách
+ * rộng chừng 360px và nổi trên canvas: một rail dọc trong đó là một cột lồng
+ * trong một cột.
+ *
+ * `rail` — cột 240px dính bên trái lưới, theo board `Main`. Dùng ở kiểu xem
+ * **lưới**.
+ *
+ * Một prop, không một component thứ hai. Docblock trên đã ghi vì sao:
+ * `/explore` và `/map` gộp lại chính vì chúng đã có HAI bộ lọc trôi khỏi nhau
+ * (405 dòng và 330 dòng cho cùng một kho 104 vị trí). Dựng bộ thứ ba cho rail
+ * là lặp lại đúng cái lỗi vừa sửa — và lần này còn khó thấy hơn, vì hai bộ sẽ
+ * nằm trên hai kiểu xem của cùng một URL.
+ *
+ * Hợp đồng URL, danh sách ô tick, lượt gửi không-JS: y nguyên ở cả hai hình.
+ */
+export type BienThe = 'chip' | 'rail';
+
 export function BoLocKho({
     filters,
     params = {},
+    bienThe = 'chip',
 }: {
     filters: Filters | null;
     params?: ThamSoLoc;
+    bienThe?: BienThe;
 }) {
     const router = useRouter();
     const refForm = useRef<HTMLFormElement>(null);
     const refChips = useRef<HTMLDivElement>(null);
 
+    const rail = bienThe === 'rail';
+
     /** Nhóm nào đang mở bảng rớt; `null` là đóng hết. */
     const [moNhom, setMoNhom] = useState<KhoaLoc | null>(null);
 
-    /** Chip `Bộ lọc n`: mở cả năm nhóm tại chỗ, xếp thành cột. */
-    const [moHet, setMoHet] = useState(false);
+    /**
+     * Chip `Bộ lọc n`: mở cả năm nhóm tại chỗ, xếp thành cột.
+     *
+     * Ở biến thể `rail` nó bật SẴN và không tắt được — rail chính là "cả năm
+     * nhóm xếp thành cột", nên trạng thái đóng không có nghĩa gì ở đó.
+     */
+    const [moHet, setMoHet] = useState(rail);
 
     const [chon, setChon] = useState<ChonLoc>(() => docChon(params));
 
@@ -327,7 +356,9 @@ export function BoLocKho({
 
     function apDung() {
         setMoNhom(null);
-        setMoHet(false);
+        // Ở rail thì KHÔNG thu lại sau khi áp dụng: rail là hình thường trực
+        // của bộ lọc, và thu nó lại là làm biến mất cả cột bên trái.
+        setMoHet(rail);
         router.push(duongDanLoc(params, chon));
     }
 
@@ -336,6 +367,11 @@ export function BoLocKho({
             ref={refForm}
             method="GET"
             action="/explore"
+            // Rail dùng ĐÚNG `.ex-loc tat-ca` như chip "Bộ lọc" mở ra; cái
+            // quyết định nó thành một cột 240px dính là lớp `.ex-rail` trên
+            // thẻ `<aside>` bọc ngoài, ở `KhoiExplore`. Không thêm lớp thứ ba
+            // ở đây: nó sẽ là một tên class không ai định nghĩa, và
+            // `class-css.test.mjs` canh đúng chuyện đó.
             className={moHet ? 'ex-loc tat-ca' : 'ex-loc'}
             onSubmit={(e) => {
                 e.preventDefault();
@@ -430,21 +466,35 @@ export function BoLocKho({
                     );
                 })}
 
-                <button
-                    type="button"
-                    className={soBoLoc ? 'fchip on ex-loc-het' : 'fchip ex-loc-het'}
-                    onClick={() => {
-                        setMoNhom(null);
-                        setMoHet((v) => !v);
-                    }}
-                    aria-expanded={moHet}
-                >
-                    <svg viewBox="0 0 24 24" aria-hidden="true" className="ex-chip-mui">
-                        <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" />
-                    </svg>
-                    {moHet ? 'Thu gọn' : 'Bộ lọc'}
-                    {soBoLoc ? <span className="fchip-count">{soBoLoc}</span> : null}
-                </button>
+                {/*
+                  Chip bật/tắt — KHÔNG dựng ở biến thể rail.
+                  ──────────────────────────────────────────────────────────
+                  Rail là "cả năm nhóm xếp thành cột" đã bật sẵn, nên nút này
+                  chỉ còn một hướng dùng được: thu rail lại thành không có gì.
+                  Một nút mà hành vi duy nhất của nó là làm biến mất cột bên
+                  trái thì không phải một nút lọc.
+
+                  Số bộ lọc đang bật không mất theo: nút "Xoá bộ lọc" ngay
+                  dưới chỉ hiện khi `soBoLoc > 0`, và mỗi nhóm in số đếm của
+                  nó trên nhãn.
+                */}
+                {rail ? null : (
+                    <button
+                        type="button"
+                        className={soBoLoc ? 'fchip on ex-loc-het' : 'fchip ex-loc-het'}
+                        onClick={() => {
+                            setMoNhom(null);
+                            setMoHet((v) => !v);
+                        }}
+                        aria-expanded={moHet}
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true" className="ex-chip-mui">
+                            <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" />
+                        </svg>
+                        {moHet ? 'Thu gọn' : 'Bộ lọc'}
+                        {soBoLoc ? <span className="fchip-count">{soBoLoc}</span> : null}
+                    </button>
+                )}
 
                 {soBoLoc ? (
                     <button type="button" className="ex-loc-xoa" onClick={() => di(docChon({}))}>

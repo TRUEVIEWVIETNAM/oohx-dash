@@ -443,6 +443,13 @@ class ScreenDetailApiTest extends TestCase
      * Thứ tự trong `assertSame` là thứ tự khoá thật của phản hồi:
      * `array_merge()` giữ khoá của mảng bên trái trước, nên khoá của resource
      * cha đứng trước khoá chỉ-có-ở-con.
+     *
+     * `photo_source` **đổi chỗ** ngày 09/11/2026 (lát 3 của
+     * `docs/PLAN-GHEP-MOCKUP.md`) mà giá trị không đổi. Nó từng chỉ có ở
+     * resource con nên đứng cuối; nay `ScreenSummaryResource` cũng trả nó —
+     * `/explore` cần nó để nói ra rằng 104 thẻ đang dùng hai tấm ảnh bìa owner
+     * — nên `array_merge` đặt nó vào chỗ của cha, trước `photo_srcsets`. Con
+     * vẫn ghi đè giá trị: nguồn của cả thư viện, không phải của một ảnh.
      */
     public function test_khong_them_truong_nao_ngoai_danh_sach_da_khai(): void
     {
@@ -453,7 +460,7 @@ class ScreenDetailApiTest extends TestCase
         $moi = array_diff(array_keys($data), self::KHOA_TRUOC_LAT_5);
 
         $this->assertSame(
-            ['cong_nghe', 'cong_nghe_label', 'photo_srcset', 'photo_srcsets', 'photo_source'],
+            ['cong_nghe', 'cong_nghe_label', 'photo_srcset', 'photo_source', 'photo_srcsets'],
             array_values($moi),
         );
     }

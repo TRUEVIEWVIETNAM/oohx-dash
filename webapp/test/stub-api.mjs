@@ -54,6 +54,19 @@ const SCREEN_CO_GIA = {
     photo_srcset:
         'https://oohx.net/storage/anh-dan-xuat/w480/screens/a.jpg 480w, '
         + 'https://oohx.net/storage/anh-dan-xuat/w1280/screens/a.jpg 1280w',
+
+    /*
+     * Bắt buộc theo `ScreenSummary.photo_source` từ 09/11/2026 (lát 3 ghép
+     * mockup).
+     *
+     * `owner_cover`, không `screen` — và đó là chủ ý. Fixture này phải nói
+     * đúng tình trạng kho thật: đo trên production 08/11/2026, cả 104 vị trí
+     * dùng đúng hai tấm ảnh và cả hai là ảnh BÌA owner, không tấm nào là mặt
+     * biển. Đặt `screen` ở đây là dựng một chốt chạy trên một thế giới không
+     * tồn tại — và tệ hơn, nhánh dán nhãn sẽ không bao giờ được đi qua, nên
+     * chốt vẫn xanh khi nhãn biến mất.
+     */
+    photo_source: 'owner_cover',
 };
 
 const SCREEN_KHONG_GIA = {

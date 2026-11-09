@@ -103,7 +103,12 @@ export default async function ProductsPage({
             <SiteHeader active="products" />
             <OgType type="website" />
 
-            <main>
+            {/*
+              `.v2` — phạm vi của `webapp/app/oohx.css` (lát 4, 09/11/2026).
+              Mất lớp này thì trang rơi về `frontpage.css` và **không có lỗi
+              nào bắn ra** — chỉ là một trang trông như bản cũ.
+            */}
+            <main className="v2">
                 <div className="ph">
                     <div className="w">
                         <div className="ph-top">

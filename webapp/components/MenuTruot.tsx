@@ -50,7 +50,7 @@ import type { NavKey } from './SiteHeader';
  * nhau và chỉ có MỘT lời gọi `/api/v2/me` cho cả trang.
  */
 
-const MUC: { ma: NavKey; duong: string; nhan: string; icon: string }[] = [
+const MUC: { ma: NavKey | null; duong: string; nhan: string; icon: string }[] = [
     {
         ma: 'home',
         duong: '/',
@@ -83,6 +83,27 @@ const MUC: { ma: NavKey; duong: string; nhan: string; icon: string }[] = [
         duong: '/owners',
         nhan: 'Media owner',
         icon: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
+    },
+    {
+        // request_quote
+        //
+        // Thêm 09/11/2026 (lát 2). Hàng một của thanh đầu mới có icon "Yêu cầu
+        // báo giá", và icon đó `display:none` dưới 768px. Không thêm mục này
+        // thì lối mua CHÍNH của sàn — 85 trong 104 vị trí chưa niêm yết giá —
+        // mất hẳn trên điện thoại.
+        //
+        // `ma: null`, KHÔNG phải `''`. `/explore/yeu-cau-bao-gia` render
+        // `<SiteHeader active="explore">` nên mục sáng lên là "Khám phá", và
+        // đó đúng — người dùng đang ở giữa một việc bắt đầu từ trang kho.
+        //
+        // `''` thì sai: nó là giá trị MẶC ĐỊNH của `active`, nên trên mọi
+        // trang không truyền `active` — bốn trang chính sách, hai trang phản
+        // ánh, đăng nhập, đăng ký — mục này sẽ tự sáng. `null` không bao giờ
+        // bằng một `NavKey` nào.
+        ma: null,
+        duong: '/explore/yeu-cau-bao-gia',
+        nhan: 'Yêu cầu báo giá',
+        icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5.9 13.5h-1.2v1h-1.3v-1.03c-1.1-.21-1.95-.85-2-2.02h1.25c.06.6.5 1.08 1.6 1.08 1.18 0 1.44-.59 1.44-.96 0-.5-.27-.97-1.62-1.29-1.5-.36-2.53-.98-2.53-2.21 0-1.06.85-1.75 1.9-1.97V8h1.3v1.1c1.19.27 1.78 1.14 1.82 2.11h-1.25c-.03-.64-.37-1.08-1.28-1.08-.86 0-1.37.39-1.37.94 0 .48.37.8 1.62 1.12 1.25.32 2.53.86 2.53 2.4-.01 1.13-.86 1.75-1.91 1.96z',
     },
     {
         ma: 'agency',

@@ -205,7 +205,11 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
             */}
             <GhiLuotXem slug={slug} />
 
-            <main>
+            {/*
+              `.v2` — phạm vi của `webapp/app/oohx.css` (lát 3, 09/11/2026).
+              Xem chú thích cùng tên ở `app/explore/page.tsx`.
+            */}
+            <main className="v2">
             {/* Bản Blade phát `og:type=product`. Giữ nguyên — xem `OgType`. */}
             <OgType type="product" />
 

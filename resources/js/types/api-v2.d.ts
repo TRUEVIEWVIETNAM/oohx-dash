@@ -3198,6 +3198,30 @@ export interface components {
              */
             photo_srcset?: string | null;
             /**
+             * @description `photo_url` ở trên là ảnh của BIỂN, hay một ảnh thay thế? Thêm vào
+             *     DTO danh sách 09/11/2026 (lát 3 của `docs/PLAN-GHEP-MOCKUP.md`);
+             *     `ScreenDetail` đã có nó từ 24/10/2026.
+             *
+             *     Chuỗi dự phòng có năm bậc và chỉ `screen` là ảnh của chính màn
+             *     hình. Bốn bậc còn lại — `site`, `network`, `owner_cover`,
+             *     `venue_category` — cho người mua xem một thứ **không phải** mặt
+             *     biển họ sắp thuê.
+             *
+             *     Vì sao DTO danh sách cũng cần: `/explore` là nơi người mua SÀNG
+             *     kho. Đo trên production 08/11/2026, cả 104 vị trí dùng đúng hai tấm
+             *     ảnh và cả hai là `owner_cover`; không có trường này thì lưới 104
+             *     thẻ hiện ra như 104 vị trí đều có ảnh riêng, và không client nào
+             *     nói khác được.
+             *
+             *     `null` khi không có ảnh nào — cùng lúc `photo_url` là `null`.
+             *
+             *     Giao diện dán nhãn chỉ khi giá trị **khác** `screen`: dán lên
+             *     `screen` là nói một điều ai cũng mặc định, và làm nhãn mất nghĩa ở
+             *     bốn bậc còn lại.
+             * @enum {string|null}
+             */
+            photo_source?: "screen" | "site" | "network" | "owner_cover" | "venue_category" | null;
+            /**
              * @description Khoảng cách đường chim bay từ toạ độ người gọi gửi lên tới **site**,
              *     km, làm tròn hai chữ số. Thêm 22/10/2026.
              *

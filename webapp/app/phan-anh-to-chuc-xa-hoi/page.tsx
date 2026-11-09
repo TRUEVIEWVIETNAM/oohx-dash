@@ -30,7 +30,12 @@ export default function ReflectionCreatePage() {
             <SiteHeader />
             <OgType type="website" />
 
-            <main>
+            {/*
+              `.v2` — phạm vi của `webapp/app/oohx.css` (lát 4, 09/11/2026).
+              Mất lớp này thì trang rơi về `frontpage.css` và **không có lỗi
+              nào bắn ra** — chỉ là một trang trông như bản cũ.
+            */}
+            <main className="v2">
                 <section className="pol">
                     <div className="w pol-w">
                         <nav className="pol-crumb" aria-label="Breadcrumb">

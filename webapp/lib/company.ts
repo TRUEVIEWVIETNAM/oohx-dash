@@ -34,3 +34,29 @@ export const CONG_TY = {
     hotline: process.env.OOHX_CO_HOTLINE ?? '0943668996',
     email: process.env.OOHX_CO_EMAIL ?? 'tuan.nguyen@attvietnam.vn',
 } as const;
+
+/**
+ * Hotline dạng người đọc: `0943668996` → `0943 668 996`.
+ *
+ * ══ Vì sao là một hàm, không phải một hằng thứ hai ══
+ *
+ * `hotline` lưu dạng chỉ-số vì `tel:` cần đúng dạng đó. Dải pháp lý ở thanh
+ * đầu cần dạng có khoảng trắng — mười chữ số liền nhau ở cỡ 11,5px thì không
+ * đọc được bằng mắt.
+ *
+ * Thêm một khoá `hotlineHienThi: '0943 668 996'` vào `CONG_TY` là tạo bản thứ
+ * hai của cùng một số: đổi số ở một khoá mà quên khoá kia thì trang in một số
+ * còn `tel:` gọi một số khác, và không có gì báo. Một hàm thì không có bản thứ
+ * hai nào để lệch.
+ *
+ * Số không khớp dạng 10 chữ số trả về NGUYÊN VĂN, không cố cắt bừa: một số
+ * nước ngoài hay số 11 chữ số bị chèn khoảng trắng sai chỗ thì khó đọc hơn là
+ * để liền.
+ */
+export function hotlineHienThi(so: string = CONG_TY.hotline): string {
+    const chiSo = so.replace(/\D/g, '');
+
+    if (chiSo.length !== 10) return so;
+
+    return `${chiSo.slice(0, 4)} ${chiSo.slice(4, 7)} ${chiSo.slice(7)}`;
+}
