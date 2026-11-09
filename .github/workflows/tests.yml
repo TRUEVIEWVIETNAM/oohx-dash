@@ -2,12 +2,48 @@ name: Tests
 
 on:
   push:
-    # `dev` có từ 06/11/2026: nhánh tích hợp trong lúc `main` đóng băng cho Sở
-    # kiểm tra đăng ký giấy phép. Xem `docs/PLAN-MOI-TRUONG-DEV.md`.
-    branches: [main, dev, 'feat/**', 'fix/**', 'docs/**']
+    # ══ `main` và `dev` KHÔNG còn ở đây — gỡ 09/11/2026 ══
+    #
+    # Hai nhánh đó đã có deploy workflow riêng, và **cả hai đều `uses:` chính
+    # tệp này** (`deploy.yml` cho `main`, `deploy-dev.yml` cho `dev`). Nên một
+    # lượt push vào chúng từng kích HAI lượt chạy bộ test cho cùng một SHA:
+    # một lượt độc lập, một lượt lồng trong deploy.
+    #
+    # Hai lượt đó `npm ci` song song và tranh cache của nhau. Hậu quả đã xảy
+    # ra ngày 09/11/2026 trên commit `edf0edf`: lượt `Tests` độc lập đỏ với
+    # `Module not found: Can't resolve
+    # '@vercel/turbopack-next/internal/font/google/font'` — một module nội bộ
+    # của Turbopack, không phải tệp nào của repo — trong khi lượt lồng trong
+    # deploy, **cùng SHA, cùng workflow này**, xanh. Chạy lại job đỏ thì nó
+    # xanh, không sửa một dòng mã nào.
+    #
+    # Cái đỏ ấy tốn nhiều hơn thời gian CI: nó trông y hệt một lỗi font thật,
+    # nên người đọc đi tìm trong `layout.tsx` và `oohx.css` trước khi nghĩ tới
+    # hạ tầng.
+    #
+    # ── Gỡ trigger KHÔNG làm mất lượt test nào ──
+    #
+    # | Sự kiện | Bộ test chạy ở đâu |
+    # |---|---|
+    # | push `main` | `deploy.yml` → `uses: tests.yml`, deploy chờ nó xanh |
+    # | push `dev`  | `deploy-dev.yml` → `uses: tests.yml`, deploy chờ nó xanh |
+    # | pull request | `pull_request` dưới đây, chạy độc lập |
+    # | push `feat/**`, `fix/**`, `docs/**` | `push` dưới đây — chúng không có deploy workflow nào |
+    #
+    # Cả hai nhánh đều KHÔNG có branch protection (kiểm 09/11/2026), nên
+    # không có required status check nào mất tên vì thay đổi này.
+    #
+    # ── Cái phải nhớ nếu sau này sửa deploy ──
+    #
+    # Từ nay `main` và `dev` chỉ được canh qua deploy workflow. Gỡ `uses:
+    # ./.github/workflows/tests.yml` khỏi một trong hai tệp đó là làm nhánh ấy
+    # **hết được test khi push** — và không có gì đỏ để nói ra. Hai tệp kia
+    # đều có chú thích trỏ về đây.
+    branches: ['feat/**', 'fix/**', 'docs/**']
   pull_request:
-  # Cho deploy.yml gọi lại đúng workflow này, để deploy chỉ chạy sau khi test xanh
-  # TRÊN ĐÚNG SHA sắp deploy. `needs:` không nối được hai workflow khác file.
+  # Cho deploy.yml và deploy-dev.yml gọi lại đúng workflow này, để deploy chỉ
+  # chạy sau khi test xanh TRÊN ĐÚNG SHA sắp deploy. `needs:` không nối được
+  # hai workflow khác file.
   workflow_call:
 
 # Chạy trên MySQL, KHÔNG dùng SQLite: nhiều migration của dự án dùng cú pháp

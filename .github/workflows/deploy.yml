@@ -22,6 +22,15 @@ concurrency:
 jobs:
   # Chạy lại đúng bộ test trên chính SHA sắp deploy. Trước đây deploy không hề
   # chạy test — code lên thẳng production (audit F-17).
+  #
+  # ══ Từ 09/11/2026 đây là lượt test DUY NHẤT của một push vào `main` ══
+  #
+  # `tests.yml` không còn khai `main` trong `on.push.branches` — trước đó một
+  # push kích hai lượt chạy cùng bộ test cho cùng một SHA, và hai lượt `npm ci`
+  # song song tranh cache của nhau. Lý do đầy đủ nằm ở đầu `tests.yml`.
+  #
+  # Nên gỡ dòng `uses:` dưới đây là trả `main` về đúng tình trạng audit F-17:
+  # code lên production mà không bộ test nào chạy trên SHA đó.
   tests:
     uses: ./.github/workflows/tests.yml
 

@@ -68,6 +68,15 @@ concurrency:
 jobs:
   # Cùng bộ test, cùng mức khắt khe như production. Một môi trường thử không
   # chạy test là một môi trường không nói được điều gì về `main`.
+  #
+  # ══ Từ 09/11/2026 đây là lượt test DUY NHẤT của một push vào `dev` ══
+  #
+  # `tests.yml` không còn khai `dev` trong `on.push.branches` — trước đó một
+  # push kích hai lượt chạy cùng bộ test cho cùng một SHA, và hai lượt `npm ci`
+  # song song tranh cache của nhau. Lý do đầy đủ nằm ở đầu `tests.yml`.
+  #
+  # Nên gỡ dòng `uses:` dưới đây **không** làm deploy nhanh hơn — nó làm `dev`
+  # hết được test khi push, và không có gì đỏ để nói ra.
   tests:
     uses: ./.github/workflows/tests.yml
 
