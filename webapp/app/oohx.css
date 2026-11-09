@@ -2387,3 +2387,35 @@
 .v2 .drawer-drag-bar {
     border-radius: 980px;
 }
+
+/* ── Chỉ cho trình đọc màn hình ──────────────────────────────────────────── */
+
+/*
+ * Board trang chủ KHÔNG có tiêu đề: nó ghi rõ *"HERO = Ô TÌM KIẾM. Không tiêu
+ * đề quảng cáo."* Và đúng — một dòng quảng cáo 28px đứng trên ô tìm là chỗ
+ * người mua phải đọc qua trước khi tới thứ họ cần.
+ *
+ * Nhưng một trang KHÔNG có `<h1>` nào là một trang khác hẳn với trình đọc màn
+ * hình và với công cụ tìm kiếm: `h1` là nhãn của cả tài liệu, và điều hướng
+ * theo tiêu đề là cách người dùng trình đọc quét một trang lạ.
+ *
+ * Tôi vừa kiểm: `webapp/test/seo.mjs` **không** đòi `h1` ở trang chủ. Tức nếu
+ * tôi gỡ hẳn nó thì không chốt nào đỏ — không có gì chặn tôi làm sai. Nên lớp
+ * này là cách giữ cả hai: board đúng ở phần nhìn, tài liệu vẫn có tiêu đề.
+ *
+ * `clip-path` cộng `1px` cộng `overflow:hidden` — khuôn chuẩn. KHÔNG dùng
+ * `display:none` hay `visibility:hidden`: cả hai gỡ phần tử khỏi cây trình
+ * đọc, tức đúng thứ cần giữ lại. Cũng không `position:absolute;left:-9999px`:
+ * nó làm trình duyệt cuộn ngang khi phần tử nhận focus.
+ */
+.v2 .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}

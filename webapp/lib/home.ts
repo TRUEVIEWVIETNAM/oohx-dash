@@ -104,6 +104,19 @@ export type HomeData = {
 
     /** Tổng số vị trí **đã** có giá, để đối chiếu với tổng kho. */
     quotedTotal: number;
+
+    /**
+     * Tổng số gói đang mở — cho tab phạm vi thứ hai ở hero (09/11/2026).
+     *
+     * `/stats` trả `total_screens` và `total_owners` nhưng **không** trả số
+     * gói, nên con số này đọc `meta.total` của `/products`.
+     *
+     * `?? 0`, không `?? products.length`: `products` là **trang đầu ba bản
+     * ghi** (`per_page=3`) cho mục "Gói chiến dịch". Lấy độ dài trang thay
+     * tổng sẽ in "Gói 3" trong khi sàn có 1 — một con số sai trông hợp lý.
+     * Cùng cái bẫy đã ghi ở `quotedTotal`.
+     */
+    productsTotal: number;
 };
 
 /** Thành phố mặc định cho bản đồ nhỏ. Cùng mặc định với bản Blade. */
@@ -129,7 +142,7 @@ export async function getHomeData(city: string = DEFAULT_CITY): Promise<HomeData
         // template, và chú thích ở đó đã nêu nghi vấn: không xác nhận được ba
         // tên gói ấy ứng với bản ghi nào. Nên mục này đọc **gói thật** —
         // cùng dữ liệu `/products` đang phục vụ, nên bấm vào là tới đúng trang.
-        get<{ data: ProductSummary[] }>('/products?per_page=3', 900),
+        get<{ data: ProductSummary[]; meta?: { total?: number } }>('/products?per_page=3', 900),
 
         // Hai lưới thẻ "duyệt". Đổi khi có loại địa điểm hoặc tỉnh thành mới
         // có màn hình — tức rất ít, nên 30 phút.
@@ -156,6 +169,9 @@ export async function getHomeData(city: string = DEFAULT_CITY): Promise<HomeData
         // "6 vị trí có giá" cạnh "104 vị trí" — một con số sai trông hợp lý.
         // 0 làm khối tự ẩn dòng đối chiếu, xem `page.tsx`.
         quotedTotal: quoted.status === 'fulfilled' ? (quoted.value.meta?.total ?? 0) : 0,
+
+        // Cùng luật `?? 0` như `quotedTotal` — xem docblock của `productsTotal`.
+        productsTotal: products.status === 'fulfilled' ? (products.value.meta?.total ?? 0) : 0,
     };
 }
 

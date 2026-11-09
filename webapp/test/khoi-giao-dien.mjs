@@ -76,6 +76,37 @@ const TRANG = [
             'CÔNG TY TNHH TRUEVIEW',
             '0109944503',
 
+            // ── Hero: bốn chỗ sửa ngày 09/11/2026 ────────────────────────
+            //
+            // Chủ dự án xem trang chủ dev và báo "chưa khớp 100%". Soát 128
+            // chuỗi chữ của board `P-TrangChu` với HTML dev thì ra bốn chỗ
+            // hụt THẬT — không phải bốn chỗ cố ý khác board. Bốn khẳng định
+            // dưới đây canh đúng bốn chỗ đó.
+
+            // ① `h1` phải ẩn về mặt hình, nhưng PHẢI còn trong tài liệu.
+            //
+            // Board không có tiêu đề nào ("HERO = Ô TÌM KIẾM. Không tiêu đề
+            // quảng cáo"), và bản đầu của tôi in một dòng 28px ở đó. Nhưng gỡ
+            // hẳn `h1` thì tài liệu mất nhãn của chính nó với trình đọc màn
+            // hình — và `seo.mjs` KHÔNG đòi `h1` ở trang chủ, nên không có gì
+            // chặn ai đó gỡ nó. Khẳng định này là cái chặn đó.
+            '<h1 class="sr-only">',
+
+            // ② Ba tab phạm vi, kèm số THẬT.
+            //
+            // Fixture khai `total_screens: 104`, `/products` meta `total: 2`,
+            // `total_owners: 2`. Khớp cả nhãn lẫn số: nếu `Gói` đọc độ dài
+            // trang (`per_page=3`) thay `meta.total` thì nó in 1 và ca này đỏ.
+            'aria-label="Phạm vi tìm"',
+            '>Vị trí<',
+            '>Gói<',
+
+            // ③ Lối phụ dưới ô tìm. Board vẽ hai, chỉ cái này có đích thật.
+            'Chọn trên bản đồ',
+
+            // ④ Dải điều kiện của panel owner theo dạng board: icon tô đặc.
+            'check_circle',
+
             // Ô tìm kiếm lớn và hai dropdown của nó. `MegaSearch` chưa đổi
             // theo hệ mới (lát 2) nên class vẫn của `frontpage.css` — nó mang
             // hành vi thật, và đổi hành vi cùng lúc với đổi ngoại hình là tự
@@ -247,6 +278,28 @@ const TRANG = [
             'class="sc"',
             'class="oc"',
             'class="oc-name"',
+
+            // ── Ba dòng board vẽ cho panel owner mà KHÔNG ship (09/11/2026) ──
+            //
+            // Soát board lần hai tìm ra chúng, và mỗi câu sai một kiểu khác
+            // nhau. Ghi vào đây vì cả ba đọc rất thuyết phục: một lượt sửa
+            // sau, ai đó mở board ra và thấy chúng là "nội dung còn thiếu".
+            //
+            // "Đối chiếu giấy phép & mã số thuế" — tuyên bố một QUY TRÌNH
+            // kiểm định. `owners.verified` là cờ thủ công, không có quy trình
+            // nào phía sau; đó đúng là lý do `Đã xác minh` bị cấm từ 18/10.
+            'Đối chiếu giấy phép',
+
+            // "Trả lời yêu cầu báo giá đúng hạn" — trái quyết định 19/10:
+            // sàn KHÔNG cam kết hạn. Ba cách nói khác của cùng lời hứa này
+            // (`trong 24h`, `ngày làm việc`, `sẽ liên hệ sớm`) đã bị cấm ở
+            // trang `/explore/yeu-cau-bao-gia`; đây là cách thứ tư.
+            'báo giá đúng hạn',
+
+            // "Ký biên bản nghiệm thu từng đơn" — `routes/web.php` không có
+            // route `nghiem-thu` hay `bien-ban` công khai nào, nên câu này tả
+            // một việc người mua không xem được trước khi mua.
+            'Ký biên bản nghiệm thu',
 
             // ── Năm câu của thanh "trust", đổi ngày 20/10/2026 ────────────
             //

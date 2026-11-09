@@ -118,6 +118,7 @@ export default async function HomePage() {
         browse,
         quotedScreens,
         quotedTotal,
+        productsTotal,
     } = await getHomeData(DEFAULT_CITY);
 
     const tongKho = stats?.total_screens ?? 0;
@@ -186,43 +187,168 @@ export default async function HomePage() {
                             }}
                         >
                             <div style={{ flex: '1 1 440px', minWidth: 0 }}>
-                                <h1 style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.25 }}>
-                                    Kho vị trí OOH &amp; DOOH Việt Nam
-                                </h1>
+                                {/*
+                                  `h1` giữ nhưng ẩn về mặt hình — sửa 09/11/2026.
 
-                                {stats ? (
-                                    <p
-                                        className="num"
-                                        style={{
-                                            margin: '8px 0 0',
-                                            fontSize: 14,
-                                            color: 'var(--body-ink)',
-                                        }}
-                                    >
-                                        {so(stats.total_screens)} vị trí · {so(stats.total_cities)}{' '}
-                                        tỉnh thành · {so(stats.total_owners)} media owner
-                                    </p>
-                                ) : null}
+                                  Board không có tiêu đề nào: *"HERO = Ô TÌM
+                                  KIẾM. Không tiêu đề quảng cáo."* Bản đầu của
+                                  tôi in một dòng 28px ở đây, tức đúng thứ board
+                                  cố ý bỏ.
 
-                                <div style={{ marginTop: 16 }}>
-                                    <MegaSearch
-                                        variant="hero"
-                                        target="/explore"
-                                        regions={regions}
-                                        categories={filters?.categories_networks ?? []}
-                                        chips={chipGoiY(filters)}
-                                    />
-                                </div>
+                                  Nhưng gỡ hẳn `h1` thì tài liệu mất nhãn của
+                                  chính nó với trình đọc màn hình. Nên nó ở lại
+                                  trong cây, chỉ không chiếm chỗ. Xem `.sr-only`
+                                  trong `oohx.css`.
+                                */}
+                                <h1 className="sr-only">Kho vị trí OOH &amp; DOOH Việt Nam</h1>
 
-                                <p
+                                {/*
+                                  ── Ba tab phạm vi — thêm 09/11/2026 ──────────
+
+                                  Board đặt chúng ngay trên ô tìm, và chúng
+                                  **thay** dòng số liệu cũ ở đây chứ không đứng
+                                  cạnh: dòng cũ in "104 vị trí · 17 tỉnh thành ·
+                                  2 media owner", tức hai trong ba con số lặp
+                                  đúng cái các tab in. Giữ cả hai là in một con
+                                  số hai lần trên cùng một màn hình.
+
+                                  Số tỉnh thành không mất: lưới tỉnh thành ở
+                                  cuối trang in nó kèm từng tỉnh.
+
+                                  Board xếp chúng **giữa** vì hero của board là
+                                  một cột. Hero thật là hai cột (ô tìm bên trái,
+                                  bản đồ chạy thật bên phải), nên chúng căn trái
+                                  theo đúng cạnh ô tìm chúng phục vụ.
+
+                                  `Gói` đọc `meta.total` của `/products`, không
+                                  đọc độ dài trang ba bản ghi — xem
+                                  `productsTotal` ở `lib/home.ts`.
+                                */}
+                                <nav
+                                    aria-label="Phạm vi tìm"
                                     style={{
-                                        margin: '12px 0 0',
-                                        fontSize: 12.5,
-                                        color: 'var(--body-ink)',
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        gap: 26,
+                                        marginBottom: 14,
                                     }}
                                 >
-                                    Miễn phí đăng ký · Không phí môi giới
-                                </p>
+                                    {[
+                                        {
+                                            ten: 'Vị trí',
+                                            so: tongKho,
+                                            href: '/explore',
+                                            dang: true,
+                                        },
+                                        {
+                                            ten: 'Gói',
+                                            so: productsTotal,
+                                            href: '/products',
+                                            dang: false,
+                                        },
+                                        {
+                                            ten: 'Media owner',
+                                            so: stats?.total_owners ?? 0,
+                                            href: '/owners',
+                                            dang: false,
+                                        },
+                                    ].map((p) => (
+                                        <Link
+                                            key={p.href}
+                                            href={p.href}
+                                            aria-current={p.dang ? 'page' : undefined}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'baseline',
+                                                gap: 6,
+                                                paddingBottom: 5,
+                                                borderBottom: `2px solid ${
+                                                    p.dang ? 'var(--primary)' : 'transparent'
+                                                }`,
+                                                color: p.dang ? 'var(--primary)' : 'var(--black)',
+                                                fontSize: 19,
+                                                fontWeight: p.dang ? 700 : 500,
+                                                letterSpacing: '-.02em',
+                                            }}
+                                        >
+                                            {p.ten}
+                                            <span
+                                                className="num"
+                                                style={{
+                                                    fontSize: 12,
+                                                    fontWeight: 600,
+                                                    opacity: 0.75,
+                                                }}
+                                            >
+                                                {so(p.so)}
+                                            </span>
+                                        </Link>
+                                    ))}
+                                </nav>
+
+                                <MegaSearch
+                                    variant="hero"
+                                    target="/explore"
+                                    regions={regions}
+                                    categories={filters?.categories_networks ?? []}
+                                    chips={chipGoiY(filters)}
+                                />
+
+                                {/*
+                                  ── Lối phụ dưới ô tìm — thêm 09/11/2026 ──────
+
+                                  Board vẽ HAI liên kết ở đây. Chỉ một cái ship:
+
+                                   · `Chọn trên bản đồ` → `/explore?view=map`,
+                                     một kiểu xem đang chạy thật.
+                                   · `Tải lên danh sách vị trí` — **không
+                                     dựng**. `/explore/yeu-cau-bao-gia` không có
+                                     đường nhận tệp danh sách nào, nên liên kết
+                                     đó sẽ dẫn tới một tính năng chưa tồn tại.
+                                */}
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        alignItems: 'center',
+                                        gap: 12,
+                                        marginTop: 12,
+                                    }}
+                                >
+                                    <Link
+                                        href="/explore?view=map"
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 6,
+                                            fontSize: 12.5,
+                                            fontWeight: 500,
+                                            color: 'var(--black)',
+                                        }}
+                                    >
+                                        <span
+                                            className="ms"
+                                            aria-hidden="true"
+                                            style={{ fontSize: 19, color: 'var(--body-ink)' }}
+                                        >
+                                            map
+                                        </span>
+                                        Chọn trên bản đồ
+                                    </Link>
+
+                                    <span
+                                        aria-hidden="true"
+                                        style={{
+                                            width: 1,
+                                            height: 16,
+                                            background: 'var(--stroke)',
+                                        }}
+                                    />
+
+                                    <span style={{ fontSize: 12.5, color: 'var(--body-ink)' }}>
+                                        Miễn phí đăng ký
+                                    </span>
+                                </div>
                             </div>
 
                             {/*
@@ -712,11 +838,39 @@ function PanelOwner({ owners }: { owners: HomeData['featuredOwners'] }) {
               **vào đây** — không bị xoá. Đổi chữ ở đây là đỏ một ca, đúng như
               nó phải.
             */}
+            {/*
+              ── Dạng hàng-tick theo board — sửa 09/11/2026 ──────────────────
+              Xếp NGANG có ngắt dòng (`flex-wrap`), không xếp dọc, và icon
+              `check_circle` tô đặc thay `check` nét. Đó là khuôn board vẽ cho
+              dải điều kiện của hai panel.
+
+              ══ Ba câu này là câu CỦA SÀN, không phải ba câu board vẽ ══
+
+              Board đặt ở đây `Đối chiếu giấy phép & mã số thuế`,
+              `Trả lời yêu cầu báo giá đúng hạn`, `Ký biên bản nghiệm thu từng
+              đơn`. Cả ba **không ship**, và mỗi câu một lý do:
+
+               · "Đối chiếu giấy phép & mã số thuế" tuyên bố một **quy trình
+                 kiểm định**. Đó đúng là lý do `Đã xác minh` bị cấm từ
+                 18/10/2026 — `owners.verified` là một cờ thủ công, không có
+                 quy trình nào phía sau nó.
+               · "Trả lời yêu cầu báo giá đúng hạn" trái quyết định
+                 19/10/2026: sàn **không cam kết hạn**. `trong 24h`,
+                 `ngày làm việc`, `sẽ liên hệ sớm` đều đã nằm trong danh sách
+                 `khong` của `khoi-giao-dien.mjs`, và câu này là cùng một lời
+                 hứa nói vòng hơn.
+               · "Ký biên bản nghiệm thu từng đơn" không có đường công khai
+                 nào: `routes/web.php` không có route `nghiem-thu` hay
+                 `bien-ban`.
+
+              Ba câu giữ lại là ba câu đã được canh nguyên văn và đúng với cơ
+              chế thật của sàn.
+            */}
             <ul
                 style={{
                     display: 'flex',
-                    flexDirection: 'column',
-                    gap: 5,
+                    flexWrap: 'wrap',
+                    gap: '5px 15px',
                     fontSize: 11.5,
                     color: 'var(--bodydark)',
                     lineHeight: 1.5,
@@ -724,9 +878,13 @@ function PanelOwner({ owners }: { owners: HomeData['featuredOwners'] }) {
             >
                 {['Sàn không thu hộ', 'Giá do chủ màn hình đặt', 'Booking đã xác nhận không đổi'].map(
                     (c) => (
-                        <li key={c} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span className="ms" style={{ fontSize: 15, color: 'var(--secondary)' }}>
-                                check
+                        <li key={c} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <span
+                                className="ms ms-f"
+                                aria-hidden="true"
+                                style={{ fontSize: 14, flex: '0 0 auto', color: 'var(--secondary)' }}
+                            >
+                                check_circle
                             </span>
                             {c}
                         </li>
