@@ -94,6 +94,17 @@ class ScreenWriter
                     'height_px'         => $specData['height_px']         ?? 1080,
                     'width_cm'          => $specData['width_cm']          ?? null,
                     'height_cm'         => $specData['height_cm']         ?? null,
+
+                    // Công nghệ màn hình — lát 1 của
+                    // `docs/PLAN-CONG-NGHE-MAN-HINH.md`.
+                    //
+                    // `array_filter` dưới đây bỏ mọi khoá `null`, nên một tệp
+                    // nhập để trống cột này **không ghi đè** giá trị đã có ở
+                    // chế độ `update`. Đó là hành vi đúng cho mọi cột tuỳ chọn
+                    // ở đây, và đặc biệt đúng cho cột này: một lần nhập lại để
+                    // sửa giá không được xoá công nghệ mà owner đã khai.
+                    'cong_nghe'         => $specData['cong_nghe']         ?? null,
+
                     'resolution_preset' => $specData['resolution_preset'] ?? null,
                     'facing_direction'  => $specData['facing_direction']  ?? null,
                     'photo_url'         => $specData['photo_url']         ?? null,

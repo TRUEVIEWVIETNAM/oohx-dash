@@ -431,12 +431,20 @@ class ScreenDetailApiTest extends TestCase
      *    (25/10/2026). Hai trường vì DTO danh sách mang **một** ảnh còn DTO chi
      *    tiết mang cả thư viện; ca này chạy trên đường chi tiết nên thấy cả
      *    hai, vì `ScreenDetail` thừa kế `ScreenSummary`.
+     *  - `cong_nghe`, `cong_nghe_label` — lát 1 của
+     *    `docs/PLAN-CONG-NGHE-MAN-HINH.md` (08/11/2026). Ở **tầng ngoài**, một
+     *    chỗ duy nhất, trong `ScreenSummaryResource`. Bản đầu của lát ấy đặt
+     *    thêm một bản trong `data.specs`; ca này bắt được, và bản sao đã gỡ —
+     *    hai nhánh cùng tra `CONG_NGHE_LABELS` là hai chỗ để bảng chữ lệch.
+     *    Nếu ai thêm lại `specs.cong_nghe` thì ca này **không** đỏ (nó chỉ đếm
+     *    tầng ngoài), nên bản sao được canh riêng ở
+     *    `CongNgheManHinhTest::test_chi_tiet_khong_co_ban_sao_trong_specs`.
      *
      * Thứ tự trong `assertSame` là thứ tự khoá thật của phản hồi:
-     * `array_merge()` giữ khoá của mảng bên trái trước, nên `photo_srcset` của
-     * resource cha đứng trước hai khoá của resource con.
+     * `array_merge()` giữ khoá của mảng bên trái trước, nên khoá của resource
+     * cha đứng trước khoá chỉ-có-ở-con.
      */
-    public function test_khong_them_truong_nao_ngoai_ba_truong_da_khai(): void
+    public function test_khong_them_truong_nao_ngoai_danh_sach_da_khai(): void
     {
         $screen = $this->screen([], ['photos' => ['screens/mot.jpg']]);
 
@@ -445,7 +453,7 @@ class ScreenDetailApiTest extends TestCase
         $moi = array_diff(array_keys($data), self::KHOA_TRUOC_LAT_5);
 
         $this->assertSame(
-            ['photo_srcset', 'photo_srcsets', 'photo_source'],
+            ['cong_nghe', 'cong_nghe_label', 'photo_srcset', 'photo_srcsets', 'photo_source'],
             array_values($moi),
         );
     }

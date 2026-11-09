@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\V2\Concerns;
 
+use App\Models\VenueCategory;
+
 /**
  * Suy ra loại màn hình, và bảng chữ của nó.
  *
@@ -52,9 +54,6 @@ trait SuyRaLoaiManHinh
      */
     public const NGUONG_BILLBOARD_CM = 300;
 
-    /** Giá trị `venue_type` tách LED khỏi LCD. Cùng lý do như hằng số trên. */
-    public const VENUE_NGOAI_TROI = 'outdoor';
-
     /**
      * Ba nhóm, và **mọi** màn hình rơi vào đúng một nhóm.
      *
@@ -69,10 +68,85 @@ trait SuyRaLoaiManHinh
      *
      * Đọc `spec` và `inventory` của chính bản ghi đang bọc. Cả hai quan hệ đã
      * nằm trong `with()` của `FrontpageService::getMapPins()` và của truy vấn
-     * danh sách, nên không sinh truy vấn thêm.
+     * danh sách, nên không sinh truy vấn thêm. `vn_category_id` là cột vô
+     * hướng của `inventory`, đã nằm trong mọi `with(['inventory:…'])` sẵn có —
+     * nên nhánh ngoài trời cũng không nạp thêm quan hệ nào.
+     *
+     * ══ Nhánh `led` từng là mã CHẾT trên production — sửa 08/11/2026 ══
+     *
+     * Bản trước so `$this->inventory?->venue_type === 'outdoor'`. Hai điều
+     * cùng sai ở một dòng:
+     *
+     *  · `'outdoor'` **không có trong taxonomy**. `VenueCategorySeeder` dựng
+     *    12 danh mục và mã ngoài trời là `roadside`;
+     *  · cột `screen_inventory.venue_type` là **NULL trên cả 104 bản ghi**
+     *    production — nó là cột tự do thời `/api/v1`, còn taxonomy thật của
+     *    sàn là khoá ngoại `vn_category_id` → `venue_categories`.
+     *
+     * Nên điều kiện ấy **không bao giờ đúng**, và mọi màn hình không đạt ngưỡng
+     * billboard đều rơi vào `lcd`. Đo trên production 08/11/2026:
+     * `billboard 84 · led 0 · lcd 20` — trong đó **19 trong 20** bản ghi mang
+     * nhãn "LCD" có tên là `OOHX_LED_<tỉnh>`, và bản ghi thứ 20 là màn hình
+     * trong Aeon Mall (danh mục `retail`), thứ duy nhất thật sự không phải LED.
+     *
+     * Bộ lọc cột trái của `/explore` in **LED 0** và hiện mờ không bấm được,
+     * nên cả một loại hình của sàn biến mất khỏi trang tìm kiếm.
+     *
+     * ══ Vì sao bộ test KHÔNG bắt được ══
+     *
+     * `LoaiHinhNhanKhopBoLocTest` dựng fixture với `venue_type: 'outdoor'` và
+     * `'mall'` — một từ vựng **không tồn tại trong dữ liệu thật**. Hai phía
+     * (nhãn và bộ lọc) đọc cùng một hằng số sai, nên chúng khớp nhau hoàn hảo
+     * và ca test xanh, trong khi production trả 0. Fixture nay dùng
+     * `vn_category_id` của danh mục thật, và có một ca dựng đúng trạng thái
+     * production: `venue_type` NULL, danh mục `roadside`.
+     *
+     * ══ Chỗ phép suy này VẪN không biết, nói ra ══
+     *
+     * Nó không trả lời được "màn hình này là LED, LCD hay in bạt", vì **không
+     * cột nào trong CSDL ghi công nghệ**. Nó suy từ *kích thước* và *loại điểm
+     * đặt* — hai câu hỏi khác. Hệ quả cụ thể còn lại sau lần sửa này:
+     * `OOHX_LED_CTO_CAN_THO` là một màn LED nhưng khai 23,04 × 28,8 m nên vượt
+     * ngưỡng và mang nhãn "Billboard"; và 19 bản ghi kia ra `led` **chỉ vì
+     * chúng chưa khai kích thước** — khai đúng kích thước thật thì chúng thành
+     * `billboard` và LED về 0 lần nữa.
+     *
+     * ══ 08/11/2026: `spec.cong_nghe` vào, và nó đi TRƯỚC phép đoán ══
+     *
+     * Cột `screen_specs.cong_nghe` (`led` / `lcd` / `in_bat`, `null` = chưa
+     * khai) là trường đầu tiên trên sàn **ghi** công nghệ thay vì suy nó. Thứ
+     * tự dưới đây là thứ tự tin cậy, và mỗi bậc có một lý do:
+     *
+     *  1. **`in_bat` đã khai ⇒ `billboard`.** Một tấm in bạt không phải màn
+     *     hình, bất kể cỡ nào. Bậc này đứng trước cả ngưỡng kích thước vì nó
+     *     sửa một ca sai thật: một pa-nô in bạt nhỏ hơn 3m, nếu để rơi xuống
+     *     phép đoán, sẽ ra `led` hoặc `lcd` — tức sàn gọi một tấm bạt là một
+     *     màn hình.
+     *  2. **Cạnh ≥ 3m ⇒ `billboard`.** Giữ nguyên, và vẫn đứng trên hai bậc
+     *     dưới: nhãn `billboard` của `screen_type` nói về **hình thức**, nên
+     *     một màn LED 6m vẫn là một billboard. Loại hình LED của nó đọc ở
+     *     trường `cong_nghe`, không ở đây.
+     *  3. **`led` / `lcd` đã khai ⇒ đúng thứ đã khai.** Bậc này là cả điểm
+     *     của cột mới: với màn hình không đạt ngưỡng, `screen_type` thôi đoán.
+     *  4. **Chưa khai ⇒ đoán theo loại điểm đặt.** Nhánh cũ, giữ lại cho 104
+     *     bản ghi hiện có. Nó sẽ teo dần theo số vị trí được khai, và đó là
+     *     hình dạng đúng: một phép đoán chỉ chạy ở chỗ chưa có câu trả lời.
+     *
+     * `screen_type` vẫn **không** trả `in_bat` — nó chỉ có ba mã. Đó là lý do
+     * bộ lọc công nghệ là một bộ lọc riêng (`?cong_nghe=`) chứ không nhồi thêm
+     * mã vào đây: hai câu hỏi khác nhau thì hai trường, và một trường gộp hai
+     * câu là đúng cái sai mà cột mới tồn tại để sửa.
      */
     private function resolveScreenType(): string
     {
+        $congNghe = $this->spec?->cong_nghe;
+
+        // Bậc 1 — xem docblock. `in_bat` là câu trả lời duy nhất mà một tấm
+        // nhỏ vẫn phải ra `billboard`.
+        if ($congNghe === 'in_bat') {
+            return 'billboard';
+        }
+
         $widthCm  = $this->spec?->width_cm ?? 0;
         $heightCm = $this->spec?->height_cm ?? 0;
 
@@ -80,7 +154,17 @@ trait SuyRaLoaiManHinh
             return 'billboard';
         }
 
-        return ($this->inventory?->venue_type === self::VENUE_NGOAI_TROI) ? 'led' : 'lcd';
+        // Bậc 3 — đã khai thì không đoán nữa.
+        if ($congNghe === 'led' || $congNghe === 'lcd') {
+            return $congNghe;
+        }
+
+        // `(int)` chứ không so lỏng: khoá ngoại có thể về dạng chuỗi tuỳ driver,
+        // và `in_array` lỏng coi `0 == 'roadside'` là đúng ở PHP cũ. `null`
+        // thành `0`, không khớp id nào — đúng ý "chưa khai thì không phải LED".
+        $danhMuc = (int) ($this->inventory?->vn_category_id ?? 0);
+
+        return in_array($danhMuc, VenueCategory::idNgoaiTroi(), true) ? 'led' : 'lcd';
     }
 
     /**

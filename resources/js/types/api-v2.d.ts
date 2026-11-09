@@ -104,6 +104,32 @@ export interface paths {
                                  *     kích thước không rơi vào nhóm nào — đúng như bộ lọc.
                                  */
                                 screen_types: components["schemas"]["FilterFacet"][];
+                                /**
+                                 * @description Đếm theo **công nghệ màn hình** — lát 1 của
+                                 *     `docs/PLAN-CONG-NGHE-MAN-HINH.md`. Cùng từ vựng với
+                                 *     tham số `?cong_nghe=` của `/api/v2/screens` và với
+                                 *     `cong_nghe` trên thẻ màn hình.
+                                 *
+                                 *     Khác `screen_types` ngay trên: đó là **hình thức**
+                                 *     (biển lớn hay màn hình nhỏ), suy ra từ kích thước;
+                                 *     đây là **công nghệ**, do media owner khai. Một màn
+                                 *     LED 6m được đếm vào `screen_types: billboard` **và**
+                                 *     `cong_nghe: led`, nên tổng hai danh sách này không so
+                                 *     với nhau được.
+                                 *
+                                 *     **Bốn** nhóm, không ba: `led`, `lcd`, `in_bat` và
+                                 *     `chua_khai`. Nhóm thứ tư không phải một mã enum — nó
+                                 *     là "chưa trả lời câu này", và nó phải có mặt vì hôm
+                                 *     nay nó là 104/104. Một cột lọc chỉ in ba số 0 đọc như
+                                 *     "sàn không có màn hình nào" thay vì "chưa ai khai", và
+                                 *     hai câu đó dẫn tới hai hành động khác nhau.
+                                 *
+                                 *     Bốn nhóm **chia hết** tập màn hình công khai: mỗi màn
+                                 *     hình có đúng một giá trị `cong_nghe` (kể cả rỗng), nên
+                                 *     tổng của chúng bằng `meta.total` của `/api/v2/screens`
+                                 *     không lọc.
+                                 */
+                                cong_nghe?: components["schemas"]["FilterFacet"][];
                                 networks: components["schemas"]["FilterFacet"][];
                                 /**
                                  * @description Cùng danh sách loại hình như `venue_types`, nhưng có
@@ -197,6 +223,7 @@ export interface paths {
                     city?: string[];
                     venue_type?: string[];
                     screen_type?: ("billboard" | "led" | "lcd")[];
+                    cong_nghe?: ("led" | "lcd" | "in_bat" | "chua_khai")[];
                     network?: string[];
                     owner?: string[];
                 };
@@ -291,6 +318,7 @@ export interface paths {
                     region?: ("north" | "central" | "south")[];
                     venue_type?: string[];
                     screen_type?: ("billboard" | "led" | "lcd")[];
+                    cong_nghe?: ("led" | "lcd" | "in_bat" | "chua_khai")[];
                     orientation?: ("landscape" | "portrait" | "square")[];
                     network?: string[];
                     owner?: string[];
@@ -449,6 +477,90 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/screens/{slug}/luot-xem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cộng một lượt xem cho một vị trí
+         * @description Lát 1 của `docs/PLAN-LUOT-XEM.md`. Đường này **không** là một hệ thống
+         *     phân tích; nó là một máy đếm.
+         *
+         *     Nó cộng 1 vào ô `(hôm nay, màn hình)` của bảng `luot_xem_ngay`. Thân
+         *     request **rỗng** — màn hình nằm trong đường dẫn — và bảng đích **không
+         *     có chỗ cho** `user_id`, id phiên, IP hay bất cứ thứ gì định danh được.
+         *     Vì thế bảng không chứa dữ liệu cá nhân, và câu hỏi "được phép thu
+         *     không, giữ bao lâu" không phát sinh.
+         *
+         *     > Ngày nào cần biết *"người dùng X đã xem những vị trí nào"*, đó là một
+         *     > bảng khác, một plan khác, có đồng ý của người dùng và có mục trong
+         *     > chính sách bảo mật. Đừng mở rộng đường này thành đường đó. Ô *"Vị trí
+         *     > đã xem gần đây"* của trang chủ không cần nó — nó nằm trong
+         *     > `localStorage` của từng trình duyệt.
+         *
+         *     **`so_luot` là số lượt MỞ TRANG, không phải số người.** Máy chủ không
+         *     biết người gửi là ai, nên nó không gộp được hai lượt của cùng một
+         *     người. Phép gộp duy nhất nằm ở client (một lượt cho mỗi màn hình trong
+         *     mỗi phiên trình duyệt) và nó thiện chí, phá được bằng tay. Nhãn trên
+         *     giao diện phải là "lượt xem", không bao giờ là "người quan tâm".
+         *
+         *     **Vì sao một `POST` riêng, không đếm trong `GET /screens/{slug}`:** trang
+         *     chi tiết render ở máy chủ, nên mỗi lượt `GET` cũng có thể là một lượt
+         *     render lại của Next, một con bot đọc `sitemap.xml`, hoặc một lượt
+         *     `next build` prerender — và ở một sàn mới, ba thứ đó đông hơn người
+         *     thật. Một `POST` từ trình duyệt loại chúng ra bằng chính cơ chế của nó.
+         *
+         *     `slug` nhận cả `id`, `uuid` và `external_id`, đúng như
+         *     `GET /screens/{slug}`: nếu chỉ nhận `slug` thì những vị trí người ta
+         *     vào bằng hai dạng sau có con số vĩnh viễn bằng 0.
+         *
+         *     Hạn mức **60 lần mỗi 60 phút** — cao hơn `30,60` của `do-dac` vì đường
+         *     này gửi một lượt cho mỗi **vị trí** được mở, nên trần phải cao hơn số
+         *     vị trí một người duyệt được trong một giờ.
+         *
+         *     Phản hồi **204, thân rỗng**: không có gì để dò. Trả kèm `so_luot` biến
+         *     đường công khai này thành chỗ đọc số liệu kinh doanh của sàn — vị trí
+         *     nào đang được quan tâm — bằng cách gửi vào một lượt.
+         *
+         *     **404** khi slug không phải một màn hình công khai: cùng phép kiểm
+         *     `publiclyVisible()` như `GET /screens/{slug}`, nên không lộ gì hơn.
+         *     Không có nó thì ai cũng dựng được số lượt xem cho những màn hình đang
+         *     tắt, và những con số ấy nằm sẵn trong bảng chờ ngày màn hình được bật
+         *     lại.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Đã cộng một lượt. Thân rỗng. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -3012,6 +3124,9 @@ export interface components {
             /** @enum {string} */
             screen_type: "billboard" | "led" | "lcd";
             screen_type_label: string;
+            /** @enum {string|null} */
+            cong_nghe?: "led" | "lcd" | "in_bat" | null;
+            cong_nghe_label?: string | null;
             owner: {
                 slug?: string | null;
                 name?: string | null;

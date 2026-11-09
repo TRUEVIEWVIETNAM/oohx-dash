@@ -415,6 +415,28 @@ abstract class BaseScreenResource extends Resource
                                 ->label('Chiều cao (cm)')
                                 ->numeric(),
 
+                            // Công nghệ màn hình — lát 1 của
+                            // `docs/PLAN-CONG-NGHE-MAN-HINH.md`.
+                            //
+                            // KHÔNG `->required()` và KHÔNG `->default()`.
+                            // Cả 104 vị trí hiện có bắt đầu từ trạng thái chưa
+                            // khai, và đó là câu trả lời đúng cho chúng — sàn
+                            // chưa hỏi media owner câu này bao giờ. Đặt bắt
+                            // buộc là chặn mọi lần lưu một vị trí cũ; đặt mặc
+                            // định là biến một ô trống thành một lời khẳng
+                            // định không ai kiểm.
+                            //
+                            // Bảng chữ lấy từ `ScreenSpec::CONG_NGHE_LABELS`,
+                            // đúng bảng mà API và trang công khai dùng — không
+                            // gõ lại ba chữ ở đây (`NhanEnumMotNoiTest`).
+                            Forms\Components\Select::make('spec.cong_nghe')
+                                ->label('Công nghệ màn hình')
+                                ->options(\App\Models\ScreenSpec::CONG_NGHE_LABELS)
+                                ->placeholder('Chưa khai')
+                                ->helperText('Người mua OOH hỏi câu này trước cả khi hỏi giá. '
+                                    . 'Để trống nếu chưa chắc — sàn hiện "chưa khai" thay vì đoán.')
+                                ->native(false),
+
                             Forms\Components\Hidden::make('spec.width_unit')->default('cm'),
                             Forms\Components\Hidden::make('spec.height_unit')->default('cm'),
                             Forms\Components\Hidden::make('spec.allow_image')->default(true),

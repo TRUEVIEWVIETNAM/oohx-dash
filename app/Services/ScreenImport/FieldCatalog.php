@@ -52,6 +52,11 @@ class FieldCatalog
             ['key' => 'spec.height_px',         'group' => self::GROUP_SPEC, 'label' => 'Height (px)',       'type' => 'int',    'required' => true, 'unit' => 'px'],
             ['key' => 'spec.width_cm',          'group' => self::GROUP_SPEC, 'label' => 'Width (cm)',        'type' => 'float',  'unit' => 'cm'],
             ['key' => 'spec.height_cm',         'group' => self::GROUP_SPEC, 'label' => 'Height (cm)',       'type' => 'float',  'unit' => 'cm'],
+            // Công nghệ màn hình — lát 1 của `docs/PLAN-CONG-NGHE-MAN-HINH.md`.
+            // KHÔNG `required`: 104 vị trí hiện có chưa khai, và một cột bắt
+            // buộc sẽ làm mọi tệp nhập cũ đỏ toàn bộ. Để trống ⇒ `null` ⇒
+            // "chưa khai", đúng trạng thái thật.
+            ['key' => 'spec.cong_nghe',         'group' => self::GROUP_SPEC, 'label' => 'Công nghệ (led/lcd/in_bat)', 'type' => 'enum', 'enum' => ['led', 'lcd', 'in_bat'], 'description' => 'LED, LCD hoặc in bạt. Để trống nếu chưa chắc.'],
             ['key' => 'spec.resolution_preset', 'group' => self::GROUP_SPEC, 'label' => 'Resolution preset', 'type' => 'string', 'description' => 'E.g. "1920x1080", "4K", "Full HD"'],
             ['key' => 'spec.facing_direction',  'group' => self::GROUP_SPEC, 'label' => 'Facing direction',  'type' => 'enum',   'enum' => ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']],
             ['key' => 'spec.photo_url',         'group' => self::GROUP_SPEC, 'label' => 'Photo URL',         'type' => 'string'],

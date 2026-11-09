@@ -3,6 +3,7 @@
 namespace App\Http\Resources\V2;
 
 use App\Http\Resources\V2\Concerns\SuyRaLoaiManHinh;
+use App\Models\ScreenSpec;
 use App\Services\AnhDanXuatService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -23,8 +24,13 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class ScreenSummaryResource extends JsonResource
 {
     /**
-     * `SCREEN_TYPE_LABELS`, `NGUONG_BILLBOARD_CM`, `VENUE_NGOAI_TROI` và
-     * `resolveScreenType()` đến từ đây.
+     * `SCREEN_TYPE_LABELS`, `NGUONG_BILLBOARD_CM` và `resolveScreenType()`
+     * đến từ đây.
+     *
+     * `VENUE_NGOAI_TROI` đã **bỏ** ngày 08/11/2026: nó là chuỗi `'outdoor'`,
+     * một mã không có trong taxonomy và trỏ vào một cột NULL trên toàn bộ
+     * production. Kiến thức "danh mục nào là ngoài trời" nay sống ở
+     * `VenueCategory::SLUG_NGOAI_TROI`, cạnh chính bảng taxonomy.
      *
      * Chuyển sang trait ngày 22/10/2026 để `MapPinResource` dùng **cùng** phép
      * suy, thay vì chép ngưỡng 300cm sang tệp thứ hai. Hằng số của trait vẫn
@@ -55,6 +61,20 @@ class ScreenSummaryResource extends JsonResource
             // Mã ở trên để lọc và so khớp; nhãn ở đây để hiển thị. Giao diện
             // không được tự hoa hoá mã — xem `SCREEN_TYPE_LABELS`.
             'screen_type_label' => self::SCREEN_TYPE_LABELS[$loai] ?? $loai,
+
+            // Công nghệ màn hình — lát 1 của `docs/PLAN-CONG-NGHE-MAN-HINH.md`.
+            //
+            // Có mặt ở DTO **danh sách** chứ không chỉ ở chi tiết, vì cột lọc
+            // của `/explore` vẽ chip "LED / LCD / In bạt" ngay trên lưới thẻ:
+            // không có trường này thì thẻ không nói nổi nó thuộc chip nào, và
+            // người dùng lọc xong vẫn không thấy vì sao một thẻ lọt vào.
+            //
+            // Hai khoá `null` nghĩa là **chưa khai** — thẻ in "chưa khai" chứ
+            // không bỏ trống, cùng lý do như trang chi tiết.
+            'cong_nghe'       => $this->spec?->cong_nghe,
+            'cong_nghe_label' => $this->spec?->cong_nghe !== null
+                ? (ScreenSpec::CONG_NGHE_LABELS[$this->spec->cong_nghe] ?? $this->spec->cong_nghe)
+                : null,
 
             'owner' => [
                 'slug' => $this->owner?->slug,
@@ -117,6 +137,7 @@ class ScreenSummaryResource extends JsonResource
              * test PHP nào nhìn thấy.
              */
             'photo_srcset' => AnhDanXuatService::srcsetCho($anh['path']),
+
 
             /*
              * Khoảng cách tới toạ độ người gọi gửi lên, km — thêm 22/10/2026.

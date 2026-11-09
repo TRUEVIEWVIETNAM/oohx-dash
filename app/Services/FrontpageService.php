@@ -6,6 +6,7 @@ use App\Http\Resources\V2\ScreenSummaryResource;
 use App\Models\Network;
 use App\Models\Owner;
 use App\Models\Screen;
+use App\Models\ScreenSpec;
 use App\Models\Site;
 use App\Models\VenueCategory;
 use App\Support\PhanTrangOnDinh;
@@ -304,7 +305,7 @@ class FrontpageService
                     $iq->where('floor_cpm', '>', 0)->orWhere('io_rate', '>', 0)
                 ))
                 ->with([
-                    'spec:screen_id,photo_url,photos,width_cm,height_cm',
+                    'spec:screen_id,photo_url,photos,width_cm,height_cm,cong_nghe',
                     'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day',
                     'inventory.vnCategory:id,thumb',
                     'owner:id,name,slug,cover_url',
@@ -499,7 +500,7 @@ class FrontpageService
         }
 
         $query->with([
-                'spec:screen_id,photo_url,photos,width_cm,height_cm',
+                'spec:screen_id,photo_url,photos,width_cm,height_cm,cong_nghe',
                 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day',
                 'owner:id,name,slug,cover_url',
                 'site:id,network_id,name,city,address,banner',
@@ -632,7 +633,7 @@ class FrontpageService
     {
         $query = $this->buildScreenQuery($request)
             ->with([
-                'spec:screen_id,photo_url,photos,width_cm,height_cm',
+                'spec:screen_id,photo_url,photos,width_cm,height_cm,cong_nghe',
                 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day',
                 'owner:id,name,slug,cover_url',
                 'site:id,network_id,name,city,address,banner',
@@ -832,9 +833,38 @@ class FrontpageService
                 'lcd'       => max(0, $tongCongKhai - $soBillboard - $soLed),
             ];
 
+            // ── Công nghệ màn hình — lát 1 của `docs/PLAN-CONG-NGHE-MAN-HINH.md`
+            //
+            // Một câu truy vấn cho cả bốn nhóm, không bốn câu: `LEFT JOIN` cho
+            // ra `cong_nghe = NULL` ở **cả hai** hình dạng của "chưa khai" —
+            // không có dòng `screen_specs` nào (20/104 bản ghi) và có dòng mà
+            // cột rỗng (84 bản ghi còn lại). Bốn câu đếm rời sẽ phải tự nhớ
+            // gộp hai hình dạng đó, và quên là bỏ sót đúng 20 bản ghi — lỗi
+            // 19/10/2026 của bộ lọc loại hình.
+            //
+            // Nhóm chia hết tập **theo cấu trúc**: mỗi màn hình công khai có
+            // đúng một giá trị `cong_nghe` (kể cả `NULL`), nên `GROUP BY` trả
+            // một phân hoạch, không phải ba tập chồng nhau cộng một phép trừ.
+            $demCongNghe = ['led' => 0, 'lcd' => 0, 'in_bat' => 0, 'chua_khai' => 0];
+
+            $hangCongNghe = Screen::publiclyVisible()
+                ->leftJoin('screen_specs', 'screen_specs.screen_id', '=', 'screens.id')
+                ->selectRaw('screen_specs.cong_nghe AS ma, COUNT(*) AS so')
+                ->groupBy('screen_specs.cong_nghe')
+                ->get();
+
+            foreach ($hangCongNghe as $h) {
+                $ma = $h->ma === null ? 'chua_khai' : (string) $h->ma;
+
+                if (array_key_exists($ma, $demCongNghe)) {
+                    $demCongNghe[$ma] = (int) $h->so;
+                }
+            }
+
             return [
                 'formats'              => $formats,
                 'screen_types'         => $screenTypes,
+                'cong_nghe'            => $demCongNghe,
                 'categories_networks'  => $this->getCategoriesWithNetworks(),
                 'cities'               => $cities,
                 'networks'             => $networks,
@@ -857,7 +887,7 @@ class FrontpageService
         return Cache::remember("fp:screen:{$id}", 300, function () use ($id) {
             return Screen::publiclyVisible()
                 ->with([
-                    'spec:screen_id,photo_url,photos,width_px,height_px,width_cm,height_cm,allow_image,allow_video',
+                    'spec:screen_id,photo_url,photos,width_px,height_px,width_cm,height_cm,cong_nghe,allow_image,allow_video',
                     // `spot_length` và `share_of_voice_max_pct` thêm 14/10/2026:
                     // trang chi tiết in thời lượng spot, và lịch trống cần biết
                     // trần SOV để tô màu một ngày là "đầy" hay "còn".
@@ -914,7 +944,7 @@ class FrontpageService
                       ->orWhereHas('inventory', fn ($iq) => $iq->where('venue_type', $screen->inventory?->venue_type));
                 })
                 ->with([
-                    'spec:screen_id,photo_url,photos,width_cm,height_cm',
+                    'spec:screen_id,photo_url,photos,width_cm,height_cm,cong_nghe',
                     'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day',
                     'inventory.vnCategory:id,thumb',
                     'owner:id,name,slug,cover_url',
@@ -946,7 +976,7 @@ class FrontpageService
     {
         $query = $this->mapPinQuery($request, $viewport)
             ->with([
-                'spec:screen_id,photo_url,photos,width_cm,height_cm',
+                'spec:screen_id,photo_url,photos,width_cm,height_cm,cong_nghe',
                 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day',
                 'inventory.vnCategory:id,thumb',
                 'owner:id,name,slug,logo_url,cover_url',
@@ -1180,7 +1210,7 @@ class FrontpageService
         }
 
         return $query
-            ->with(['spec:screen_id,photo_url,photos,width_cm,height_cm', 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day', 'inventory.vnCategory:id,thumb', 'owner:id,name,slug,logo_url,cover_url', 'site:id,network_id,name,lat,lon,city,address,banner', 'site.network:id,name,code,banner'])
+            ->with(['spec:screen_id,photo_url,photos,width_cm,height_cm,cong_nghe', 'inventory:screen_id,floor_cpm,floor_cpm_currency,venue_type,vn_category_id,pricing_model,io_rate,io_rate_unit,io_kpi_spots_per_day', 'inventory.vnCategory:id,thumb', 'owner:id,name,slug,logo_url,cover_url', 'site:id,network_id,name,lat,lon,city,address,banner', 'site.network:id,name,code,banner'])
             ->inRandomOrder()
             ->limit($limit)
             ->get();
@@ -1408,6 +1438,21 @@ class FrontpageService
             ->when(! empty($screenTypes = $this->resolveArrayParam($request, 'screen_type')),
                 fn ($q) => $this->applyScreenTypeFilter($q, $screenTypes)
             )
+            // Công nghệ màn hình — lát 1 của `docs/PLAN-CONG-NGHE-MAN-HINH.md`.
+            //
+            // Một bộ lọc riêng, KHÔNG nhồi mã vào `screen_type`: hai trường
+            // trả lời hai câu khác nhau. `screen_type` nói hình thức (biển lớn
+            // hay màn hình) và suy từ kích thước; `cong_nghe` nói công nghệ và
+            // do media owner khai. Một màn LED 6m thuộc `screen_type=billboard`
+            // **và** `cong_nghe=led` — lọc theo cái nào cũng phải thấy nó.
+            //
+            // `chua_khai` là giá trị đặc biệt, không phải một mã enum: nó hỏi
+            // "những vị trí nào CHƯA trả lời câu này". Người mua cần nó để
+            // biết hồ sơ nào còn trống, và media owner cần nó để biết phải
+            // khai gì — hôm nay là cả 104 vị trí.
+            ->when(! empty($congNghe = $this->resolveArrayParam($request, 'cong_nghe')),
+                fn ($q) => $this->applyCongNgheFilter($q, $congNghe)
+            )
             ->when(! empty($orientations = $this->resolveArrayParam($request, 'orientation')),
                 fn ($q) => $this->applyOrientationFilter($q, $orientations)
             )
@@ -1603,7 +1648,17 @@ class FrontpageService
             fn ($w) => $w->where('width_cm', '>=', $nguong)->orWhere('height_cm', '>=', $nguong),
         );
 
-        $ngoaiTroi = fn ($iq) => $iq->where('venue_type', ScreenSummaryResource::VENUE_NGOAI_TROI);
+        // Cùng danh sách id mà `resolveScreenType()` so trên từng bản ghi, nên
+        // nhãn trên thẻ và nhóm của bộ lọc **không thể** trôi khỏi nhau. Trước
+        // 08/11/2026 chỗ này so `venue_type` với chuỗi `'outdoor'` — một cột
+        // NULL trên cả 104 bản ghi production và một mã không có trong
+        // taxonomy; xem docblock `SuyRaLoaiManHinh::resolveScreenType()`.
+        //
+        // Danh sách rỗng (chưa seed danh mục nào) vẫn giữ hai phía khớp nhau:
+        // `whereIn(…, [])` không khớp hàng nào, và phép suy cũng trả `lcd`.
+        $idNgoaiTroi = VenueCategory::idNgoaiTroi();
+
+        $ngoaiTroi = fn ($iq) => $iq->whereIn('vn_category_id', $idNgoaiTroi);
 
         return $query->where(function ($or) use ($hopLe, $canhLon, $ngoaiTroi) {
             foreach ($hopLe as $type) {
@@ -1620,6 +1675,52 @@ class FrontpageService
                         ? $sub->whereHas('inventory', $ngoaiTroi)
                         : $sub->whereDoesntHave('inventory', $ngoaiTroi);
                 });
+            }
+        });
+    }
+
+    /**
+     * Lọc theo công nghệ màn hình — lát 1 của `docs/PLAN-CONG-NGHE-MAN-HINH.md`.
+     *
+     * ══ `chua_khai` không phải một mã enum ══
+     *
+     * Nó là câu hỏi *"vị trí nào chưa trả lời câu này"*, và nó phải là một tập
+     * **rời** khỏi ba mã kia để bốn nhóm chia hết tập màn hình công khai — đúng
+     * tính chất mà `screen_type` đã phải sửa một lần vì không có
+     * (`LoaiHinhNhanKhopBoLocTest`).
+     *
+     * "Chưa khai" có **hai** hình dạng trong CSDL, và cả hai đều có thật:
+     * không có dòng `screen_specs` nào (20/104 bản ghi hôm nay), hoặc có dòng
+     * mà cột `cong_nghe` là `null` (84 bản ghi còn lại). Hỏi `whereNull` thôi
+     * là bỏ sót nhóm thứ nhất — đúng cái bẫy bộ lọc loại hình đã sập ngày
+     * 19/10/2026, khi cả ba nhánh đòi có dòng spec và 20 bản ghi rơi ra ngoài.
+     *
+     * Ba mã thật thì ngược lại: chúng **đòi** có dòng spec, vì một giá trị đã
+     * khai không thể nằm ngoài một dòng không tồn tại.
+     */
+    private function applyCongNgheFilter($query, array $congNghe)
+    {
+        $hopLe = array_values(array_intersect(
+            $congNghe,
+            array_merge(array_keys(ScreenSpec::CONG_NGHE_LABELS), ['chua_khai']),
+        ));
+
+        if ($hopLe === []) {
+            return $query;
+        }
+
+        $ma = array_values(array_diff($hopLe, ['chua_khai']));
+        $hoiChuaKhai = in_array('chua_khai', $hopLe, true);
+
+        return $query->where(function ($or) use ($ma, $hoiChuaKhai) {
+            if ($ma !== []) {
+                $or->orWhereHas('spec', fn ($sq) => $sq->whereIn('cong_nghe', $ma));
+            }
+
+            if ($hoiChuaKhai) {
+                // Không có dòng spec, HOẶC có dòng mà cột rỗng.
+                $or->orWhereDoesntHave('spec')
+                   ->orWhereHas('spec', fn ($sq) => $sq->whereNull('cong_nghe'));
             }
         });
     }

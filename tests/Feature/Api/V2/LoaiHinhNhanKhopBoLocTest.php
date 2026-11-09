@@ -7,6 +7,7 @@ use App\Models\Screen;
 use App\Models\ScreenInventory;
 use App\Models\ScreenSpec;
 use App\Models\Site;
+use App\Models\VenueCategory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -54,14 +55,51 @@ class LoaiHinhNhanKhopBoLocTest extends TestCase
     }
 
     /**
+     * Một danh mục điểm đặt, dựng theo đúng từ vựng của `VenueCategorySeeder`.
+     *
+     * `venue_categories.id` là tinyint **không** auto-increment, nên id phải
+     * tự cấp — cùng cách `BrowseApiTest` làm.
+     */
+    private function danhMuc(int $id, string $slug, string $nhan): VenueCategory
+    {
+        return VenueCategory::create([
+            'id'         => $id,
+            'name'       => $slug,
+            'slug'       => $slug,
+            'name_vi'    => $nhan,
+            'icon'       => 'signpost',
+            'sort_order' => $id,
+            'is_active'  => true,
+        ]);
+    }
+
+    /**
      * Một màn hình công khai.
      *
      * `$spec` là `null` để **không tạo dòng `screen_specs`** nào — trạng thái
-     * của 20/104 bản ghi thật. `$venueType` là `null` để không tạo dòng tồn
-     * kho nào.
+     * của 20/104 bản ghi thật. `$loai` là `null` để không tạo dòng tồn kho nào.
+     *
+     * ══ `venue_type` luôn ghi NULL, và đó là cả điểm của lần sửa 08/11/2026 ══
+     *
+     * Bản trước của tệp này truyền `'outdoor'` và `'mall'` vào cột
+     * `screen_inventory.venue_type` — **một từ vựng không tồn tại trong dữ
+     * liệu thật**. Trên production cột đó là NULL ở cả 104 bản ghi, và taxonomy
+     * thật là khoá ngoại `vn_category_id` → `venue_categories`.
+     *
+     * Nên fixture cũ dựng một thế giới nơi nhánh `led` chạy được, trong khi ở
+     * thế giới thật nó là mã chết: cả nhãn lẫn bộ lọc đọc cùng một hằng số
+     * sai nên chúng khớp nhau hoàn hảo, ca test xanh, và `/explore` in
+     * **LED 0** suốt. Đó là lý do một bộ test chi tiết đến thế vẫn bỏ lọt.
+     *
+     * `$venueTypeCu` chỉ dùng cho **một** ca: chứng minh cột cũ không còn được
+     * đọc nữa.
      */
-    private function manHinh(string $ten, ?array $spec, ?string $venueType): Screen
-    {
+    private function manHinh(
+        string $ten,
+        ?array $spec,
+        ?VenueCategory $loai,
+        ?string $venueTypeCu = null,
+    ): Screen {
         $owner = Owner::factory()->create(['status' => 'active']);
         $site  = Site::factory()->create([
             'owner_id' => $owner->id,
@@ -80,12 +118,15 @@ class LoaiHinhNhanKhopBoLocTest extends TestCase
             ScreenSpec::factory()->create(array_merge(['screen_id' => $screen->id], $spec));
         }
 
-        if ($venueType !== null) {
+        if ($loai !== null || $venueTypeCu !== null) {
             ScreenInventory::create([
-                'screen_id'     => $screen->id,
-                'venue_type'    => $venueType,
-                'pricing_model' => 'io',
-                'spot_length'   => 15,
+                'screen_id'      => $screen->id,
+                'vn_category_id' => $loai?->id,
+                // NULL như production, trừ ca cố ý chứng minh cột này không
+                // còn được đọc.
+                'venue_type'     => $venueTypeCu,
+                'pricing_model'  => 'io',
+                'spot_length'    => 15,
             ]);
         }
 
@@ -104,15 +145,26 @@ class LoaiHinhNhanKhopBoLocTest extends TestCase
         $nho      = ['width_cm' => 120, 'height_cm' => 80];
         $caoThoi  = ['width_cm' => 100, 'height_cm' => 320];
 
-        return [
-            $this->manHinh('Spec rộng', $to, 'outdoor')->slug          => 'billboard',
-            $this->manHinh('Spec cao', $caoThoi, 'mall')->slug         => 'billboard',
-            $this->manHinh('Nhỏ ngoài trời', $nho, 'outdoor')->slug    => 'led',
-            $this->manHinh('Nhỏ trong nhà', $nho, 'mall')->slug        => 'lcd',
+        // Đúng hai mã của `VenueCategorySeeder` mà phép suy quan tâm: id 4 là
+        // mã ngoài trời duy nhất trong cả 12 danh mục.
+        $ngoaiTroi = $this->danhMuc(4, 'roadside', 'Ngoài trời');
+        $trongNha  = $this->danhMuc(2, 'mall', 'Trung tâm thương mại');
 
-            // Hai ca làm đỏ bản cũ.
-            $this->manHinh('Không spec, ngoài trời', null, 'outdoor')->slug => 'led',
-            $this->manHinh('Không spec, không tồn kho', null, null)->slug   => 'lcd',
+        return [
+            $this->manHinh('Spec rộng', $to, $ngoaiTroi)->slug        => 'billboard',
+            $this->manHinh('Spec cao', $caoThoi, $trongNha)->slug     => 'billboard',
+            $this->manHinh('Nhỏ ngoài trời', $nho, $ngoaiTroi)->slug  => 'led',
+            $this->manHinh('Nhỏ trong nhà', $nho, $trongNha)->slug    => 'lcd',
+
+            // Hai ca làm đỏ bản 19/10/2026.
+            $this->manHinh('Không spec, ngoài trời', null, $ngoaiTroi)->slug => 'led',
+            $this->manHinh('Không spec, không tồn kho', null, null)->slug    => 'lcd',
+
+            // Ca làm đỏ bản 08/11/2026: cột `venue_type` mang đúng chuỗi
+            // `'outdoor'` mà bản cũ đi tìm, nhưng danh mục thật là trong nhà.
+            // Phải ra `lcd`. Đỏ ở đây nghĩa là phép suy đã quay lại đọc cột tự
+            // do thay vì taxonomy — tức quay lại một cột NULL trên production.
+            $this->manHinh('venue_type cũ nói ngoài trời', null, $trongNha, 'outdoor')->slug => 'lcd',
         ];
     }
 

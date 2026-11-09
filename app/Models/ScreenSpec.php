@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int         $height_px
  * @property float|null  $width_cm
  * @property float|null  $height_cm
+ * @property string|null $cong_nghe   led|lcd|in_bat, `null` = chưa khai
  * @property string|null $photo_url
  * @property bool        $allow_image
  * @property bool        $allow_video
@@ -34,9 +35,33 @@ class ScreenSpec extends Model
 
     protected $table = 'screen_specs';
 
+    /**
+     * Công nghệ màn hình — lát 1 của `docs/PLAN-CONG-NGHE-MAN-HINH.md`.
+     *
+     * Ba giá trị thật trên thị trường OOH Việt Nam, chốt 08/11/2026. `null` là
+     * **chưa khai**, và nó cố ý không có mã riêng: một mã `chua_khai` trong
+     * enum sẽ bị khai như một câu trả lời, trong khi `null` là cái nó thật sự
+     * là — một ô trống.
+     *
+     * Bảng chữ ở đây, cạnh model của chính cột, nên `NhanEnumMotNoiTest` tự
+     * tìm được: nó dò mọi hằng `<CỘT>_LABELS` trong `app/Models` rồi đối chiếu
+     * hai chiều với định nghĩa enum trong CSDL. Thêm một giá trị vào migration
+     * mà quên chữ ở đây thì đỏ, và ngược lại.
+     *
+     * Vì sao API trả nhãn chứ không để Next tự map: bảng chữ chép sang client
+     * là bản thứ hai của cùng một enum. Ngày 18/10/2026 thẻ màn hình trên
+     * production in `lcd` ra mặt người dùng vì không ai có bảng này.
+     */
+    public const CONG_NGHE_LABELS = [
+        'led'    => 'LED',
+        'lcd'    => 'LCD',
+        'in_bat' => 'In bạt',
+    ];
+
     protected $fillable = [
         // Marketplace
         'screen_id', 'width_px', 'height_px', 'width_cm', 'height_cm',
+        'cong_nghe',
         'photo_url', 'photos', 'allow_image', 'allow_video',
 
         // AdOps (Phase 2)

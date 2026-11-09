@@ -138,6 +138,24 @@ class ScreenDetailResource extends ScreenSummaryResource
                 'spot_length_s' => $inventory?->spot_length !== null ? (int) $inventory->spot_length : null,
                 'orientation'   => $this->orientation,
 
+                // ══ `cong_nghe` KHÔNG ở đây ══
+                //
+                // Nó là một thuộc tính vật lý nên `specs` là chỗ nó trông
+                // thuộc về, và bản đầu của lát 1
+                // (`docs/PLAN-CONG-NGHE-MAN-HINH.md`) đã đặt nó ở đây. Chốt
+                // `ScreenDetailApiTest::test_khong_them_truong_nao_ngoai_danh_sach_da_khai`
+                // bắt được, và cái nó bắt là một bản sao: DTO này **thừa kế**
+                // `ScreenSummaryResource`, nơi `cong_nghe` + `cong_nghe_label`
+                // đã có ở tầng ngoài (danh sách không có `specs` nên ở đó
+                // không có lựa chọn khác). Để cả hai là hai nhánh cùng đọc
+                // `screen_specs.cong_nghe` và **tính nhãn hai lần** — hôm nay
+                // chúng không lệch được, nhưng lần sau ai sửa bảng chữ ở một
+                // nhánh thì trang chi tiết và thẻ danh sách nói hai chữ khác
+                // nhau cho cùng một màn hình.
+                //
+                // Nên: một chỗ, tầng ngoài, ở `ScreenSummaryResource`. Đọc
+                // `data.cong_nghe`, không phải `data.specs.cong_nghe`.
+
                 // Nhãn, không phải `vn_category_id`. Id của `venue_categories`
                 // là khóa nội bộ: client không có cách nào tra nó, và trả id
                 // ra ngoài là mời người ta đoán không gian id của hệ thống.

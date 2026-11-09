@@ -20,6 +20,7 @@ use App\Http\Resources\V2\ProductDetailResource;
 use App\Http\Resources\V2\ProductSummaryResource;
 use App\Http\Resources\V2\ScreenDetailResource;
 use App\Http\Resources\V2\ScreenSummaryResource;
+use App\Models\ScreenSpec;
 use App\Services\AvailabilityService;
 use App\Services\FrontpageService;
 use App\Services\InventoryHoldService;
@@ -478,6 +479,25 @@ class CatalogController extends Controller
                         'name'  => $nhan,
                         'count' => (int) ($aggregates['screen_types'][$ma] ?? 0),
                     ])->values()->all(),
+
+                // Công nghệ màn hình — lát 1 của `docs/PLAN-CONG-NGHE-MAN-HINH.md`.
+                //
+                // Nhóm thứ tư `chua_khai` **không** phải một mã enum, nên nó
+                // không có trong `CONG_NGHE_LABELS` và được nối vào ở đây. Nó
+                // phải có mặt: hôm nay nó là 104/104, và một cột lọc chỉ in ba
+                // số 0 sẽ đọc như "sàn không có màn hình nào" thay vì "chưa ai
+                // khai". Hai câu đó dẫn tới hai hành động khác nhau.
+                'cong_nghe' => collect(ScreenSpec::CONG_NGHE_LABELS)
+                    ->map(fn ($nhan, $ma) => [
+                        'code'  => $ma,
+                        'name'  => $nhan,
+                        'count' => (int) ($aggregates['cong_nghe'][$ma] ?? 0),
+                    ])->values()
+                    ->push([
+                        'code'  => 'chua_khai',
+                        'name'  => 'Chưa khai',
+                        'count' => (int) ($aggregates['cong_nghe']['chua_khai'] ?? 0),
+                    ])->all(),
             ],
         ]);
     }
