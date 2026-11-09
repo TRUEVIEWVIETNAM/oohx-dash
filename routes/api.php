@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V2\PaymentController as V2PaymentController;
 use App\Http\Controllers\Api\V2\CampaignReportController as V2CampaignReportController;
 use App\Http\Controllers\Api\V2\PaymentRecipientController as V2PaymentRecipientController;
 use App\Http\Controllers\Api\V2\DoDacController as V2DoDacController;
+use App\Http\Controllers\Api\V2\LuotXemController as V2LuotXemController;
 use App\Http\Controllers\Api\V2\PublicContentController as V2PublicContentController;
 use App\Http\Controllers\Api\V2\QuoteRequestController as V2QuoteRequestController;
 use App\Http\Controllers\Api\V2\SettingsController as V2SettingsController;
@@ -113,6 +114,25 @@ Route::prefix('v2')->group(function () {
     // ("availability") làm nó không thể khớp vào `{slug}` — khác với
     // `screens/map`, vốn chỉ có một đoạn.
     Route::get('screens/{slug}/availability', [V2CatalogController::class, 'screenAvailability']);
+
+    // Máy đếm lượt xem — lát 1 của `docs/PLAN-LUOT-XEM.md`.
+    //
+    // Đứng cạnh `screens/{slug}` được, cùng lý do như `availability` ngay
+    // trên: đoạn thứ hai ("luot-xem") làm nó không thể khớp vào `{slug}`.
+    //
+    // `60,60` chứ không `5,60` như biểu mẫu: đây là sự kiện tự động của trang
+    // chi tiết, và một người đi xem 20 vị trí trong một giờ sinh ra 20 lượt
+    // một cách hoàn toàn bình thường. Cũng không `30,60` như `do-dac`: ô đó
+    // gửi nhiều nhất vài lượt cho mỗi lần mở `/explore`, còn ô này gửi một
+    // lượt cho mỗi **vị trí** được mở, nên trần phải cao hơn số vị trí một
+    // người duyệt được trong một giờ.
+    //
+    // Lớp chặn thật nằm ở chỗ khác: bảng đích có khoá duy nhất `(ngay,
+    // screen_id)` nên không lớn theo số lượt gửi, và slug phải là một màn
+    // hình công khai thật. Bơm số vào đây không làm bảng phình, chỉ làm vài
+    // con số cao hơn sự thật.
+    Route::post('screens/{slug}/luot-xem', [V2LuotXemController::class, 'store'])
+        ->middleware('throttle:60,60');
 
     Route::get('owners/featured',  [V2CatalogController::class, 'featuredOwners']);
     Route::get('owners',           [V2CatalogController::class, 'owners']);

@@ -870,14 +870,38 @@ class FrontpageService
                     'site:id,network_id,name,city,address,lat,lon,banner',
                     'site.network:id,name,code,banner',
                 ])
-                ->where(function ($q) use ($id) {
-                    $q->where('slug', $id)
-                      ->orWhere('id', $id)
-                      ->orWhere('uuid', $id)
-                      ->orWhere('external_id', $id);
-                })
+                ->theoDinhDanhCongKhai($id)
                 ->first();
         });
+    }
+
+    /**
+     * Id của một màn hình công khai, tra theo bất cứ định danh nào của nó —
+     * lát 1 của `docs/PLAN-LUOT-XEM.md`.
+     *
+     * ══ Vì sao không gọi `getScreenDetail()` ══
+     *
+     * Máy đếm lượt xem chỉ cần **một chuỗi id**. `getScreenDetail()` nạp bảy
+     * quan hệ cho trang chi tiết và bọc kết quả trong `Cache::remember` 300
+     * giây — tốn gấp nhiều lần việc đang cần, và cái cache ấy là một cái bẫy
+     * riêng: nó được nạp bởi phép đọc của SSR, nên một đường ghi dựa vào nó sẽ
+     * **im lặng theo nhịp của cache** thay vì theo nhịp người dùng.
+     *
+     * Phần duy nhất phải dùng chung với trang chi tiết là *định nghĩa* của
+     * "màn hình công khai" và của "định danh nào dẫn tới nó". Cả hai đều là
+     * scope trên model, nên hai đường không thể lệch nhau: `publiclyVisible()`
+     * và `theoDinhDanhCongKhai()`.
+     *
+     * Không cache: một lượt `SELECT id` theo chỉ mục duy nhất rẻ hơn một lượt
+     * đọc cache, và `throttle` ở route đã là trần của đường này.
+     */
+    public function timIdCongKhai(string $dinhDanh): ?string
+    {
+        $id = Screen::publiclyVisible()
+            ->theoDinhDanhCongKhai($dinhDanh)
+            ->value('screens.id');
+
+        return $id === null ? null : (string) $id;
     }
 
     public function getSimilarScreens(Screen $screen, int $limit = 4): Collection

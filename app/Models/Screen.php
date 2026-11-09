@@ -389,6 +389,35 @@ class Screen extends Model
     }
 
     /**
+     * Khớp một màn hình theo **mọi định danh công khai của nó**.
+     *
+     * Trang chi tiết nhận `/explore/{slug}`, nhưng bốn dạng dưới đây đều đã
+     * dẫn tới cùng một màn hình từ trước, nên cả bốn phải tiếp tục dẫn tới nó.
+     *
+     * ══ Vì sao là một scope, không phải một `where` viết tại chỗ ══
+     *
+     * Hai đường đọc cần **cùng** phép khớp này: `getScreenDetail()` nạp trang
+     * chi tiết, và `timIdCongKhai()` tra id cho máy đếm lượt xem
+     * (`docs/PLAN-LUOT-XEM.md`). Hai bản viết rời sẽ lệch, và lệch ở đây có
+     * một hệ quả im lặng: trang mở bình thường còn lượt xem trả 404, tức con
+     * số của những màn hình đi vào bằng `uuid` hoặc `external_id` **vĩnh viễn
+     * bằng 0** mà không gì đỏ.
+     *
+     * Bọc trong một closure vì bốn điều kiện nối bằng `OR`: để trần thì một
+     * `orWhere` ăn lan ra khỏi nhóm và kéo theo cả `publiclyVisible()` —
+     * nghĩa là một màn hình đã tắt vẫn khớp, miễn trùng `uuid`.
+     */
+    public function scopeTheoDinhDanhCongKhai($query, string $dinhDanh)
+    {
+        return $query->where(function ($q) use ($dinhDanh) {
+            $q->where('slug', $dinhDanh)
+              ->orWhere('id', $dinhDanh)
+              ->orWhere('uuid', $dinhDanh)
+              ->orWhere('external_id', $dinhDanh);
+        });
+    }
+
+    /**
      * Biểu thức SQL cho "màn hình có ảnh của **chính nó**" — lát 3 của
      * `docs/PLAN-ANH-VI-TRI.md`.
      *

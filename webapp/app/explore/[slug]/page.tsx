@@ -14,6 +14,7 @@ import { LichGon } from '@/components/LichGon';
 import { KhoiHoSo } from '@/components/KhoiHoSo';
 import { PanelGia } from '@/components/PanelGia';
 import { KhoiViTri } from '@/components/KhoiViTri';
+import { GhiLuotXem } from '@/components/GhiLuotXem';
 
 /**
  * `/explore/{slug}` — chi tiết một màn hình.
@@ -196,6 +197,13 @@ export default async function ScreenDetailPage({ params }: { params: Promise<Par
     return (
         <>
             <SiteHeader active="explore" />
+
+            {/*
+              Máy đếm lượt xem — lát 2 của `docs/PLAN-LUOT-XEM.md`. Không vẽ
+              gì; nó là chỗ duy nhất trên trang này chạy trong trình duyệt của
+              một người thật, nên nó là chỗ duy nhất đếm đúng.
+            */}
+            <GhiLuotXem slug={slug} />
 
             <main>
             {/* Bản Blade phát `og:type=product`. Giữ nguyên — xem `OgType`. */}
